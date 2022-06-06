@@ -3,35 +3,34 @@ package ch.ubique.backend.job;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobState;
-import ch.ubique.backend.job.model.entity.JobEntity;
-import ch.ubique.backend.job.model.entity.JobRunEntity;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
-import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-public abstract class BaseJob implements Job, Runnable {
+public abstract class BaseJob<T extends Job, U extends JobRun> implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    protected final JobEntity job;
-    protected final JobRunEntity jobRun;
-    protected final JobDataService jobDataService;
+    protected final T job;
+    protected final U jobRun;
+    protected final JobDataService<T, U> jobDataService;
 
     private Map<String, String> previousMDCContext;
     private Path logOutput;
 
-    protected BaseJob(final JobDataService jobDataService) {
+    protected BaseJob(final JobDataService<T, U> jobDataService) {
         this.jobDataService = jobDataService;
         this.job = jobDataService.registerJobByClass(getClass());
-        this.jobRun = new JobRunEntity();
+        this.jobRun = jobDataService.newRunInstance();
     }
 
     @Override
