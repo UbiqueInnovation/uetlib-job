@@ -6,12 +6,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import org.apache.commons.lang3.StringUtils;
-import org.quartz.CronExpression;
 
 @Table(name = "t_job")
 @Entity
-public class JobEntity {
+public class JobEntity implements ch.ubique.backend.job.model.Job {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,44 +25,43 @@ public class JobEntity {
     @Column(name = "cron_expression", nullable = false, length = 20)
     private String cronExpression;
 
-    public String getCronExpression() {
-        return cronExpression;
-    }
-
-    public void setCronExpression(String cronExpression) {
-        this.cronExpression = cronExpression;
-    }
-
-    public String getClazz() {
-        return clazz;
-    }
-
-    public void setClazz(String clazz) {
-        this.clazz = clazz;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
+    @Override
     public Integer getId() {
         return id;
     }
 
+    @Override
     public void setId(Integer id) {
         this.id = id;
     }
 
-    public boolean isCronActive() {
-        return !StringUtils.isBlank(cronExpression) && isCronExpressionValid();
+    @Override
+    public String getName() {
+        return name;
     }
 
-    public boolean isCronExpressionValid() {
-        return StringUtils.isBlank(cronExpression)
-                || CronExpression.isValidExpression(cronExpression);
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getClazz() {
+        return clazz;
+    }
+
+    @Override
+    public void setClazz(String clazz) {
+        this.clazz = clazz;
+    }
+
+    @Override
+    public String getCronExpression() {
+        return cronExpression;
+    }
+
+    @Override
+    public void setCronExpression(String cronExpression) {
+        this.cronExpression = cronExpression;
     }
 }
