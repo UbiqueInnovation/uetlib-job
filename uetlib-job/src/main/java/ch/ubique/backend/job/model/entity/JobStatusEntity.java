@@ -8,7 +8,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-@Table(name = "t_job")
+@Table(name = "t_job_status")
 @Entity
 public class JobStatusEntity implements JobStatus {
 
