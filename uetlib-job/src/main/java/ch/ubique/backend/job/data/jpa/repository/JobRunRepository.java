@@ -14,12 +14,12 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     List<JobRunEntity> findAllByStateAndFinishedAtIsNull(final JobRunState state);
 
-    Optional<JobRunEntity> findFirstByJobIdOrderByStartedAtDesc(Integer jobId);
+    Optional<JobRunEntity> findFirstByJobStatusIdOrderByStartedAtDesc(Integer jobId);
 
-    Page<JobRunEntity> findAllByJobIdAndStateOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByJobStatusIdAndStateOrderByStartedAtDesc(
             Integer jobId, JobRunState state, Pageable pageable);
 
-    Page<JobRunEntity> findAllByJobIdOrderByStartedAtDesc(Integer jobId, Pageable pageable);
+    Page<JobRunEntity> findAllByJobStatusIdOrderByStartedAtDesc(Integer jobId, Pageable pageable);
 
     Page<JobRunEntity> findAllByStateOrderByStartedAtDesc(JobRunState state, Pageable pageable);
 
