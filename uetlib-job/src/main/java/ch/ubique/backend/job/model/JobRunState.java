@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.model;
 
-public enum JobState {
+public enum JobRunState {
     BUSY,
     DONE,
     ERROR,

@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.data.jdbc.service;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJobStatus;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
 import java.util.List;
@@ -45,7 +45,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
 
     @Override
     public Page<JdbcJobRun> findJobRuns(
-            final int pageNumber, final int pageSize, final String name, final JobState state) {
+            final int pageNumber, final int pageSize, final String name, final JobRunState state) {
         throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
     }
 

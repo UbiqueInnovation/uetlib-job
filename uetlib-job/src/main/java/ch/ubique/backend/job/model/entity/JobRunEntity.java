@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobRunState;
 import java.time.Instant;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -26,7 +26,7 @@ public class JobRunEntity implements JobRun {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 20)
-    private JobState state;
+    private JobRunState state;
 
     @Column(name = "log_output", nullable = false)
     private String logOutput;
@@ -68,12 +68,12 @@ public class JobRunEntity implements JobRun {
     }
 
     @Override
-    public JobState getState() {
+    public JobRunState getState() {
         return state;
     }
 
     @Override
-    public void setState(final JobState state) {
+    public void setState(final JobRunState state) {
         this.state = state;
     }
 

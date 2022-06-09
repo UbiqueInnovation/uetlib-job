@@ -5,7 +5,7 @@ import ch.ubique.backend.job.data.jpa.repository.JobStatusRepository;
 import ch.ubique.backend.job.data.jpa.repository.JobRunRepository;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobStatus;
-import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobStatusEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import java.time.Instant;
@@ -34,11 +34,11 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
     public void cleanUpBusyRuns() {
         final var now = Instant.now();
         jobRunRepository.saveAllAndFlush(
-                jobRunRepository.findAllByStateAndFinishedAtIsNull(JobState.BUSY).stream()
+                jobRunRepository.findAllByStateAndFinishedAtIsNull(JobRunState.BUSY).stream()
                         .map(
                                 jobRun -> {
                                     jobRun.setFinishedAt(now);
-                                    jobRun.setState(JobState.UNFINISHED);
+                                    jobRun.setState(JobRunState.UNFINISHED);
                                     return jobRunRepository.save(jobRun);
                                 })
                         .collect(Collectors.toList()));
@@ -86,7 +86,7 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
     @Override
     @Transactional(readOnly = true)
     public Page<JobRunEntity> findJobRuns(
-            final int pageNumber, final int pageSize, final String name, final JobState state) {
+            final int pageNumber, final int pageSize, final String name, final JobRunState state) {
         final var page = PageRequest.of(pageNumber, pageSize);
         if (name != null) {
             final var jobId =

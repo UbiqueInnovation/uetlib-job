@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.model.jdbc;
 
 import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobRunState;
 import java.time.Instant;
 
 public class JdbcJobRun implements JobRun {
@@ -10,7 +10,7 @@ public class JdbcJobRun implements JobRun {
 
     private Integer jobId;
 
-    private JobState state;
+    private JobRunState state;
 
     private String logOutput;
 
@@ -49,12 +49,12 @@ public class JdbcJobRun implements JobRun {
     }
 
     @Override
-    public JobState getState() {
+    public JobRunState getState() {
         return state;
     }
 
     @Override
-    public void setState(final JobState state) {
+    public void setState(final JobRunState state) {
         this.state = state;
     }
 

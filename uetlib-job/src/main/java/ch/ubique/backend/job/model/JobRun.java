@@ -16,9 +16,9 @@ public interface JobRun {
 
     void setLogOutput(String logOutput);
 
-    JobState getState();
+    JobRunState getState();
 
-    void setState(JobState state);
+    void setState(JobRunState state);
 
     Integer getJobStatusId();
 

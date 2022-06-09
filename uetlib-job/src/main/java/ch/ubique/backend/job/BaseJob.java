@@ -4,7 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobStatus;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,7 +45,7 @@ public abstract class BaseJob<T extends JobStatus, U extends JobRun> implements 
             updateJobRunEnd(jobState);
         } catch (Exception e) {
             logger.error("Exception running job: ", e);
-            updateJobRunEnd(JobState.ERROR);
+            updateJobRunEnd(JobRunState.ERROR);
         }
         tearDownLog();
     }
@@ -55,10 +55,10 @@ public abstract class BaseJob<T extends JobStatus, U extends JobRun> implements 
         run();
     }
 
-    protected abstract JobState internalRun();
+    protected abstract JobRunState internalRun();
 
     private void updateJobRunStart() {
-        jobRun.setState(JobState.BUSY);
+        jobRun.setState(JobRunState.BUSY);
         jobRun.setStartedAt(Instant.now());
         jobRun.setJobStatusId(job.getId());
         if (logOutput != null) {
@@ -67,7 +67,7 @@ public abstract class BaseJob<T extends JobStatus, U extends JobRun> implements 
         jobRun.setId(jobDataService.saveJobRun(jobRun).getId());
     }
 
-    private void updateJobRunEnd(JobState finalState) {
+    private void updateJobRunEnd(JobRunState finalState) {
         jobRun.setState(finalState);
         jobRun.setFinishedAt(Instant.now());
         jobRun.setLogOutput(getLogOutputContent());
