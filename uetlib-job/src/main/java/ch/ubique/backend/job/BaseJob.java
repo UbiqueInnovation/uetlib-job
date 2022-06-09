@@ -3,21 +3,22 @@ package ch.ubique.backend.job;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobStatus;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
+import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-public abstract class BaseJob<T extends Job, U extends JobRun> implements org.quartz.Job, Runnable {
+public abstract class BaseJob<T extends JobStatus, U extends JobRun> implements Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final T job;
@@ -59,7 +60,7 @@ public abstract class BaseJob<T extends Job, U extends JobRun> implements org.qu
     private void updateJobRunStart() {
         jobRun.setState(JobState.BUSY);
         jobRun.setStartedAt(Instant.now());
-        jobRun.setJobId(job.getId());
+        jobRun.setJobStatusId(job.getId());
         if (logOutput != null) {
             jobRun.setLogOutput("file:" + this.logOutput.toFile().getAbsolutePath());
         }

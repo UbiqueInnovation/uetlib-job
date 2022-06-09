@@ -20,9 +20,9 @@ public interface JobRun {
 
     void setState(JobState state);
 
-    Integer getJobId();
+    Integer getJobStatusId();
 
-    void setJobId(Integer jobId);
+    void setJobStatusId(Integer jobId);
 
     Integer getId();
 
