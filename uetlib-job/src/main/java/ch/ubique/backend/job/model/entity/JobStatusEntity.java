@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model.entity;
 
+import ch.ubique.backend.job.model.JobStatus;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -9,11 +10,11 @@ import javax.persistence.Table;
 
 @Table(name = "t_job")
 @Entity
-public class JobEntity implements ch.ubique.backend.job.model.Job {
+public class JobStatusEntity implements JobStatus {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "pk_job_id", nullable = false)
+    @Column(name = "pk_job_status_id", nullable = false)
     private Integer id;
 
     @Column(name = "name", nullable = false)

@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.model.jdbc;
 
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobStatus;
 
-public class JdbcJob implements Job {
+public class JdbcJobStatus implements JobStatus {
 
     private Integer id;
 
