@@ -1,4 +1,4 @@
-CREATE TABLE t_job
+CREATE TABLE t_job_status
 (
     pk_job_status_id       integer GENERATED ALWAYS AS IDENTITY,
     name            text        NOT NULL,
@@ -16,6 +16,6 @@ CREATE TABLE t_job_run
     started_at    timestamp with time zone NOT NULL,
     finished_at   timestamp with time zone,
     PRIMARY KEY (pk_job_run_id),
-    FOREIGN KEY (fk_job_status_id) REFERENCES t_job (pk_job_status_id)
+    FOREIGN KEY (fk_job_status_id) REFERENCES t_job_status (pk_job_status_id)
 );
 
