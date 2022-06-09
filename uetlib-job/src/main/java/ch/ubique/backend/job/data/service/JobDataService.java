@@ -2,7 +2,7 @@ package ch.ubique.backend.job.data.service;
 
 import ch.ubique.backend.job.model.JobStatus;
 import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobState;
+import ch.ubique.backend.job.model.JobRunState;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.PostConstruct;
@@ -36,7 +36,7 @@ public interface JobDataService<S extends JobStatus, R extends JobRun> {
     List<S> findJobStatuses();
 
     @Transactional(readOnly = true)
-    Page<R> findJobRuns(int pageNumber, int pageSize, String name, JobState state);
+    Page<R> findJobRuns(int pageNumber, int pageSize, String name, JobRunState state);
 
     @Transactional
     S registerJobByClass(Class<?> cls);
