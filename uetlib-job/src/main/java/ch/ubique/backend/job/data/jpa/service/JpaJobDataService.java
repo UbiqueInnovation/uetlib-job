@@ -74,7 +74,7 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
     @Override
     @Transactional(readOnly = true)
     public Optional<JobRunEntity> findLatestJobRun(final Integer jobId) {
-        return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
+        return jobRunRepository.findFirstByJobStatusIdOrderByStartedAtDesc(jobId);
     }
 
     @Override
@@ -97,10 +97,10 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
                                     ResourceNotFoundException.throwWithMessage(
                                             "No JobEntity with name {0} found", name));
             if (state != null) {
-                return jobRunRepository.findAllByJobIdAndStateOrderByStartedAtDesc(
+                return jobRunRepository.findAllByJobStatusIdAndStateOrderByStartedAtDesc(
                         jobId, state, page);
             }
-            return jobRunRepository.findAllByJobIdOrderByStartedAtDesc(jobId, page);
+            return jobRunRepository.findAllByJobStatusIdOrderByStartedAtDesc(jobId, page);
         }
         if (state != null) {
             return jobRunRepository.findAllByStateOrderByStartedAtDesc(state, page);
