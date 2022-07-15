@@ -33,6 +33,9 @@ public interface JobDataService<S extends JobStatus, R extends JobRun> {
     Optional<R> findLatestJobRun(Integer jobId);
 
     @Transactional(readOnly = true)
+    Optional<R> findLatestJobRunByState(Integer jobId, JobRunState state);
+
+    @Transactional(readOnly = true)
     List<S> findJobStatuses();
 
     @Transactional(readOnly = true)
