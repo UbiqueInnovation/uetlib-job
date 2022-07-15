@@ -15,7 +15,7 @@ public class JdbcJobParamsCreator {
     public static SqlParameterSource createParamsForJdbcJobStatus(JdbcJobStatus jobStatus) {
         MapSqlParameterSource parameterSource = new MapSqlParameterSource();
         if (jobStatus.getId() != null) {
-            parameterSource.addValue("pk_importer_id", jobStatus.getId());
+            parameterSource.addValue("pk_job_status_id", jobStatus.getId());
         }
         parameterSource.addValue("name", jobStatus.getName());
         parameterSource.addValue("clazz", jobStatus.getClazz());

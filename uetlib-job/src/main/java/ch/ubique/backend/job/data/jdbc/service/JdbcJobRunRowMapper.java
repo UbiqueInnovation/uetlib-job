@@ -17,7 +17,10 @@ public class JdbcJobRunRowMapper implements RowMapper<JdbcJobRun> {
         jobRun.setState(JobRunState.valueOf(rs.getString("state")));
         jobRun.setLogOutput(rs.getString("log_output"));
         jobRun.setStartedAt(rs.getTimestamp("started_at").toInstant());
-        jobRun.setFinishedAt(rs.getTimestamp("finished_at").toInstant());
+        var finishedAt = rs.getTimestamp("finished_at").toInstant();
+        if(finishedAt != null){
+            jobRun.setFinishedAt(finishedAt);
+        }
         return jobRun;
     }
 }

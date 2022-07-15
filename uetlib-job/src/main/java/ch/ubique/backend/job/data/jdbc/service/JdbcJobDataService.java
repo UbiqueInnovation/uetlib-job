@@ -24,7 +24,7 @@ import javax.sql.DataSource;
 public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJobRun> {
 
     private final NamedParameterJdbcTemplate jt;
-    Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
+    private final Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
 
     private final SimpleJdbcInsert jobStatusInsert;
     private final SimpleJdbcInsert jobRunInsert;
@@ -113,7 +113,11 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
                         Map.of("cron_expression", cronExpression, "clazz", clazz));
         try {
             jt.update(sql, params);
-            return findJobStatusByClass(clazz).get();
+            var jobStatus = findJobStatusByClass(clazz);
+            if(jobStatus.isPresent()){
+                return jobStatus.get();
+            }
+            return null;
         } catch (DataAccessException e) {
             logger.warn("Could not update cron expression for clazz {}.", clazz);
             return null;
@@ -132,6 +136,24 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
                     jt.queryForObject(
                             sql,
                             new MapSqlParameterSource(Map.of("fk_job_status_id", jobId)),
+                            new JdbcJobRunRowMapper()));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<JdbcJobRun> findLatestJobRunByState(final Integer jobId, final JobRunState state) {
+        if (jobId == null || state == null) {
+            return Optional.empty();
+        }
+        var sql =
+                "select * from t_job_run where fk_job_status_id = :jobId and state = :state order by started_at desc limit 1";
+        try {
+            return Optional.ofNullable(
+                    jt.queryForObject(
+                            sql,
+                            new MapSqlParameterSource(Map.of("fk_job_status_id", jobId, "state", state)),
                             new JdbcJobRunRowMapper()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -159,13 +181,18 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
         params.addValue("page_size", pageSize);
         params.addValue("offset", pageSize * pageNumber);
 
+        List<String> andConditions = new ArrayList<>();
+
         if (state != null) {
             params.addValue("state", state);
-            sql += " where state = :state";
+            andConditions.add("state = :state");
         }
         if (name != null) {
             params.addValue("name", name);
-            sql += " and name = :name";
+            andConditions.add("name = :name");
+        }
+        if (!andConditions.isEmpty()) {
+            sql += " where " + String.join(" and ", andConditions);
         }
 
         sql += " order by started_at desc limit :page_size offset :offset";

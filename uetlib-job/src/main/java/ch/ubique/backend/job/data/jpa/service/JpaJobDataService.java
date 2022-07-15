@@ -78,6 +78,11 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
     }
 
     @Override
+    public Optional<JobRunEntity> findLatestJobRunByState(Integer jobId, JobRunState state) {
+        return jobRunRepository.findFirstByJobStatusIdAndStateOrderByStartedAtDesc(jobId, state);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<JobStatusEntity> findJobStatuses() {
         return jobStatusRepository.findAllByOrderByName();

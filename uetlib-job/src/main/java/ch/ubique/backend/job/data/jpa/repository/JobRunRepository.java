@@ -16,6 +16,8 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     Optional<JobRunEntity> findFirstByJobStatusIdOrderByStartedAtDesc(Integer jobId);
 
+    Optional<JobRunEntity> findFirstByJobStatusIdAndStateOrderByStartedAtDesc(Integer jobId, final JobRunState state);
+
     Page<JobRunEntity> findAllByJobStatusIdAndStateOrderByStartedAtDesc(
             Integer jobId, JobRunState state, Pageable pageable);
 
