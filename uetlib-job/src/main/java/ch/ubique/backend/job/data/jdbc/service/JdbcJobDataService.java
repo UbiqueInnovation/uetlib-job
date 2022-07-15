@@ -24,7 +24,7 @@ import javax.sql.DataSource;
 public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJobRun> {
 
     private final NamedParameterJdbcTemplate jt;
-    private final Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
 
     private final SimpleJdbcInsert jobStatusInsert;
     private final SimpleJdbcInsert jobRunInsert;
@@ -135,7 +135,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
             return Optional.ofNullable(
                     jt.queryForObject(
                             sql,
-                            new MapSqlParameterSource(Map.of("fk_job_status_id", jobId)),
+                            new MapSqlParameterSource(Map.of("jobId", jobId)),
                             new JdbcJobRunRowMapper()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
