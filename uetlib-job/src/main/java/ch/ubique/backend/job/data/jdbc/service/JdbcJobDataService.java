@@ -4,59 +4,211 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJobStatus;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-import java.util.List;
-import java.util.Optional;
-import org.apache.commons.lang3.NotImplementedException;
+
+import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
+
+import javax.sql.DataSource;
 
 @Service
 public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJobRun> {
 
+    private final NamedParameterJdbcTemplate jt;
+    Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
+
+    private final SimpleJdbcInsert jobStatusInsert;
+    private final SimpleJdbcInsert jobRunInsert;
+
+    public JdbcJobDataService(DataSource dataSource) {
+        this.jt = new NamedParameterJdbcTemplate(dataSource);
+        this.jobStatusInsert =
+                new SimpleJdbcInsert(dataSource)
+                        .withTableName("t_job_status")
+                        .usingGeneratedKeyColumns("pk_job_status_id");
+        this.jobRunInsert =
+                new SimpleJdbcInsert(dataSource)
+                        .withTableName("t_job")
+                        .usingGeneratedKeyColumns("pk_job_run_id");
+    }
+
     @Override
     public void cleanUpBusyRuns() {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("busy", JobRunState.BUSY.name());
+        params.addValue("unfinished", JobRunState.UNFINISHED.name());
+        params.addValue("now", new Date());
+        jt.update(
+                "update t_job_run set state = :unfinished, finished_at = :now where state = :busy",
+                params);
     }
 
     @Override
     public Optional<String> findLogForJobRun(final Integer jobRunId) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        if (jobRunId == null) {
+            return Optional.empty();
+        }
+        Optional<JdbcJobRun> jobRun = findJobRunById(jobRunId);
+        if (jobRun.isPresent()) {
+            return Optional.ofNullable(jobRun.get().getLogOutput());
+        } else {
+            logger.warn("job run (id={}) not found", jobRunId);
+            return Optional.empty();
+        }
+    }
+
+    private Optional<JdbcJobRun> findJobRunById(Integer jobRunId) {
+        if (jobRunId == null) {
+            return Optional.empty();
+        }
+        try {
+            final var sql = "select * from t_job_run where pk_job_run_id = :id";
+            final var jobRun =
+                    jt.queryForObject(
+                            sql,
+                            new MapSqlParameterSource("id", jobRunId),
+                            new JdbcJobRunRowMapper());
+            return Optional.ofNullable(jobRun);
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public Optional<JdbcJobStatus> findJobStatusByClass(final String clazz) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        if (clazz == null) {
+            return Optional.empty();
+        }
+        try {
+            final var sql = "select * from t_job_status where clazz = :clazz";
+            final var jobRun =
+                    jt.queryForObject(
+                            sql,
+                            new MapSqlParameterSource("clazz", clazz),
+                            new JdbcJobStatusRowMapper());
+            return Optional.ofNullable(jobRun);
+        } catch (EmptyResultDataAccessException e) {
+            logger.info("No job found for class {}.", clazz);
+            return Optional.empty();
+        }
     }
 
     @Override
     public JdbcJobStatus updateCronExpression(final String clazz, final String cronExpression) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        if (clazz == null || cronExpression == null) {
+            return null;
+        }
+        var sql = "update t_job_status set cron_expression = :cronExpression where clazz = :clazz";
+        MapSqlParameterSource params =
+                new MapSqlParameterSource(
+                        Map.of("cron_expression", cronExpression, "clazz", clazz));
+        try {
+            jt.update(sql, params);
+            return findJobStatusByClass(clazz).get();
+        } catch (DataAccessException e) {
+            logger.warn("Could not update cron expression for clazz {}.", clazz);
+            return null;
+        }
     }
 
     @Override
     public Optional<JdbcJobRun> findLatestJobRun(final Integer jobId) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        if (jobId == null) {
+            return Optional.empty();
+        }
+        var sql =
+                "select * from t_job_run where fk_job_status_id = :jobId order by started_at desc limit 1";
+        try {
+            return Optional.ofNullable(
+                    jt.queryForObject(
+                            sql,
+                            new MapSqlParameterSource(Map.of("fk_job_status_id", jobId)),
+                            new JdbcJobRunRowMapper()));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public List<JdbcJobStatus> findJobStatuses() {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        final var sql = "select * from t_jobs";
+        try {
+            return jt.query(sql, new JdbcJobStatusRowMapper());
+        } catch (DataAccessException e) {
+            logger.info("No job statuses found.");
+            return List.of();
+        }
     }
 
     @Override
     public Page<JdbcJobRun> findJobRuns(
             final int pageNumber, final int pageSize, final String name, final JobRunState state) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+
+        String sql = "select * from t_job_run";
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("page_size", pageSize);
+        params.addValue("offset", pageSize * pageNumber);
+
+        if (state != null) {
+            params.addValue("state", state);
+            sql += " where state = :state";
+        }
+        if (name != null) {
+            params.addValue("name", name);
+            sql += " and name = :name";
+        }
+
+        sql += " order by started_at desc limit :page_size offset :offset";
+
+        try {
+            return new PageImpl<>(jt.query(sql, params, new JdbcJobRunRowMapper()));
+        } catch (DataAccessException e) {
+            logger.info("No job runs found.");
+            return new PageImpl<>(List.of());
+        }
     }
 
     @Override
     public JdbcJobStatus registerJobByClass(final Class<?> cls) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        final var existingJobStatus = findJobStatusByClass(cls.getName());
+        if (existingJobStatus.isPresent()) {
+            return existingJobStatus.get();
+        }
+        final var jobStatus = new JdbcJobStatus();
+        jobStatus.setName(cls.getSimpleName());
+        jobStatus.setClazz(cls.getCanonicalName());
+        jobStatus.setCronExpression("not set");
+        Number pk =
+                jobStatusInsert.executeAndReturnKey(
+                        JdbcJobParamsCreator.createParamsForJdbcJobStatus(jobStatus));
+        jobStatus.setId(pk.intValue());
+        return jobStatus;
     }
 
     @Override
     public JdbcJobRun saveJobRun(final JdbcJobRun jobRun) {
-        throw new NotImplementedException(JdbcJobDataService.class + " not yet implemented");
+        if (jobRun.getId() == null) {
+            final int id =
+                    jobRunInsert
+                            .executeAndReturnKey(JdbcJobParamsCreator.createParamsForJobRun(jobRun))
+                            .intValue();
+            jobRun.setId(id);
+        } else {
+            jt.update(
+                    "update t_job_run set finished_at = :finished_at, state = :state, log_output = :log_output where pk_job_run_id = :pk_job_run_id",
+                    JdbcJobParamsCreator.createParamsForJobRun(jobRun));
+        }
+        return jobRun;
     }
 
     @Override
