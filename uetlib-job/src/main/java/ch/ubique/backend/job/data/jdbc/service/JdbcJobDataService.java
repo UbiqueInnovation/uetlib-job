@@ -2,11 +2,15 @@ package ch.ubique.backend.job.data.jdbc.service;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.jdbc.JdbcJobStatus;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-
-import java.util.*;
-
+import ch.ubique.backend.job.model.jdbc.JdbcJobStatus;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -17,8 +21,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
-
-import javax.sql.DataSource;
 
 @Service
 public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJobRun> {
@@ -114,7 +116,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
         try {
             jt.update(sql, params);
             var jobStatus = findJobStatusByClass(clazz);
-            if(jobStatus.isPresent()){
+            if (jobStatus.isPresent()) {
                 return jobStatus.get();
             }
             return null;
@@ -143,7 +145,8 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
     }
 
     @Override
-    public Optional<JdbcJobRun> findLatestJobRunByState(final Integer jobId, final JobRunState state) {
+    public Optional<JdbcJobRun> findLatestJobRunByState(
+            final Integer jobId, final JobRunState state) {
         if (jobId == null || state == null) {
             return Optional.empty();
         }
@@ -153,7 +156,8 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
             return Optional.ofNullable(
                     jt.queryForObject(
                             sql,
-                            new MapSqlParameterSource(Map.of("fk_job_status_id", jobId, "state", state)),
+                            new MapSqlParameterSource(
+                                    Map.of("fk_job_status_id", jobId, "state", state)),
                             new JdbcJobRunRowMapper()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -162,12 +166,12 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
 
     @Override
     public List<JdbcJobStatus> findJobStatuses() {
-        final var sql = "select * from t_jobs";
+        final var sql = "select * from t_job_status";
         try {
             return jt.query(sql, new JdbcJobStatusRowMapper());
         } catch (DataAccessException e) {
             logger.info("No job statuses found.");
-            return List.of();
+            return Collections.emptyList();
         }
     }
 
@@ -201,7 +205,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
             return new PageImpl<>(jt.query(sql, params, new JdbcJobRunRowMapper()));
         } catch (DataAccessException e) {
             logger.info("No job runs found.");
-            return new PageImpl<>(List.of());
+            return new PageImpl<>(Collections.emptyList());
         }
     }
 
