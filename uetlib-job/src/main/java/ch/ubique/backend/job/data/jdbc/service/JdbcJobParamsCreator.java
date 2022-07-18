@@ -30,7 +30,7 @@ public class JdbcJobParamsCreator {
             params.addValue("pk_job_run_id", importRun.getId());
         }
         params.addValue("state", importRun.getState().name());
-        params.addValue("fk_job_status_id", importRun.getId());
+        params.addValue("fk_job_status_id", importRun.getJobStatusId());
         if (importRun.getStartedAt() != null) {
             params.addValue("started_at", Date.from(importRun.getStartedAt()));
         } else {
