@@ -193,7 +193,8 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
         }
         if (name != null) {
             params.addValue("name", name);
-            andConditions.add("name = :name");
+            andConditions.add(
+                    "fk_job_status_id = (select pk_job_status_id from t_job_status where name = :name)");
         }
         if (!andConditions.isEmpty()) {
             sql += " where " + String.join(" and ", andConditions);
