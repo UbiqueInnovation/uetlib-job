@@ -39,7 +39,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
                         .usingGeneratedKeyColumns("pk_job_status_id");
         this.jobRunInsert =
                 new SimpleJdbcInsert(dataSource)
-                        .withTableName("t_job")
+                        .withTableName("t_job_run")
                         .usingGeneratedKeyColumns("pk_job_run_id");
     }
 
