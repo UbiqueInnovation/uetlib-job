@@ -169,7 +169,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
         final var sql = "select * from t_job_status";
         try {
             return jt.query(sql, new JdbcJobStatusRowMapper());
-        } catch (DataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             logger.info("No job statuses found.");
             return Collections.emptyList();
         }
@@ -188,7 +188,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
         List<String> andConditions = new ArrayList<>();
 
         if (state != null) {
-            params.addValue("state", state);
+            params.addValue("state", state.name());
             andConditions.add("state = :state");
         }
         if (name != null) {
@@ -204,7 +204,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
 
         try {
             return new PageImpl<>(jt.query(sql, params, new JdbcJobRunRowMapper()));
-        } catch (DataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             logger.info("No job runs found.");
             return new PageImpl<>(Collections.emptyList());
         }
