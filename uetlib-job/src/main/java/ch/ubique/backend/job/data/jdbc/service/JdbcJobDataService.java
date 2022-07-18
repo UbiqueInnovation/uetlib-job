@@ -109,7 +109,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
         if (clazz == null || cronExpression == null) {
             return null;
         }
-        var sql = "update t_job_status set cron_expression = :cronExpression where clazz = :clazz";
+        var sql = "update t_job_status set cron_expression = :cron_expression where clazz = :clazz";
         MapSqlParameterSource params =
                 new MapSqlParameterSource(
                         Map.of("cron_expression", cronExpression, "clazz", clazz));
