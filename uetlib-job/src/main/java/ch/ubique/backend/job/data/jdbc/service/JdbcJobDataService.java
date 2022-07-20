@@ -157,7 +157,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJobStatus, JdbcJob
                     jt.queryForObject(
                             sql,
                             new MapSqlParameterSource(
-                                    Map.of("fk_job_status_id", jobId, "state", state)),
+                                    Map.of("jobId", jobId, "state", state)),
                             new JdbcJobRunRowMapper()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
