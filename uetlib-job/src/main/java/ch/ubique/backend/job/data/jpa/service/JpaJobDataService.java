@@ -1,12 +1,12 @@
 package ch.ubique.backend.job.data.jpa.service;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.job.data.jpa.repository.JobStatusRepository;
+import ch.ubique.backend.job.data.jpa.repository.JobRepository;
 import ch.ubique.backend.job.data.jpa.repository.JobRunRepository;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.JobStatus;
+import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.entity.JobStatusEntity;
+import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import java.time.Instant;
 import java.util.List;
@@ -18,14 +18,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRunEntity> {
+public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity> {
 
-    private final JobStatusRepository jobStatusRepository;
+    private final JobRepository jobRepository;
     private final JobRunRepository jobRunRepository;
 
     public JpaJobDataService(
-            final JobStatusRepository jobStatusRepository, final JobRunRepository jobRunRepository) {
-        this.jobStatusRepository = jobStatusRepository;
+            final JobRepository jobRepository, final JobRunRepository jobRunRepository) {
+        this.jobRepository = jobRepository;
         this.jobRunRepository = jobRunRepository;
     }
 
@@ -52,19 +52,19 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<JobStatusEntity> findJobStatusByClass(String clazz) {
-        return jobStatusRepository.findByClazz(clazz);
+    public Optional<JobEntity> findJobByClass(String clazz) {
+        return jobRepository.findByClazz(clazz);
     }
 
     @Override
     @Transactional
-    public JobStatusEntity updateCronExpression(final String clazz, final String cronExpression) {
-        return jobStatusRepository
+    public JobEntity updateCronExpression(final String clazz, final String cronExpression) {
+        return jobRepository
                 .findByClazz(clazz)
                 .map(
                         job -> {
                             job.setCronExpression(cronExpression);
-                            return jobStatusRepository.save(job);
+                            return jobRepository.save(job);
                         })
                 .orElseThrow(
                         ResourceNotFoundException.throwWithMessage(
@@ -74,18 +74,18 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
     @Override
     @Transactional(readOnly = true)
     public Optional<JobRunEntity> findLatestJobRun(final Integer jobId) {
-        return jobRunRepository.findFirstByJobStatusIdOrderByStartedAtDesc(jobId);
+        return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
     }
 
     @Override
     public Optional<JobRunEntity> findLatestJobRunByState(Integer jobId, JobRunState state) {
-        return jobRunRepository.findFirstByJobStatusIdAndStateOrderByStartedAtDesc(jobId, state);
+        return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<JobStatusEntity> findJobStatuses() {
-        return jobStatusRepository.findAllByOrderByName();
+    public List<JobEntity> findJobs() {
+        return jobRepository.findAllByOrderByName();
     }
 
     @Override
@@ -95,17 +95,17 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
         final var page = PageRequest.of(pageNumber, pageSize);
         if (name != null) {
             final var jobId =
-                    jobStatusRepository
+                    jobRepository
                             .findByName(name)
-                            .map(JobStatus::getId)
+                            .map(Job::getId)
                             .orElseThrow(
                                     ResourceNotFoundException.throwWithMessage(
                                             "No JobEntity with name {0} found", name));
             if (state != null) {
-                return jobRunRepository.findAllByJobStatusIdAndStateOrderByStartedAtDesc(
+                return jobRunRepository.findAllByJobIdAndStateOrderByStartedAtDesc(
                         jobId, state, page);
             }
-            return jobRunRepository.findAllByJobStatusIdOrderByStartedAtDesc(jobId, page);
+            return jobRunRepository.findAllByJobIdOrderByStartedAtDesc(jobId, page);
         }
         if (state != null) {
             return jobRunRepository.findAllByStateOrderByStartedAtDesc(state, page);
@@ -115,15 +115,15 @@ public class JpaJobDataService implements JobDataService<JobStatusEntity, JobRun
 
     @Override
     @Transactional
-    public JobStatusEntity registerJobByClass(final Class<?> cls) {
-        return findJobStatusByClass(cls.getName())
+    public JobEntity registerJobByClass(final Class<?> cls) {
+        return findJobByClass(cls.getName())
                 .orElseGet(
                         () -> {
-                            final var job = new JobStatusEntity();
+                            final var job = new JobEntity();
                             job.setName(cls.getSimpleName());
                             job.setClazz(cls.getCanonicalName());
                             job.setCronExpression("");
-                            return jobStatusRepository.save(job);
+                            return jobRepository.save(job);
                         });
     }
 

@@ -3,7 +3,7 @@ package ch.ubique.backend.job.model;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
 
-public interface JobStatus {
+public interface Job {
 
     Integer getId();
 
