@@ -11,6 +11,7 @@ CREATE TABLE t_job_run
 (
     pk_job_run_id integer GENERATED ALWAYS AS IDENTITY,
     fk_job_id     integer                  NOT NULL,
+    job_version   integer                  NOT NULL,
     state         varchar(20)              NOT NULL,
     log_output    text                     NOT NULL,
     started_at    timestamp with time zone NOT NULL,

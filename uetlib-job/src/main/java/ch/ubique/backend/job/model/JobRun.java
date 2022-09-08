@@ -24,6 +24,10 @@ public interface JobRun {
 
     void setJobId(Integer jobId);
 
+    Integer getJobVersion();
+
+    void setJobVersion(Integer jobVersion);
+
     Integer getId();
 
     void setId(Integer id);

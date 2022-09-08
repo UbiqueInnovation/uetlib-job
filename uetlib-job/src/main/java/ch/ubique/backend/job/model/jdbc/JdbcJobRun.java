@@ -10,6 +10,8 @@ public class JdbcJobRun implements JobRun {
 
     private Integer jobId;
 
+    private Integer jobVersion;
+
     private JobRunState state;
 
     private String logOutput;
@@ -66,6 +68,16 @@ public class JdbcJobRun implements JobRun {
     @Override
     public void setJobId(final Integer jobId) {
         this.jobId = jobId;
+    }
+
+    @Override
+    public Integer getJobVersion() {
+        return jobVersion;
+    }
+
+    @Override
+    public void setJobVersion(Integer jobVersion) {
+        this.jobVersion = jobVersion;
     }
 
     @Override

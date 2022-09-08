@@ -3,9 +3,9 @@ package ch.ubique.backend.job;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.Job;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,6 +60,7 @@ public abstract class BaseJob<T extends Job, U extends JobRun> implements org.qu
         jobRun.setState(JobRunState.BUSY);
         jobRun.setStartedAt(Instant.now());
         jobRun.setJobId(job.getId());
+        jobRun.setJobVersion(version());
         if (logOutput != null) {
             jobRun.setLogOutput("file:" + this.logOutput.toFile().getAbsolutePath());
         }
@@ -111,4 +112,6 @@ public abstract class BaseJob<T extends Job, U extends JobRun> implements org.qu
         }
         return logOutputText;
     }
+
+    public abstract int version();
 }
