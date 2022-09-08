@@ -30,6 +30,7 @@ public class JobParamsCreator {
         }
         params.addValue("state", importRun.getState().name());
         params.addValue("fk_job_id", importRun.getJobId());
+        params.addValue("job_version", importRun.getJobVersion());
         if (importRun.getStartedAt() != null) {
             params.addValue("started_at", Date.from(importRun.getStartedAt()));
         } else {

@@ -24,6 +24,9 @@ public class JobRunEntity implements JobRun {
     @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
 
+    @Column(name = "job_version", nullable = false)
+    private Integer jobVersion;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 20)
     private JobRunState state;
@@ -85,6 +88,16 @@ public class JobRunEntity implements JobRun {
     @Override
     public void setJobId(final Integer jobId) {
         this.jobId = jobId;
+    }
+
+    @Override
+    public Integer getJobVersion() {
+        return jobVersion;
+    }
+
+    @Override
+    public void setJobVersion(Integer jobVersion) {
+        this.jobVersion = jobVersion;
     }
 
     @Override
