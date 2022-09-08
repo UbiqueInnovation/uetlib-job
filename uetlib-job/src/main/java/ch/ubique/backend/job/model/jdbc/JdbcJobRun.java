@@ -59,12 +59,12 @@ public class JdbcJobRun implements JobRun {
     }
 
     @Override
-    public Integer getJobStatusId() {
+    public Integer getJobId() {
         return jobId;
     }
 
     @Override
-    public void setJobStatusId(final Integer jobId) {
+    public void setJobId(final Integer jobId) {
         this.jobId = jobId;
     }
 
