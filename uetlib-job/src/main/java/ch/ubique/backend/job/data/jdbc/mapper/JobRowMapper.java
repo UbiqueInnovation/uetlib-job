@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.data.jdbc.service;
+package ch.ubique.backend.job.data.jdbc.mapper;
 
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import java.sql.ResultSet;

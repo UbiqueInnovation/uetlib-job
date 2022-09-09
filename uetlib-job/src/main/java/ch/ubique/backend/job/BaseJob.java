@@ -17,17 +17,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-public abstract class BaseJob<T extends Job, U extends JobRun> implements org.quartz.Job, Runnable {
+public abstract class BaseJob<J extends Job, R extends JobRun> implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    protected final T job;
-    protected final U jobRun;
-    protected final JobDataService<T, U> jobDataService;
+    protected final J job;
+    protected final R jobRun;
+    protected final JobDataService<J, R> jobDataService;
 
     private Map<String, String> previousMDCContext;
     private Path logOutput;
 
-    protected BaseJob(final JobDataService<T, U> jobDataService) {
+    protected BaseJob(final JobDataService<J, R> jobDataService) {
         this.jobDataService = jobDataService;
         this.job = jobDataService.registerJobByClass(getClass());
         this.jobRun = jobDataService.newRunInstance();

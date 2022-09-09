@@ -1,15 +1,15 @@
 package ch.ubique.backend.job.data.jdbc.service;
 
+import ch.ubique.backend.job.data.jdbc.mapper.JobRowMapper;
+import ch.ubique.backend.job.data.jdbc.mapper.JobRunRowMapper;
+import ch.ubique.backend.job.data.jdbc.params.JobParamsCreator;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
+import java.util.*;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
 
-    private final NamedParameterJdbcTemplate jt;
+    protected final NamedParameterJdbcTemplate jt;
     private static final Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
 
     private final SimpleJdbcInsert jobInsert;
@@ -101,6 +101,23 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     }
 
     @Override
+    public Optional<JdbcJob> findJobByName(final String name) {
+        if (name == null) {
+            return Optional.empty();
+        }
+        try {
+            final var sql = "select * from t_job where name = :name";
+            final var jobRun =
+                    jt.queryForObject(
+                            sql, new MapSqlParameterSource("name", name), new JobRowMapper());
+            return Optional.ofNullable(jobRun);
+        } catch (EmptyResultDataAccessException e) {
+            logger.info("No job found for name {}.", name);
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public JdbcJob updateCronExpression(final String clazz, final String cronExpression) {
         if (clazz == null || cronExpression == null) {
             return null;
@@ -143,17 +160,23 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     @Override
     public Optional<JdbcJobRun> findLatestJobRunByState(
             final Integer jobId, final JobRunState state) {
-        if (jobId == null || state == null) {
+       return findLatestJobRunByStates(jobId, state);
+    }
+
+    @Override
+    public Optional<JdbcJobRun> findLatestJobRunByStates(
+            final Integer jobId, final JobRunState... states) {
+        if (jobId == null || states == null || states.length == 0) {
             return Optional.empty();
         }
         var sql =
-                "select * from t_job_run where fk_job_id = :jobId and state = :state order by started_at desc limit 1";
+                "select * from t_job_run where fk_job_id = :jobId and state in :states order by started_at desc limit 1";
         try {
             return Optional.ofNullable(
                     jt.queryForObject(
                             sql,
                             new MapSqlParameterSource(
-                                    Map.of("jobId", jobId, "state", state.name())),
+                                    Map.of("jobId", jobId, "states", Arrays.stream(states).map(Enum::name).toList())),
                             new JobRunRowMapper()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -216,7 +239,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
         job.setName(cls.getSimpleName());
         job.setClazz(cls.getCanonicalName());
         job.setCronExpression("not set");
-        Number pk = jobInsert.executeAndReturnKey(JobParamsCreator.createParamsForJob(job));
+        Number pk = jobInsert.executeAndReturnKey(JobParamsCreator.createParams(job));
         job.setId(pk.intValue());
         return job;
     }
@@ -226,13 +249,13 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
         if (jobRun.getId() == null) {
             final int id =
                     jobRunInsert
-                            .executeAndReturnKey(JobParamsCreator.createParamsForJobRun(jobRun))
+                            .executeAndReturnKey(JobParamsCreator.createParams(jobRun))
                             .intValue();
             jobRun.setId(id);
         } else {
             jt.update(
                     "update t_job_run set finished_at = :finished_at, state = :state, log_output = :log_output where pk_job_run_id = :pk_job_run_id",
-                    JobParamsCreator.createParamsForJobRun(jobRun));
+                    JobParamsCreator.createParams(jobRun));
         }
         return jobRun;
     }

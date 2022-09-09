@@ -9,7 +9,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 
-public interface JobDataService<S extends Job, R extends JobRun> {
+public interface JobDataService<J extends Job, R extends JobRun> {
 
     @PostConstruct
     @Transactional
@@ -24,10 +24,13 @@ public interface JobDataService<S extends Job, R extends JobRun> {
     Optional<String> findLogForJobRun(Integer jobRunId);
 
     @Transactional(readOnly = true)
-    Optional<S> findJobByClass(String clazz);
+    Optional<J> findJobByClass(String clazz);
+
+    @Transactional(readOnly = true)
+    Optional<J> findJobByName(String name);
 
     @Transactional
-    S updateCronExpression(String clazz, String cronExpression);
+    J updateCronExpression(String clazz, String cronExpression);
 
     @Transactional(readOnly = true)
     Optional<R> findLatestJobRun(Integer jobId);
@@ -36,13 +39,16 @@ public interface JobDataService<S extends Job, R extends JobRun> {
     Optional<R> findLatestJobRunByState(Integer jobId, JobRunState state);
 
     @Transactional(readOnly = true)
-    List<S> findJobs();
+    Optional<R> findLatestJobRunByStates(Integer jobId, JobRunState... states);
+
+    @Transactional(readOnly = true)
+    List<J> findJobs();
 
     @Transactional(readOnly = true)
     Page<R> findJobRuns(int pageNumber, int pageSize, String name, JobRunState state);
 
     @Transactional
-    S registerJobByClass(Class<?> cls);
+    J registerJobByClass(Class<?> cls);
 
     @Transactional
     R saveJobRun(R jobRun);

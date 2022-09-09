@@ -20,3 +20,12 @@ CREATE TABLE t_job_run
     FOREIGN KEY (fk_job_id) REFERENCES t_job (pk_job_id)
 );
 
+CREATE TABLE t_job_run_input
+(
+    pk_job_run_input_id integer GENERATED ALWAYS AS IDENTITY,
+    fk_job_run_id       integer NOT NULL,
+    input_name          varchar(255) NOT NULL,
+    input_hash          char(128) NOT NULL,
+    PRIMARY KEY (pk_job_run_input),
+    FOREIGN KEY (fk_job_run_id) REFERENCES t_job_run (pk_job_run_id)
+);

@@ -1,28 +1,29 @@
 package ch.ubique.backend.job.scheduler;
 
+import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.jdbc.JdbcJob;
-import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+
+import javax.annotation.PostConstruct;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
-import javax.annotation.PostConstruct;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
 
-public class JobScheduler {
+public class JobScheduler<J extends Job, R extends JobRun> {
 
     private final SchedulerService schedulerService;
-    private final JobDataService<JdbcJob, JdbcJobRun> jobDataService;
+    private final JobDataService<J, R> jobDataService;
     private final ApplicationContext applicationContext;
 
     public JobScheduler(
             final SchedulerService schedulerService,
-            final JobDataService jobDataService,
+            final JobDataService<J, R> jobDataService,
             final ApplicationContext applicationContext) {
 
         this.schedulerService = schedulerService;
@@ -42,7 +43,7 @@ public class JobScheduler {
         }
     }
 
-    public void update(final JdbcJob job)
+    public void update(final J job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         if (!job.isCronActive() || !job.isCronExpressionValid()) {
@@ -54,17 +55,27 @@ public class JobScheduler {
         schedulerService.updateJob(job.getClazz(), jobBean, job.getCronExpression());
     }
 
-    public void runNow(final JdbcJob job)
+    public void runNow(final J job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         schedulerService.runJobNow(job.getClazz(), getJobInstance(job));
     }
 
-    private BaseJob<JdbcJob, JobRun> getJobInstance(final JdbcJob job)
+    public void runNow(final J job, boolean forceRun)
+            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
+            InstantiationException, IllegalAccessException {
+        final var jobInstance = getJobInstance(job);
+        if (forceRun && jobInstance instanceof BaseInputJob<?,?,?> baseInputJob) {
+            baseInputJob.setForceRun();
+        }
+        schedulerService.runJobNow(job.getClazz(), jobInstance);
+    }
+
+    private BaseJob<J, R> getJobInstance(final J job)
             throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
                     InstantiationException, IllegalAccessException {
         @SuppressWarnings("unchecked")
-        final var jobClass = (Class<BaseJob<JdbcJob, JobRun>>) Class.forName(job.getClazz());
+        final var jobClass = (Class<BaseJob<J, R>>) Class.forName(job.getClazz());
         final var parameters =
                 Arrays.stream(jobClass.getConstructors())
                         .filter(c -> c.isAnnotationPresent(JobAutowireConstructor.class))
