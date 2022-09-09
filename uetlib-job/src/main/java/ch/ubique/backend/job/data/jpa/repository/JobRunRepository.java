@@ -2,6 +2,8 @@ package ch.ubique.backend.job.data.jpa.repository;
 
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,8 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     Optional<JobRunEntity> findFirstByJobIdAndStateOrderByStartedAtDesc(
             Integer jobId, final JobRunState state);
+
+    Optional<JobRunEntity> findFirstByJobIdAndStateInOrderByStartedAtDesc(Integer jobId, final Collection<JobRunState> states);
 
     Page<JobRunEntity> findAllByJobIdAndStateOrderByStartedAtDesc(
             Integer jobId, JobRunState state, Pageable pageable);

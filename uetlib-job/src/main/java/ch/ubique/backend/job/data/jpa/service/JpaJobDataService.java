@@ -57,6 +57,12 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<JobEntity> findJobByName(String name) {
+        return jobRepository.findByName(name);
+    }
+
+    @Override
     @Transactional
     public JobEntity updateCronExpression(final String clazz, final String cronExpression) {
         return jobRepository
@@ -80,6 +86,11 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
     @Override
     public Optional<JobRunEntity> findLatestJobRunByState(Integer jobId, JobRunState state) {
         return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
+    }
+
+    @Override
+    public Optional<JobRunEntity> findLatestJobRunByStates(Integer jobId, JobRunState... states) {
+        return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(jobId, List.of(states));
     }
 
     @Override

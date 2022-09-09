@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.data.jdbc.service;
+package ch.ubique.backend.job.data.jdbc.mapper;
 
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
