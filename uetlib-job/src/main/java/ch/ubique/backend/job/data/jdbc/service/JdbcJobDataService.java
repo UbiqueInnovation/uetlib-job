@@ -170,7 +170,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
             return Optional.empty();
         }
         var sql =
-                "select * from t_job_run where fk_job_id = :jobId and state in :states order by started_at desc limit 1";
+                "select * from t_job_run where fk_job_id = :jobId and state in (:states) order by started_at desc limit 1";
         try {
             return Optional.ofNullable(
                     jt.queryForObject(
