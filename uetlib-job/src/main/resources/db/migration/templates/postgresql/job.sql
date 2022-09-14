@@ -26,6 +26,6 @@ CREATE TABLE t_job_run_input
     fk_job_run_id       integer NOT NULL,
     input_name          varchar(255) NOT NULL,
     input_hash          char(128) NOT NULL,
-    PRIMARY KEY (pk_job_run_input),
+    PRIMARY KEY (pk_job_run_input_id),
     FOREIGN KEY (fk_job_run_id) REFERENCES t_job_run (pk_job_run_id)
 );
