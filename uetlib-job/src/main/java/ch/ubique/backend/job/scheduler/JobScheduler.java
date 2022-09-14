@@ -66,7 +66,7 @@ public class JobScheduler<J extends Job, R extends JobRun> {
             InstantiationException, IllegalAccessException {
         final var jobInstance = getJobInstance(job);
         if (forceRun && jobInstance instanceof BaseInputJob<?,?,?> baseInputJob) {
-            baseInputJob.setForceRun();
+            baseInputJob.forceRun();
         }
         schedulerService.runJobNow(job.getClazz(), jobInstance);
     }
