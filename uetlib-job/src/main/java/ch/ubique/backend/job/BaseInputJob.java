@@ -47,7 +47,9 @@ public abstract class BaseInputJob<J extends Job, R extends JobRun, I extends Jo
         currentInputs = inputs.get();
         if (isJobVersionDifferent()) {
             logger.info("The job version differs from the job version of the previous run.");
-        } else if (!forceRun && areInputsEqual()) {
+        } else if (forceRun) {
+            logger.info("Forced run. Running even if inputs did not change.");
+        } else if (areInputsEqual()) {
             logger.info("The inputs did not change. Stopping job run.");
             return JobRunState.SKIPPED;
         }
