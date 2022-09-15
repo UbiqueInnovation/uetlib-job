@@ -14,8 +14,6 @@ import org.springframework.retry.support.RetryTemplate;
 public abstract class BaseInputJob<J extends Job, R extends JobRun, I extends JobRunInput>
         extends BaseJob<J, R> {
 
-    private boolean forceRun = false;
-
     private Collection<I> currentInputs;
 
     private final InputJobDataService<J, R, I> inputJobDataService;
@@ -29,12 +27,9 @@ public abstract class BaseInputJob<J extends Job, R extends JobRun, I extends Jo
 
     protected abstract JobRunState processInputs();
 
-    public void forceRun() {
-        this.forceRun = true;
-    }
-
     @Override
     protected final JobRunState internalRun() {
+        final boolean forceRun = jobDataMap.getBoolean("forceRun");
 
         // Load Inputs
         final var inputs = tryLoadingInputs();

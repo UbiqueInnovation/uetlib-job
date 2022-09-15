@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
+import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ public abstract class BaseJob<J extends Job, R extends JobRun> implements org.qu
 
     private Map<String, String> previousMDCContext;
     private Path logOutput;
+    protected JobDataMap jobDataMap;
 
     protected BaseJob(final JobDataService<J, R> jobDataService) {
         this.jobDataService = jobDataService;
@@ -51,6 +53,7 @@ public abstract class BaseJob<J extends Job, R extends JobRun> implements org.qu
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) {
+        this.jobDataMap = jobExecutionContext.getJobDetail().getJobDataMap();
         run();
     }
 
