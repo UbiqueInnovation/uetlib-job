@@ -1,19 +1,17 @@
 package ch.ubique.backend.job.scheduler;
 
-import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-
-import javax.annotation.PostConstruct;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+import javax.annotation.PostConstruct;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
 
 public class JobScheduler<J extends Job, R extends JobRun> {
 
@@ -58,17 +56,13 @@ public class JobScheduler<J extends Job, R extends JobRun> {
     public void runNow(final J job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        schedulerService.runJobNow(job.getClazz(), getJobInstance(job));
+        schedulerService.runJobNow(job.getClazz(), getJobInstance(job), false);
     }
 
     public void runNow(final J job, boolean forceRun)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-            InstantiationException, IllegalAccessException {
-        final var jobInstance = getJobInstance(job);
-        if (forceRun && jobInstance instanceof BaseInputJob<?,?,?> baseInputJob) {
-            baseInputJob.forceRun();
-        }
-        schedulerService.runJobNow(job.getClazz(), jobInstance);
+                    InstantiationException, IllegalAccessException {
+        schedulerService.runJobNow(job.getClazz(), getJobInstance(job), forceRun);
     }
 
     private BaseJob<J, R> getJobInstance(final J job)

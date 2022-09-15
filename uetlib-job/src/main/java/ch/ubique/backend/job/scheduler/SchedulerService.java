@@ -29,10 +29,10 @@ public class SchedulerService {
 
             JobDetail jobDetail = createJobDetail(key, job);
 
-            Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .build();
+            Trigger trigger =
+                    TriggerBuilder.newTrigger()
+                            .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                            .build();
 
             scheduler.scheduleJob(jobDetail, trigger);
 
@@ -41,7 +41,7 @@ public class SchedulerService {
         }
     }
 
-    public void updateJob(String identifier,  Job job, String cronExpression) {
+    public void updateJob(String identifier, Job job, String cronExpression) {
         try {
             logger.info("Updating scheduled job {} with cron: {}", identifier, cronExpression);
             JobKey key = new JobKey(identifier);
@@ -50,10 +50,10 @@ public class SchedulerService {
 
             removeScheduleJob(identifier);
 
-            Trigger trigger = TriggerBuilder
-                .newTrigger()
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .build();
+            Trigger trigger =
+                    TriggerBuilder.newTrigger()
+                            .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                            .build();
 
             scheduler.scheduleJob(jobDetail, trigger);
 
@@ -64,7 +64,7 @@ public class SchedulerService {
 
     public void removeScheduleJob(String identifier) {
         try {
-            logger.info("Removing scheduled job {}",  identifier);
+            logger.info("Removing scheduled job {}", identifier);
             JobKey key = new JobKey(identifier);
 
             var triggers = scheduler.getTriggersOfJob(key);
@@ -77,15 +77,15 @@ public class SchedulerService {
         }
     }
 
-    public void runJobNow(String identifier, Job job) {
+    public void runJobNow(String identifier, Job job, boolean forceRun) {
         try {
             logger.info("Scheduled job {} to run now", identifier);
             JobKey key = new JobKey(identifier);
             if (jobExists(key)) {
                 scheduler.triggerJob(key);
-            }
-            else {
+            } else {
                 JobDetail jobDetail = createJobDetail(key, job);
+                jobDetail.getJobDataMap().put("forceRun", forceRun);
                 Trigger trigger = TriggerBuilder.newTrigger().startNow().build();
                 scheduler.scheduleJob(jobDetail, trigger);
             }
@@ -94,16 +94,12 @@ public class SchedulerService {
         }
     }
 
-
     private boolean jobExists(JobKey key) throws SchedulerException {
         return scheduler.getJobDetail(key) != null;
     }
 
     private JobDetail createJobDetail(JobKey key, Job job) {
-        return JobBuilder
-            .newJob(job.getClass())
-            .withIdentity(key)
-            .build();
+        return JobBuilder.newJob(job.getClass()).withIdentity(key).build();
     }
 
     private JobDetail getOrCreateJobDetail(JobKey key, Job job) throws SchedulerException {
