@@ -5,12 +5,12 @@ import ch.ubique.backend.job.model.JobRunInput;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "t_job_run")
+@Table(name = "t_job_run_input")
 public class JobRunInputEntity implements JobRunInput {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "pk_job_run_input", nullable = false)
+    @Column(name = "pk_job_run_input_id", nullable = false)
     private Integer id;
 
     @Column(name = "fk_job_run_id", nullable = false)

@@ -1,0 +1,98 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="en">
+<!--suppress HtmlRequiredTitleElement -->
+<head th:replace="fragments/head :: head">
+    <!-- HEAD -->
+</head>
+<body ondragstart="" onselectstart="" ontouchcancel="" ontouchstart="" touchend="" touchmove=""
+      th:attr="onload=${triggeredJobName} ? ('showToast(\'' + ${triggeredJobName} + '\', \'Job ' + ${triggeredJobClazz} + ' triggered.\')') : null">
+<nav th:replace="fragments/navbar :: navbar('list')">
+    <!-- Header -->
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <main class="col pt-3">
+            <h1>Job List</h1>
+            <div class="table-responsive" id="log-table">
+                <table class="table table-striped table-sm">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Cron</th>
+                        <th>State</th>
+                        <th>Started At</th>
+                        <th>Finished At</th>
+                        <th>Start now</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="job : ${jobs}">
+                        <td class="align-middle" th:text="${job.id}"></td>
+                        <td class="align-middle" th:text="${job.name}"></td>
+                        <td>
+                            <form method="post"
+                                  th:action="@{/status/job/{className}/update(className=${job.clazz})}">
+                                <label for="cronExpression" hidden>Cron Expression</label>
+                                <input id="cronExpression" name="cronExpression" size="15"
+                                       th:value="${job.cronExpression}"
+                                       type="text"/>
+                                <input type="submit" value="Save"/>
+                            </form>
+                            <div class="badge bg-success" th:if="${job.isCronActive()}">
+                                Active
+                            </div>
+                            <div class="badge bg-warning" th:if="${!job.isCronActive()}">
+                                Inactive
+                            </div>
+                            <div class="badge bg-danger" th:if="${!job.isCronExpressionValid()}">
+                                Invalid Expression
+                            </div>
+                        </td>
+                        <td class="align-middle" th:text="${latestJobRuns.get(job.id)?.state}"></td>
+                        <td class="align-middle" th:text="${latestJobRuns.get(job.id)?.startedAt}"></td>
+                        <td class="align-middle" th:text="${latestJobRuns.get(job.id)?.finishedAt}"></td>
+                        <td class="align-middle">
+                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}"
+                               class = "startJob"
+                               th:attr="data-bs-toggle=${forceRunnableJobs.get(job.id) ? 'modal' : null},
+                                        data-bs-target=${forceRunnableJobs.get(job.id) ? '#startNowModal' : null}">
+                                Start now
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="startNowModal" tabindex="-1" aria-labelledby="startNowModalTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 id="startNowModalTitle" class="modal-title">Modal Header</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-footer">
+                    <a id="forceRun" class="btn btn-danger">Force run</a>
+                    <a id="skipIfUnchanged" class="btn btn-primary">Skip if unchanged</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- toasts -->
+<div aria-live="polite" aria-atomic="true">
+    <div class="toast-container position-absolute top-0 end-0 p-3" id="toast-container"></div>
+</div>
+
+<footer th:replace="fragments/footer :: footer">
+    <!-- FOOTER -->
+</footer>
+
+</body>
+</html>
