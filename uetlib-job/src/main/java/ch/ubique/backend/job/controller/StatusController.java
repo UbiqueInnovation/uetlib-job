@@ -19,10 +19,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -81,22 +78,24 @@ public class StatusController<J extends Job, R extends JobRun> {
                                                 return false;
                                             }
                                         }));
+
         mav.addObject("jobs", jobs);
         mav.addObject("latestJobRuns", latestJobRuns);
+        mav.addObject("jobRunStateColors", jobRunStateColors);
         mav.addObject("forceRunnableJobs", forceRunnableJobs);
         return mav;
     }
 
     @GetMapping("runs")
     public ModelAndView jobRuns(
-            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+            @RequestParam(value = "currentPage", required = false, defaultValue = "0") int currentPage,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "state", required = false) JobRunState state) {
         final var mav = new ModelAndView("runs");
 
         final var jobs = jobDataService.findJobs();
         jobs.sort(Comparator.comparing(Job::getName));
-        final var jobRunsPage = jobDataService.findJobRuns(page, PAGE_SIZE, name, state);
+        final var jobRunsPage = jobDataService.findJobRuns(currentPage, PAGE_SIZE, name, state);
         final var jobRuns = jobRunsPage.getContent();
         final var jobRunDurations =
                 jobRuns.stream()
@@ -138,8 +137,8 @@ public class StatusController<J extends Job, R extends JobRun> {
         mav.addObject("states", states);
         mav.addObject("stateSelected", stateSelected);
         mav.addObject("jobRunDurations", jobRunDurations);
-        mav.addObject("page", page);
-        mav.addObject("prettyPage", page + 1);
+        mav.addObject("jobRunStateColors", jobRunStateColors);
+        mav.addObject("currentPage", currentPage);
         mav.addObject("isFirst", jobRunsPage.isFirst());
         mav.addObject("isLast", jobRunsPage.isLast());
         return mav;
@@ -187,6 +186,15 @@ public class StatusController<J extends Job, R extends JobRun> {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
+
+    private final Map<JobRunState, String> jobRunStateColors = Map.of(
+            JobRunState.BUSY, "secondary",
+            JobRunState.DONE, "success",
+            JobRunState.ERROR, "danger",
+            JobRunState.UNFINISHED, "warning",
+            JobRunState.NONE, "secondary",
+            JobRunState.SKIPPED, "info"
+    );
 
     private byte[] getLogOutput(String content) throws IOException {
         if (StringUtils.isBlank(content)) {
