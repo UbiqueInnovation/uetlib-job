@@ -33,6 +33,7 @@ public abstract class BaseJob<J extends Job, R extends JobRun> implements org.qu
         this.jobDataService = jobDataService;
         this.job = jobDataService.registerJobByClass(getClass());
         this.jobRun = jobDataService.newRunInstance();
+        this.jobDataMap = new JobDataMap();
     }
 
     @Override
