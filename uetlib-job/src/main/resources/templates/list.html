@@ -62,36 +62,47 @@
                         </div>
                     </td>
                     <td class="align-middle text-center">
-                        <a th:href="@{/status/job/{className}/start(className=${job.clazz})}"
-                           class="startJob btn btn-success btn-sm"
-                           th:attr="data-bs-toggle=${forceRunnableJobs.get(job.id) ? 'modal' : null},
-                                        data-bs-target=${forceRunnableJobs.get(job.id) ? '#startNowModal' : null}">
-                            <i class="bi bi-play-fill"></i> Start now
-                        </a>
+
+                        <!-- Job is NOT force runnable -->
+                        <div th:if="${!forceRunnableJobs.get(job.id)}">
+                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}" class="btn btn-success btn-sm">
+                                <i class="bi bi-play-fill"></i> Start now
+                            </a>
+                        </div>
+
+                        <!-- Job is force runnable -->
+                        <div th:if="${forceRunnableJobs.get(job.id)}">
+                            <!-- Button trigger modal -->
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" th:attrappend="data-bs-target='#force-run-'+${job.id}">
+                                <i class="bi bi-play-fill"></i> Start now
+                            </button>
+
+                            <!-- Modal -->
+                            <div class="modal fade" th:id="'force-run-'+${job.id}" tabindex="-1" th:attrappend="aria-labelledby='#force-run-label-'+${job.id}"aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" th:id="'force-run-label-'+${job.id}">Force run?</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Do you want to force run <strong><span th:text="${job.name}"></span></strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <a th:href="@{/status/job/{className}/start(className=${job.clazz},forceRun=true)}" class="btn btn-danger"><i class="bi bi-exclamation-octagon-fill"></i> Force run</a>
+                                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}" class="btn btn-primary"><i class="bi bi-skip-end-circle-fill"></i> Skip if unchanged</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </div>
-</div>
-<!-- Modal -->
-<div class="modal fade" id="startNowModal" tabindex="-1" aria-labelledby="startNowModalTitle" aria-hidden="true">
-    <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 id="startNowModalTitle" class="modal-title">Modal Header</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-footer">
-                <a id="forceRun" class="btn btn-danger"><i class="bi bi-exclamation-octagon-fill"></i> Force run</a>
-                <a id="skipIfUnchanged" class="btn btn-primary"><i class="bi bi-skip-end-circle-fill"></i> Skip if unchanged</a>
-            </div>
-        </div>
-    </div>
-
-
 </div>
 
 <!-- toasts -->

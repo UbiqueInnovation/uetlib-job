@@ -98,7 +98,7 @@ public class JobScheduler<J extends Job, R extends JobRun> {
                         () -> {
                             throw new NoSuchElementException(
                                     MessageFormat.format(
-                                            "No constructor with annotation '@{0}' present"
+                                            "No constructor with annotation ''@{0}'' present"
                                                     + " on class {1}",
                                             JobAutowireConstructor.class.getCanonicalName(),
                                             jobClass.getCanonicalName()));

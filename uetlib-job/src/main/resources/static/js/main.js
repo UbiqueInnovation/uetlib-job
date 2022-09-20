@@ -22,27 +22,6 @@ $("#next-page").click(function () {
     refreshPage(getCurrentPage() + 1);
 });
 
-$(".startJob").click(function (e) {
-    e.preventDefault();
-    let url = e.target.href;
-    $("#forceRun").attr("href", url + "?forceRun=true");
-    $("#skipIfUnchanged").attr("href", url + "?forceRun=false");
-
-    let splitUrl = url.split("/");
-    let jobClass = splitUrl[splitUrl.length - 2];
-    let jobClassSplit = jobClass.split(".");
-    let jobName = jobClassSplit[jobClassSplit.length - 1];
-    $("#startNowModalTitle").html(jobName);
-});
-
-$(".logLink").click(function (e) {
-    e.preventDefault();
-    const leftPos = screen.width - 1000;
-    window.open(this.href, "Log Output",
-        "height=1000 ,width=1500, top=0, left=" + leftPos);
-    return false;
-});
-
 const getCurrentPage = () => parseInt($("#current-page").attr("data-page"));
 
 const urlWithoutParams = () => window.location.protocol + '//'
