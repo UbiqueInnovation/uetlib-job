@@ -5,11 +5,13 @@ import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
+
+import org.springframework.retry.support.RetryTemplate;
+
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.springframework.retry.support.RetryTemplate;
 
 public abstract class BaseInputJob<J extends Job, R extends JobRun, I extends JobRunInput>
         extends BaseJob<J, R> {

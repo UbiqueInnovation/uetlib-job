@@ -4,19 +4,21 @@ import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
+
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+
+import javax.annotation.PostConstruct;
 
 public class JobScheduler<J extends Job, R extends JobRun> {
 
@@ -70,18 +72,22 @@ public class JobScheduler<J extends Job, R extends JobRun> {
         schedulerService.runJobNow(job.getClazz(), createNewJobInstance(job), forceRun);
     }
 
-    public BaseJob<J, R> createNewJobInstance(J job) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public BaseJob<J, R> createNewJobInstance(J job)
+            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
+                    InstantiationException, IllegalAccessException {
         @SuppressWarnings("unchecked")
         final var jobClass = (Class<BaseJob<J, R>>) Class.forName(job.getClazz());
         return createNewJobInstance(jobClass);
     }
 
     public BaseJob<J, R> createNewJobInstance(final Class<? extends BaseJob<J, R>> jobClass)
-            throws NoSuchMethodException, InvocationTargetException,
-                    InstantiationException, IllegalAccessException {
+            throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+                    IllegalAccessException {
         final var parameters = getConstructor(jobClass).getParameters();
-        final var jobConstructorParameters = Arrays.stream(parameters).map(this::getBeanForParameter).toArray();
-        final var parameterTypes = Arrays.stream(parameters).map(Parameter::getType).toArray(Class<?>[]::new);
+        final var jobConstructorParameters =
+                Arrays.stream(parameters).map(this::getBeanForParameter).toArray();
+        final var parameterTypes =
+                Arrays.stream(parameters).map(Parameter::getType).toArray(Class<?>[]::new);
         return jobClass.getConstructor(parameterTypes).newInstance(jobConstructorParameters);
     }
 
@@ -111,7 +117,8 @@ public class JobScheduler<J extends Job, R extends JobRun> {
         if (qualifierAnnotations.length > 0) {
             // in case there is a qualifier specified, get bean by qualifier (no fallback)
             final var qualifier = qualifierAnnotations[0].value();
-            return BeanFactoryAnnotationUtils.qualifiedBeanOfType(applicationContext.getAutowireCapableBeanFactory(), p.getType(), qualifier);
+            return BeanFactoryAnnotationUtils.qualifiedBeanOfType(
+                    applicationContext.getAutowireCapableBeanFactory(), p.getType(), qualifier);
         }
 
         try {

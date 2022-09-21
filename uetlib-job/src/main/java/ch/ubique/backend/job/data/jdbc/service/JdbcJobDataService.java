@@ -4,13 +4,10 @@ import ch.ubique.backend.job.data.jdbc.mapper.JobRowMapper;
 import ch.ubique.backend.job.data.jdbc.mapper.JobRunRowMapper;
 import ch.ubique.backend.job.data.jdbc.params.JobParamsCreator;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
 
-import java.util.*;
-import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -22,6 +19,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
 
+import java.util.*;
+
+import javax.sql.DataSource;
+
 @Service
 public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
 
@@ -32,12 +33,12 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     private final SimpleJdbcInsert jobRunInsert;
 
     public JdbcJobDataService(DataSource dataSource) {
-        this.jt = new NamedParameterJdbcTemplate(dataSource);
-        this.jobInsert =
+        jt = new NamedParameterJdbcTemplate(dataSource);
+        jobInsert =
                 new SimpleJdbcInsert(dataSource)
                         .withTableName("t_job")
                         .usingGeneratedKeyColumns("pk_job_id");
-        this.jobRunInsert =
+        jobRunInsert =
                 new SimpleJdbcInsert(dataSource)
                         .withTableName("t_job_run")
                         .usingGeneratedKeyColumns("pk_job_run_id");
@@ -160,7 +161,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     @Override
     public Optional<JdbcJobRun> findLatestJobRunByState(
             final Integer jobId, final JobRunState state) {
-       return findLatestJobRunByStates(jobId, state);
+        return findLatestJobRunByStates(jobId, state);
     }
 
     @Override
@@ -170,13 +171,18 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
             return Optional.empty();
         }
         var sql =
-                "select * from t_job_run where fk_job_id = :jobId and state in (:states) order by started_at desc limit 1";
+                "select * from t_job_run where fk_job_id = :jobId and state in (:states) order by"
+                    + " started_at desc limit 1";
         try {
             return Optional.ofNullable(
                     jt.queryForObject(
                             sql,
                             new MapSqlParameterSource(
-                                    Map.of("jobId", jobId, "states", Arrays.stream(states).map(Enum::name).toList())),
+                                    Map.of(
+                                            "jobId",
+                                            jobId,
+                                            "states",
+                                            Arrays.stream(states).map(Enum::name).toList())),
                             new JobRunRowMapper()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -212,8 +218,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
         }
         if (name != null) {
             params.addValue("name", name);
-            andConditions.add(
-                    "fk_job_id = (select pk_job_id from t_job where name = :name)");
+            andConditions.add("fk_job_id = (select pk_job_id from t_job where name = :name)");
         }
         if (!andConditions.isEmpty()) {
             sql += " where " + String.join(" and ", andConditions);
@@ -254,7 +259,8 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
             jobRun.setId(id);
         } else {
             jt.update(
-                    "update t_job_run set finished_at = :finished_at, state = :state, log_output = :log_output where pk_job_run_id = :pk_job_run_id",
+                    "update t_job_run set finished_at = :finished_at, state = :state, log_output ="
+                        + " :log_output where pk_job_run_id = :pk_job_run_id",
                     JobParamsCreator.createParams(jobRun));
         }
         return jobRun;

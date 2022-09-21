@@ -3,8 +3,10 @@ package ch.ubique.backend.job.data.service;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
-import java.util.Collection;
+
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collection;
 
 public interface InputJobDataService<J extends Job, R extends JobRun, I extends JobRunInput>
         extends JobDataService<J, R> {

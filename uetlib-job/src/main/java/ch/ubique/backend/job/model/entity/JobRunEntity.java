@@ -2,7 +2,9 @@ package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+
 import java.time.Instant;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;

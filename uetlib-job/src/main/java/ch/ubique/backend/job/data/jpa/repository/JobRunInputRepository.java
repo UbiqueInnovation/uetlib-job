@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.data.jpa.repository;
 
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

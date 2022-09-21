@@ -3,10 +3,12 @@ package ch.ubique.backend.job.data.jdbc.params;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-import java.time.Instant;
-import java.util.Date;
+
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import java.time.Instant;
+import java.util.Date;
 
 public class JobParamsCreator {
 

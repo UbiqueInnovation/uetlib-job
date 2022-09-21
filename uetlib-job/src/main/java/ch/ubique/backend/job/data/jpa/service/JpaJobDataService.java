@@ -8,14 +8,16 @@ import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity> {
@@ -90,7 +92,8 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
 
     @Override
     public Optional<JobRunEntity> findLatestJobRunByStates(Integer jobId, JobRunState... states) {
-        return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(jobId, List.of(states));
+        return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(
+                jobId, List.of(states));
     }
 
     @Override
