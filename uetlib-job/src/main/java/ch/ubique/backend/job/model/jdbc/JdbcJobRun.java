@@ -2,6 +2,7 @@ package ch.ubique.backend.job.model.jdbc;
 
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+
 import java.time.Instant;
 
 public class JdbcJobRun implements JobRun {

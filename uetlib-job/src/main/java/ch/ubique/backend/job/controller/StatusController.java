@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.controller;
 
+import static ch.ubique.backend.core.utils.StringFormattingUtils.millisToString;
+
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -7,6 +9,7 @@ import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.scheduler.JobScheduler;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.*;
@@ -22,9 +25,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static ch.ubique.backend.core.utils.StringFormattingUtils.millisToString;
-
 
 @Controller
 @RequestMapping("/status")
@@ -88,7 +88,8 @@ public class StatusController<J extends Job, R extends JobRun> {
 
     @GetMapping("runs")
     public ModelAndView jobRuns(
-            @RequestParam(value = "currentPage", required = false, defaultValue = "0") int currentPage,
+            @RequestParam(value = "currentPage", required = false, defaultValue = "0")
+                    int currentPage,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "state", required = false) JobRunState state) {
         final var mav = new ModelAndView("runs");
@@ -114,8 +115,7 @@ public class StatusController<J extends Job, R extends JobRun> {
                                         }));
 
         final var jobIdToName =
-                jobs.stream()
-                        .collect(Collectors.toUnmodifiableMap(J::getId, J::getName));
+                jobs.stream().collect(Collectors.toUnmodifiableMap(J::getId, J::getName));
         final var jobNameSelected =
                 jobIdToName.values().stream()
                         .collect(
@@ -186,14 +186,14 @@ public class StatusController<J extends Job, R extends JobRun> {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    private final Map<JobRunState, String> jobRunStateColors = Map.of(
-            JobRunState.BUSY, "secondary",
-            JobRunState.DONE, "success",
-            JobRunState.ERROR, "danger",
-            JobRunState.UNFINISHED, "warning",
-            JobRunState.NONE, "secondary",
-            JobRunState.SKIPPED, "info"
-    );
+    private final Map<JobRunState, String> jobRunStateColors =
+            Map.of(
+                    JobRunState.BUSY, "secondary",
+                    JobRunState.DONE, "success",
+                    JobRunState.ERROR, "danger",
+                    JobRunState.UNFINISHED, "warning",
+                    JobRunState.NONE, "secondary",
+                    JobRunState.SKIPPED, "info");
 
     private byte[] getLogOutput(String content) throws IOException {
         if (StringUtils.isBlank(content)) {

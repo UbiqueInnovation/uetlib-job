@@ -2,9 +2,11 @@ package ch.ubique.backend.job.data.jdbc.mapper;
 
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
+
+import org.springframework.jdbc.core.RowMapper;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.springframework.jdbc.core.RowMapper;
 
 public class JobRunRowMapper implements RowMapper<JdbcJobRun> {
 

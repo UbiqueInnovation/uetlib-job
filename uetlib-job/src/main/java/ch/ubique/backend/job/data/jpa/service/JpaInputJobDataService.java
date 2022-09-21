@@ -7,16 +7,21 @@ import ch.ubique.backend.job.data.service.InputJobDataService;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
+
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 
 @Service
-public class JpaInputJobDataService extends JpaJobDataService implements InputJobDataService<JobEntity, JobRunEntity, JobRunInputEntity> {
+public class JpaInputJobDataService extends JpaJobDataService
+        implements InputJobDataService<JobEntity, JobRunEntity, JobRunInputEntity> {
 
     private final JobRunInputRepository jobRunInputRepository;
 
-    public JpaInputJobDataService(JobRepository jobRepository, JobRunRepository jobRunRepository, JobRunInputRepository jobRunInputRepository) {
+    public JpaInputJobDataService(
+            JobRepository jobRepository,
+            JobRunRepository jobRunRepository,
+            JobRunInputRepository jobRunInputRepository) {
         super(jobRepository, jobRunRepository);
         this.jobRunInputRepository = jobRunInputRepository;
     }

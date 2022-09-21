@@ -16,12 +16,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class SchedulerService {
 
-    private final Logger logger;
+    private static final Logger logger = LoggerFactory.getLogger(SchedulerService.class);
     private final Scheduler scheduler;
 
     public SchedulerService(Scheduler scheduler) {
         this.scheduler = scheduler;
-        this.logger = LoggerFactory.getLogger(getClass());
     }
 
     public void scheduleJob(String identifier, Job job, String cronExpression) {

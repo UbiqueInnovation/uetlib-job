@@ -22,7 +22,6 @@ public class JobRunInputEntity implements JobRunInput {
     @Column(name = "input_hash", nullable = false, length = 128)
     private String hash;
 
-
     @Override
     public Integer getId() {
         return id;

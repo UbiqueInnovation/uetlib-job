@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.data.jdbc.mapper;
 
 import ch.ubique.backend.job.model.jdbc.JdbcJobRunInput;
+
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;

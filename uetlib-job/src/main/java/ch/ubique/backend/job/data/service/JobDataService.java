@@ -3,11 +3,14 @@ package ch.ubique.backend.job.data.service;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import java.util.List;
-import java.util.Optional;
-import javax.annotation.PostConstruct;
+
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+
+import javax.annotation.PostConstruct;
 
 public interface JobDataService<J extends Job, R extends JobRun> {
 
