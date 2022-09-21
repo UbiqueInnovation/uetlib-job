@@ -172,7 +172,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
         }
         var sql =
                 "select * from t_job_run where fk_job_id = :jobId and state in (:states) order by"
-                    + " started_at desc limit 1";
+                        + " started_at desc limit 1";
         try {
             return Optional.ofNullable(
                     jt.queryForObject(
@@ -260,7 +260,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
         } else {
             jt.update(
                     "update t_job_run set finished_at = :finished_at, state = :state, log_output ="
-                        + " :log_output where pk_job_run_id = :pk_job_run_id",
+                            + " :log_output where pk_job_run_id = :pk_job_run_id",
                     JobParamsCreator.createParams(jobRun));
         }
         return jobRun;
