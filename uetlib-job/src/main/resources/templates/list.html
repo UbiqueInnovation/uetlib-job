@@ -66,12 +66,12 @@
                     <td class="align-middle text-center">
 
                         <!-- Job is NOT force runnable -->
-                        <div th:if="${!forceRunnableJobs.get(job.id)}">
-                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}"
-                               class="btn btn-success btn-sm">
+                        <form th:if="${!forceRunnableJobs.get(job.id)}" method="post"
+                              th:action="@{/status/job/{className}/start(className=${job.clazz})}">
+                            <button type="submit" class="btn btn-success btn-sm">
                                 <i class="bi bi-play-fill"></i> Start now
-                            </a>
-                        </div>
+                            </button>
+                        </form>
 
                         <!-- Job is force runnable -->
                         <div th:if="${forceRunnableJobs.get(job.id)}">
