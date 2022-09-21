@@ -169,8 +169,7 @@ public class StatusController<J extends Job, R extends JobRun> {
                                         "No Job with clazz {0} found", clazz));
         jobScheduler.runNow(job, forceRun);
 
-        attributes.addFlashAttribute("triggeredJobName", job.getName());
-        attributes.addFlashAttribute("triggeredJobClazz", clazz);
+        attributes.addFlashAttribute("triggeredJob", job);
         return new RedirectView("/status/list");
     }
 
