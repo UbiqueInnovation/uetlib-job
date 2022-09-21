@@ -25,7 +25,7 @@ $("#next-page").click(function () {
 const getCurrentPage = () => parseInt($("#current-page").attr("data-page"));
 
 const urlWithoutParams = () => window.location.protocol + '//'
-    + window.location.host + window.location.pathname;
+        + window.location.host + window.location.pathname;
 const urlParams = () => new URLSearchParams(window.location.search);
 const toUrl = (url, params) => `${url}?${params.toString()}`;
 

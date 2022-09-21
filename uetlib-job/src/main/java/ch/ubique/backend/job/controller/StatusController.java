@@ -153,7 +153,7 @@ public class StatusController {
         return redirectToStatusList();
     }
 
-    @GetMapping("job/{clazz}/start")
+    @PostMapping("job/{clazz}/start")
     public RedirectView startJob(
             @PathVariable String clazz,
             @RequestParam(required = false, defaultValue = "false") boolean forceRun,

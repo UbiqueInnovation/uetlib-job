@@ -53,8 +53,10 @@
                             Inactive
                         </div>
                     </td>
-                    <td class="align-middle" th:text="${#temporals.format(latestJobRuns.get(job.id)?.startedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
-                    <td class="align-middle " th:text="${#temporals.format(latestJobRuns.get(job.id)?.finishedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
+                    <td class="align-middle"
+                        th:text="${#temporals.format(latestJobRuns.get(job.id)?.startedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
+                    <td class="align-middle "
+                        th:text="${#temporals.format(latestJobRuns.get(job.id)?.finishedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
                     <td class="align-middle text-center">
                         <div th:if="${latestJobRuns.get(job.id) != null}">
                             <span th:class="'badge bg-'+${jobRunStateColors.get(latestJobRuns.get(job.id).state)}"
@@ -65,7 +67,8 @@
 
                         <!-- Job is NOT force runnable -->
                         <div th:if="${!forceRunnableJobs.get(job.id)}">
-                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}" class="btn btn-success btn-sm">
+                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}"
+                               class="btn btn-success btn-sm">
                                 <i class="bi bi-play-fill"></i> Start now
                             </a>
                         </div>
@@ -73,25 +76,37 @@
                         <!-- Job is force runnable -->
                         <div th:if="${forceRunnableJobs.get(job.id)}">
                             <!-- Button trigger modal -->
-                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" th:attrappend="data-bs-target='#force-run-'+${job.id}">
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                    th:attrappend="data-bs-target='#force-run-'+${job.id}">
                                 <i class="bi bi-play-fill"></i> Start now
                             </button>
 
                             <!-- Modal -->
-                            <div class="modal fade" th:id="'force-run-'+${job.id}" tabindex="-1" th:attrappend="aria-labelledby='#force-run-label-'+${job.id}" aria-hidden="true">
+                            <div class="modal fade" th:id="'force-run-'+${job.id}" tabindex="-1"
+                                 th:attrappend="aria-labelledby='#force-run-label-'+${job.id}" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
                                             <h5 class="modal-title" th:id="'force-run-label-'+${job.id}">Force run?</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
-                                            Do you want to force run <strong><span th:text="${job.name}"></span></strong>?
+                                            Do you want to force run <strong><span
+                                                th:text="${job.name}"></span></strong>?
                                         </div>
-                                        <div class="modal-footer">
-                                            <a th:href="@{/status/job/{className}/start(className=${job.clazz},forceRun=true)}" class="btn btn-danger"><i class="bi bi-exclamation-octagon-fill"></i> Force run</a>
-                                            <a th:href="@{/status/job/{className}/start(className=${job.clazz})}" class="btn btn-primary"><i class="bi bi-skip-end-circle-fill"></i> Skip if unchanged</a>
-                                        </div>
+                                        <form class="modal-footer" method="post">
+                                            <button type="submit" id="force-run-button"
+                                                    th:formaction="@{/status/job/{className}/start(className=${job.clazz},forceRun=true)}"
+                                                    class="btn btn-danger"><i
+                                                    class="bi bi-exclamation-octagon-fill"></i> Force run
+                                            </button>
+                                            <button type="submit" id="skip-run-button"
+                                                    th:formaction="@{/status/job/{className}/start(className=${job.clazz})}"
+                                                    class="btn btn-primary"><i class="bi bi-skip-end-circle-fill"></i>
+                                                Skip if unchanged
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -105,12 +120,15 @@
     </div>
 </div>
 
-<div th:if="${triggeredJob != null}" class="toast show position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-success border-0" style="z-index: 1020" role="alert" aria-live="assertive" aria-atomic="true">
+<div th:if="${triggeredJob != null}"
+     class="toast show position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-success border-0"
+     style="z-index: 1020" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
         <div class="toast-body">
             Job <strong><span th:text="${triggeredJob.name}"></span></strong> triggered.
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
     </div>
 </div>
 

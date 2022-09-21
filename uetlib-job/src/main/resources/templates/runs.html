@@ -51,8 +51,10 @@
                 <tbody>
                 <tr th:each="jobRun : ${jobRuns}">
                     <td class="align-middle" th:text="${jobIdToName.get(jobRun.jobId)}"></td>
-                    <td class="align-middle" th:text="${#temporals.format(jobRun.startedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
-                    <td class="align-middle" th:text="${#temporals.format(jobRun.finishedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
+                    <td class="align-middle"
+                        th:text="${#temporals.format(jobRun.startedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
+                    <td class="align-middle"
+                        th:text="${#temporals.format(jobRun.finishedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
                     <td class="align-middle text-end" th:text="${jobRunDurations.get(jobRun.id)}"></td>
                     <td class="align-middle text-center">
                         <span th:class="'badge bg-'+${jobRunStateColors.get(jobRun.state)}"
@@ -60,37 +62,37 @@
                     </td>
                     <td class="align-middle text-center">
                         <a th:href="@{/status/runs/{runId}/log(runId=${jobRun.id})}"
-                           class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-file-text"></i> Show Logs</a>
+                           class="btn btn-sm btn-secondary" target="_blank"><i class="bi bi-file-text"></i> Show
+                            Logs</a>
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
-    <div class="col-12">
-        <nav>
-            <ul class="pagination justify-content-center">
-                <li class="page-item" th:classappend="${isFirst} ? 'disabled' : ''"
-                    th:disabled="${isFirst}">
-                    <button class="page-link" id="prev-page" th:disabled="${isFirst}">
-                        Previous
-                    </button>
-                </li>
-                <li class="page-item active" aria-current="page">
-                    <button class="page-link" id="current-page" th:data-page="${currentPage}"
-                            th:text="${currentPage} + 1"></button>
-                </li>
-                <li class="page-item" th:classappend="${isLast} ? 'disabled' : ''"
-                    th:disabled="${isLast}">
-                    <button class="page-link" id="next-page" th:disabled="${isLast}">Next
-                    </button>
-                </li>
-            </ul>
-        </nav>
+        <div class="col-12">
+            <nav>
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${isFirst} ? 'disabled' : ''"
+                        th:disabled="${isFirst}">
+                        <button class="page-link" id="prev-page" th:disabled="${isFirst}">
+                            Previous
+                        </button>
+                    </li>
+                    <li class="page-item active" aria-current="page">
+                        <button class="page-link" id="current-page" th:data-page="${currentPage}"
+                                th:text="${currentPage} + 1"></button>
+                    </li>
+                    <li class="page-item" th:classappend="${isLast} ? 'disabled' : ''"
+                        th:disabled="${isLast}">
+                        <button class="page-link" id="next-page" th:disabled="${isLast}">Next
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
-</div>
-<footer th:replace="fragments/footer :: footer">
-    <!-- FOOTER -->
-</footer>
-
+    <footer th:replace="fragments/footer :: footer">
+        <!-- FOOTER -->
+    </footer>
 </body>
 </html>
