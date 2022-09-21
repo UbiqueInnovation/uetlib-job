@@ -19,6 +19,12 @@
             <artifactId>backend-jvm-lib-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- monitoring -->
+        <dependency>
+            <groupId>ch.ubique</groupId>
+            <artifactId>backend-jvm-lib-monitoring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
