@@ -9,6 +9,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -19,6 +20,7 @@ import java.util.NoSuchElementException;
 
 import javax.annotation.PostConstruct;
 
+@Service
 public class JobScheduler {
 
     private final SchedulerService schedulerService;
@@ -29,7 +31,6 @@ public class JobScheduler {
             final SchedulerService schedulerService,
             final JobDataService jobDataService,
             final ApplicationContext applicationContext) {
-
         this.schedulerService = schedulerService;
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
