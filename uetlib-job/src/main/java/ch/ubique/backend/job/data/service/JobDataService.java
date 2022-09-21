@@ -12,7 +12,7 @@ import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 
-public interface JobDataService<J extends Job, R extends JobRun> {
+public interface JobDataService {
 
     @PostConstruct
     @Transactional
@@ -27,34 +27,34 @@ public interface JobDataService<J extends Job, R extends JobRun> {
     Optional<String> findLogForJobRun(Integer jobRunId);
 
     @Transactional(readOnly = true)
-    Optional<J> findJobByClass(String clazz);
+    Optional<Job> findJobByClass(String clazz);
 
     @Transactional(readOnly = true)
-    Optional<J> findJobByName(String name);
+    Optional<Job> findJobByName(String name);
 
     @Transactional
-    J updateCronExpression(String clazz, String cronExpression);
+    Job updateCronExpression(String clazz, String cronExpression);
 
     @Transactional(readOnly = true)
-    Optional<R> findLatestJobRun(Integer jobId);
+    Optional<JobRun> findLatestJobRun(Integer jobId);
 
     @Transactional(readOnly = true)
-    Optional<R> findLatestJobRunByState(Integer jobId, JobRunState state);
+    Optional<JobRun> findLatestJobRunByState(Integer jobId, JobRunState state);
 
     @Transactional(readOnly = true)
-    Optional<R> findLatestJobRunByStates(Integer jobId, JobRunState... states);
+    Optional<JobRun> findLatestJobRunByStates(Integer jobId, JobRunState... states);
 
     @Transactional(readOnly = true)
-    List<J> findJobs();
+    List<Job> findJobs();
 
     @Transactional(readOnly = true)
-    Page<R> findJobRuns(int pageNumber, int pageSize, String name, JobRunState state);
+    Page<JobRun> findJobRuns(int pageNumber, int pageSize, String name, JobRunState state);
 
     @Transactional
-    J registerJobByClass(Class<?> cls);
+    Job registerJobByClass(Class<?> cls);
 
     @Transactional
-    R saveJobRun(R jobRun);
+    JobRun saveJobRun(JobRun jobRun);
 
-    R newRunInstance();
+    JobRun newRunInstance();
 }

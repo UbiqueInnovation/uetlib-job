@@ -5,6 +5,7 @@ import ch.ubique.backend.job.data.jpa.repository.JobRepository;
 import ch.ubique.backend.job.data.jpa.repository.JobRunRepository;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
@@ -17,10 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
-public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity> {
+public class JpaJobDataService implements JobDataService {
 
     private final JobRepository jobRepository;
     private final JobRunRepository jobRunRepository;
@@ -37,13 +37,14 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
         final var now = Instant.now();
         jobRunRepository.saveAllAndFlush(
                 jobRunRepository.findAllByStateAndFinishedAtIsNull(JobRunState.BUSY).stream()
+                        .map(JobRunEntity.class::cast)
                         .map(
                                 jobRun -> {
                                     jobRun.setFinishedAt(now);
                                     jobRun.setState(JobRunState.UNFINISHED);
                                     return jobRunRepository.save(jobRun);
                                 })
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
     @Override
@@ -54,13 +55,13 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<JobEntity> findJobByClass(String clazz) {
+    public Optional<Job> findJobByClass(String clazz) {
         return jobRepository.findByClazz(clazz);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<JobEntity> findJobByName(String name) {
+    public Optional<Job> findJobByName(String name) {
         return jobRepository.findByName(name);
     }
 
@@ -69,6 +70,7 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
     public JobEntity updateCronExpression(final String clazz, final String cronExpression) {
         return jobRepository
                 .findByClazz(clazz)
+                .map(JobEntity.class::cast)
                 .map(
                         job -> {
                             job.setCronExpression(cronExpression);
@@ -81,30 +83,30 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<JobRunEntity> findLatestJobRun(final Integer jobId) {
+    public Optional<JobRun> findLatestJobRun(final Integer jobId) {
         return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
     }
 
     @Override
-    public Optional<JobRunEntity> findLatestJobRunByState(Integer jobId, JobRunState state) {
+    public Optional<JobRun> findLatestJobRunByState(Integer jobId, JobRunState state) {
         return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
     }
 
     @Override
-    public Optional<JobRunEntity> findLatestJobRunByStates(Integer jobId, JobRunState... states) {
+    public Optional<JobRun> findLatestJobRunByStates(Integer jobId, JobRunState... states) {
         return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(
                 jobId, List.of(states));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<JobEntity> findJobs() {
+    public List<Job> findJobs() {
         return jobRepository.findAllByOrderByName();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<JobRunEntity> findJobRuns(
+    public Page<JobRun> findJobRuns(
             final int pageNumber, final int pageSize, final String name, final JobRunState state) {
         final var page = PageRequest.of(pageNumber, pageSize);
         if (name != null) {
@@ -131,6 +133,7 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
     @Transactional
     public JobEntity registerJobByClass(final Class<?> cls) {
         return findJobByClass(cls.getName())
+                .map(JobEntity.class::cast)
                 .orElseGet(
                         () -> {
                             final var job = new JobEntity();
@@ -143,8 +146,13 @@ public class JpaJobDataService implements JobDataService<JobEntity, JobRunEntity
 
     @Override
     @Transactional
-    public JobRunEntity saveJobRun(final JobRunEntity jobRun) {
-        return jobRunRepository.save(jobRun);
+    public JobRunEntity saveJobRun(final JobRun jobRun) {
+        if (!(jobRun instanceof JobRunEntity jobRunEntity)) {
+            throw new ClassCastException(
+                    "jobRun cannot be instance of class to JobRunEntity, but is of class"
+                            + jobRun.getClass());
+        }
+        return jobRunRepository.save(jobRunEntity);
     }
 
     @Override
