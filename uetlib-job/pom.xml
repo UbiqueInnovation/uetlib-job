@@ -5,7 +5,7 @@
     <parent>
         <artifactId>backend-jvm-lib</artifactId>
         <groupId>ch.ubique</groupId>
-        <version>0.4.28-SNAPSHOT</version>
+        <version>0.4.35-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -34,19 +34,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
             <version>${spring-boot-version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-            <version>8.5.12</version>
-        </dependency>
-
-        <!-- SQLite -->
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.36.0.3</version>
         </dependency>
     </dependencies>
 </project>
