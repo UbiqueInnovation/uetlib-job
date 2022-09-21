@@ -28,14 +28,14 @@ import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/status")
-public class StatusController<J extends Job, R extends JobRun> {
+public class StatusController {
 
-    private final JobDataService<J, R> jobDataService;
-    private final JobScheduler<J, R> jobScheduler;
+    private final JobDataService jobDataService;
+    private final JobScheduler jobScheduler;
 
     private static final int PAGE_SIZE = 30;
 
-    public StatusController(JobDataService<J, R> jobDataService, JobScheduler<J, R> jobScheduler) {
+    public StatusController(final JobDataService jobDataService, final JobScheduler jobScheduler) {
         this.jobDataService = jobDataService;
         this.jobScheduler = jobScheduler;
     }
@@ -69,7 +69,7 @@ public class StatusController<J extends Job, R extends JobRun> {
                 jobs.stream()
                         .collect(
                                 Collectors.toMap(
-                                        J::getId,
+                                        Job::getId,
                                         job -> {
                                             try {
                                                 return BaseInputJob.class.isAssignableFrom(
@@ -102,7 +102,7 @@ public class StatusController<J extends Job, R extends JobRun> {
                 jobRuns.stream()
                         .collect(
                                 Collectors.toUnmodifiableMap(
-                                        R::getId,
+                                        JobRun::getId,
                                         jobRun -> {
                                             if (jobRun.getFinishedAt() != null) {
                                                 return millisToString(
@@ -115,7 +115,7 @@ public class StatusController<J extends Job, R extends JobRun> {
                                         }));
 
         final var jobIdToName =
-                jobs.stream().collect(Collectors.toUnmodifiableMap(J::getId, J::getName));
+                jobs.stream().collect(Collectors.toUnmodifiableMap(Job::getId, Job::getName));
         final var jobNameSelected =
                 jobIdToName.values().stream()
                         .collect(

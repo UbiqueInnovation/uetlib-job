@@ -1,8 +1,6 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.data.service.InputJobDataService;
-import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
 
@@ -13,19 +11,18 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public abstract class BaseInputJob<J extends Job, R extends JobRun, I extends JobRunInput>
-        extends BaseJob<J, R> {
+public abstract class BaseInputJob extends BaseJob {
 
-    private Collection<I> currentInputs;
+    private Collection<JobRunInput> currentInputs;
 
-    private final InputJobDataService<J, R, I> inputJobDataService;
+    private final InputJobDataService inputJobDataService;
 
-    protected BaseInputJob(InputJobDataService<J, R, I> inputJobDataService) {
+    protected BaseInputJob(InputJobDataService inputJobDataService) {
         super(inputJobDataService);
         this.inputJobDataService = inputJobDataService;
     }
 
-    protected abstract Collection<I> loadInputs() throws Exception;
+    protected abstract Collection<JobRunInput> loadInputs() throws Exception;
 
     protected abstract JobRunState processInputs();
 
@@ -55,7 +52,7 @@ public abstract class BaseInputJob<J extends Job, R extends JobRun, I extends Jo
         return processInputs();
     }
 
-    private Optional<Collection<I>> tryLoadingInputs() {
+    private Optional<Collection<JobRunInput>> tryLoadingInputs() {
 
         final var retryTemplate =
                 RetryTemplate.builder()

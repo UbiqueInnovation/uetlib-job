@@ -21,18 +21,18 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
-public abstract class BaseJob<J extends Job, R extends JobRun> implements org.quartz.Job, Runnable {
+public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    protected final J job;
-    protected final R jobRun;
-    protected final JobDataService<J, R> jobDataService;
+    protected final Job job;
+    protected final JobRun jobRun;
+    protected final JobDataService jobDataService;
 
     private Map<String, String> previousMDCContext;
     private Path logOutput;
     protected JobDataMap jobDataMap;
 
-    protected BaseJob(final JobDataService<J, R> jobDataService) {
+    protected BaseJob(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
         this.job = jobDataService.registerJobByClass(getClass());
         this.jobRun = jobDataService.newRunInstance();

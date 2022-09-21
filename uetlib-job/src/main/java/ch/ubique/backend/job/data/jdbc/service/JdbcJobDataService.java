@@ -4,6 +4,8 @@ import ch.ubique.backend.job.data.jdbc.mapper.JobRowMapper;
 import ch.ubique.backend.job.data.jdbc.mapper.JobRunRowMapper;
 import ch.ubique.backend.job.data.jdbc.params.JobParamsCreator;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
@@ -24,7 +26,7 @@ import java.util.*;
 import javax.sql.DataSource;
 
 @Service
-public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
+public class JdbcJobDataService implements JobDataService {
 
     protected final NamedParameterJdbcTemplate jt;
     private static final Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
@@ -57,35 +59,24 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
 
     @Override
     public Optional<String> findLogForJobRun(final Integer jobRunId) {
-        if (jobRunId == null) {
-            return Optional.empty();
-        }
-        Optional<JdbcJobRun> jobRun = findJobRunById(jobRunId);
-        if (jobRun.isPresent()) {
-            return Optional.ofNullable(jobRun.get().getLogOutput());
-        } else {
-            logger.warn("job run (id={}) not found", jobRunId);
-            return Optional.empty();
-        }
+        return Optional.ofNullable(jobRunId).map(this::findJobRunById).map(JobRun::getLogOutput);
     }
 
-    private Optional<JdbcJobRun> findJobRunById(Integer jobRunId) {
+    private JobRun findJobRunById(Integer jobRunId) {
         if (jobRunId == null) {
-            return Optional.empty();
+            return null;
         }
         try {
             final var sql = "select * from t_job_run where pk_job_run_id = :id";
-            final var jobRun =
-                    jt.queryForObject(
-                            sql, new MapSqlParameterSource("id", jobRunId), new JobRunRowMapper());
-            return Optional.ofNullable(jobRun);
+            return jt.queryForObject(
+                    sql, new MapSqlParameterSource("id", jobRunId), new JobRunRowMapper());
         } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
+            return null;
         }
     }
 
     @Override
-    public Optional<JdbcJob> findJobByClass(final String clazz) {
+    public Optional<Job> findJobByClass(final String clazz) {
         if (clazz == null) {
             return Optional.empty();
         }
@@ -102,7 +93,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     }
 
     @Override
-    public Optional<JdbcJob> findJobByName(final String name) {
+    public Optional<Job> findJobByName(final String name) {
         if (name == null) {
             return Optional.empty();
         }
@@ -129,11 +120,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
                         Map.of("cron_expression", cronExpression, "clazz", clazz));
         try {
             jt.update(sql, params);
-            var job = findJobByClass(clazz);
-            if (job.isPresent()) {
-                return job.get();
-            }
-            return null;
+            return findJobByClass(clazz).map(JdbcJob.class::cast).orElse(null);
         } catch (DataAccessException e) {
             logger.warn("Could not update cron expression for clazz {}.", clazz);
             return null;
@@ -141,7 +128,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     }
 
     @Override
-    public Optional<JdbcJobRun> findLatestJobRun(final Integer jobId) {
+    public Optional<JobRun> findLatestJobRun(final Integer jobId) {
         if (jobId == null) {
             return Optional.empty();
         }
@@ -159,13 +146,12 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     }
 
     @Override
-    public Optional<JdbcJobRun> findLatestJobRunByState(
-            final Integer jobId, final JobRunState state) {
+    public Optional<JobRun> findLatestJobRunByState(final Integer jobId, final JobRunState state) {
         return findLatestJobRunByStates(jobId, state);
     }
 
     @Override
-    public Optional<JdbcJobRun> findLatestJobRunByStates(
+    public Optional<JobRun> findLatestJobRunByStates(
             final Integer jobId, final JobRunState... states) {
         if (jobId == null || states == null || states.length == 0) {
             return Optional.empty();
@@ -190,10 +176,10 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     }
 
     @Override
-    public List<JdbcJob> findJobs() {
+    public List<Job> findJobs() {
         final var sql = "select * from t_job";
         try {
-            return jt.query(sql, new JobRowMapper());
+            return jt.query(sql, new JobRowMapper()).stream().map(Job.class::cast).toList();
         } catch (EmptyResultDataAccessException e) {
             logger.info("No job statuses found.");
             return Collections.emptyList();
@@ -201,7 +187,7 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
     }
 
     @Override
-    public Page<JdbcJobRun> findJobRuns(
+    public Page<JobRun> findJobRuns(
             final int pageNumber, final int pageSize, final String name, final JobRunState state) {
 
         String sql = "select * from t_job_run";
@@ -227,7 +213,8 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
         sql += " order by started_at desc limit :page_size offset :offset";
 
         try {
-            return new PageImpl<>(jt.query(sql, params, new JobRunRowMapper()));
+            return new PageImpl<>(jt.query(sql, params, new JobRunRowMapper()))
+                    .map(JobRun.class::cast);
         } catch (EmptyResultDataAccessException e) {
             logger.info("No job runs found.");
             return new PageImpl<>(Collections.emptyList());
@@ -236,34 +223,43 @@ public class JdbcJobDataService implements JobDataService<JdbcJob, JdbcJobRun> {
 
     @Override
     public JdbcJob registerJobByClass(final Class<?> cls) {
-        final var existingJob = findJobByClass(cls.getName());
-        if (existingJob.isPresent()) {
-            return existingJob.get();
-        }
-        final var job = new JdbcJob();
-        job.setName(cls.getSimpleName());
-        job.setClazz(cls.getCanonicalName());
-        job.setCronExpression("not set");
-        Number pk = jobInsert.executeAndReturnKey(JobParamsCreator.createParams(job));
-        job.setId(pk.intValue());
-        return job;
+        return findJobByClass(cls.getName())
+                .map(JdbcJob.class::cast)
+                .orElseGet(
+                        () -> {
+                            final var job = new JdbcJob();
+                            job.setName(cls.getSimpleName());
+                            job.setClazz(cls.getCanonicalName());
+                            job.setCronExpression("not set");
+                            Number pk =
+                                    jobInsert.executeAndReturnKey(
+                                            JobParamsCreator.createParams(job));
+                            job.setId(pk.intValue());
+                            return job;
+                        });
     }
 
     @Override
-    public JdbcJobRun saveJobRun(final JdbcJobRun jobRun) {
-        if (jobRun.getId() == null) {
+    public JdbcJobRun saveJobRun(final JobRun jobRun) {
+        if (!(jobRun instanceof JdbcJobRun jdbcJobRun)) {
+            throw new ClassCastException(
+                    "jobRun cannot be instance of class to JdbcJobRun, but is of class"
+                            + jobRun.getClass());
+        }
+
+        if (jdbcJobRun.getId() == null) {
             final int id =
                     jobRunInsert
-                            .executeAndReturnKey(JobParamsCreator.createParams(jobRun))
+                            .executeAndReturnKey(JobParamsCreator.createParams(jdbcJobRun))
                             .intValue();
-            jobRun.setId(id);
+            jdbcJobRun.setId(id);
         } else {
             jt.update(
                     "update t_job_run set finished_at = :finished_at, state = :state, log_output ="
                             + " :log_output where pk_job_run_id = :pk_job_run_id",
-                    JobParamsCreator.createParams(jobRun));
+                    JobParamsCreator.createParams(jdbcJobRun));
         }
-        return jobRun;
+        return jdbcJobRun;
     }
 
     @Override

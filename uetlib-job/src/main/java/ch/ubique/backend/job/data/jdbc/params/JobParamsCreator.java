@@ -9,48 +9,42 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
 
 public class JobParamsCreator {
 
     private JobParamsCreator() {}
 
     public static SqlParameterSource createParams(JdbcJob job) {
-        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
-        if (job.getId() != null) {
-            parameterSource.addValue("pk_job_id", job.getId());
-        }
-        parameterSource.addValue("name", job.getName());
-        parameterSource.addValue("clazz", job.getClazz());
-        parameterSource.addValue("cron_expression", job.getCronExpression());
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        Optional.ofNullable(job.getId()).ifPresent(id -> params.addValue("pk_job_id", id));
+        params.addValue("name", job.getName());
+        params.addValue("clazz", job.getClazz());
+        params.addValue("cron_expression", job.getCronExpression());
 
-        return parameterSource;
+        return params;
     }
 
     public static SqlParameterSource createParams(JdbcJobRun jobRun) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        if (jobRun.getId() != null) {
-            params.addValue("pk_job_run_id", jobRun.getId());
-        }
+        Optional.ofNullable(jobRun.getId())
+                .ifPresent(runId -> params.addValue("pk_job_run_id", runId));
         params.addValue("state", jobRun.getState().name());
         params.addValue("fk_job_id", jobRun.getJobId());
         params.addValue("job_version", jobRun.getJobVersion());
-        if (jobRun.getStartedAt() != null) {
-            params.addValue("started_at", Date.from(jobRun.getStartedAt()));
-        } else {
-            params.addValue("started_at", Date.from(Instant.now()));
-        }
-        if (jobRun.getFinishedAt() != null) {
-            params.addValue("finished_at", Date.from(jobRun.getFinishedAt()));
-        }
+        params.addValue(
+                "started_at",
+                Date.from(Optional.ofNullable(jobRun.getStartedAt()).orElse(Instant.now())));
+        Optional.ofNullable(jobRun.getFinishedAt())
+                .ifPresent(finishedAt -> params.addValue("finished_at", Date.from(finishedAt)));
         params.addValue("log_output", jobRun.getLogOutput());
         return params;
     }
 
     public static SqlParameterSource createParams(JobRunInput jobRunInput) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        if (jobRunInput.getId() != null) {
-            params.addValue("pk_job_run_input_id", jobRunInput.getId());
-        }
+        Optional.ofNullable(jobRunInput.getId())
+                .ifPresent(runInputId -> params.addValue("pk_job_run_input_id", runInputId));
         params.addValue("fk_job_run_id", jobRunInput.getRunId());
         params.addValue("input_name", jobRunInput.getName());
         params.addValue("input_hash", jobRunInput.getHash());
