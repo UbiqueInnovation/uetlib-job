@@ -22,6 +22,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,7 +58,7 @@ public class StatusController {
         final var latestJobRuns =
                 jobs.stream()
                         .collect(
-                                HashMap::new,
+                                HashMap<Integer, JobRun>::new,
                                 (map, job) ->
                                         map.put(
                                                 job.getId(),
@@ -104,14 +105,12 @@ public class StatusController {
                                 Collectors.toUnmodifiableMap(
                                         JobRun::getId,
                                         jobRun -> {
-                                            if (jobRun.getFinishedAt() != null) {
-                                                return millisToString(
-                                                        jobRun.getFinishedAt().toEpochMilli()
-                                                                - jobRun.getStartedAt()
-                                                                        .toEpochMilli());
-                                            } else {
-                                                return "-";
-                                            }
+                                            final var finishedAt =
+                                                    Optional.ofNullable(jobRun.getFinishedAt())
+                                                            .orElse(Instant.now());
+                                            return millisToString(
+                                                    finishedAt.toEpochMilli()
+                                                            - jobRun.getStartedAt().toEpochMilli());
                                         }));
 
         final var jobIdToName =
