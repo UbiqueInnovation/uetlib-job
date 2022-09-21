@@ -52,30 +52,3 @@ $('#jobFilter').change(function () {
 $('#stateFilter').change(function () {
     updateParam($(this).val(), "state");
 });
-
-function showToast(headerStrong, body) {
-    let now = Date.now();
-
-    if (Array.isArray(body)) {
-        body = body.join("<br>");
-    }
-
-    var toastContainer = document.getElementById('toast-container');
-    let toastHtml = '<div class="toast" role="alert" aria-live="assertive" aria-atomic="true"'
-        + '               id="toast-' + now + '" data-bs-delay="6000">'
-        + '        <div class="toast-header">'
-        + '            <strong class="me-auto">' + headerStrong + '</strong>'
-        + '            <small class="text-muted">'
-        + new Date(now).toLocaleTimeString()
-        + '            </small>'
-        + '            <button type="button" class="btn-close" data-bs-dismiss="toast"'
-        + '                    aria-label="Close"></button>'
-        + '        </div>'
-        + '        <div class="toast-body">' + body + '</div>'
-        + '    </div>';
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
-    var toastElement = document.getElementById('toast-' + now);
-    var toast = new bootstrap.Toast(toastElement);
-    toast.show();
-}
