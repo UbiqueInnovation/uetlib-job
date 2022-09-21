@@ -9,13 +9,11 @@ import ch.ubique.backend.job.model.jdbc.JdbcJobRunInput;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
-import org.springframework.stereotype.Service;
 
 import java.util.*;
 
 import javax.sql.DataSource;
 
-@Service
 public class JdbcInputJobDataService extends JdbcJobDataService
         implements InputJobDataService<JdbcJob, JdbcJobRun, JdbcJobRunInput> {
 
