@@ -3,14 +3,13 @@ package ch.ubique.backend.job.scheduler;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
-
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
@@ -18,16 +17,13 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-import javax.annotation.PostConstruct;
-
-@Service
-public class JobScheduler {
+public abstract class JobScheduler {
 
     private final SchedulerService schedulerService;
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
 
-    public JobScheduler(
+    protected JobScheduler(
             final SchedulerService schedulerService,
             final JobDataService jobDataService,
             final ApplicationContext applicationContext) {
@@ -47,6 +43,8 @@ public class JobScheduler {
             }
         }
     }
+
+    protected abstract Class<BaseJob> getClassForName(String clazz) throws ClassNotFoundException;
 
     public void update(final Job job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
@@ -75,8 +73,7 @@ public class JobScheduler {
     public BaseJob createNewJobInstance(Job job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        @SuppressWarnings("unchecked")
-        final var jobClass = (Class<BaseJob>) Class.forName(job.getClazz());
+        final var jobClass = getClassForName(job.getClazz());
         return createNewJobInstance(jobClass);
     }
 
