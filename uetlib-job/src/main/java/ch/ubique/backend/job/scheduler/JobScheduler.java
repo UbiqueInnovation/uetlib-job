@@ -125,10 +125,20 @@ public class JobScheduler {
             // in case there are multiple beans for the same class try
             // getting bean by class and name first
             return applicationContext.getBean(p.getName(), p.getType());
-        } catch (BeansException e) {
-            // don't enforce name matching if there is only one bean of
-            // the requested class
-            return applicationContext.getBean(p.getType());
+        } catch (BeansException e1) {
+            try {
+                // don't enforce name matching if there is only one bean of
+                // the requested class
+                return applicationContext.getBean(p.getType());
+            }
+            catch (BeansException e2) {
+                // Features such as AOP may "enhance" the registered bean instances,
+                // such that the type is now different to the original type.
+                // Thus getting the bean by type will fail.
+                // E.g. com.example.MyBean may become com.example.MyBean$$EnhancerBySpringCGLIB
+                //      but the name if not explicitly modified is myBean in both cases
+                return applicationContext.getBean(p.getName());
+            }
         }
     }
 }
