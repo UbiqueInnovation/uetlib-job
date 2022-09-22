@@ -95,8 +95,8 @@ public class StatusController {
             @RequestParam(value = "state", required = false) JobRunState state) {
         final var mav = new ModelAndView("runs");
 
-        final var jobs = jobDataService.findJobs();
-        jobs.sort(Comparator.comparing(Job::getName));
+        final var jobs = jobDataService.findJobs().stream()
+                .sorted(Comparator.comparing(Job::getName)).toList();
         final var jobRunsPage = jobDataService.findJobRuns(currentPage, PAGE_SIZE, name, state);
         final var jobRuns = jobRunsPage.getContent();
         final var jobRunDurations =
