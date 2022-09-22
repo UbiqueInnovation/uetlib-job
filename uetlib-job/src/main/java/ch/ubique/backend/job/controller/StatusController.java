@@ -53,8 +53,8 @@ public class StatusController {
     @GetMapping("list")
     public ModelAndView jobList() {
         final var mav = new ModelAndView("list");
-        final var jobs = jobDataService.findJobs();
-        jobs.sort(Comparator.comparingInt(Job::getId));
+        final var jobs = jobDataService.findJobs().stream()
+                .sorted(Comparator.comparingInt(Job::getId)).toList();
         final var latestJobRuns =
                 jobs.stream()
                         .collect(
