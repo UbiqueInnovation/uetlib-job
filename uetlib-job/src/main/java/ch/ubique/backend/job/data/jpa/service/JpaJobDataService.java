@@ -55,21 +55,21 @@ public class JpaJobDataService implements JobDataService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Job> findJobByClass(String clazz) {
+    public Optional<Job> findJobByClazz(String clazz) {
         return jobRepository.findByClazz(clazz);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Job> findJobByName(String name) {
-        return jobRepository.findByName(name);
+    public Optional<Job> findJobById(int id) {
+        return jobRepository.findById(id);
     }
 
     @Override
     @Transactional
-    public JobEntity updateCronExpression(final String clazz, final String cronExpression) {
+    public JobEntity updateCronExpression(final int id, final String cronExpression) {
         return jobRepository
-                .findByClazz(clazz)
+                .findById(id)
                 .map(JobEntity.class::cast)
                 .map(
                         job -> {
@@ -78,22 +78,22 @@ public class JpaJobDataService implements JobDataService {
                         })
                 .orElseThrow(
                         ResourceNotFoundException.throwWithMessage(
-                                "No JobEntity with clazz {0} found", clazz));
+                                "No JobEntity with id {0} found", id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<JobRun> findLatestJobRun(final Integer jobId) {
+    public Optional<JobRun> findLatestJobRun(final int jobId) {
         return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
     }
 
     @Override
-    public Optional<JobRun> findLatestJobRunByState(Integer jobId, JobRunState state) {
+    public Optional<JobRun> findLatestJobRunByState(int jobId, JobRunState state) {
         return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
     }
 
     @Override
-    public Optional<JobRun> findLatestJobRunByStates(Integer jobId, JobRunState... states) {
+    public Optional<JobRun> findLatestJobRunByStates(int jobId, JobRunState... states) {
         return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(
                 jobId, List.of(states));
     }
@@ -101,38 +101,31 @@ public class JpaJobDataService implements JobDataService {
     @Override
     @Transactional(readOnly = true)
     public List<Job> findJobs() {
-        return jobRepository.findAllByOrderByName();
+        return jobRepository.findAllByOrderById();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<JobRun> findJobRuns(
-            final int pageNumber, final int pageSize, final String name, final JobRunState state) {
-        final var page = PageRequest.of(pageNumber, pageSize);
-        if (name != null) {
-            final var jobId =
-                    jobRepository
-                            .findByName(name)
-                            .map(Job::getId)
-                            .orElseThrow(
-                                    ResourceNotFoundException.throwWithMessage(
-                                            "No JobEntity with name {0} found", name));
+            final int page, final int pageSize, final Integer jobId, final JobRunState state) {
+        final var pageRequest = PageRequest.of(page, pageSize);
+        if (jobId != null) {
             if (state != null) {
                 return jobRunRepository.findAllByJobIdAndStateOrderByStartedAtDesc(
-                        jobId, state, page);
+                        jobId, state, pageRequest);
             }
-            return jobRunRepository.findAllByJobIdOrderByStartedAtDesc(jobId, page);
+            return jobRunRepository.findAllByJobIdOrderByStartedAtDesc(jobId, pageRequest);
         }
         if (state != null) {
-            return jobRunRepository.findAllByStateOrderByStartedAtDesc(state, page);
+            return jobRunRepository.findAllByStateOrderByStartedAtDesc(state, pageRequest);
         }
-        return jobRunRepository.findAllByOrderByStartedAtDesc(page);
+        return jobRunRepository.findAllByOrderByStartedAtDesc(pageRequest);
     }
 
     @Override
     @Transactional
     public JobEntity registerJobByClass(final Class<?> cls) {
-        return findJobByClass(cls.getName())
+        return findJobByClazz(cls.getName())
                 .map(JobEntity.class::cast)
                 .orElseGet(
                         () -> {
@@ -158,5 +151,10 @@ public class JpaJobDataService implements JobDataService {
     @Override
     public JobRunEntity newRunInstance() {
         return new JobRunEntity();
+    }
+
+    @Override
+    public Optional<JobRun> findJobRunById(final int jobRunId) {
+        return jobRunRepository.findById(jobRunId);
     }
 }

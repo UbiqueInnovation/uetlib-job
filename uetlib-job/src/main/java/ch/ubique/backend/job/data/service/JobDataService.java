@@ -27,28 +27,28 @@ public interface JobDataService {
     Optional<String> findLogForJobRun(Integer jobRunId);
 
     @Transactional(readOnly = true)
-    Optional<Job> findJobByClass(String clazz);
+    Optional<Job> findJobByClazz(String clazz);
 
     @Transactional(readOnly = true)
-    Optional<Job> findJobByName(String name);
+    Optional<Job> findJobById(int id);
 
     @Transactional
-    Job updateCronExpression(String clazz, String cronExpression);
+    Job updateCronExpression(int id, String cronExpression);
 
     @Transactional(readOnly = true)
-    Optional<JobRun> findLatestJobRun(Integer jobId);
+    Optional<JobRun> findLatestJobRun(int jobId);
 
     @Transactional(readOnly = true)
-    Optional<JobRun> findLatestJobRunByState(Integer jobId, JobRunState state);
+    Optional<JobRun> findLatestJobRunByState(int jobId, JobRunState state);
 
     @Transactional(readOnly = true)
-    Optional<JobRun> findLatestJobRunByStates(Integer jobId, JobRunState... states);
+    Optional<JobRun> findLatestJobRunByStates(int jobId, JobRunState... states);
 
     @Transactional(readOnly = true)
     List<Job> findJobs();
 
     @Transactional(readOnly = true)
-    Page<JobRun> findJobRuns(int pageNumber, int pageSize, String name, JobRunState state);
+    Page<JobRun> findJobRuns(int page, int pageSize, Integer jobId, JobRunState state);
 
     @Transactional
     Job registerJobByClass(Class<?> cls);
@@ -56,5 +56,9 @@ public interface JobDataService {
     @Transactional
     JobRun saveJobRun(JobRun jobRun);
 
+    @Transactional
     JobRun newRunInstance();
+
+    @Transactional(readOnly = true)
+    Optional<JobRun> findJobRunById(int jobRunId);
 }

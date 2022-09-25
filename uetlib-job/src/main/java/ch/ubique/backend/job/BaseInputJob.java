@@ -119,15 +119,18 @@ public abstract class BaseInputJob extends BaseJob {
             return false;
         }
 
-        for (final var input : currentInputs) {
+        return currentInputs.stream()
+                .allMatch(
+                        input -> {
+                            final var other = latestInputsByName.get(input.getName());
 
-            final var other = latestInputsByName.get(input.getName());
-
-            if (!input.getHash().equals(other.getHash())) {
-                logger.info("Input {} changed since last successful run", input.getName());
-                return false;
-            }
-        }
-        return true;
+                            if (!input.getHash().equals(other.getHash())) {
+                                logger.info(
+                                        "Input {} changed since last successful run",
+                                        input.getName());
+                                return false;
+                            }
+                            return true;
+                        });
     }
 }

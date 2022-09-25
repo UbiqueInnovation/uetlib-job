@@ -3,19 +3,21 @@ package ch.ubique.backend.job.scheduler;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
+
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+
+import javax.annotation.PostConstruct;
 
 public abstract class JobScheduler {
 
@@ -127,8 +129,7 @@ public abstract class JobScheduler {
                 // don't enforce name matching if there is only one bean of
                 // the requested class
                 return applicationContext.getBean(p.getType());
-            }
-            catch (BeansException e2) {
+            } catch (BeansException e2) {
                 // Features such as AOP may "enhance" the registered bean instances,
                 // such that the type is now different to the original type.
                 // Thus getting the bean by type will fail.

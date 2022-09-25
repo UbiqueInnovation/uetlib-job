@@ -30,7 +30,7 @@ public class JdbcInputJobDataService extends JdbcJobDataService implements Input
     }
 
     @Override
-    public Collection<JobRunInput> findJobRunInputs(Integer runId) {
+    public Collection<JobRunInput> findJobRunInputs(int runId) {
         final var sql = "SELECT *  FROM t_job_run_input WHERE fk_job_run_id = :runId ";
         return jt.query(sql, new MapSqlParameterSource("runId", runId), new JobRunInputRowMapper());
     }

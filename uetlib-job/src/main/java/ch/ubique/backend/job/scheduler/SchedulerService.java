@@ -19,18 +19,18 @@ public class SchedulerService {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerService.class);
     private final Scheduler scheduler;
 
-    public SchedulerService(Scheduler scheduler) {
+    public SchedulerService(final Scheduler scheduler) {
         this.scheduler = scheduler;
     }
 
-    public void scheduleJob(String identifier, Job job, String cronExpression) {
+    public void scheduleJob(final String identifier, final Job job, final String cronExpression) {
         try {
-            logger.info("Scheduling {} with cron: {}", identifier, cronExpression);
-            JobKey key = new JobKey(identifier);
+            logger.info("Scheduling {} with cron expression: {}", identifier, cronExpression);
+            final var key = new JobKey(identifier);
 
-            JobDetail jobDetail = createJobDetail(key, job);
+            final var jobDetail = createJobDetail(key, job);
 
-            Trigger trigger =
+            final var trigger =
                     TriggerBuilder.newTrigger()
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                             .build();
@@ -42,16 +42,19 @@ public class SchedulerService {
         }
     }
 
-    public void updateJob(String identifier, Job job, String cronExpression) {
+    public void updateJob(final String identifier, final Job job, final String cronExpression) {
         try {
-            logger.info("Updating scheduled job {} with cron: {}", identifier, cronExpression);
-            JobKey key = new JobKey(identifier);
+            logger.info(
+                    "Updating scheduled job {} with cron expression: {}",
+                    identifier,
+                    cronExpression);
+            final var key = new JobKey(identifier);
 
-            JobDetail jobDetail = getOrCreateJobDetail(key, job);
+            final var jobDetail = getOrCreateJobDetail(key, job);
 
             removeScheduleJob(identifier);
 
-            Trigger trigger =
+            final var trigger =
                     TriggerBuilder.newTrigger()
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                             .build();
@@ -63,10 +66,10 @@ public class SchedulerService {
         }
     }
 
-    public void removeScheduleJob(String identifier) {
+    public void removeScheduleJob(final String identifier) {
         try {
             logger.info("Removing scheduled job {}", identifier);
-            JobKey key = new JobKey(identifier);
+            final var key = new JobKey(identifier);
 
             var triggers = scheduler.getTriggersOfJob(key);
 
@@ -78,10 +81,10 @@ public class SchedulerService {
         }
     }
 
-    public void runJobNow(String identifier, Job job, boolean forceRun) {
+    public void runJobNow(final String identifier, final Job job, final boolean forceRun) {
         try {
             logger.info("Scheduled job {} to run now", identifier);
-            JobKey key = new JobKey(identifier);
+            final var key = new JobKey(identifier);
             if (jobExists(key)) {
                 scheduler.triggerJob(key);
             } else {
@@ -95,11 +98,11 @@ public class SchedulerService {
         }
     }
 
-    private boolean jobExists(JobKey key) throws SchedulerException {
+    private boolean jobExists(final JobKey key) throws SchedulerException {
         return scheduler.getJobDetail(key) != null;
     }
 
-    private JobDetail createJobDetail(JobKey key, Job job) {
+    private static JobDetail createJobDetail(final JobKey key, final Job job) {
         return JobBuilder.newJob(job.getClass()).withIdentity(key).build();
     }
 

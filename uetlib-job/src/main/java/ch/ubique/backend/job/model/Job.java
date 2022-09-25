@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model;
 
+import ch.ubique.backend.job.BaseInputJob;
+
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
 
@@ -28,5 +30,13 @@ public interface Job {
     default boolean isCronExpressionValid() {
         return StringUtils.isBlank(getCronExpression())
                 || CronExpression.isValidExpression(getCronExpression());
+    }
+
+    default boolean isForceRunnable() {
+        try {
+            return BaseInputJob.class.isAssignableFrom(Class.forName(getClazz()));
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 }

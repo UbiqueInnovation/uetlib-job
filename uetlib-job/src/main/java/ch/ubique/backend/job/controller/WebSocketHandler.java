@@ -8,7 +8,6 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -21,7 +20,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -58,7 +56,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     @SuppressWarnings("java:S3864")
-    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.SECONDS)
     public void sendLog() {
         activeSessions.forEach(
                 (sessionId, pair) -> {
@@ -95,7 +92,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
                                 try {
                                     return Files.lines(file);
                                 } catch (IOException e) {
-                                    throw new RuntimeException(e);
+                                    return Stream.of();
                                 }
                             }
                             return content.lines();
