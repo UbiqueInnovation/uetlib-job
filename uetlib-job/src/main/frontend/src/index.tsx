@@ -1,16 +1,41 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import App from './App';
 import reportWebVitals from './reportWebVitals';
+import {createBrowserRouter, Navigate, RouterProvider,} from "react-router-dom";
+import {loadJobs, loadRun, loadRuns} from "./dataProvider/dataProvider";
+import List from "./components/list/List";
+import Runs from "./components/runs/Runs";
+import Logs from "./components/logs/Logs";
 
-const rootElement = document.getElementById('app-root') as HTMLElement;
-const root = ReactDOM.createRoot(
-    rootElement
-);
+const router = createBrowserRouter([
+    {
+        path: "/",
+        element: <Navigate to="/list" replace={true}/>
+    },
+    {
+        path: "/list",
+        element: <List/>,
+        loader: loadJobs,
+    },
+    {
+        path: "/runs",
+        element: <Runs/>,
+        loader: loadRuns,
+    },
+    {
+        path: "/logs/:jobRunId",
+        element: <Logs/>,
+        loader: ({params}) => loadRun(parseInt(params.jobRunId as string)),
+    }
+], {
+    basename: "/status"
+});
+
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
-    // <React.StrictMode>
-        <App jobRunId={parseInt(rootElement.getAttribute("log-url") || "0")}/>
+    // <React.StrictMode> // causes websocket to load twice and fail
+        <RouterProvider router={router}/>
     // </React.StrictMode>
 );
 
