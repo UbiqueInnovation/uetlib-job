@@ -4,9 +4,12 @@ import ch.ubique.backend.job.controller.WebSocketHandler;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableWebSocket
@@ -21,6 +24,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
-        registry.addHandler(webSocketHandler, "/status/logs").setAllowedOriginPatterns("*");
+        registry.addHandler(webSocketHandler, "/v1/live/logs").setAllowedOriginPatterns("*");
+    }
+
+    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.SECONDS)
+    public void sendLogs() {
+        webSocketHandler.sendLog();
     }
 }

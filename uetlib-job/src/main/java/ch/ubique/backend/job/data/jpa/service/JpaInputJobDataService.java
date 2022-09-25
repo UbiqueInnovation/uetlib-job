@@ -32,7 +32,7 @@ public class JpaInputJobDataService extends JpaJobDataService implements InputJo
     }
 
     @Override
-    public Collection<JobRunInput> findJobRunInputs(Integer runId) {
+    public Collection<JobRunInput> findJobRunInputs(int runId) {
         return jobRunInputRepository.findAllByRunId(runId);
     }
 }

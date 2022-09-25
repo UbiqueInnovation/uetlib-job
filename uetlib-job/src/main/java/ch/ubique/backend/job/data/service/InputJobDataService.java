@@ -12,5 +12,5 @@ public interface InputJobDataService extends JobDataService {
     void insertJobRunInput(JobRunInput jobRunInput);
 
     @Transactional(readOnly = true)
-    Collection<JobRunInput> findJobRunInputs(Integer runId);
+    Collection<JobRunInput> findJobRunInputs(int runId);
 }

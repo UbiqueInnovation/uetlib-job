@@ -12,9 +12,9 @@ import java.util.Optional;
 @Repository
 public interface JobRepository extends JpaRepository<JobEntity, Integer> {
 
+    Optional<Job> findById(int id);
+
     Optional<Job> findByClazz(String clazz);
 
-    List<Job> findAllByOrderByName();
-
-    Optional<Job> findByName(String name);
+    List<Job> findAllByOrderById();
 }

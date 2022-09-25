@@ -1,26 +1,8 @@
 package ch.ubique.backend.job.model;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 public interface JobRun {
-
-    default ZonedDateTime getStartedAtZoned() {
-        final var instant = getStartedAt();
-        if (instant == null) {
-            return null;
-        }
-        return instant.atZone(ZoneId.of("Europe/Zurich"));
-    }
-
-    default ZonedDateTime getFinishedAtZoned() {
-        final var instant = getFinishedAt();
-        if (instant == null) {
-            return null;
-        }
-        return instant.atZone(ZoneId.of("Europe/Zurich"));
-    }
 
     Instant getFinishedAt();
 
