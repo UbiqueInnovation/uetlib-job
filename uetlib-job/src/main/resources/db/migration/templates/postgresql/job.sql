@@ -20,6 +20,7 @@ CREATE TABLE t_job_run
     FOREIGN KEY (fk_job_id) REFERENCES t_job (pk_job_id)
 );
 
+-- optional if the import uses file inputs, like CHMOB or TOPO
 CREATE TABLE t_job_run_input
 (
     pk_job_run_input_id integer GENERATED ALWAYS AS IDENTITY,
