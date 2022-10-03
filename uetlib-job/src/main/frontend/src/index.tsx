@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import reportWebVitals from './reportWebVitals';
 import {createBrowserRouter, Navigate, RouterProvider,} from "react-router-dom";
 import {loadJobs, loadRun, loadRuns} from "./dataProvider/dataProvider";
 import List from "./components/list/List";
@@ -35,11 +34,6 @@ const router = createBrowserRouter([
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
     // <React.StrictMode> // causes websocket to load twice and fail
-        <RouterProvider router={router}/>
+    <RouterProvider router={router}/>
     // </React.StrictMode>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
