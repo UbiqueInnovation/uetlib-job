@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.controller;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.exception.WebSocketException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -79,7 +80,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
                                                     sessionId);
                                             session.sendMessage(message);
                                         } catch (IOException e) {
-                                            throw new RuntimeException(e);
+                                            throw new WebSocketException(e);
                                         }
                                     });
                 });
