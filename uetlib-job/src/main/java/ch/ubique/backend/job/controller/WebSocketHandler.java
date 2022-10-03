@@ -57,6 +57,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @SuppressWarnings("java:S3864")
     public void sendLog() {
+        logger.debug("send log to all active sessions");
         activeSessions.forEach(
                 (sessionId, pair) -> {
                     final var session = pair.getLeft();
@@ -72,6 +73,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
                             .ifPresent(
                                     message -> {
                                         try {
+                                            logger.debug(
+                                                    "sending log with length {} to session {}",
+                                                    message.getPayloadLength(),
+                                                    sessionId);
                                             session.sendMessage(message);
                                         } catch (IOException e) {
                                             throw new RuntimeException(e);
