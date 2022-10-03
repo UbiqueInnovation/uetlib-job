@@ -1,0 +1,22 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="en">
+<!--suppress HtmlRequiredTitleElement -->
+<head th:replace="fragments/head :: head">
+    <!-- HEAD -->
+</head>
+<body>
+<nav th:replace="fragments/navbar :: navbar('log')">
+    <!-- Header -->
+</nav>
+<div class="container-fluid my-3">
+    <div class="row g-3">
+        <div id="app-root" th:data-url="@{/status/runs/{runId}/logoutput(runId=${jobRunId})}"></div>
+    </div>
+</div>
+
+<footer th:replace="fragments/footer :: footer">
+    <!-- FOOTER -->
+</footer>
+
+</body>
+</html>

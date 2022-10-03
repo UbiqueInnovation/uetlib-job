@@ -17,6 +17,10 @@
                     <a class="nav-link" th:classappend="${activeTab == 'runs' ? 'active' : ''}"
                        th:href="@{/status/runs}">Job Runs</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activeTab == 'log' ? 'active' : ''}"
+                       th:href="@{/status/runs}">Job Run Log</a>
+                </li>
             </ul>
             <span class="navbar-text px-3 py-2 badge  rounded-pill bg-light text-dark"
                   th:text="${@environment.getProperty('spring.application.name')}"></span>

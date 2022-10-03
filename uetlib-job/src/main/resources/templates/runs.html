@@ -40,6 +40,7 @@
             <table class="table table-bordered table-striped table-sm m-0">
                 <thead>
                 <tr>
+                    <th>Run ID</th>
                     <th>Job Name</th>
                     <th>Started at</th>
                     <th>Finished at</th>
@@ -50,6 +51,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="jobRun : ${jobRuns}">
+                    <td class="align-middle text-center" th:text="${jobRun.id}"></td>
                     <td class="align-middle" th:text="${jobIdToName.get(jobRun.jobId)}"></td>
                     <td class="align-middle"
                         th:text="${#temporals.format(jobRun.startedAtZoned, 'dd. MMM. yyyy HH:mm')}"></td>
@@ -91,8 +93,11 @@
             </nav>
         </div>
     </div>
-    <footer th:replace="fragments/footer :: footer">
-        <!-- FOOTER -->
-    </footer>
+</div>
+
+<footer th:replace="fragments/footer :: footer">
+    <!-- FOOTER -->
+</footer>
+
 </body>
 </html>
