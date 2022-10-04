@@ -1,19 +1,22 @@
 import {useLoaderData} from "react-router-dom";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {formatTimestamp, JobRunInfo, jobRunStateToColor} from "../runs/Runs";
 import NavBar from "../nav/NavBar";
 import Container from "react-bootstrap/Container";
-import {Button, Col, Modal, Row, Table, Toast} from "react-bootstrap";
+import {Badge, Button, CloseButton, Col, Form, InputGroup, Modal, Row, Table, Toast} from "react-bootstrap";
 import {startJob, updateJob} from "../../dataProvider/dataProvider";
-import {find} from "lodash-es";
+import {findIndex} from "lodash-es";
 
 const List = () => {
     const [jobInfos, setJobInfos] = useState<JobInfo[]>([]);
     const [latestRuns, setLatestRuns] = useState<{ [k in number]: JobRunInfo }>({});
 
-    const [showToast, setShowToast] = useState(false);
+    const [showTriggeredToast, setShowTriggeredToast] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [triggeredJob, setTriggeredJob] = useState<JobInfo | undefined>(undefined);
+
+    const [showUpdatedToast, setShowUpdatedToast] = useState(false);
+    const [updatedJob, setUpdatedJob] = useState<JobInfo | undefined>(undefined);
 
     const jobInfosContainer = useLoaderData() as JobInfosContainer;
 
@@ -22,17 +25,18 @@ const List = () => {
         setLatestRuns(jobInfosContainer.latestRuns);
     }, [jobInfosContainer]);
 
-    const handleStartJob = (id: number, forceRun?: boolean) => {
-        startJob(id, forceRun).then(started => {
+    const handleStartJob = (jobInfo: JobInfo, e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        startJob(jobInfo.id).then(started => {
             if (started) {
-                setTriggeredJob(find(jobInfos, jobInfo => jobInfo.id === id));
-                setShowToast(true);
+                setTriggeredJob(jobInfo);
+                setShowTriggeredToast(true);
             }
         });
     };
 
-    const handleShowModal = (id: number) => {
-        setTriggeredJob(find(jobInfos, jobInfo => jobInfo.id === id));
+    const handleShowModal = (jobInfo: JobInfo) => {
+        setTriggeredJob(jobInfo);
         setShowModal(true);
     };
 
@@ -40,8 +44,18 @@ const List = () => {
         triggeredJob && startJob(triggeredJob.id, forceRun).then(started => {
             if (started) {
                 setShowModal(false);
-                setShowToast(true);
+                setShowTriggeredToast(true);
             }
+        });
+    };
+
+    const handleUpdateJob = (jobInfo: JobInfo, e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        updateJob(jobInfo.id, e.currentTarget.cronExpression.value).then(updatedJobInfo => {
+            jobInfos[findIndex(jobInfos, ji => ji.id === jobInfo.id)] = updatedJobInfo;
+            setJobInfos(jobInfos);
+            setUpdatedJob(updatedJobInfo);
+            setShowUpdatedToast(true);
         });
     };
 
@@ -65,28 +79,32 @@ const List = () => {
                             </thead>
                             <tbody>
                             {jobInfos.map(jobInfo => (
-                                <tr>
+                                <tr key={jobInfo.id}>
                                     <td className="align-middle text-center">{jobInfo.id}</td>
                                     <td className="align-middle">{jobInfo.name}</td>
                                     <td>
-                                        <div className="input-group input-group-sm has-validation">
-                                            <input type="text" placeholder="Cron expression"
-                                                   id="cronExpression"
-                                                   name="cronExpression" size={10}
-                                                   className={"form-control" +
-                                                       (jobInfo.cronExpressionValid ? "" : " is-invalid")}
-                                                   value={jobInfo.cronExpression}/>
-                                            <label htmlFor="cronExpression" hidden>Cron Expression</label>
-                                            <button type="submit" className="btn btn-outline-secondary"
-                                                    value="submit" onClick={() => updateJob(jobInfo.id)}>
-                                                Save
-                                            </button>
-                                            {jobInfo.cronExpressionValid &&
-                                                <div className="invalid-feedback">Invalid Expression</div>}
-                                        </div>
+                                        <Form onSubmit={(e) => handleUpdateJob(jobInfo, e)}>
+                                            <InputGroup size="sm" hasValidation>
+                                                <Form.Control placeholder="Cron expression" aria-label="Cron expression"
+                                                              aria-describedby="button-submit"
+                                                              isValid={jobInfo.cronExpressionValid}
+                                                              isInvalid={!jobInfo.cronExpressionValid}
+                                                              name="cronExpression"
+                                                              defaultValue={jobInfo.cronExpression}/>
+                                                <Button type="submit" variant="outline-secondary" id="button-submit">
+                                                    Save
+                                                </Button>
+                                                {!jobInfo.cronExpressionValid &&
+                                                    <Form.Control.Feedback type="invalid">Invalid Cron
+                                                        Expression</Form.Control.Feedback>
+                                                }
+                                            </InputGroup>
+                                        </Form>
                                     </td>
                                     <td className="align-middle text-center">
-                                        {jobInfo.cronActive && <div className="badge bg-success">Active</div>}
+                                        <Badge bg={jobInfo.cronActive ? "success" : "warning"}>
+                                            {jobInfo.cronActive ? "Active" : "Inactive"}
+                                        </Badge>
                                     </td>
                                     <td className="align-middle">{latestRuns[jobInfo.id] &&
                                         formatTimestamp(latestRuns[jobInfo.id].startedAt)}</td>
@@ -94,28 +112,30 @@ const List = () => {
                                         formatTimestamp(latestRuns[jobInfo.id].finishedAt)}</td>
                                     <td className="align-middle text-center">
                                         {latestRuns[jobInfo.id] &&
-                                            <span
-                                                className={`badge bg-${jobRunStateToColor(latestRuns[jobInfo.id].state)}`}>{latestRuns[jobInfo.id].state}</span>
+                                            <Badge bg={jobRunStateToColor(latestRuns[jobInfo.id].state)}>
+                                                {latestRuns[jobInfo.id].state}
+                                            </Badge>
                                         }
                                     </td>
                                     <td className="align-middle text-center">
                                         {/* Job is NOT force runnable */}
-                                        {!jobInfo.forceRunnable && (
-                                            <button type="submit" className="btn btn-success btn-sm"
-                                                    onClick={() => handleStartJob(jobInfo.id)}>
-                                                <i className="bi bi-play-fill"></i> Start now
-                                            </button>
-                                        )}
+                                        {!jobInfo.forceRunnable &&
+                                            <Form onSubmit={(e) => handleStartJob(jobInfo, e)}>
+                                                <Button type="submit" variant="success" size="sm">
+                                                    <i className="bi bi-play-fill"></i> Start now
+                                                </Button>
+                                            </Form>
+                                        }
 
                                         {/* Job is force runnable */}
                                         {jobInfo.forceRunnable && (
                                             <div>
                                                 {/* Button trigger modal */}
-                                                <button type="submit" className="btn btn-success btn-sm"
-                                                        onClick={() => handleShowModal(jobInfo.id)}
-                                                        data-bs-toggle="modal">
-                                                    <i className="bi bi-play-fill"></i> Start now
-                                                </button>
+                                                <Form onSubmit={() => handleShowModal(jobInfo)}>
+                                                    <Button type="submit" variant="success" size="sm">
+                                                        <i className="bi bi-play-fill"></i> Start now
+                                                    </Button>
+                                                </Form>
 
                                                 {/* Modal */}
                                                 <Modal show={showModal} onHide={() => setShowModal(false)}>
@@ -147,13 +167,24 @@ const List = () => {
                     </Col>
                 </Row>
             </Container>
-            <Toast show={showToast} onClose={() => setShowToast(false)}
+
+            <Toast show={showTriggeredToast} onClose={() => setShowTriggeredToast(false)} autohide delay={5000}
                    className="position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-success border-0"
                    style={{zIndex: "1020"}} role="alert" aria-live="assertive" aria-atomic="true">
                 <Toast.Body>
                     Job <strong><span>{triggeredJob?.name}</span></strong> triggered.
-                    <button type="button" className="btn-close btn-close-white me-2 m-auto position-absolute end-0"
-                            aria-label="Close" onClick={() => setShowToast(false)}></button>
+                    <CloseButton type="submit" variant="white" className="me-2 m-auto position-absolute end-0"
+                                 aria-label="Close" onClick={() => setShowTriggeredToast(false)}/>
+                </Toast.Body>
+            </Toast>
+
+            <Toast show={showUpdatedToast} onClose={() => setShowUpdatedToast(false)} autohide delay={5000}
+                   className="position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-info border-0"
+                   style={{zIndex: "1020"}} role="alert" aria-live="assertive" aria-atomic="true">
+                <Toast.Body>
+                    Job <strong><span>{updatedJob?.name}</span></strong> updated.
+                    <CloseButton type="submit" variant="white" className="me-2 m-auto position-absolute end-0"
+                                 aria-label="Close" onClick={() => setShowUpdatedToast(false)}/>
                 </Toast.Body>
             </Toast>
         </>

@@ -1,6 +1,7 @@
 import {JobRunInfosContainer, JobRunState} from "../components/runs/Runs";
 
-export const hostBaseUrl = (protocol: string) => process.env.REACT_APP_API_URL || `${protocol}//${window.location.host}`;
+export const hostBaseUrl = (protocol: string) => process.env.REACT_APP_API_URL ||
+    `${protocol}//${window.location.host}`;
 
 const API_BASE_URL = hostBaseUrl(window.location.protocol);
 const API_URL = `${API_BASE_URL}/v1/status`;
@@ -25,15 +26,14 @@ export const loadRunsPage = (page: number, jobId?: number, state?: JobRunState) 
         .then<JobRunInfosContainer>(response => response.json());
 };
 
-export const startJob = (id: number, forceRun: boolean = false) =>
-    fetch(`${API_URL}/job/${id}/start?` + new URLSearchParams({forceRun: forceRun.toString()}), {method: "post"})
+export const startJob = (jobId: number, forceRun: boolean = false) =>
+    fetch(`${API_URL}/job/${jobId}/start?` + new URLSearchParams({forceRun: forceRun.toString()}), {method: "post"})
         .then(() => true)
         .catch(() => false);
 
-export const updateJob = (id: number) =>
-    fetch(`${API_URL}/job/${id}/update`, {method: "post"})
-        .then(() => true)
-        .catch(() => false);
+export const updateJob = (jobId: number, cronExpression: string) =>
+    fetch(`${API_URL}/job/${jobId}/update?` + new URLSearchParams({cronExpression}), {method: "post"})
+        .then((response) => response.json());
 
 export const loadApplicationName = () => fetch(`${API_URL}/name`)
     .then(response => response.text());

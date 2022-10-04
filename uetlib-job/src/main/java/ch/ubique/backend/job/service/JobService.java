@@ -91,13 +91,14 @@ public class JobService {
                         .orElseThrow(
                                 ResourceNotFoundException.throwWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
-        final var jobName =
-                jobDataService
-                        .findJobById(jobRun.getJobId())
-                        .map(Job::getName)
-                        .orElseThrow(
-                                ResourceNotFoundException.throwWithMessage(
-                                        "No Job with id {0} found", jobRun.getJobId()));
+        final var jobName = findJobById(jobRun.getJobId()).getName();
         return JobRunInfoContainer.from(jobRun, jobName);
+    }
+
+    public Job findJobById(final int id) {
+        return jobDataService
+                .findJobById(id)
+                .orElseThrow(
+                        ResourceNotFoundException.throwWithMessage("No Job with id {0} found", id));
     }
 }
