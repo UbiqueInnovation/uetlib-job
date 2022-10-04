@@ -22,12 +22,12 @@ import java.lang.reflect.InvocationTargetException;
 @RestController
 @RequestMapping("/v1/status")
 @CrossOrigin(value = {"${job.interface.baseUrl}", "http://localhost:3000"})
-public class StatusController {
+public class JobStatusController {
 
     private final JobService jobService;
     private final String applicationName;
 
-    public StatusController(
+    public JobStatusController(
             final JobService jobService,
             final @Value("${spring.application.name}") String applicationName) {
         this.jobService = jobService;
