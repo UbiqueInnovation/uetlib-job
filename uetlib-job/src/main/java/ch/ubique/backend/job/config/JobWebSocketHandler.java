@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.controller;
+package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.WebSocketException;
@@ -25,9 +25,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 @Component
-public class WebSocketHandler extends TextWebSocketHandler {
+public class JobWebSocketHandler extends TextWebSocketHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(WebSocketHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobWebSocketHandler.class);
 
     private final ObjectMapper objectMapper;
     private final JobDataService jobDataService;
@@ -35,7 +35,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     private final Map<String, Triple<WebSocketSession, Integer, AtomicLong>> activeSessions =
             new ConcurrentHashMap<>();
 
-    public WebSocketHandler(final ObjectMapper objectMapper, final JobDataService jobDataService) {
+    public JobWebSocketHandler(final ObjectMapper objectMapper, final JobDataService jobDataService) {
         this.objectMapper = objectMapper;
         this.jobDataService = jobDataService;
     }
