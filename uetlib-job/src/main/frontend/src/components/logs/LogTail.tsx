@@ -1,7 +1,13 @@
 import {LazyLog} from 'react-lazylog';
-import {hostBaseUrl} from "../../dataProvider/dataProvider";
 
-const LIVE_BASE_URL = hostBaseUrl(window.location.protocol === "https:" ? "wss:" : "ws:");
+const LIVE_BASE_URL = process.env.REACT_APP_API_URL
+    ? (
+        process.env.REACT_APP_API_URL.startsWith("http")
+            ? process.env.REACT_APP_API_URL.replace("http", "ws")
+            : `ws://${process.env.REACT_APP_API_URL}`
+    ) : (
+        `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}`
+    );
 const LIVE_URL = `${LIVE_BASE_URL}/v1/live`;
 
 const LogTail = ({jobRunId, follow}: { jobRunId: number, follow: boolean }) => (

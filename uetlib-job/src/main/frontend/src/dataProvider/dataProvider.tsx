@@ -1,9 +1,6 @@
 import {JobRunInfosContainer, JobRunState} from "../components/runs/Runs";
 
-export const hostBaseUrl = (protocol: string) => process.env.REACT_APP_API_URL ||
-    `${protocol}//${window.location.host}`;
-
-const API_BASE_URL = hostBaseUrl(window.location.protocol);
+const API_BASE_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.host}`;
 const API_URL = `${API_BASE_URL}/v1/status`;
 
 export const loadJobs = () => fetch(`${API_URL}/jobs`).then(response => response.json());
