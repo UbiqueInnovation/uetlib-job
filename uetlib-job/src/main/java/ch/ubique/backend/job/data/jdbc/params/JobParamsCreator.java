@@ -3,9 +3,6 @@ package ch.ubique.backend.job.data.jdbc.params;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
-import ch.ubique.backend.job.model.jdbc.JdbcJob;
-import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
