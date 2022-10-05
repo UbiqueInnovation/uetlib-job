@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.controller;
 
-import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.JobInfosContainer;
+import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.service.JobService;
@@ -58,7 +58,7 @@ public class JobStatusController {
     }
 
     @PostMapping("/job/{id}/update")
-    public Job updateJob(final @PathVariable int id, final @RequestParam String cronExpression)
+    public JobInfo updateJob(final @PathVariable int id, final @RequestParam String cronExpression)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         jobService.updateCronExpression(id, cronExpression);

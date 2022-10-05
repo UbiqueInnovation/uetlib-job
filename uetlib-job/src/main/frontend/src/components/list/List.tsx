@@ -1,11 +1,12 @@
 import {useLoaderData} from "react-router-dom";
 import React, {useEffect, useState} from "react";
-import {formatTimestamp, JobRunInfo, jobRunStateToColor} from "../runs/Runs";
+import {formatTimestamp, JobRunInfo} from "../runs/Runs";
 import NavBar from "../nav/NavBar";
 import Container from "react-bootstrap/Container";
 import {Badge, Button, CloseButton, Col, Form, InputGroup, Modal, Row, Table, Toast} from "react-bootstrap";
 import {startJob, updateJob} from "../../dataProvider/dataProvider";
 import {findIndex} from "lodash-es";
+import ShowLogsButton from "../common/ShowLogsButton";
 
 const List = () => {
     const [jobInfos, setJobInfos] = useState<JobInfo[]>([]);
@@ -70,11 +71,10 @@ const List = () => {
                             <tr>
                                 <th className="text-center">ID</th>
                                 <th>Name</th>
-                                <th colSpan={2}>Cron</th>
+                                <th>Cron</th>
                                 <th>Started At</th>
                                 <th>Finished At</th>
-                                <th className="text-center">State</th>
-                                <th className="text-center">Actions</th>
+                                <th className="text-center" colSpan={2}>Actions</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -85,6 +85,12 @@ const List = () => {
                                     <td>
                                         <Form onSubmit={(e) => handleUpdateJob(jobInfo, e)}>
                                             <InputGroup size="sm" hasValidation>
+                                                {(jobInfo.cronActive || !jobInfo.cronExpressionValid) &&
+                                                    <Badge bg={jobInfo.cronActive ? "success" : "danger"}
+                                                           className="d-inline-flex align-items-center justify-content-center">
+                                                        {jobInfo.cronActive ? "Active" : "Invalid"}
+                                                    </Badge>
+                                                }
                                                 <Form.Control placeholder="Cron expression" aria-label="Cron expression"
                                                               aria-describedby="button-submit"
                                                               isValid={jobInfo.cronExpressionValid}
@@ -94,27 +100,16 @@ const List = () => {
                                                 <Button type="submit" variant="outline-secondary" id="button-submit">
                                                     Save
                                                 </Button>
-                                                {!jobInfo.cronExpressionValid &&
-                                                    <Form.Control.Feedback type="invalid">Invalid Cron
-                                                        Expression</Form.Control.Feedback>
-                                                }
                                             </InputGroup>
                                         </Form>
                                     </td>
-                                    <td className="align-middle text-center">
-                                        <Badge bg={jobInfo.cronActive ? "success" : "warning"}>
-                                            {jobInfo.cronActive ? "Active" : "Inactive"}
-                                        </Badge>
-                                    </td>
                                     <td className="align-middle">{latestRuns[jobInfo.id] &&
                                         formatTimestamp(latestRuns[jobInfo.id].startedAt)}</td>
-                                    <td className="align-middle">{latestRuns[jobInfo.id]?.finishedAt &&
+                                    <td className="align-middle">{latestRuns[jobInfo.id]?.finishedAt != null &&
                                         formatTimestamp(latestRuns[jobInfo.id].finishedAt)}</td>
                                     <td className="align-middle text-center">
                                         {latestRuns[jobInfo.id] &&
-                                            <Badge bg={jobRunStateToColor(latestRuns[jobInfo.id].state)}>
-                                                {latestRuns[jobInfo.id].state}
-                                            </Badge>
+                                            <ShowLogsButton jobRunInfo={latestRuns[jobInfo.id]}/>
                                         }
                                     </td>
                                     <td className="align-middle text-center">
