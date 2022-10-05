@@ -272,4 +272,9 @@ public class JdbcJobDataService implements JobDataService {
             return Optional.empty();
         }
     }
+
+    @Override
+    public void delete(Job job) {
+        jt.update("DELETE FROM t_job WHERE pk_job_id = :pk_job_id", JobParamsCreator.createParams(job));
+    }
 }

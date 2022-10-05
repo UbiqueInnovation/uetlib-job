@@ -157,4 +157,9 @@ public class JpaJobDataService implements JobDataService {
     public Optional<JobRun> findJobRunById(final int jobRunId) {
         return jobRunRepository.findById(jobRunId);
     }
+
+    @Override
+    public void delete(Job job) {
+        jobRepository.delete(JobEntity.fromJob(job));
+    }
 }

@@ -61,4 +61,7 @@ public interface JobDataService {
 
     @Transactional(readOnly = true)
     Optional<JobRun> findJobRunById(int jobRunId);
+
+    @Transactional
+    void delete(Job job);
 }
