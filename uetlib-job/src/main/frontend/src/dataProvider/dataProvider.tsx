@@ -1,14 +1,20 @@
-import {JobRunInfosContainer, JobRunState} from "../components/runs/Runs";
+import {JobRunInfoContainer, JobRunInfosContainer, JobRunState} from "../components/runs/Runs";
+import {JobInfosContainer} from "../components/list/List";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || `${window.location.protocol}//${window.location.host}`;
 const API_URL = `${API_BASE_URL}/v1/status`;
 
-export const loadJobs = () => fetch(`${API_URL}/jobs`).then(response => response.json());
+export const loadJobs: () => Promise<JobInfosContainer> = () =>
+    fetch(`${API_URL}/jobs`)
+        .then(response => response.json());
 
-export const loadRuns = () => fetch(`${API_URL}/runs`).then(response => response.json());
+export const loadRuns: () => Promise<JobRunInfosContainer> = () =>
+    fetch(`${API_URL}/runs`)
+        .then(response => response.json());
 
-export const loadRun = (jobRunId: number) => fetch(`${API_URL}/run/${jobRunId}`)
-    .then(response => response.json());
+export const loadRun: (jobRunId: number) => Promise<JobRunInfoContainer> = (jobRunId: number) =>
+    fetch(`${API_URL}/run/${jobRunId}`)
+        .then(response => response.json());
 
 export const loadRunsPage = (page: number, jobId?: number, state?: JobRunState) => {
     const params = new URLSearchParams({page: page.toString()});

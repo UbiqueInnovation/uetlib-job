@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 public class JobWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(JobWebSocketHandler.class);
+    private static final int PAGE_SIZE = 1000;
 
     private final ObjectMapper objectMapper;
     private final JobDataService jobDataService;
@@ -69,6 +70,7 @@ public class JobWebSocketHandler extends TextWebSocketHandler {
                             .flatMap(
                                     lines ->
                                             lines.skip(counter.get())
+                                                    .limit(PAGE_SIZE)
                                                     .peek(line -> counter.incrementAndGet())
                                                     .reduce((acc, line) -> acc + "\n" + line))
                             .map(TextMessage::new)

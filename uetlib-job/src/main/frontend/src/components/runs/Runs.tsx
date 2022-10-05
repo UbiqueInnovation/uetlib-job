@@ -1,18 +1,17 @@
-import {useLoaderData, useNavigate, useSearchParams} from "react-router-dom";
+import {useLoaderData, useSearchParams} from "react-router-dom";
 import NavBar from "../nav/NavBar";
 import {Col, FloatingLabel, Form, Pagination, Row, Table} from "react-bootstrap";
 import Container from "react-bootstrap/Container";
-import {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import moment from "moment/moment";
 import {loadRunsPage} from "../../dataProvider/dataProvider";
 import {map, orderBy, toPairs} from "lodash-es";
+import ShowLogsButton from "../common/ShowLogsButton";
 
 const Runs = () => {
     const [jobRunInfosContainer, setJobRunInfosContainer] = useState<JobRunInfosContainer>(useLoaderData() as JobRunInfosContainer);
 
     const [jobIdSorted, setJobIdSorted] = useState<number[]>([]);
-
-    const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
     const [currentPage, setCurrentPage] = useState(1);
@@ -112,7 +111,6 @@ const Runs = () => {
                                 <option value="">-</option>
                                 {jobIdSorted.map(jobIdValue => (
                                     <option
-                                        selected={jobId === jobIdValue}
                                         key={jobIdValue}
                                         value={jobIdValue}>
                                         {jobRunInfosContainer.jobNames[jobIdValue]}
@@ -129,7 +127,6 @@ const Runs = () => {
                                 <option value="">-</option>
                                 {jobRunStates.map(jobRunState => (
                                     <option
-                                        selected={state === jobRunState}
                                         key={jobRunState}
                                         value={jobRunState}>
                                         {jobRunState}
@@ -151,30 +148,21 @@ const Runs = () => {
                                 <th>Started at</th>
                                 <th>Finished at</th>
                                 <th className="text-end">Duration</th>
-                                <th className="text-center">State</th>
-                                <th className="text-center">Actions</th>
+                                <th className="text-center" colSpan={2}>Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             {jobRunInfosContainer.jobRuns.map(jobRunInfo => (
-                                <tr>
+                                <tr key={jobRunInfo.id}>
                                     <td className="align-middle text-center">{jobRunInfo.id}</td>
                                     <td className="align-middle">{jobRunInfosContainer.jobNames[jobRunInfo.jobId]}</td>
                                     <td className="align-middle">{formatTimestamp(jobRunInfo.startedAt)}</td>
-                                    <td className="align-middle">{jobRunInfo.finishedAt &&
-                                        formatTimestamp(jobRunInfo.startedAt)}</td>
+                                    <td className="align-middle">
+                                        {jobRunInfo.finishedAt != null && formatTimestamp(jobRunInfo.startedAt)}
+                                    </td>
                                     <td className="align-middle text-end">{jobRunInfo.duration}</td>
                                     <td className="align-middle text-center">
-                                        {
-                                            <span
-                                                className={`badge bg-${jobRunStateToColor(jobRunInfo.state)}`}>{jobRunInfo.state}</span>
-                                        }
-                                    </td>
-                                    <td className="align-middle text-center">
-                                        <button type="submit" className="btn btn-sm btn-secondary"
-                                                onClick={() => navigate(`../logs/${jobRunInfo.id}`)}>
-                                            <i className="bi bi-file-text"></i> Show Logs
-                                        </button>
+                                        <ShowLogsButton jobRunInfo={jobRunInfo}/>
                                     </td>
                                 </tr>
                             ))}

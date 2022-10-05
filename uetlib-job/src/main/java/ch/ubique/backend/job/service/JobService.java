@@ -5,6 +5,7 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.JobInfosContainer;
+import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.JobRunInfo;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
@@ -65,22 +66,22 @@ public class JobService {
                 jobRunsPage.getTotalPages());
     }
 
-    public void updateCronExpression(final int id, final String cronExpression)
+    public void updateCronExpression(final int jobId, final String cronExpression)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        final var job = jobDataService.updateCronExpression(id, cronExpression);
+        final var job = jobDataService.updateCronExpression(jobId, cronExpression);
         jobScheduler.update(job);
     }
 
-    public void startJob(final int id, final boolean forceRun)
+    public void startJob(final int jobId, final boolean forceRun)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         final var job =
                 jobDataService
-                        .findJobById(id)
+                        .findJobById(jobId)
                         .orElseThrow(
                                 ResourceNotFoundException.throwWithMessage(
-                                        "No Job with id {0} found", id));
+                                        "No Job with id {0} found", jobId));
         jobScheduler.runNow(job, forceRun);
     }
 
@@ -91,14 +92,19 @@ public class JobService {
                         .orElseThrow(
                                 ResourceNotFoundException.throwWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
-        final var jobName = findJobById(jobRun.getJobId()).getName();
+        final var jobName = jobById(jobRun.getJobId()).getName();
         return JobRunInfoContainer.from(jobRun, jobName);
     }
 
-    public Job findJobById(final int id) {
+    public JobInfo findJobById(final int jobId) {
+        return JobInfo.from(jobById(jobId));
+    }
+
+    private Job jobById(final int jobId) {
         return jobDataService
-                .findJobById(id)
+                .findJobById(jobId)
                 .orElseThrow(
-                        ResourceNotFoundException.throwWithMessage("No Job with id {0} found", id));
+                        ResourceNotFoundException.throwWithMessage(
+                                "No Job with id {0} found", jobId));
     }
 }
