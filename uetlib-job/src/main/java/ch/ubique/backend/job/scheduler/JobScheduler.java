@@ -5,6 +5,8 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,6 +27,8 @@ public abstract class JobScheduler {
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     protected JobScheduler(
             final SchedulerService schedulerService,
             final JobDataService jobDataService,
@@ -40,8 +44,12 @@ public abstract class JobScheduler {
                     InstantiationException, IllegalAccessException {
         for (final var job : jobDataService.findJobs()) {
             if (job.isCronActive() && job.isCronExpressionValid()) {
-                schedulerService.scheduleJob(
-                        job.getClazz(), createNewJobInstance(job), job.getCronExpression());
+                try {
+                    schedulerService.scheduleJob(job.getClazz(), createNewJobInstance(job), job.getCronExpression());
+                } catch (NoClassDefFoundError e) {
+                    logger.warn("Could not find class for {}. Removing database entry.", job.getClazz());
+                    jobDataService.delete(job);
+                }
             }
         }
     }

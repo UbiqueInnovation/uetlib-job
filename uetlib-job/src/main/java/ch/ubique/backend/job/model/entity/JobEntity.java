@@ -27,6 +27,19 @@ public class JobEntity implements Job {
     @Column(name = "cron_expression", nullable = false, length = 20)
     private String cronExpression;
 
+    public static JobEntity fromJob(Job job) {
+        if (job instanceof JobEntity jobEntity) {
+            return jobEntity;
+        }
+
+        final var jobEntity = new JobEntity();
+        jobEntity.id = job.getId();
+        jobEntity.name = job.getName();
+        jobEntity.clazz = job.getClazz();
+        jobEntity.cronExpression = job.getCronExpression();
+        return jobEntity;
+    }
+
     @Override
     public Integer getId() {
         return id;

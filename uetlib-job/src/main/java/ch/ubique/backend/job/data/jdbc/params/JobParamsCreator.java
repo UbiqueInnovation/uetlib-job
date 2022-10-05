@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.data.jdbc.params;
 
+import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
@@ -15,7 +17,7 @@ public class JobParamsCreator {
 
     private JobParamsCreator() {}
 
-    public static SqlParameterSource createParams(JdbcJob job) {
+    public static SqlParameterSource createParams(Job job) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         Optional.ofNullable(job.getId()).ifPresent(id -> params.addValue("pk_job_id", id));
         params.addValue("name", job.getName());
@@ -25,7 +27,7 @@ public class JobParamsCreator {
         return params;
     }
 
-    public static SqlParameterSource createParams(JdbcJobRun jobRun) {
+    public static SqlParameterSource createParams(JobRun jobRun) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         Optional.ofNullable(jobRun.getId())
                 .ifPresent(runId -> params.addValue("pk_job_run_id", runId));
