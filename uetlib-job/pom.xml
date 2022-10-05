@@ -100,7 +100,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                            <outputDirectory>${project.build.directory}/classes/status</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.basedir}/src/main/frontend/build/</directory>
