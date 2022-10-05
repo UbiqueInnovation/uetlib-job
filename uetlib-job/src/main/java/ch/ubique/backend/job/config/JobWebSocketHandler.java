@@ -35,7 +35,8 @@ public class JobWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, Triple<WebSocketSession, Integer, AtomicLong>> activeSessions =
             new ConcurrentHashMap<>();
 
-    public JobWebSocketHandler(final ObjectMapper objectMapper, final JobDataService jobDataService) {
+    public JobWebSocketHandler(
+            final ObjectMapper objectMapper, final JobDataService jobDataService) {
         this.objectMapper = objectMapper;
         this.jobDataService = jobDataService;
     }

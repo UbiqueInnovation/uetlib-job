@@ -9,6 +9,7 @@ import org.springframework.retry.support.RetryTemplate;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class BaseInputJob extends BaseJob {
@@ -103,7 +104,8 @@ public abstract class BaseInputJob extends BaseJob {
 
         final var latestInputs = inputJobDataService.findJobRunInputs(latestJobRun.get().getId());
         final var latestInputsByName =
-                latestInputs.stream().collect(Collectors.toMap(JobRunInput::getName, i -> i));
+                latestInputs.stream()
+                        .collect(Collectors.toMap(JobRunInput::getName, Function.identity()));
 
         final var latestInputNames = latestInputsByName.keySet();
         final var currentInputNames =
