@@ -22,9 +22,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-
 import javax.sql.DataSource;
+import java.util.*;
 
 @Service
 public class JdbcJobDataService implements JobDataService {
