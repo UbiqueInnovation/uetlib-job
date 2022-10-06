@@ -15,11 +15,11 @@ const Logs = () => {
             <NavBar/>
             <Container fluid className="text-light py-3 fs-5" style={{backgroundColor: "#222222"}}>
                 <Container>
-                    <Row xs={1} md={2}>
-                        <Col>
+                    <Row className="g-3 mx-auto">
+                        <Col md={6} lg={{span: 5, offset: 1}} xl={{span: 4, offset: 2}} xxl={{span: 3, offset: 3}} className="text-nowrap">
                             Run {jobRun.id} of job {jobName}
                         </Col>
-                        <Col>
+                        <Col md={6} lg={5} xl={4} xxl={3} className="text-nowrap">
                             <Form>
                                 <Form.Check
                                     reverse

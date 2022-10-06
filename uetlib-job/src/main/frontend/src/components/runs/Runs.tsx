@@ -102,8 +102,8 @@ const Runs = () => {
         <>
             <NavBar/>
             <Container className="mt-3">
-                <Row className="g-3">
-                    <Col sm={6} lg={4} xl={3}>
+                <Row className="g-3 mx-auto">
+                    <Col sm={6} lg={{span: 4, offset: 2}} xl={{span: 3, offset: 3}}>
                         <FloatingLabel controlId="jobFilter" label="Filter by Job">
                             <Form.Select aria-label="label for job filter"
                                          onChange={(e) => onJobFilter(e.target.value)}
@@ -143,25 +143,25 @@ const Runs = () => {
                         <Table responsive striped bordered size="sm" className="m-0">
                             <thead>
                             <tr>
-                                <th>Run ID</th>
-                                <th>Job Name</th>
-                                <th>Started at</th>
-                                <th>Finished at</th>
-                                <th className="text-end">Duration</th>
-                                <th className="text-center" colSpan={2}>Actions</th>
+                                <th className="text-nowrap">Run ID</th>
+                                <th className="text-nowrap">Job Name</th>
+                                <th className="text-nowrap">Started at</th>
+                                <th className="text-nowrap">Finished at</th>
+                                <th className="text-end text-nowrap">Duration</th>
+                                <th className="text-center text-nowrap" colSpan={2}>Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             {jobRunInfosContainer.jobRuns.map(jobRunInfo => (
                                 <tr key={jobRunInfo.id}>
-                                    <td className="align-middle text-center">{jobRunInfo.id}</td>
-                                    <td className="align-middle">{jobRunInfosContainer.jobNames[jobRunInfo.jobId]}</td>
-                                    <td className="align-middle">{formatTimestamp(jobRunInfo.startedAt)}</td>
-                                    <td className="align-middle">
+                                    <td className="align-middle text-center text-nowrap">{jobRunInfo.id}</td>
+                                    <td className="align-middle text-nowrap">{jobRunInfosContainer.jobNames[jobRunInfo.jobId]}</td>
+                                    <td className="align-middle text-nowrap">{formatTimestamp(jobRunInfo.startedAt)}</td>
+                                    <td className="align-middle text-nowrap">
                                         {jobRunInfo.finishedAt != null && formatTimestamp(jobRunInfo.startedAt)}
                                     </td>
-                                    <td className="align-middle text-end">{jobRunInfo.duration}</td>
-                                    <td className="align-middle text-center">
+                                    <td className="align-middle text-end text-nowrap">{jobRunInfo.duration}</td>
+                                    <td className="align-middle text-center text-nowrap">
                                         <ShowLogsButton jobRunInfo={jobRunInfo}/>
                                     </td>
                                 </tr>
@@ -176,7 +176,20 @@ const Runs = () => {
                             <Pagination.First disabled={jobRunInfosContainer.first} onClick={() => paginate(0)}/>
                             <Pagination.Prev disabled={jobRunInfosContainer.first}
                                              onClick={() => paginate(currentPage - 1)}/>
+                            {currentPage > 1 && <Pagination.Ellipsis disabled/>}
+                            {!jobRunInfosContainer.first &&
+                                <Pagination.Item disabled={jobRunInfosContainer.first}
+                                                 onClick={() => paginate(currentPage - 1)}>
+                                    {currentPage}
+                                </Pagination.Item>
+                            }
                             <Pagination.Item active>{currentPage + 1}</Pagination.Item>
+                            {!jobRunInfosContainer.last &&
+                                <Pagination.Item disabled={jobRunInfosContainer.last}
+                                                 onClick={() => paginate(currentPage + 1)}>
+                                    {currentPage + 2}</Pagination.Item>
+                            }
+                            {currentPage < jobRunInfosContainer.totalPages - 2 && <Pagination.Ellipsis disabled/>}
                             <Pagination.Next disabled={jobRunInfosContainer.last}
                                              onClick={() => paginate(currentPage + 1)}/>
                             <Pagination.Last disabled={jobRunInfosContainer.last}
