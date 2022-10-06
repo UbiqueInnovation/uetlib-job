@@ -12,7 +12,9 @@ const ShowLogsButton = ({jobRunInfo}: { jobRunInfo: JobRunInfo }) => {
                 onClick={() => navigate(`../logs/${jobRunInfo.id}`)}>
             <i className="bi bi-file-text"></i>
             <span> Show Logs </span>
-            <Badge bg={jobRunStateColor}>{jobRunInfo.state}</Badge>
+            <span style={{width: "85px", display: "inline-block"}} className="text-end">
+                <Badge bg={jobRunStateColor}>{jobRunInfo.state}</Badge>
+            </span>
         </Button>
     );
 };
