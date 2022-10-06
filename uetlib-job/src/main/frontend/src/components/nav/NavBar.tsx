@@ -16,9 +16,22 @@ const NavBar = () => {
         fetchApplicationName();
     }, []);
 
+    const environmentClasses = () => {
+        switch (applicationName?.split("-")?.pop()?.toLowerCase()) {
+            case "prod":
+                return "bg-danger text-light";
+            case "dev":
+                return "bg-info text-dark";
+            case "local":
+                return "bg-white text-dark";
+            default:
+                return "bg-warning text-light";
+        }
+    };
+
     return (
-        <Navbar bg="dark" variant="dark" expand="sm" sticky="top">
-            <Container>
+        <Navbar bg="dark" variant="dark" expand="md" sticky="top">
+            <Container fluid>
                 <Navbar.Brand href={process.env.PUBLIC_URL + "/"}>
                     <img
                         alt="Ubique Logo"
@@ -29,12 +42,13 @@ const NavBar = () => {
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="basic-navbar-nav"/>
                 <Navbar.Collapse id="basic-navbar-nav">
-                    <Nav activeKey={window.location.pathname} className="me-auto">
+                    <Nav activeKey={window.location.pathname} className="mx-auto">
                         <Nav.Link href={process.env.PUBLIC_URL + "/list"} className="fs-4">Job List</Nav.Link>
                         <Nav.Link href={process.env.PUBLIC_URL + "/runs"} className="fs-4">Job Runs</Nav.Link>
                     </Nav>
-                    <Navbar.Text className="fs-6 px-3 py-2 badge rounded-pill bg-light text-dark">
-                        <>{applicationName}</>
+                    <Navbar.Text
+                        className={`fs-6 px-3 py-2 badge rounded-pill ${environmentClasses()}`}>
+                        {applicationName}
                     </Navbar.Text>
                 </Navbar.Collapse>
             </Container>
