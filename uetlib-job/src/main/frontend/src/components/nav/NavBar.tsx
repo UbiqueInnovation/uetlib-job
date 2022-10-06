@@ -16,6 +16,19 @@ const NavBar = () => {
         fetchApplicationName();
     }, []);
 
+    const environmentColor = () => {
+        switch (applicationName?.split("-")?.pop()?.toLowerCase()) {
+            case "prod":
+                return "danger";
+            case "dev":
+                return "success";
+            case "local":
+                return "white";
+            default:
+                return "warning";
+        }
+    };
+
     return (
         <Navbar bg="dark" variant="dark" expand="sm" sticky="top">
             <Container>
@@ -33,7 +46,7 @@ const NavBar = () => {
                         <Nav.Link href={process.env.PUBLIC_URL + "/list"} className="fs-4">Job List</Nav.Link>
                         <Nav.Link href={process.env.PUBLIC_URL + "/runs"} className="fs-4">Job Runs</Nav.Link>
                     </Nav>
-                    <Navbar.Text className="fs-6 px-3 py-2 badge rounded-pill bg-light text-dark">
+                    <Navbar.Text className={`fs-6 px-3 py-2 badge rounded-pill bg-${environmentColor()} text-dark`}>
                         <>{applicationName}</>
                     </Navbar.Text>
                 </Navbar.Collapse>
