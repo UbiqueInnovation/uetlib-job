@@ -26,7 +26,7 @@ const List = () => {
         setLatestRuns(jobInfosContainer.latestRuns);
     }, [jobInfosContainer]);
 
-    const handleStartJob = (jobInfo: JobInfo, e: React.FormEvent<HTMLFormElement>) => {
+    const handleStartJob = (e: React.FormEvent<HTMLFormElement>, jobInfo: JobInfo) => {
         e.preventDefault();
         startJob(jobInfo.id).then(started => {
             if (started) {
@@ -36,7 +36,8 @@ const List = () => {
         });
     };
 
-    const handleShowModal = (jobInfo: JobInfo) => {
+    const handleShowModal = (e: React.FormEvent<HTMLFormElement>, jobInfo: JobInfo) => {
+        e.preventDefault();
         setTriggeredJob(jobInfo);
         setShowModal(true);
     };
@@ -50,7 +51,7 @@ const List = () => {
         });
     };
 
-    const handleUpdateJob = (jobInfo: JobInfo, e: React.FormEvent<HTMLFormElement>) => {
+    const handleUpdateJob = (e: React.FormEvent<HTMLFormElement>, jobInfo: JobInfo) => {
         e.preventDefault();
         updateJob(jobInfo.id, e.currentTarget.cronExpression.value).then(updatedJobInfo => {
             jobInfos[findIndex(jobInfos, ji => ji.id === jobInfo.id)] = updatedJobInfo;
@@ -61,128 +62,130 @@ const List = () => {
     };
 
     return (
-        <>
-            <NavBar/>
-            <Container fluid className="my-3">
-                <Row className="g-3">
-                    <Col>
-                        <Table responsive striped bordered size="sm" className="m-0">
-                            <thead>
-                            <tr>
-                                <th className="text-center">ID</th>
-                                <th>Name</th>
-                                <th>Cron</th>
-                                <th>Started At</th>
-                                <th>Finished At</th>
-                                <th className="text-center" colSpan={2}>Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {jobInfos.map(jobInfo => (
-                                <tr key={jobInfo.id}>
-                                    <td className="align-middle text-center">{jobInfo.id}</td>
-                                    <td className="align-middle">{jobInfo.name}</td>
-                                    <td>
-                                        <Form onSubmit={(e) => handleUpdateJob(jobInfo, e)}>
-                                            <InputGroup size="sm" hasValidation>
-                                                {(jobInfo.cronActive || !jobInfo.cronExpressionValid) &&
-                                                    <Badge bg={jobInfo.cronActive ? "success" : "danger"}
-                                                           className="d-inline-flex align-items-center justify-content-center">
-                                                        {jobInfo.cronActive ? "Active" : "Invalid"}
-                                                    </Badge>
-                                                }
-                                                <Form.Control placeholder="Cron expression" aria-label="Cron expression"
-                                                              aria-describedby="button-submit"
-                                                              isValid={jobInfo.cronExpressionValid}
-                                                              isInvalid={!jobInfo.cronExpressionValid}
-                                                              name="cronExpression"
-                                                              defaultValue={jobInfo.cronExpression}/>
-                                                <Button type="submit" variant="outline-secondary" id="button-submit">
-                                                    Save
-                                                </Button>
-                                            </InputGroup>
-                                        </Form>
-                                    </td>
-                                    <td className="align-middle">{latestRuns[jobInfo.id] &&
-                                        formatTimestamp(latestRuns[jobInfo.id].startedAt)}</td>
-                                    <td className="align-middle">{latestRuns[jobInfo.id]?.finishedAt != null &&
-                                        formatTimestamp(latestRuns[jobInfo.id].finishedAt)}</td>
-                                    <td className="align-middle text-center">
-                                        {latestRuns[jobInfo.id] &&
-                                            <ShowLogsButton jobRunInfo={latestRuns[jobInfo.id]}/>
-                                        }
-                                    </td>
-                                    <td className="align-middle text-center">
-                                        {/* Job is NOT force runnable */}
-                                        {!jobInfo.forceRunnable &&
-                                            <Form onSubmit={(e) => handleStartJob(jobInfo, e)}>
-                                                <Button type="submit" variant="success" size="sm">
-                                                    <i className="bi bi-play-fill"></i> Start now
-                                                </Button>
-                                            </Form>
-                                        }
-
-                                        {/* Job is force runnable */}
-                                        {jobInfo.forceRunnable && (
-                                            <div>
-                                                {/* Button trigger modal */}
-                                                <Form onSubmit={() => handleShowModal(jobInfo)}>
-                                                    <Button type="submit" variant="success" size="sm">
-                                                        <i className="bi bi-play-fill"></i> Start now
-                                                    </Button>
-                                                </Form>
-
-                                                {/* Modal */}
-                                                <Modal show={showModal} onHide={() => setShowModal(false)}>
-                                                    <Modal.Header closeButton>
-                                                        <Modal.Title>Force run?</Modal.Title>
-                                                    </Modal.Header>
-                                                    <Modal.Body>
-                                                        Do you want to force
-                                                        run <strong><span>{triggeredJob?.name}</span></strong>?
-                                                    </Modal.Body>
-                                                    <Modal.Footer>
-                                                        <Button variant="danger"
-                                                                onClick={() => handleStartJobModal(true)}>
-                                                            Close
-                                                        </Button>
-                                                        <Button variant="primary" autoFocus
-                                                                onClick={() => handleStartJobModal(false)}>
-                                                            Skip if unchanged
-                                                        </Button>
-                                                    </Modal.Footer>
-                                                </Modal>
-                                            </div>
-                                        )}
-                                    </td>
+            <>
+                <NavBar/>
+                <Container fluid className="my-3">
+                    <Row className="g-3">
+                        <Col>
+                            <Table responsive striped bordered size="sm" className="m-0">
+                                <thead>
+                                <tr>
+                                    <th className="text-center">ID</th>
+                                    <th>Name</th>
+                                    <th>Cron</th>
+                                    <th>Started At</th>
+                                    <th>Finished At</th>
+                                    <th className="text-center" colSpan={2}>Actions</th>
                                 </tr>
-                            ))}
-                            </tbody>
-                        </Table>
-                    </Col>
-                </Row>
-            </Container>
+                                </thead>
+                                <tbody>
+                                {jobInfos.map(jobInfo => (
+                                        <tr key={jobInfo.id}>
+                                            <td className="align-middle text-center">{jobInfo.id}</td>
+                                            <td className="align-middle">{jobInfo.name}</td>
+                                            <td>
+                                                <Form onSubmit={(e) => handleUpdateJob(e, jobInfo)}>
+                                                    <InputGroup size="sm" hasValidation>
+                                                        {(jobInfo.cronActive || !jobInfo.cronExpressionValid) &&
+                                                                <Badge bg={jobInfo.cronActive ? "success" : "danger"}
+                                                                       className="d-inline-flex align-items-center justify-content-center">
+                                                                    {jobInfo.cronActive ? "Active" : "Invalid"}
+                                                                </Badge>
+                                                        }
+                                                        <Form.Control placeholder="Cron expression"
+                                                                      aria-label="Cron expression"
+                                                                      aria-describedby="button-submit"
+                                                                      isValid={jobInfo.cronExpressionValid}
+                                                                      isInvalid={!jobInfo.cronExpressionValid}
+                                                                      name="cronExpression"
+                                                                      defaultValue={jobInfo.cronExpression}/>
+                                                        <Button type="submit" variant="outline-secondary"
+                                                                id="button-submit">
+                                                            Save
+                                                        </Button>
+                                                    </InputGroup>
+                                                </Form>
+                                            </td>
+                                            <td className="align-middle">{latestRuns[jobInfo.id] &&
+                                                    formatTimestamp(latestRuns[jobInfo.id].startedAt)}</td>
+                                            <td className="align-middle">{latestRuns[jobInfo.id]?.finishedAt != null &&
+                                                    formatTimestamp(latestRuns[jobInfo.id].finishedAt)}</td>
+                                            <td className="align-middle text-center">
+                                                {latestRuns[jobInfo.id] &&
+                                                        <ShowLogsButton jobRunInfo={latestRuns[jobInfo.id]}/>
+                                                }
+                                            </td>
+                                            <td className="align-middle text-center">
+                                                {/* Job is NOT force runnable */}
+                                                {!jobInfo.forceRunnable &&
+                                                        <Form onSubmit={(e) => handleStartJob(e, jobInfo)}>
+                                                            <Button type="submit" variant="success" size="sm">
+                                                                <i className="bi bi-play-fill"></i> Start now
+                                                            </Button>
+                                                        </Form>
+                                                }
 
-            <Toast show={showTriggeredToast} onClose={() => setShowTriggeredToast(false)} autohide delay={5000}
-                   className="position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-success border-0"
-                   style={{zIndex: "1020"}} role="alert" aria-live="assertive" aria-atomic="true">
-                <Toast.Body>
-                    Job <strong><span>{triggeredJob?.name}</span></strong> triggered.
-                    <CloseButton type="submit" variant="white" className="me-2 m-auto position-absolute end-0"
-                                 aria-label="Close" onClick={() => setShowTriggeredToast(false)}/>
-                </Toast.Body>
-            </Toast>
+                                                {/* Job is force runnable */}
+                                                {jobInfo.forceRunnable && (
+                                                        <div>
+                                                            {/* Button trigger modal */}
+                                                            <Form onSubmit={(e) => handleShowModal(e, jobInfo)}>
+                                                                <Button type="submit" variant="success" size="sm">
+                                                                    <i className="bi bi-play-fill"></i> Start now
+                                                                </Button>
+                                                            </Form>
 
-            <Toast show={showUpdatedToast} onClose={() => setShowUpdatedToast(false)} autohide delay={5000}
-                   className="position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-info border-0"
-                   style={{zIndex: "1020"}} role="alert" aria-live="assertive" aria-atomic="true">
-                <Toast.Body>
-                    Job <strong><span>{updatedJob?.name}</span></strong> updated.
-                    <CloseButton type="submit" variant="white" className="me-2 m-auto position-absolute end-0"
-                                 aria-label="Close" onClick={() => setShowUpdatedToast(false)}/>
-                </Toast.Body>
-            </Toast>
-        </>
+                                                            {/* Modal */}
+                                                            <Modal show={showModal} onHide={() => setShowModal(false)}>
+                                                                <Modal.Header closeButton>
+                                                                    <Modal.Title>Force run?</Modal.Title>
+                                                                </Modal.Header>
+                                                                <Modal.Body>
+                                                                    Do you want to force
+                                                                    run <strong><span>{triggeredJob?.name}</span></strong>?
+                                                                </Modal.Body>
+                                                                <Modal.Footer>
+                                                                    <Button variant="danger"
+                                                                            onClick={() => handleStartJobModal(true)}>
+                                                                        Force run
+                                                                    </Button>
+                                                                    <Button variant="primary" autoFocus
+                                                                            onClick={() => handleStartJobModal(false)}>
+                                                                        Skip if unchanged
+                                                                    </Button>
+                                                                </Modal.Footer>
+                                                            </Modal>
+                                                        </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                ))}
+                                </tbody>
+                            </Table>
+                        </Col>
+                    </Row>
+                </Container>
+
+                <Toast show={showTriggeredToast} onClose={() => setShowTriggeredToast(false)} autohide delay={5000}
+                       className="position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-success border-0"
+                       style={{zIndex: "1020"}} role="alert" aria-live="assertive" aria-atomic="true">
+                    <Toast.Body>
+                        Job <strong><span>{triggeredJob?.name}</span></strong> triggered.
+                        <CloseButton type="submit" variant="white" className="me-2 m-auto position-absolute end-0"
+                                     aria-label="Close" onClick={() => setShowTriggeredToast(false)}/>
+                    </Toast.Body>
+                </Toast>
+
+                <Toast show={showUpdatedToast} onClose={() => setShowUpdatedToast(false)} autohide delay={5000}
+                       className="position-fixed top-0 end-0 mt-5 me-3 align-items-center text-bg-info border-0"
+                       style={{zIndex: "1020"}} role="alert" aria-live="assertive" aria-atomic="true">
+                    <Toast.Body>
+                        Job <strong><span>{updatedJob?.name}</span></strong> updated.
+                        <CloseButton type="submit" variant="white" className="me-2 m-auto position-absolute end-0"
+                                     aria-label="Close" onClick={() => setShowUpdatedToast(false)}/>
+                    </Toast.Body>
+                </Toast>
+            </>
     );
 }
 
