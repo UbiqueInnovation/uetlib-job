@@ -85,19 +85,16 @@ const List = () => {
                                     <td>
                                         <Form onSubmit={(e) => handleUpdateJob(jobInfo, e)}>
                                             <InputGroup size="sm" hasValidation>
-                                                {(jobInfo.cronActive || !jobInfo.cronExpressionValid) &&
-                                                    <Badge bg={jobInfo.cronActive ? "success" : "danger"}
-                                                           className="d-inline-flex align-items-center justify-content-center">
-                                                        {jobInfo.cronActive ? "Active" : "Invalid"}
-                                                    </Badge>
-                                                }
+                                                <Badge bg={jobInfo.cronExpressionValid ? (jobInfo.cronActive ? "success" :  "warning") : "danger"} className="d-inline-flex align-items-center justify-content-center">
+                                                    {jobInfo.cronExpressionValid ? (jobInfo.cronActive ? "Active" :  "Inactive") : "Invalid"}
+                                                </Badge>
                                                 <Form.Control placeholder="Cron expression" aria-label="Cron expression"
                                                               aria-describedby="button-submit"
-                                                              isValid={jobInfo.cronExpressionValid}
+                                                              isValid={jobInfo.cronActive && jobInfo.cronExpressionValid}
                                                               isInvalid={!jobInfo.cronExpressionValid}
                                                               name="cronExpression"
                                                               defaultValue={jobInfo.cronExpression}/>
-                                                <Button type="submit" variant="outline-secondary" id="button-submit">
+                                                <Button type="submit" variant="outline-dark" id="button-submit">
                                                     Save
                                                 </Button>
                                             </InputGroup>
