@@ -7,7 +7,6 @@ import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.service.JobService;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,22 +20,18 @@ import java.lang.reflect.InvocationTargetException;
 
 @RestController
 @RequestMapping("/v1/status")
-@CrossOrigin(value = {"${job.interface.baseUrl}", "http://localhost:3000"})
+@CrossOrigin({"https://status.systems.ubique.ch", "http://localhost:3000"})
 public class JobStatusController {
 
     private final JobService jobService;
-    private final String applicationName;
 
-    public JobStatusController(
-            final JobService jobService,
-            final @Value("${spring.application.name}") String applicationName) {
+    public JobStatusController(final JobService jobService) {
         this.jobService = jobService;
-        this.applicationName = applicationName;
     }
 
-    @GetMapping("/name")
-    public ResponseEntity<String> applicationName() {
-        return ResponseEntity.ok(applicationName);
+    @GetMapping("")
+    public ResponseEntity<Void> up() {
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/jobs")
