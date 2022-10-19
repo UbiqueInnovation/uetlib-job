@@ -45,9 +45,12 @@ public abstract class JobScheduler {
         for (final var job : jobDataService.findJobs()) {
             if (job.isCronActive() && job.isCronExpressionValid()) {
                 try {
-                    schedulerService.scheduleJob(job.getClazz(), createNewJobInstance(job), job.getCronExpression());
+                    schedulerService.scheduleJob(
+                            job.getClazz(), createNewJobInstance(job), job.getCronExpression());
                 } catch (NoClassDefFoundError e) {
-                    logger.warn("Could not find class for {}. Removing database entry.", job.getClazz());
+                    logger.warn(
+                            "Could not find class for {}. Removing database entry.",
+                            job.getClazz());
                     jobDataService.delete(job);
                 }
             }
