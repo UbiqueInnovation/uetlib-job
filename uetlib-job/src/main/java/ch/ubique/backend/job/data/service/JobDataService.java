@@ -3,14 +3,12 @@ package ch.ubique.backend.job.data.service;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Optional;
-
-import javax.annotation.PostConstruct;
 
 public interface JobDataService {
 
@@ -61,4 +59,7 @@ public interface JobDataService {
 
     @Transactional(readOnly = true)
     Optional<JobRun> findJobRunById(int jobRunId);
+
+    @Transactional
+    void delete(Job job);
 }

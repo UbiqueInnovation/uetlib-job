@@ -9,7 +9,6 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -156,5 +155,10 @@ public class JpaJobDataService implements JobDataService {
     @Override
     public Optional<JobRun> findJobRunById(final int jobRunId) {
         return jobRunRepository.findById(jobRunId);
+    }
+
+    @Override
+    public void delete(Job job) {
+        jobRepository.delete(JobEntity.fromJob(job));
     }
 }

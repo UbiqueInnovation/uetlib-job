@@ -2,12 +2,7 @@ package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.Job;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Table(name = "t_job")
 @Entity
@@ -26,6 +21,19 @@ public class JobEntity implements Job {
 
     @Column(name = "cron_expression", nullable = false, length = 20)
     private String cronExpression;
+
+    public static JobEntity fromJob(Job job) {
+        if (job instanceof JobEntity jobEntity) {
+            return jobEntity;
+        }
+
+        final var jobEntity = new JobEntity();
+        jobEntity.id = job.getId();
+        jobEntity.name = job.getName();
+        jobEntity.clazz = job.getClazz();
+        jobEntity.cronExpression = job.getCronExpression();
+        return jobEntity;
+    }
 
     @Override
     public Integer getId() {
