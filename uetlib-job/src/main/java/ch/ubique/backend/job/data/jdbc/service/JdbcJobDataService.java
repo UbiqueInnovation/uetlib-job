@@ -22,9 +22,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-
 import javax.sql.DataSource;
+import java.util.*;
 
 @Service
 public class JdbcJobDataService implements JobDataService {
@@ -271,5 +270,10 @@ public class JdbcJobDataService implements JobDataService {
             logger.info("No job run found for runId {}.", runId);
             return Optional.empty();
         }
+    }
+
+    @Override
+    public void delete(Job job) {
+        jt.update("DELETE FROM t_job WHERE pk_job_id = :pk_job_id", JobParamsCreator.createParams(job));
     }
 }
