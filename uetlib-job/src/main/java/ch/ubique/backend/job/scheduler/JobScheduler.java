@@ -71,16 +71,10 @@ public abstract class JobScheduler {
         schedulerService.updateJob(job.getClazz(), jobBean, job.getCronExpression());
     }
 
-    public void runNow(final Job job)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
-        schedulerService.runJobNow(job.getClazz(), createNewJobInstance(job), false);
-    }
-
     public void runNow(final Job job, boolean forceRun)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        schedulerService.runJobNow(job.getClazz(), createNewJobInstance(job), forceRun);
+        schedulerService.runJobNowManual(job.getClazz(), createNewJobInstance(job), forceRun);
     }
 
     public BaseJob createNewJobInstance(Job job)
