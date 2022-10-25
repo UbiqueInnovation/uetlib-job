@@ -7,11 +7,12 @@ import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
-import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 public class SchedulerService {
@@ -49,7 +50,6 @@ public class SchedulerService {
                     identifier,
                     cronExpression);
             final var key = new JobKey(identifier);
-
             final var jobDetail = getOrCreateJobDetail(key, job);
 
             removeScheduleJob(identifier);
@@ -58,9 +58,7 @@ public class SchedulerService {
                     TriggerBuilder.newTrigger()
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                             .build();
-
             scheduler.scheduleJob(jobDetail, trigger);
-
         } catch (SchedulerException e) {
             logger.error("Could not update job for: " + identifier, e);
         }
@@ -77,29 +75,26 @@ public class SchedulerService {
                 scheduler.unscheduleJob(trigger.getKey());
             }
         } catch (SchedulerException e) {
-            logger.error("Could not remove job for: {}", identifier, e);
+            logger.error("Could not remove job {}", identifier, e);
         }
     }
 
-    public void runJobNow(final String identifier, final Job job, final boolean forceRun) {
+    public void runJobNowManual(final String identifier, final Job job, final boolean forceRun) {
+        final var manualIdentifier = identifier + "_MANUAL";
         try {
-            logger.info("Scheduled job {} to run now", identifier);
-            final var key = new JobKey(identifier);
-            if (jobExists(key)) {
-                scheduler.triggerJob(key);
-            } else {
-                JobDetail jobDetail = createJobDetail(key, job);
-                jobDetail.getJobDataMap().put("forceRun", forceRun);
-                Trigger trigger = TriggerBuilder.newTrigger().startNow().build();
-                scheduler.scheduleJob(jobDetail, trigger);
-            }
+            logger.info(
+                    "Manually scheduled job {} to run now. forceRun: {}",
+                    manualIdentifier,
+                    forceRun);
+            final var key = new JobKey(manualIdentifier);
+            final var jobDetail = createJobDetail(key, job);
+            jobDetail.getJobDataMap().put("forceRun", forceRun);
+            final var trigger = TriggerBuilder.newTrigger().startNow().build();
+            scheduler.scheduleJob(jobDetail, trigger);
         } catch (SchedulerException e) {
-            logger.error("Could not schedule job now: " + identifier, e);
+            logger.error(
+                    "Could not schedule job {} now. forceRun: {}", manualIdentifier, forceRun, e);
         }
-    }
-
-    private boolean jobExists(final JobKey key) throws SchedulerException {
-        return scheduler.getJobDetail(key) != null;
     }
 
     private static JobDetail createJobDetail(final JobKey key, final Job job) {
@@ -107,9 +102,7 @@ public class SchedulerService {
     }
 
     private JobDetail getOrCreateJobDetail(JobKey key, Job job) throws SchedulerException {
-        if (jobExists(key)) {
-            return scheduler.getJobDetail(key);
-        }
-        return createJobDetail(key, job);
+        return Optional.ofNullable(scheduler.getJobDetail(key))
+                .orElseGet(() -> createJobDetail(key, job));
     }
 }
