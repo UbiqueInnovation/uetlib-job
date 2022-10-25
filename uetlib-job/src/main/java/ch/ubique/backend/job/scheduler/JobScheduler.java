@@ -108,8 +108,8 @@ public abstract class JobScheduler {
                         () -> {
                             throw new NoSuchElementException(
                                     MessageFormat.format(
-                                            "No constructor with annotation ''@{0}'' present"
-                                                    + " on class {1}",
+                                            "Either declare a single, default, public constructor"
+                                                + " or annotate one with annotation ''@{0}''",
                                             JobAutowireConstructor.class.getCanonicalName(),
                                             jobClass.getCanonicalName()));
                         });
