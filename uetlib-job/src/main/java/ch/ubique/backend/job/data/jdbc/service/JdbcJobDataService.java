@@ -3,7 +3,7 @@ package ch.ubique.backend.job.data.jdbc.service;
 import ch.ubique.backend.job.data.jdbc.mapper.JobRowMapper;
 import ch.ubique.backend.job.data.jdbc.mapper.JobRunRowMapper;
 import ch.ubique.backend.job.data.jdbc.params.JobParamsCreator;
-import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.data.service.AbstractJobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
@@ -33,10 +33,9 @@ import java.util.Optional;
 import javax.sql.DataSource;
 
 @Service
-public class JdbcJobDataService implements JobDataService {
+public class JdbcJobDataService extends AbstractJobDataService {
 
     protected final NamedParameterJdbcTemplate jt;
-    private static final Logger logger = LoggerFactory.getLogger(JdbcJobDataService.class);
 
     private final SimpleJdbcInsert jobInsert;
     private final SimpleJdbcInsert jobRunInsert;

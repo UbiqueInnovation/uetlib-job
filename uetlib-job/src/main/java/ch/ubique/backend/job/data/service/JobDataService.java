@@ -15,10 +15,13 @@ import javax.annotation.PostConstruct;
 public interface JobDataService {
 
     @PostConstruct
-    @Transactional
     default void init() {
-        cleanUpBusyRuns();
+        if (doCleanUpBusyRuns()) {
+            cleanUpBusyRuns();
+        }
     }
+
+    boolean doCleanUpBusyRuns();
 
     @Transactional
     void cleanUpBusyRuns();
