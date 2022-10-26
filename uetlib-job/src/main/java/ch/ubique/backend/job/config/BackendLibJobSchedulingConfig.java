@@ -10,11 +10,11 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableScheduling
-public class JobSchedulingConfig {
+public class BackendLibJobSchedulingConfig {
 
     private final MonitoringService monitoringService;
 
-    public JobSchedulingConfig(final MonitoringService monitoringService) {
+    public BackendLibJobSchedulingConfig(final MonitoringService monitoringService) {
         this.monitoringService = monitoringService;
     }
 

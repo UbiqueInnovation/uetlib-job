@@ -12,21 +12,21 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebSocket
 @EnableScheduling
-public class JobWebSocketConfig implements WebSocketConfigurer {
+public class BackendLibJobWebSocketConfig implements WebSocketConfigurer {
 
-    private final JobWebSocketHandler jobWebSocketHandler;
+    private final BackendLibJobWebSocketHandler webSocketHandler;
 
-    public JobWebSocketConfig(final JobWebSocketHandler jobWebSocketHandler) {
-        this.jobWebSocketHandler = jobWebSocketHandler;
+    public BackendLibJobWebSocketConfig(final BackendLibJobWebSocketHandler webSocketHandler) {
+        this.webSocketHandler = webSocketHandler;
     }
 
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
-        registry.addHandler(jobWebSocketHandler, "/v1/live/logs").setAllowedOriginPatterns("*");
+        registry.addHandler(webSocketHandler, "/v1/live/logs").setAllowedOriginPatterns("*");
     }
 
     @Scheduled(fixedRate = 1, timeUnit = TimeUnit.SECONDS)
     public void sendLogs() {
-        jobWebSocketHandler.sendLog();
+        webSocketHandler.sendLog();
     }
 }

@@ -21,11 +21,11 @@ import java.lang.reflect.InvocationTargetException;
 @RestController
 @RequestMapping("/v1/status")
 @CrossOrigin({"https://status.systems.ubique.ch", "http://localhost:3000"})
-public class JobStatusController {
+public class BackendLibJobStatusController {
 
     private final JobService jobService;
 
-    public JobStatusController(final JobService jobService) {
+    public BackendLibJobStatusController(final JobService jobService) {
         this.jobService = jobService;
     }
 
