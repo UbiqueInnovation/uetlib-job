@@ -25,9 +25,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 @Component
-public class JobWebSocketHandler extends TextWebSocketHandler {
+public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(JobWebSocketHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(BackendLibJobWebSocketHandler.class);
     private static final int PAGE_SIZE = 50000;
 
     private final ObjectMapper objectMapper;
@@ -36,7 +36,7 @@ public class JobWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, Triple<WebSocketSession, Integer, AtomicLong>> activeSessions =
             new ConcurrentHashMap<>();
 
-    public JobWebSocketHandler(
+    public BackendLibJobWebSocketHandler(
             final ObjectMapper objectMapper, final JobDataService jobDataService) {
         this.objectMapper = objectMapper;
         this.jobDataService = jobDataService;
