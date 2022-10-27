@@ -3,7 +3,7 @@ package ch.ubique.backend.job.data.jpa.service;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.data.jpa.repository.JobRepository;
 import ch.ubique.backend.job.data.jpa.repository.JobRunRepository;
-import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.data.service.AbstractJobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class JpaJobDataService implements JobDataService {
+public class JpaJobDataService extends AbstractJobDataService {
 
     private final JobRepository jobRepository;
     private final JobRunRepository jobRunRepository;
