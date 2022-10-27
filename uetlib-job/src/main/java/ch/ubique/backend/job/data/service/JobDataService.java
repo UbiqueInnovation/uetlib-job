@@ -15,6 +15,7 @@ import javax.annotation.PostConstruct;
 public interface JobDataService {
 
     @PostConstruct
+    @Transactional
     default void init() {
         if (doCleanUpBusyRuns()) {
             cleanUpBusyRuns();
