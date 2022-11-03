@@ -3,7 +3,7 @@ create table t_job
     pk_job_id       integer generated always as identity primary key,
     name            text        not null,
     clazz           text        not null,
-    cron_expression varchar(20) not null
+    cron_expression text not null
 );
 
 create table t_job_run
