@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import java.time.Instant;
+import java.util.Date;
 import java.util.Optional;
 
 public class JobParamsCreator {
@@ -32,9 +33,10 @@ public class JobParamsCreator {
         params.addValue("fk_job_id", jobRun.getJobId());
         params.addValue("job_version", jobRun.getJobVersion());
         params.addValue(
-                "started_at", Optional.ofNullable(jobRun.getStartedAt()).orElse(Instant.now()));
+                "started_at",
+                Date.from(Optional.ofNullable(jobRun.getStartedAt()).orElse(Instant.now())));
         Optional.ofNullable(jobRun.getFinishedAt())
-                .ifPresent(finishedAt -> params.addValue("finished_at", finishedAt));
+                .ifPresent(finishedAt -> params.addValue("finished_at", Date.from(finishedAt)));
         params.addValue("log_output", jobRun.getLogOutput());
         return params;
     }
