@@ -22,13 +22,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import javax.sql.DataSource;
 
@@ -57,7 +51,7 @@ public class JdbcJobDataService extends AbstractJobDataService {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("busy", JobRunState.BUSY.name());
         params.addValue("unfinished", JobRunState.UNFINISHED.name());
-        params.addValue("now", Instant.now());
+        params.addValue("now", new Date());
         jt.update(
                 "update t_job_run set state = :unfinished, finished_at = :now where state = :busy",
                 params);
