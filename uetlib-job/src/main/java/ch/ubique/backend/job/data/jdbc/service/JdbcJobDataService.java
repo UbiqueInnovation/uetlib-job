@@ -9,10 +9,15 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.sql.DataSource;
 import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
@@ -21,10 +26,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
-
-import java.util.*;
-
-import javax.sql.DataSource;
 
 @Service
 public class JdbcJobDataService extends AbstractJobDataService {
@@ -195,7 +196,7 @@ public class JdbcJobDataService extends AbstractJobDataService {
         }
         if (jobId != null) {
             params.addValue("jobId", jobId);
-            andConditions.add("fk_job_id = (select pk_job_id from t_job where fk_job_id = :jobId)");
+            andConditions.add("fk_job_id = :jobId");
         }
         if (!andConditions.isEmpty()) {
             sql += " where " + String.join(" and ", andConditions);
