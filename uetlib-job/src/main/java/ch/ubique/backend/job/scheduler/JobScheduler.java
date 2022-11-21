@@ -43,11 +43,11 @@ public abstract class JobScheduler {
         for (final var job : jobDataService.findJobs()) {
             try {
                 final var instance = createNewJobInstance(job);
-                if (job.isCronActive() && job.isCronExpressionValid()) {
-                    schedulerService.scheduleJob(job.getClazz(), instance, job.getCronExpression());
+                if (instance.isCronActive() && instance.isCronExpressionValid()) {
+                    schedulerService.scheduleJob(job.clazzName(), instance, instance.getCronExpression());
                 }
             } catch (NoClassDefFoundError e) {
-                logger.warn("Could not find class for {}. Removing database entry.", job.getClazz());
+                logger.warn("Could not find class for {}. Removing database entry.", job.clazzName());
                 jobDataService.delete(job);
             }
 
@@ -59,25 +59,25 @@ public abstract class JobScheduler {
     public void update(final Job job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        if (!job.isCronActive() || !job.isCronExpressionValid()) {
-            schedulerService.removeScheduleJob(job.getClazz());
+        final var instance = createNewJobInstance(job);
+        if (!instance.isCronActive() || !instance.isCronExpressionValid()) {
+            schedulerService.removeScheduleJob(job.clazzName());
             return;
         }
 
-        final var jobBean = createNewJobInstance(job);
-        schedulerService.updateJob(job.getClazz(), jobBean, job.getCronExpression());
+        schedulerService.updateJob(job.clazzName(), instance);
     }
 
     public void runNow(final Job job, boolean forceRun)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        schedulerService.runJobNowManual(job.getClazz(), createNewJobInstance(job), forceRun);
+        schedulerService.runJobNowManual(job.clazzName(), createNewJobInstance(job), forceRun);
     }
 
     public BaseJob createNewJobInstance(Job job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        final var jobClass = getClassForName(job.getClazz());
+        final var jobClass = getClassForName(job.clazzName());
         return createNewJobInstance(jobClass);
     }
 

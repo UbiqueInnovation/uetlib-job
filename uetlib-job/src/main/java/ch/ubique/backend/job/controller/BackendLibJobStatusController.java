@@ -6,15 +6,8 @@ import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.service.JobService;
-
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -35,7 +28,7 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/jobs")
-    public ResponseEntity<JobInfosContainer> jobs() {
+    public ResponseEntity<JobInfosContainer> jobs() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         return ResponseEntity.ok(jobService.findJobs());
     }
 

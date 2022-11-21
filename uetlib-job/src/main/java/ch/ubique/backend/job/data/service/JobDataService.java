@@ -3,14 +3,12 @@ package ch.ubique.backend.job.data.service;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Optional;
-
-import javax.annotation.PostConstruct;
 
 public interface JobDataService {
 
@@ -55,7 +53,7 @@ public interface JobDataService {
     Page<JobRun> findJobRuns(int page, int pageSize, Integer jobId, JobRunState state);
 
     @Transactional
-    Job registerJobByClass(Class<?> cls);
+    Job registerJob(Job job);
 
     @Transactional
     JobRun saveJobRun(JobRun jobRun);

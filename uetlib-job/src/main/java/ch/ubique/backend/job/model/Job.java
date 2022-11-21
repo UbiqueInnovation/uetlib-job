@@ -1,85 +1,41 @@
 package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.BaseInputJob;
-import org.apache.commons.lang3.StringUtils;
-import org.quartz.CronExpression;
+import ch.ubique.backend.job.BaseJob;
+import com.pivovarit.function.exception.WrappedException;
 
-public interface Job {
+public record Job(
+        Integer id,
+        String clazzName,
+        String databaseCronExpression
+) {
 
-    Integer getId();
-
-    void setId(Integer id);
-
-    String getName();
-
-    void setName(String name);
-
-    String getClazz();
-
-    void setClazz(String clazz);
-
-    /**
-     * This cron expression will be set if no cron expression is present in the database.
-     * Returns null by default.
-     * If this method returns blank, no initial cron expression will be set.
-     */
-    default String initialCronExpression() {
-        return null;
+    public static Job withId(int id, Job job) {
+        return new Job(
+                id,
+                job.clazzName(),
+                job.databaseCronExpression()
+        );
     }
 
-    /**
-     * This cron expression will always be used and overrides the cron expression specified in the database.
-     * Returns null by default.
-     * If this method returns blank, the cron expression in the database will not be overwritten.
-     */
-    default String fixedCronExpression() {
-        return null;
+    public static Job fromClass(Class<? extends BaseJob> clazz) {
+        return new Job(null, clazz.getCanonicalName(), null);
     }
 
-    /**
-     * The cron expression specified in the database. Will be used, if {@link Job#fixedCronExpression()} is blank.
-     */
-    String getDatabaseCronExpression();
-
-    default String getCronExpression() {
-        final var fixedCron = fixedCronExpression();
-        if (StringUtils.isNotBlank(fixedCron)) {
-            return fixedCron;
-        }
-
-        final var databaseCron = getDatabaseCronExpression();
-        if (StringUtils.isNotBlank(databaseCron)) {
-            return databaseCron;
-        }
-
-        final var initialCron = initialCronExpression();
-        if (StringUtils.isNotBlank(initialCron)) {
-            return initialCron;
-        }
-
-        return "";
+    public String name() {
+        return clazz().getSimpleName();
     }
 
-    void setDatabaseCronExpression(String cronExpression);
-
-    default boolean isCronActive() {
-        return StringUtils.isNotBlank(getCronExpression()) && isCronExpressionValid();
-    }
-
-    default boolean isCronExpressionValid() {
-        return StringUtils.isBlank(getCronExpression())
-                || CronExpression.isValidExpression(getCronExpression());
-    }
-
-    default boolean isForceRunnable() {
+    public Class<? extends BaseJob> clazz() {
         try {
-            return BaseInputJob.class.isAssignableFrom(Class.forName(getClazz()));
-        } catch (ClassNotFoundException e) {
-            return false;
+            //noinspection unchecked
+            return (Class<? extends BaseJob>) Class.forName(clazzName());
+        } catch (ClassNotFoundException | ClassCastException e) {
+            throw new WrappedException(e); // Rethrow as runtime exception
         }
     }
 
-    default boolean isCronFixed() {
-        return fixedCronExpression() != null;
+    public boolean isForceRunnable() {
+        return BaseInputJob.class.isAssignableFrom(clazz());
     }
 }

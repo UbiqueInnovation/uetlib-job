@@ -3,7 +3,6 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.job.data.service.InputJobDataService;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
-
 import org.springframework.retry.support.RetryTemplate;
 
 import java.time.Duration;
@@ -87,7 +86,7 @@ public abstract class BaseInputJob extends BaseJob {
 
     private boolean isJobVersionDifferent() {
         final var lastRun =
-                inputJobDataService.findLatestJobRunByState(job.getId(), JobRunState.DONE);
+                inputJobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
         return lastRun.isEmpty() || version() != lastRun.get().getJobVersion();
     }
 
@@ -96,7 +95,7 @@ public abstract class BaseInputJob extends BaseJob {
 
         // Get inputs of the latest successful run
         final var latestJobRun =
-                inputJobDataService.findLatestJobRunByState(job.getId(), JobRunState.DONE);
+                inputJobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
         if (latestJobRun.isEmpty()) {
             logger.info("No previous job run found => Inputs differ");
             return false;

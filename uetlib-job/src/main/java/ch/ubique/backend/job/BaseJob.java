@@ -1,13 +1,12 @@
 package ch.ubique.backend.job;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.quartz.CronExpression;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
@@ -20,6 +19,8 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
@@ -34,13 +35,63 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected BaseJob(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
-        this.job = jobDataService.registerJobByClass(getClass());
+        this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance();
         this.jobDataMap = new JobDataMap();
     }
 
+    /**
+     * This cron expression will be set if no cron expression is present in the database.
+     * Returns null by default.
+     * If this method returns blank, no initial cron expression will be set.
+     */
+    public String initialCronExpression() {
+        return null;
+    }
+
+    /**
+     * This cron expression will always be used and overrides the cron expression specified in the database.
+     * Returns null by default.
+     * If this method returns blank, the cron expression in the database will not be overwritten.
+     */
+    public String fixedCronExpression() {
+        return null;
+    }
+
+    public final String getCronExpression() {
+        final var fixedCron = fixedCronExpression();
+        if (StringUtils.isNotBlank(fixedCron)) {
+            return fixedCron;
+        }
+
+        final var databaseCron = job.databaseCronExpression();
+        if (StringUtils.isNotBlank(databaseCron)) {
+            return databaseCron;
+        }
+
+        final var initialCron = initialCronExpression();
+        if (StringUtils.isNotBlank(initialCron)) {
+            return initialCron;
+        }
+
+        return "";
+    }
+
+    public final boolean isCronFixed() {
+        return fixedCronExpression() != null;
+    }
+
+    public final boolean isCronExpressionValid() {
+        return StringUtils.isBlank(getCronExpression())
+                || CronExpression.isValidExpression(getCronExpression());
+    }
+
+    public final boolean isCronActive() {
+        return StringUtils.isNotBlank(getCronExpression()) && isCronExpressionValid();
+    }
+
     @Override
-    public void run() {
+    public final void run() {
         setupLog();
         logger.info("Running Job {}", getClass().getSimpleName());
         updateJobRunStart();
@@ -56,17 +107,17 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     @Override
-    public void execute(JobExecutionContext jobExecutionContext) {
+    public final void execute(JobExecutionContext jobExecutionContext) {
         jobDataMap = jobExecutionContext.getJobDetail().getJobDataMap();
         run();
     }
 
     protected abstract JobRunState internalRun();
 
-    private void updateJobRunStart() {
+    private final void updateJobRunStart() {
         jobRun.setState(JobRunState.BUSY);
         jobRun.setStartedAt(Instant.now());
-        jobRun.setJobId(job.getId());
+        jobRun.setJobId(job.id());
         jobRun.setJobVersion(version());
         Optional.ofNullable(logOutput)
                 .map(lo -> "file:" + lo.toFile().getAbsolutePath())

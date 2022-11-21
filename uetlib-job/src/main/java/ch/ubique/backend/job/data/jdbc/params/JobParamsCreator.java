@@ -3,7 +3,6 @@ package ch.ubique.backend.job.data.jdbc.params;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
-
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -17,10 +16,10 @@ public class JobParamsCreator {
 
     public static SqlParameterSource createParams(Job job) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        Optional.ofNullable(job.getId()).ifPresent(id -> params.addValue("pk_job_id", id));
-        params.addValue("name", job.getName());
-        params.addValue("clazz", job.getClazz());
-        params.addValue("cron_expression", job.getCronExpression());
+        Optional.ofNullable(job.id()).ifPresent(id -> params.addValue("pk_job_id", id));
+        params.addValue("name", job.name());
+        params.addValue("clazzName", job.clazzName());
+        params.addValue("cron_expression", job.databaseCronExpression());
 
         return params;
     }
