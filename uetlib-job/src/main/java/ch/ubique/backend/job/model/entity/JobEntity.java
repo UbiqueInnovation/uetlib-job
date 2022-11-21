@@ -16,7 +16,7 @@ public class JobEntity {
     @Column(name = "clazz", nullable = false)
     private String clazz;
 
-    @Column(name = "cron_expression", nullable = false, length = 20)
+    @Column(name = "cron_expression", length = 20)
     private String cronExpression;
 
     public Integer getId() {
