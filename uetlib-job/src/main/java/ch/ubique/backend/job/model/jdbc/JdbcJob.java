@@ -43,12 +43,12 @@ public class JdbcJob implements Job {
     }
 
     @Override
-    public String getCronExpression() {
+    public String getDatabaseCronExpression() {
         return cronExpression;
     }
 
     @Override
-    public void setCronExpression(String cronExpression) {
+    public void setDatabaseCronExpression(String cronExpression) {
         this.cronExpression = cronExpression;
     }
 }
