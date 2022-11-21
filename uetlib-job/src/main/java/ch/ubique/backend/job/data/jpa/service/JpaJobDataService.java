@@ -9,7 +9,6 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -73,7 +72,7 @@ public class JpaJobDataService extends AbstractJobDataService {
                 .map(JobEntity.class::cast)
                 .map(
                         job -> {
-                            job.setCronExpression(cronExpression);
+                            job.setDatabaseCronExpression(cronExpression);
                             return jobRepository.save(job);
                         })
                 .orElseThrow(
@@ -132,7 +131,7 @@ public class JpaJobDataService extends AbstractJobDataService {
                             final var job = new JobEntity();
                             job.setName(cls.getSimpleName());
                             job.setClazz(cls.getCanonicalName());
-                            job.setCronExpression("");
+                            job.setDatabaseCronExpression(job.getCronExpression());
                             return jobRepository.save(job);
                         });
     }

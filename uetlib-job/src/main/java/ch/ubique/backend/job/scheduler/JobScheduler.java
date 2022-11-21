@@ -3,7 +3,6 @@ package ch.ubique.backend.job.scheduler;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,14 +11,13 @@ import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 
+import javax.annotation.PostConstruct;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
-
-import javax.annotation.PostConstruct;
 
 public abstract class JobScheduler {
 
@@ -43,17 +41,16 @@ public abstract class JobScheduler {
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         for (final var job : jobDataService.findJobs()) {
-            if (job.isCronActive() && job.isCronExpressionValid()) {
-                try {
-                    schedulerService.scheduleJob(
-                            job.getClazz(), createNewJobInstance(job), job.getCronExpression());
-                } catch (NoClassDefFoundError e) {
-                    logger.warn(
-                            "Could not find class for {}. Removing database entry.",
-                            job.getClazz());
-                    jobDataService.delete(job);
+            try {
+                final var instance = createNewJobInstance(job);
+                if (job.isCronActive() && job.isCronExpressionValid()) {
+                    schedulerService.scheduleJob(job.getClazz(), instance, job.getCronExpression());
                 }
+            } catch (NoClassDefFoundError e) {
+                logger.warn("Could not find class for {}. Removing database entry.", job.getClazz());
+                jobDataService.delete(job);
             }
+
         }
     }
 

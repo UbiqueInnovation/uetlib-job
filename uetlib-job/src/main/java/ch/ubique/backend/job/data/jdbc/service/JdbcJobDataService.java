@@ -9,14 +9,6 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import javax.sql.DataSource;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -26,6 +18,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Service;
+
+import javax.sql.DataSource;
+import java.util.*;
 
 @Service
 public class JdbcJobDataService extends AbstractJobDataService {
@@ -222,7 +217,7 @@ public class JdbcJobDataService extends AbstractJobDataService {
                             final var job = new JdbcJob();
                             job.setName(cls.getSimpleName());
                             job.setClazz(cls.getCanonicalName());
-                            job.setCronExpression("not set");
+                            job.setDatabaseCronExpression(job.getCronExpression());
                             Number pk =
                                     jobInsert.executeAndReturnKey(
                                             JobParamsCreator.createParams(job));

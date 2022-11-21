@@ -1,13 +1,11 @@
 package ch.ubique.backend.job.model.client;
 
 import ch.ubique.backend.job.model.Job;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
-
-import javax.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobInfosContainer(
@@ -26,6 +24,7 @@ public record JobInfosContainer(
             String cronExpression,
             @NotNull boolean cronActive,
             @NotNull boolean cronExpressionValid,
+            @NotNull boolean cronFixed,
             @NotNull boolean forceRunnable) {
 
         public static JobInfo from(final Job job) {
@@ -36,6 +35,7 @@ public record JobInfosContainer(
                     job.getCronExpression(),
                     job.isCronActive(),
                     job.isCronExpressionValid(),
+                    job.isCronFixed(),
                     job.isForceRunnable());
         }
     }
