@@ -7,7 +7,6 @@ import ch.ubique.backend.job.data.service.AbstractJobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.jdbc.JdbcJob;
 import ch.ubique.backend.job.model.jdbc.JdbcJobRun;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.dao.DataAccessException;
@@ -78,10 +77,10 @@ public class JdbcJobDataService extends AbstractJobDataService {
         }
         try {
             final var sql = "select * from t_job where clazz = :clazz";
-            final var jobRun =
+            final var job =
                     jt.queryForObject(
-                            sql, new MapSqlParameterSource("clazz", clazz), new JobRowMapper());
-            return Optional.ofNullable(jobRun);
+                            sql, new MapSqlParameterSource("clazzName", clazz), new JobRowMapper());
+            return Optional.ofNullable(job);
         } catch (EmptyResultDataAccessException e) {
             logger.info("No job found for class {}.", clazz);
             return Optional.empty();
@@ -102,7 +101,7 @@ public class JdbcJobDataService extends AbstractJobDataService {
     }
 
     @Override
-    public JdbcJob updateCronExpression(final int id, final String cronExpression) {
+    public Job updateCronExpression(final int id, final String cronExpression) {
         if (cronExpression == null) {
             return null;
         }
@@ -111,7 +110,7 @@ public class JdbcJobDataService extends AbstractJobDataService {
                 new MapSqlParameterSource(Map.of("cronExpression", cronExpression, "id", id));
         try {
             jt.update(sql, params);
-            return findJobById(id).map(JdbcJob.class::cast).orElse(null);
+            return findJobById(id).orElse(null);
         } catch (DataAccessException e) {
             logger.warn("Could not update cron expression for id {}.", id);
             return null;
@@ -209,20 +208,12 @@ public class JdbcJobDataService extends AbstractJobDataService {
     }
 
     @Override
-    public JdbcJob registerJobByClass(final Class<?> cls) {
-        return findJobByClazz(cls.getName())
-                .map(JdbcJob.class::cast)
+    public Job registerJob(final Job job) {
+        return findJobByClazz(job.clazzName())
                 .orElseGet(
                         () -> {
-                            final var job = new JdbcJob();
-                            job.setName(cls.getSimpleName());
-                            job.setClazz(cls.getCanonicalName());
-                            job.setDatabaseCronExpression(job.getCronExpression());
-                            Number pk =
-                                    jobInsert.executeAndReturnKey(
-                                            JobParamsCreator.createParams(job));
-                            job.setId(pk.intValue());
-                            return job;
+                            final var pk = jobInsert.executeAndReturnKey(JobParamsCreator.createParams(job));
+                            return Job.withId(pk.intValue(), job);
                         });
     }
 

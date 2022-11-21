@@ -1,8 +1,6 @@
 package ch.ubique.backend.job.data.jpa.repository;
 
-import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.entity.JobEntity;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,9 +10,9 @@ import java.util.Optional;
 @Repository
 public interface JobRepository extends JpaRepository<JobEntity, Integer> {
 
-    Optional<Job> findById(int id);
+    Optional<JobEntity> findById(int id);
 
-    Optional<Job> findByClazz(String clazz);
+    Optional<JobEntity> findByClazz(String clazz);
 
-    List<Job> findAllByOrderById();
+    List<JobEntity> findAllByOrderById();
 }

@@ -1,13 +1,7 @@
 package ch.ubique.backend.job.scheduler;
 
-import org.quartz.CronScheduleBuilder;
-import org.quartz.Job;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.TriggerBuilder;
+import ch.ubique.backend.job.BaseJob;
+import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,7 +37,8 @@ public class SchedulerService {
         }
     }
 
-    public void updateJob(final String identifier, final Job job, final String cronExpression) {
+    public void updateJob(final String identifier, final BaseJob job) {
+        final var cronExpression = job.getCronExpression();
         try {
             logger.info(
                     "Updating scheduled job {} with cron expression: {}",

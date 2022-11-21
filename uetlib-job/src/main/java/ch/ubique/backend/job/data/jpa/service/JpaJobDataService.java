@@ -55,25 +55,24 @@ public class JpaJobDataService extends AbstractJobDataService {
     @Override
     @Transactional(readOnly = true)
     public Optional<Job> findJobByClazz(String clazz) {
-        return jobRepository.findByClazz(clazz);
+        return jobRepository.findByClazz(clazz).map(JobEntity::toJob);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<Job> findJobById(int id) {
-        return jobRepository.findById(id);
+        return jobRepository.findById(id).map(JobEntity::toJob);
     }
 
     @Override
     @Transactional
-    public JobEntity updateCronExpression(final int id, final String cronExpression) {
+    public Job updateCronExpression(final int id, final String cronExpression) {
         return jobRepository
                 .findById(id)
-                .map(JobEntity.class::cast)
                 .map(
-                        job -> {
-                            job.setDatabaseCronExpression(cronExpression);
-                            return jobRepository.save(job);
+                        entity -> {
+                            entity.setCronExpression(cronExpression);
+                            return jobRepository.save(entity).toJob();
                         })
                 .orElseThrow(
                         ResourceNotFoundException.throwWithMessage(
@@ -100,7 +99,7 @@ public class JpaJobDataService extends AbstractJobDataService {
     @Override
     @Transactional(readOnly = true)
     public List<Job> findJobs() {
-        return jobRepository.findAllByOrderById();
+        return jobRepository.findAllByOrderById().stream().map(JobEntity::toJob).toList();
     }
 
     @Override
@@ -123,16 +122,12 @@ public class JpaJobDataService extends AbstractJobDataService {
 
     @Override
     @Transactional
-    public JobEntity registerJobByClass(final Class<?> cls) {
-        return findJobByClazz(cls.getName())
-                .map(JobEntity.class::cast)
+    public Job registerJob(final Job job) {
+        return findJobByClazz(job.clazzName())
                 .orElseGet(
                         () -> {
-                            final var job = new JobEntity();
-                            job.setName(cls.getSimpleName());
-                            job.setClazz(cls.getCanonicalName());
-                            job.setDatabaseCronExpression(job.getCronExpression());
-                            return jobRepository.save(job);
+                            final var entity = JobEntity.fromJob(job);
+                            return jobRepository.save(entity).toJob();
                         });
     }
 

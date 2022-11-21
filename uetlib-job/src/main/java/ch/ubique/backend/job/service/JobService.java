@@ -10,10 +10,10 @@ import ch.ubique.backend.job.model.client.JobRunInfo;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.scheduler.JobScheduler;
-
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,10 +33,14 @@ public class JobService {
         this.jobScheduler = jobScheduler;
     }
 
-    public JobInfosContainer findJobs() {
+    public JobInfosContainer findJobs() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         final var jobs = jobDataService.findJobs();
         final var latestRuns = findLatestJobRuns(jobs);
-        return JobInfosContainer.from(jobs, latestRuns);
+        final var jobInfos = new ArrayList<JobInfo>(jobs.size());
+        for (final var job : jobs) {
+            jobInfos.add(jobInfo(job));
+        }
+        return new JobInfosContainer(jobInfos, latestRuns);
     }
 
     public Map<Integer, JobRunInfo> findLatestJobRuns(final List<Job> jobs) {
@@ -44,7 +48,7 @@ public class JobService {
                 .map(
                         job ->
                                 jobDataService
-                                        .findLatestJobRun(job.getId())
+                                        .findLatestJobRun(job.id())
                                         .map(JobRunInfo::from)
                                         .orElse(null))
                 .filter(Objects::nonNull)
@@ -55,7 +59,7 @@ public class JobService {
             final int page, final Integer jobId, final JobRunState state) {
         final var jobNames =
                 jobDataService.findJobs().stream()
-                        .collect(Collectors.toUnmodifiableMap(Job::getId, Job::getName));
+                        .collect(Collectors.toUnmodifiableMap(Job::id, Job::name));
         final var jobRunsPage = jobDataService.findJobRuns(page, PAGE_SIZE, jobId, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
@@ -92,12 +96,17 @@ public class JobService {
                         .orElseThrow(
                                 ResourceNotFoundException.throwWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
-        final var jobName = jobById(jobRun.getJobId()).getName();
+        final var jobName = jobById(jobRun.getJobId()).name();
         return JobRunInfoContainer.from(jobRun, jobName);
     }
 
-    public JobInfo findJobById(final int jobId) {
-        return JobInfo.from(jobById(jobId));
+    public JobInfo findJobById(final int jobId) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        final var job = jobById(jobId);
+        return jobInfo(job);
+    }
+
+    public JobInfo jobInfo(final Job job) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        return JobInfo.from(job, jobScheduler.createNewJobInstance(job));
     }
 
     private Job jobById(final int jobId) {
