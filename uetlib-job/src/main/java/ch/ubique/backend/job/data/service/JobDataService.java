@@ -1,69 +1,158 @@
 package ch.ubique.backend.job.data.service;
 
+import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.job.data.repository.JobRepository;
+import ch.ubique.backend.job.data.repository.JobRunRepository;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.entity.JobEntity;
+import ch.ubique.backend.job.model.entity.JobRunEntity;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.PostConstruct;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public interface JobDataService {
+import javax.annotation.PostConstruct;
+
+@Service
+public class JobDataService {
+
+    private final JobRepository jobRepository;
+    private final JobRunRepository jobRunRepository;
+
+    @Value("${job.startup.cleanUpBusyRuns:true}")
+    private boolean cleanUpBusyRuns;
+
+    public JobDataService(
+            final JobRepository jobRepository, final JobRunRepository jobRunRepository) {
+        this.jobRepository = jobRepository;
+        this.jobRunRepository = jobRunRepository;
+    }
 
     @PostConstruct
     @Transactional
-    default void init() {
-        if (doCleanUpBusyRuns()) {
+    public void init() {
+        if (cleanUpBusyRuns) {
             cleanUpBusyRuns();
         }
     }
 
-    boolean doCleanUpBusyRuns();
+    @Transactional
+    public void cleanUpBusyRuns() {
+        final var now = Instant.now();
+        jobRunRepository.saveAllAndFlush(
+                jobRunRepository.findAllByStateAndFinishedAtIsNull(JobRunState.BUSY).stream()
+                        .map(JobRunEntity.class::cast)
+                        .map(
+                                jobRun -> {
+                                    jobRun.setFinishedAt(now);
+                                    jobRun.setState(JobRunState.UNFINISHED);
+                                    return jobRunRepository.save(jobRun);
+                                })
+                        .toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<String> findLogForJobRun(final Integer jobRunId) {
+        return jobRunRepository.findById(jobRunId).map(JobRunEntity::getLogOutput);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Job> findJobByClazz(String clazz) {
+        return jobRepository.findByClazz(clazz).map(JobEntity::toJob);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Job> findJobById(int id) {
+        return jobRepository.findById(id).map(JobEntity::toJob);
+    }
 
     @Transactional
-    void cleanUpBusyRuns();
+    public Job updateCronExpression(final int id, final String cronExpression) {
+        return jobRepository
+                .findById(id)
+                .map(
+                        entity -> {
+                            entity.setCronExpression(cronExpression);
+                            return jobRepository.save(entity).toJob();
+                        })
+                .orElseThrow(
+                        ResourceNotFoundException.throwWithMessage(
+                                "No JobEntity with id {0} found", id));
+    }
 
     @Transactional(readOnly = true)
-    Optional<String> findLogForJobRun(Integer jobRunId);
+    public Optional<JobRun> findLatestJobRun(final int jobId) {
+        return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
+    }
+
+    public Optional<JobRun> findLatestJobRunByState(int jobId, JobRunState state) {
+        return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
+    }
+
+    public Optional<JobRun> findLatestJobRunByStates(int jobId, JobRunState... states) {
+        return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(
+                jobId, List.of(states));
+    }
 
     @Transactional(readOnly = true)
-    Optional<Job> findJobByClazz(String clazz);
+    public List<Job> findJobs() {
+        return jobRepository.findAllByOrderById().stream().map(JobEntity::toJob).toList();
+    }
 
     @Transactional(readOnly = true)
-    Optional<Job> findJobById(int id);
+    public Page<JobRun> findJobRuns(
+            final int page, final int pageSize, final Integer jobId, final JobRunState state) {
+        final var pageRequest = PageRequest.of(page, pageSize);
+        if (jobId != null) {
+            if (state != null) {
+                return jobRunRepository.findAllByJobIdAndStateOrderByStartedAtDesc(
+                        jobId, state, pageRequest);
+            }
+            return jobRunRepository.findAllByJobIdOrderByStartedAtDesc(jobId, pageRequest);
+        }
+        if (state != null) {
+            return jobRunRepository.findAllByStateOrderByStartedAtDesc(state, pageRequest);
+        }
+        return jobRunRepository.findAllByOrderByStartedAtDesc(pageRequest);
+    }
 
     @Transactional
-    Job updateCronExpression(int id, String cronExpression);
-
-    @Transactional(readOnly = true)
-    Optional<JobRun> findLatestJobRun(int jobId);
-
-    @Transactional(readOnly = true)
-    Optional<JobRun> findLatestJobRunByState(int jobId, JobRunState state);
-
-    @Transactional(readOnly = true)
-    Optional<JobRun> findLatestJobRunByStates(int jobId, JobRunState... states);
-
-    @Transactional(readOnly = true)
-    List<Job> findJobs();
-
-    @Transactional(readOnly = true)
-    Page<JobRun> findJobRuns(int page, int pageSize, Integer jobId, JobRunState state);
+    public Job registerJob(final Job job) {
+        return findJobByClazz(job.clazzName())
+                .orElseGet(
+                        () -> {
+                            final var entity = JobEntity.fromJob(job);
+                            return jobRepository.save(entity).toJob();
+                        });
+    }
 
     @Transactional
-    Job registerJob(Job job);
+    public JobRunEntity saveJobRun(final JobRun jobRun) {
+        if (!(jobRun instanceof JobRunEntity jobRunEntity)) {
+            throw new ClassCastException(
+                    "jobRun cannot be instance of class to JobRunEntity, but is of class"
+                            + jobRun.getClass());
+        }
+        return jobRunRepository.save(jobRunEntity);
+    }
 
-    @Transactional
-    JobRun saveJobRun(JobRun jobRun);
+    public JobRunEntity newRunInstance() {
+        return new JobRunEntity();
+    }
 
-    @Transactional
-    JobRun newRunInstance();
+    public Optional<JobRun> findJobRunById(final int jobRunId) {
+        return jobRunRepository.findById(jobRunId);
+    }
 
-    @Transactional(readOnly = true)
-    Optional<JobRun> findJobRunById(int jobRunId);
-
-    @Transactional
-    void delete(Job job);
+    public void delete(Job job) {
+        jobRepository.delete(JobEntity.fromJob(job));
+    }
 }
