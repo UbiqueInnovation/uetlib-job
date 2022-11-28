@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.data.jpa.repository;
+package ch.ubique.backend.job.data.repository;
 
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
