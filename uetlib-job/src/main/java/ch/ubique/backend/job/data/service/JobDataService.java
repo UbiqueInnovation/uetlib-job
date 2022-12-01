@@ -8,7 +8,10 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
-
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.data.domain.Page;
@@ -16,14 +19,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
-import javax.annotation.PostConstruct;
-
 @Service
-@ConditionalOnMissingBean
+@ConditionalOnMissingBean(JobDataService.class)
 public class JobDataService {
 
     private final JobRepository jobRepository;
