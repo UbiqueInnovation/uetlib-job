@@ -3,6 +3,13 @@ package ch.ubique.backend.job.scheduler;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
+import jakarta.annotation.PostConstruct;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Parameter;
+import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.NoSuchElementException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,14 +17,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
-
-import javax.annotation.PostConstruct;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Parameter;
-import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.NoSuchElementException;
 
 public abstract class JobScheduler {
 
@@ -44,13 +43,14 @@ public abstract class JobScheduler {
             try {
                 final var instance = createNewJobInstance(job);
                 if (instance.isCronActive() && instance.isCronExpressionValid()) {
-                    schedulerService.scheduleJob(job.clazzName(), instance, instance.getCronExpression());
+                    schedulerService.scheduleJob(
+                            job.clazzName(), instance, instance.getCronExpression());
                 }
             } catch (NoClassDefFoundError e) {
-                logger.warn("Could not find class for {}. Removing database entry.", job.clazzName());
+                logger.warn(
+                        "Could not find class for {}. Removing database entry.", job.clazzName());
                 jobDataService.delete(job);
             }
-
         }
     }
 
@@ -106,7 +106,7 @@ public abstract class JobScheduler {
                             throw new NoSuchElementException(
                                     MessageFormat.format(
                                             "Either declare a single, default, public constructor"
-                                                + " or annotate one with annotation ''@{0}''",
+                                                    + " or annotate one with annotation ''@{0}''",
                                             JobAutowireConstructor.class.getCanonicalName(),
                                             jobClass.getCanonicalName()));
                         });
