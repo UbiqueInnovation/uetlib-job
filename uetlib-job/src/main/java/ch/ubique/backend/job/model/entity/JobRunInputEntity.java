@@ -1,8 +1,12 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobRunInput;
-
-import javax.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "t_job_run_input")

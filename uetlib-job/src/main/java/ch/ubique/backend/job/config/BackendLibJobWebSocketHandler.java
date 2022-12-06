@@ -2,9 +2,15 @@ package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.WebSocketException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Triple;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -15,19 +21,11 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
-
 @Component
 public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(BackendLibJobWebSocketHandler.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(BackendLibJobWebSocketHandler.class);
     private static final int PAGE_SIZE = 50000;
 
     private final ObjectMapper objectMapper;
@@ -60,7 +58,7 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
     @SuppressWarnings("java:S3864")
     public void sendLog() {
-        logger.debug("send log to all active sessions");
+        logger.trace("send log to all active sessions");
         activeSessions.forEach(
                 (sessionId, pair) -> {
                     final var session = pair.getLeft();
@@ -77,12 +75,12 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
                             .ifPresent(
                                     message -> {
                                         try {
-                                            logger.debug(
+                                            logger.trace(
                                                     "sending log with length {} to session {}",
                                                     message.getPayloadLength(),
                                                     sessionId);
                                             session.sendMessage(message);
-                                        } catch (IOException e) {
+                                        } catch (final IOException e) {
                                             throw new WebSocketException(e);
                                         }
                                     });
@@ -95,12 +93,12 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
                 .findLogForJobRun(jobRunId)
                 .map(
                         content -> {
-                            final String filePrefix = "file:";
+                            final var filePrefix = "file:";
                             if (content.startsWith(filePrefix)) {
                                 final var file = Path.of(content.substring(filePrefix.length()));
                                 try {
                                     return Files.lines(file);
-                                } catch (IOException e) {
+                                } catch (final IOException e) {
                                     return Stream.of();
                                 }
                             }
