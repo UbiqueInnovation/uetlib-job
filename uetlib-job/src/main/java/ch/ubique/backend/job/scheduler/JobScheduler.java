@@ -37,8 +37,8 @@ public abstract class JobScheduler {
 
     @PostConstruct
     public void init()
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+                    IllegalAccessException {
         for (final var job : jobDataService.findJobs()) {
             try {
                 final var instance = createNewJobInstance(job);
@@ -46,7 +46,7 @@ public abstract class JobScheduler {
                     schedulerService.scheduleJob(
                             job.clazzName(), instance, instance.getCronExpression());
                 }
-            } catch (NoClassDefFoundError e) {
+            } catch (ClassNotFoundException e) {
                 logger.warn(
                         "Could not find class for {}. Removing database entry.", job.clazzName());
                 jobDataService.delete(job);
