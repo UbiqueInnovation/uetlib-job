@@ -44,7 +44,7 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
     public void handleTextMessage(final WebSocketSession session, final TextMessage message)
             throws IOException {
         final var jobRunId = objectMapper.readValue(message.getPayload(), Message.class).jobRunId;
-        logger.info("message with jobRunId: {}", jobRunId);
+        logger.trace("message with jobRunId: {}", jobRunId);
         activeSessions.putIfAbsent(
                 session.getId(), Triple.of(session, jobRunId, new AtomicLong(0)));
     }
