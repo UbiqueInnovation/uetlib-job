@@ -3,13 +3,13 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.job.data.service.InputJobDataService;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
-import org.springframework.retry.support.RetryTemplate;
-
+import ch.ubique.backend.job.utils.DefaultRetryListenerSupport;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.retry.support.RetryTemplate;
 
 public abstract class BaseInputJob extends BaseJob {
 
@@ -61,6 +61,7 @@ public abstract class BaseInputJob extends BaseJob {
                                 Duration.ofSeconds(2).toMillis(),
                                 2,
                                 Duration.ofMinutes(5).toMillis())
+                        .withListener(new DefaultRetryListenerSupport(logger))
                         .build();
 
         try {
@@ -85,8 +86,7 @@ public abstract class BaseInputJob extends BaseJob {
     }
 
     private boolean isJobVersionDifferent() {
-        final var lastRun =
-                inputJobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
+        final var lastRun = inputJobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
         return lastRun.isEmpty() || version() != lastRun.get().getJobVersion();
     }
 
