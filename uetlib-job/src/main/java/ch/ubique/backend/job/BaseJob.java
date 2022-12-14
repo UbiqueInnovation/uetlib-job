@@ -1,9 +1,17 @@
 package ch.ubique.backend.job;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
@@ -12,15 +20,6 @@ import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
@@ -114,7 +113,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected abstract JobRunState internalRun();
 
-    private final void updateJobRunStart() {
+    private void updateJobRunStart() {
         jobRun.setState(JobRunState.BUSY);
         jobRun.setStartedAt(Instant.now());
         jobRun.setJobId(job.id());
@@ -169,6 +168,10 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             }
         }
         return logOutputText;
+    }
+
+    public JobRunState state() {
+        return jobRun.getState();
     }
 
     public abstract int version();
