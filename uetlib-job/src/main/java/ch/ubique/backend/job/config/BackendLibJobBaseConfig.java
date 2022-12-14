@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.monitoring.service.MonitoringService;
-import javax.validation.ValidationException;
+import jakarta.validation.ValidationException;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
