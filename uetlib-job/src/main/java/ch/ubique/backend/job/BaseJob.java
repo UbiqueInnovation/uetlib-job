@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
@@ -98,6 +99,9 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             final var jobState = internalRun();
             logger.info("Job finished in state {}", jobState);
             updateJobRunEnd(jobState);
+        } catch (InterruptedException e) {
+            logger.warn("Thread interrupted", e);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             logger.error("Exception running job: ", e);
             updateJobRunEnd(JobRunState.ERROR);
@@ -111,7 +115,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         run();
     }
 
-    protected abstract JobRunState internalRun();
+    protected abstract JobRunState internalRun() throws InterruptedException, ExecutionException;
 
     private void updateJobRunStart() {
         jobRun.setState(JobRunState.BUSY);
