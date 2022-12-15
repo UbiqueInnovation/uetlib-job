@@ -25,8 +25,6 @@ public abstract class BaseInputJob extends BaseJob {
 
     protected abstract Collection<JobRunInput> loadInputs() throws Exception;
 
-    protected abstract JobRunState processInputs() throws ExecutionException, InterruptedException;
-
     @Override
     protected final JobRunState internalRun() throws ExecutionException, InterruptedException {
         final boolean forceRun = jobDataMap.getBoolean("forceRun");
@@ -52,6 +50,8 @@ public abstract class BaseInputJob extends BaseJob {
         saveRunInputsToDatabase();
         return processInputs();
     }
+
+    protected abstract JobRunState processInputs() throws ExecutionException, InterruptedException;
 
     private Optional<Collection<JobRunInput>> tryLoadingInputs() {
 
