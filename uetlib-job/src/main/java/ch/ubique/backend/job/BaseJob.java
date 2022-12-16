@@ -107,6 +107,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             updateJobRunEnd(JobRunState.ERROR);
         }
         tearDownLog();
+        System.gc();
     }
 
     @Override
