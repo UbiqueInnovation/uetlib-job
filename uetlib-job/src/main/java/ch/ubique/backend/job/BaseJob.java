@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
@@ -25,8 +24,8 @@ import org.slf4j.MDC;
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    protected final Job job;
-    protected final JobRun jobRun;
+    protected Job job;
+    protected JobRun jobRun;
     protected final JobDataService jobDataService;
 
     private Map<String, String> previousMDCContext;
@@ -35,24 +34,23 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected BaseJob(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
-        this.job = jobDataService.registerJob(Job.fromClass(getClass()));
+        this.job = jobDataService.getJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance();
         this.jobDataMap = new JobDataMap();
     }
 
     /**
-     * This cron expression will be set if no cron expression is present in the database.
-     * Returns null by default.
-     * If this method returns blank, no initial cron expression will be set.
+     * This cron expression will be set if no cron expression is present in the database. Returns
+     * null by default. If this method returns blank, no initial cron expression will be set.
      */
     public String initialCronExpression() {
         return null;
     }
 
     /**
-     * This cron expression will always be used and overrides the cron expression specified in the database.
-     * Returns null by default.
-     * If this method returns blank, the cron expression in the database will not be overwritten.
+     * This cron expression will always be used and overrides the cron expression specified in the
+     * database. Returns null by default. If this method returns blank, the cron expression in the
+     * database will not be overwritten.
      */
     public String fixedCronExpression() {
         return null;
@@ -116,7 +114,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         run();
     }
 
-    protected abstract JobRunState internalRun() throws InterruptedException, ExecutionException;
+    protected abstract JobRunState internalRun() throws Exception;
 
     private void updateJobRunStart() {
         jobRun.setState(JobRunState.BUSY);
@@ -179,5 +177,22 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         return jobRun.getState();
     }
 
-    public abstract int version();
+    /**
+     * The version is saved to the database for each job run. With this, we can track, what version
+     * of the job was used for a given run.
+     *
+     * <p>The version is used by the {@link BaseInputJob} to determine, whether the job itself has
+     * changed.
+     */
+    public int version() {
+        return 0;
+    }
+
+    /**
+     * Runs this job once when the application starts. This does not affect the regular
+     * scheduling/trigger behaviour
+     */
+    public boolean runOnStartup() {
+        return false;
+    }
 }

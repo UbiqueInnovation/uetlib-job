@@ -133,6 +133,13 @@ public class JobDataService {
                         });
     }
 
+    @Transactional(readOnly = true)
+    public Job getJob(final Job job) {
+        return findJobByClazz(job.clazzName())
+                .orElseThrow(
+                        () -> new UnsupportedOperationException("Please register the job first."));
+    }
+
     @Transactional
     public JobRunEntity saveJobRun(final JobRun jobRun) {
         if (!(jobRun instanceof JobRunEntity jobRunEntity)) {

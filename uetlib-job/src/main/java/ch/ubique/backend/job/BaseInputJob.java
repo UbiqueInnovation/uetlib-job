@@ -7,7 +7,6 @@ import ch.ubique.backend.job.utils.DefaultRetryListenerSupport;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.retry.support.RetryTemplate;
@@ -26,7 +25,7 @@ public abstract class BaseInputJob extends BaseJob {
     protected abstract Collection<JobRunInput> loadInputs() throws Exception;
 
     @Override
-    protected final JobRunState internalRun() throws ExecutionException, InterruptedException {
+    protected final JobRunState internalRun() throws Exception {
         final boolean forceRun = jobDataMap.getBoolean("forceRun");
 
         // Load Inputs
@@ -51,7 +50,7 @@ public abstract class BaseInputJob extends BaseJob {
         return processInputs();
     }
 
-    protected abstract JobRunState processInputs() throws ExecutionException, InterruptedException;
+    protected abstract JobRunState processInputs() throws Exception;
 
     private Optional<Collection<JobRunInput>> tryLoadingInputs() {
 

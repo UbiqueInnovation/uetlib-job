@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +91,34 @@ public abstract class JobScheduler {
         final var parameterTypes =
                 Arrays.stream(parameters).map(Parameter::getType).toArray(Class<?>[]::new);
         return jobClass.getConstructor(parameterTypes).newInstance(jobConstructorParameters);
+    }
+
+    public void register(final Class<? extends BaseJob> jobClass)
+            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+                    IllegalAccessException {
+        jobDataService.registerJob(Job.fromClass(jobClass));
+        final var job = createNewJobInstance(jobClass);
+        if (job.runOnStartup()) {
+            final var id = jobClass.getName() + "_on_startup";
+            schedulerService.runJobNowManual(id, job, false);
+        }
+    }
+
+    public void register(final Collection<Class<? extends BaseJob>> jobClasses)
+            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+                    IllegalAccessException {
+        for (final var jobClass : jobClasses) {
+            register(jobClass);
+        }
+    }
+
+    @SafeVarargs
+    public final void register(final Class<? extends BaseJob>... jobClasses)
+            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+                    IllegalAccessException {
+        for (final var jobClass : jobClasses) {
+            register(jobClass);
+        }
     }
 
     private Constructor<?> getConstructor(Class<? extends BaseJob> jobClass) {
