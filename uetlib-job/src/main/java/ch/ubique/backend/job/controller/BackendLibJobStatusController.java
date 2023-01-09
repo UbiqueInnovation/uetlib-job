@@ -18,11 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/v1/status")
-@CrossOrigin({
-    "https://status.systems.ubique.ch",
-    "https://status-dev.systems.ubique.ch",
-    "http://localhost:3000"
-})
+@CrossOrigin(
+        value = {
+            "https://status.systems.ubique.ch",
+            "https://status-dev.systems.ubique.ch",
+            "http://localhost:3000"
+        },
+        allowedHeaders = {"Authorization"})
 public class BackendLibJobStatusController {
 
     private final JobService jobService;
