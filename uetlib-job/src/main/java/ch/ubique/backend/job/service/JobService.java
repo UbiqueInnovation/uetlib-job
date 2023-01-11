@@ -10,8 +10,6 @@ import ch.ubique.backend.job.model.client.JobRunInfo;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.scheduler.JobScheduler;
-import org.springframework.stereotype.Service;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
 
 @Service
 public class JobService {
@@ -28,9 +27,15 @@ public class JobService {
     private final JobDataService jobDataService;
     private final JobScheduler jobScheduler;
 
-    public JobService(final JobDataService jobDataService, final JobScheduler jobScheduler) {
+    private final JobCreator jobCreator;
+
+    public JobService(
+            final JobDataService jobDataService,
+            final JobScheduler jobScheduler,
+            final JobCreator jobCreator) {
         this.jobDataService = jobDataService;
         this.jobScheduler = jobScheduler;
+        this.jobCreator = jobCreator;
     }
 
     public JobInfosContainer findJobs() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
@@ -106,7 +111,7 @@ public class JobService {
     }
 
     public JobInfo jobInfo(final Job job) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        return JobInfo.from(job, jobScheduler.createNewJobInstance(job));
+        return JobInfo.from(job, jobCreator.createNewJobInstance(job));
     }
 
     private Job jobById(final int jobId) {

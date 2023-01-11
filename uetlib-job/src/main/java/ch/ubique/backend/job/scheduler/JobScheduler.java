@@ -3,49 +3,45 @@ package ch.ubique.backend.job.scheduler;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
-import jakarta.annotation.PostConstruct;
-import jakarta.validation.constraints.NotNull;
-import java.lang.reflect.Constructor;
+import ch.ubique.backend.job.service.JobCreator;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Parameter;
-import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.NoSuchElementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
 
-public abstract class JobScheduler {
+@Service
+public final class JobScheduler {
 
     private final SchedulerService schedulerService;
     private final JobDataService jobDataService;
-    private final ApplicationContext applicationContext;
+
+    private final JobCreator jobCreator;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected JobScheduler(
+    public JobScheduler(
             final SchedulerService schedulerService,
             final JobDataService jobDataService,
-            final ApplicationContext applicationContext) {
+            final JobCreator jobCreator) {
         this.schedulerService = schedulerService;
         this.jobDataService = jobDataService;
-        this.applicationContext = applicationContext;
+        this.jobCreator = jobCreator;
     }
 
-    @PostConstruct
-    public void init()
+    public void scheduleAllRegisteredJobs()
             throws InvocationTargetException, NoSuchMethodException, InstantiationException,
                     IllegalAccessException {
         for (final var job : jobDataService.findJobs()) {
             try {
-                final var instance = createNewJobInstance(job);
+                final var instance = jobCreator.createNewJobInstance(job);
                 if (instance.isCronActive() && instance.isCronExpressionValid()) {
                     schedulerService.scheduleJob(
                             job.clazzName(), instance, instance.getCronExpression());
+                }
+                if (instance.runOnStartup()) {
+                    final var id = job.clazzName() + "_on_startup";
+                    schedulerService.runJobNowManual(id, instance, false);
                 }
             } catch (ClassNotFoundException e) {
                 logger.warn(
@@ -55,12 +51,10 @@ public abstract class JobScheduler {
         }
     }
 
-    protected abstract Class<BaseJob> getClassForName(String clazz) throws ClassNotFoundException;
-
     public void update(final Job job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        final var instance = createNewJobInstance(job);
+        final var instance = jobCreator.createNewJobInstance(job);
         if (!instance.isCronActive() || !instance.isCronExpressionValid()) {
             schedulerService.removeScheduleJob(job.clazzName());
             return;
@@ -72,102 +66,25 @@ public abstract class JobScheduler {
     public void runNow(final Job job, boolean forceRun)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
-        schedulerService.runJobNowManual(job.clazzName(), createNewJobInstance(job), forceRun);
+        schedulerService.runJobNowManual(
+                job.clazzName(), jobCreator.createNewJobInstance(job), forceRun);
     }
 
-    public BaseJob createNewJobInstance(Job job)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
-        final var jobClass = getClassForName(job.clazzName());
-        return createNewJobInstance(jobClass);
+    public void register(final Class<? extends BaseJob> jobClass) {
+        final var job = jobDataService.registerJob(Job.fromClass(jobClass));
+        logger.info("Registered {}", job);
     }
 
-    public BaseJob createNewJobInstance(final Class<? extends BaseJob> jobClass)
-            throws NoSuchMethodException, InvocationTargetException, InstantiationException,
-                    IllegalAccessException {
-        final var parameters = getConstructor(jobClass).getParameters();
-        final var jobConstructorParameters =
-                Arrays.stream(parameters).map(this::getBeanForParameter).toArray();
-        final var parameterTypes =
-                Arrays.stream(parameters).map(Parameter::getType).toArray(Class<?>[]::new);
-        return jobClass.getConstructor(parameterTypes).newInstance(jobConstructorParameters);
-    }
-
-    public void register(final Class<? extends BaseJob> jobClass)
-            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
-                    IllegalAccessException {
-        jobDataService.registerJob(Job.fromClass(jobClass));
-        final var job = createNewJobInstance(jobClass);
-        if (job.runOnStartup()) {
-            final var id = jobClass.getName() + "_on_startup";
-            schedulerService.runJobNowManual(id, job, false);
-        }
-    }
-
-    public void register(final Collection<Class<? extends BaseJob>> jobClasses)
-            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
-                    IllegalAccessException {
+    public void register(final Collection<Class<? extends BaseJob>> jobClasses) {
         for (final var jobClass : jobClasses) {
             register(jobClass);
         }
     }
 
     @SafeVarargs
-    public final void register(final Class<? extends BaseJob>... jobClasses)
-            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
-                    IllegalAccessException {
+    public final void register(final Class<? extends BaseJob>... jobClasses) {
         for (final var jobClass : jobClasses) {
             register(jobClass);
-        }
-    }
-
-    private Constructor<?> getConstructor(Class<? extends BaseJob> jobClass) {
-        final var constructors = jobClass.getConstructors();
-        if (constructors.length == 1) {
-            // @JobAutowireConstructor annotation is not needed if there is only one constructor
-            return constructors[0];
-        }
-        return Arrays.stream(jobClass.getConstructors())
-                .filter(c -> c.isAnnotationPresent(JobAutowireConstructor.class))
-                .findFirst()
-                .orElseThrow(
-                        () -> {
-                            throw new NoSuchElementException(
-                                    MessageFormat.format(
-                                            "Either declare a single, default, public constructor"
-                                                    + " or annotate one with annotation ''@{0}''",
-                                            JobAutowireConstructor.class.getCanonicalName(),
-                                            jobClass.getCanonicalName()));
-                        });
-    }
-
-    @NotNull
-    private Object getBeanForParameter(Parameter p) {
-        final var qualifierAnnotations = p.getDeclaredAnnotationsByType(Qualifier.class);
-        if (qualifierAnnotations.length > 0) {
-            // in case there is a qualifier specified, get bean by qualifier (no fallback)
-            final var qualifier = qualifierAnnotations[0].value();
-            return BeanFactoryAnnotationUtils.qualifiedBeanOfType(
-                    applicationContext.getAutowireCapableBeanFactory(), p.getType(), qualifier);
-        }
-
-        try {
-            // in case there are multiple beans for the same class try
-            // getting bean by class and name first
-            return applicationContext.getBean(p.getName(), p.getType());
-        } catch (BeansException e1) {
-            try {
-                // don't enforce name matching if there is only one bean of
-                // the requested class
-                return applicationContext.getBean(p.getType());
-            } catch (BeansException e2) {
-                // Features such as AOP may "enhance" the registered bean instances,
-                // such that the type is now different to the original type.
-                // Thus getting the bean by type will fail.
-                // E.g. com.example.MyBean may become com.example.MyBean$$EnhancerBySpringCGLIB
-                //      but the name if not explicitly modified is myBean in both cases
-                return applicationContext.getBean(p.getName());
-            }
         }
     }
 }
