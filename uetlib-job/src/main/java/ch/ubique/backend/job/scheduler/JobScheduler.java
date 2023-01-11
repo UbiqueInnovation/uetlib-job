@@ -1,11 +1,9 @@
 package ch.ubique.backend.job.scheduler;
 
-import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.service.JobCreator;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -68,23 +66,5 @@ public final class JobScheduler {
                     InstantiationException, IllegalAccessException {
         schedulerService.runJobNowManual(
                 job.clazzName(), jobCreator.createNewJobInstance(job), forceRun);
-    }
-
-    public void register(final Class<? extends BaseJob> jobClass) {
-        final var job = jobDataService.registerJob(Job.fromClass(jobClass));
-        logger.info("Registered {}", job);
-    }
-
-    public void register(final Collection<Class<? extends BaseJob>> jobClasses) {
-        for (final var jobClass : jobClasses) {
-            register(jobClass);
-        }
-    }
-
-    @SafeVarargs
-    public final void register(final Class<? extends BaseJob>... jobClasses) {
-        for (final var jobClass : jobClasses) {
-            register(jobClass);
-        }
     }
 }
