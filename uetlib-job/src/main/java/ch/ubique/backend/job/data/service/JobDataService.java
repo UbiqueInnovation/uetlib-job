@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -130,13 +129,6 @@ public class JobDataService {
                             final var entity = JobEntity.fromJob(job);
                             return jobRepository.save(entity).toJob();
                         });
-    }
-
-    @Transactional(readOnly = true)
-    public Job getJob(final Job job) {
-        return findJobByClazz(job.clazzName())
-                .orElseThrow(
-                        () -> new UnsupportedOperationException("Please register the job first."));
     }
 
     @Transactional

@@ -34,7 +34,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected BaseJob(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
-        this.job = jobDataService.getJob(Job.fromClass(getClass()));
+        this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance();
         this.jobDataMap = new JobDataMap();
     }
