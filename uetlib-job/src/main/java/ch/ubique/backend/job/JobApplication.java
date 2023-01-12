@@ -68,16 +68,16 @@ public class JobApplication {
 
         final var context = SpringApplication.run(applicationClass, args);
 
-        registerJobs(applicationClass, context);
 
         if (command.hasOption(jobClassOption)) {
             final var jobClassName = command.getOptionValue(jobClassOption);
             final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClassName);
             job.jobDataMap.put("forceRun", command.hasOption(forceRunOption));
-            job.run();
+            job.run(false);
 
             SpringApplication.exit(context);
         } else {
+            registerJobs(applicationClass, context);
             context.getBean(JobScheduler.class).scheduleAllRegisteredJobs();
         }
     }

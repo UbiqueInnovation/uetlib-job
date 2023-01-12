@@ -2,14 +2,18 @@ package ch.ubique.backend.job.data.service;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.data.repository.JobRepository;
+import ch.ubique.backend.job.data.repository.JobRunInputRepository;
 import ch.ubique.backend.job.data.repository.JobRunRepository;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
+import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import jakarta.annotation.PostConstruct;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,14 +27,18 @@ public class JobDataService {
 
     private final JobRepository jobRepository;
     private final JobRunRepository jobRunRepository;
+    private final JobRunInputRepository jobRunInputRepository;
 
     @Value("${job.startup.cleanUpBusyRuns:true}")
     private boolean cleanUpBusyRuns;
 
     public JobDataService(
-            final JobRepository jobRepository, final JobRunRepository jobRunRepository) {
+            final JobRepository jobRepository,
+            final JobRunRepository jobRunRepository,
+            final JobRunInputRepository jobRunInputRepository) {
         this.jobRepository = jobRepository;
         this.jobRunRepository = jobRunRepository;
+        this.jobRunInputRepository = jobRunInputRepository;
     }
 
     @PostConstruct
@@ -151,5 +159,18 @@ public class JobDataService {
 
     public void delete(Job job) {
         jobRepository.delete(JobEntity.fromJob(job));
+    }
+
+    public void insertJobRunInput(JobRunInput jobRunInput) {
+        if (!(jobRunInput instanceof JobRunInputEntity jobRunInputEntity)) {
+            throw new ClassCastException(
+                    "jobRun cannot be instance of class to JobRunInputEntity, but is of class"
+                            + jobRunInput.getClass());
+        }
+        jobRunInputRepository.save(jobRunInputEntity);
+    }
+
+    public Collection<JobRunInput> findJobRunInputs(int runId) {
+        return jobRunInputRepository.findAllByRunId(runId);
     }
 }

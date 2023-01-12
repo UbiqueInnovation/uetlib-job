@@ -86,6 +86,10 @@ public final class JobCreator {
                     applicationContext.getAutowireCapableBeanFactory(), p.getType(), qualifier);
         }
 
+        if (p.getType().isAssignableFrom(applicationContext.getClass())) {
+            return applicationContext;
+        }
+
         try {
             // in case there are multiple beans for the same class try
             // getting bean by class and name first

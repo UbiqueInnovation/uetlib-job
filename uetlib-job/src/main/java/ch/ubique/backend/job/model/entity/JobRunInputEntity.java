@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import ch.ubique.backend.core.file.ByteFile;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,5 +66,13 @@ public class JobRunInputEntity implements JobRunInput {
     @Override
     public void setHash(String hash) {
         this.hash = hash;
+    }
+
+    public static JobRunInputEntity from(final JobRun jobRun, final ByteFile file) {
+        final var input = new JobRunInputEntity();
+        input.setRunId(jobRun.getId());
+        input.setName(file.getFileName());
+        input.setHash(file.getFileHash());
+        return input;
     }
 }
