@@ -3,9 +3,12 @@ package ch.ubique.backend.job;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.highmem.HighMemoryJobService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,20 +23,30 @@ import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.context.ApplicationContext;
 
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    protected Job job;
-    protected JobRun jobRun;
-    protected final JobDataService jobDataService;
+
+    @NotNull protected final Job job;
+    @NotNull protected final JobRun jobRun;
+    @NotNull protected final ApplicationContext context;
+    @NotNull protected final JobDataService jobDataService;
+    @Nullable private final HighMemoryJobService highMemoryJobService;
 
     private Map<String, String> previousMDCContext;
     private Path logOutput;
     protected JobDataMap jobDataMap;
 
-    protected BaseJob(final JobDataService jobDataService) {
-        this.jobDataService = jobDataService;
+    protected BaseJob(@NotNull final ApplicationContext context) {
+        this.context = context;
+        this.jobDataService = context.getBean(JobDataService.class);
+        this.highMemoryJobService =
+                context.getBeansOfType(HighMemoryJobService.class).values().stream()
+                        .findAny()
+                        .orElse(null);
+
         this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance();
         this.jobDataMap = new JobDataMap();
@@ -43,6 +56,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
      * This cron expression will be set if no cron expression is present in the database. Returns
      * null by default. If this method returns blank, no initial cron expression will be set.
      */
+    @Nullable
     public String initialCronExpression() {
         return null;
     }
@@ -52,10 +66,12 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
      * database. Returns null by default. If this method returns blank, the cron expression in the
      * database will not be overwritten.
      */
+    @Nullable
     public String fixedCronExpression() {
         return null;
     }
 
+    @NotNull
     public final String getCronExpression() {
         final var fixedCron = fixedCronExpression();
         if (StringUtils.isNotBlank(fixedCron)) {
@@ -90,6 +106,20 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     @Override
     public final void run() {
+        run(true);
+    }
+
+    public final void run(boolean mayUseHighMemoryJobService) {
+        if (isHighMemoryJob() && mayUseHighMemoryJobService) {
+            logger.info("Run called for high memory job {}.", this);
+            if (highMemoryJobService == null) {
+                throw new UnsupportedOperationException(
+                        "You need to configure a high memory job service.");
+            }
+            highMemoryJobService.run(this);
+            return;
+        }
+
         setupLog();
         logger.info("Running Job {}", getClass().getSimpleName());
         updateJobRunStart();
@@ -114,6 +144,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         run();
     }
 
+    @NotNull
     protected abstract JobRunState internalRun() throws Exception;
 
     private void updateJobRunStart() {
@@ -161,18 +192,20 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         FileUtils.deleteQuietly(logOutput.toFile());
     }
 
+    @Nullable
     private String getLogOutputContent() {
         String logOutputText = null;
         if (logOutput != null) {
             try {
                 logOutputText = FileUtils.readFileToString(logOutput.toFile(), UTF_8);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.warn("Could not read content from job run log file.", e);
             }
         }
         return logOutputText;
     }
 
+    @NotNull
     public JobRunState state() {
         return jobRun.getState();
     }
@@ -193,6 +226,14 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
      * scheduling/trigger behaviour
      */
     public boolean runOnStartup() {
+        return false;
+    }
+
+    /**
+     * This method can be overwritten to indicate that the given job needs a lot of memory. If this
+     * method returns true, the job is executed as a separate kubernetes job.
+     */
+    public boolean isHighMemoryJob() {
         return false;
     }
 }
