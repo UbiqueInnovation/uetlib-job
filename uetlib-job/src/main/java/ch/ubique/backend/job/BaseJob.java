@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -35,9 +36,10 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     @NotNull protected final JobDataService jobDataService;
     @Nullable private final HighMemoryJobService highMemoryJobService;
 
+    protected JobDataMap jobDataMap;
+
     private Map<String, String> previousMDCContext;
     private Path logOutput;
-    protected JobDataMap jobDataMap;
 
     protected BaseJob(@NotNull final ApplicationContext context) {
         this.context = context;
@@ -50,6 +52,11 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance();
         this.jobDataMap = new JobDataMap();
+    }
+
+    public static boolean isCronExpressionValid(final String cronExpression) {
+        return StringUtils.isBlank(cronExpression)
+                || CronExpression.isValidExpression(cronExpression);
     }
 
     /**
@@ -73,18 +80,29 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     @NotNull
     public final String getCronExpression() {
-        final var fixedCron = fixedCronExpression();
-        if (StringUtils.isNotBlank(fixedCron)) {
+        if (StringUtils.isNotBlank(fixedCronExpression())) {
+            final var fixedCron = fixedCronExpression();
+            if (!isCronExpressionValid(fixedCron)) {
+                throw new IllegalArgumentException(
+                        MessageFormat.format(
+                                "Could not instantiate job ''{0}'': fixedCronExpression is not valid: ''{1}''",
+                                job.name(), fixedCron));
+            }
             return fixedCron;
         }
 
-        final var databaseCron = job.databaseCronExpression();
-        if (StringUtils.isNotBlank(databaseCron)) {
-            return databaseCron;
+        if (StringUtils.isNotBlank(job.databaseCronExpression())) {
+            return job.databaseCronExpression();
         }
 
-        final var initialCron = initialCronExpression();
-        if (StringUtils.isNotBlank(initialCron)) {
+        if (StringUtils.isNotBlank(initialCronExpression())) {
+            final var initialCron = initialCronExpression();
+            if (!isCronExpressionValid(initialCron)) {
+                throw new IllegalArgumentException(
+                        MessageFormat.format(
+                                "Could not instantiate job ''{0}'': initialCronExpression is not valid: ''{1}''",
+                                job.name(), initialCron));
+            }
             return initialCron;
         }
 
@@ -96,8 +114,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     public final boolean isCronExpressionValid() {
-        return StringUtils.isBlank(getCronExpression())
-                || CronExpression.isValidExpression(getCronExpression());
+        return isCronExpressionValid(getCronExpression());
     }
 
     public final boolean isCronActive() {
