@@ -1,9 +1,18 @@
 package ch.ubique.backend.job;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.MessageFormat;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
@@ -13,15 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -29,9 +29,10 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     protected final JobRun jobRun;
     protected final JobDataService jobDataService;
 
+    protected JobDataMap jobDataMap;
+
     private Map<String, String> previousMDCContext;
     private Path logOutput;
-    protected JobDataMap jobDataMap;
 
     protected BaseJob(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
@@ -40,37 +41,52 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         this.jobDataMap = new JobDataMap();
     }
 
+    public static boolean isCronExpressionValid(final String cronExpression) {
+        return StringUtils.isBlank(cronExpression)
+                || CronExpression.isValidExpression(cronExpression);
+    }
+
     /**
-     * This cron expression will be set if no cron expression is present in the database.
-     * Returns null by default.
-     * If this method returns blank, no initial cron expression will be set.
+     * This cron expression will be set if no cron expression is present in the database. Returns
+     * null by default. If this method returns blank, no initial cron expression will be set.
      */
     public String initialCronExpression() {
         return null;
     }
 
     /**
-     * This cron expression will always be used and overrides the cron expression specified in the database.
-     * Returns null by default.
-     * If this method returns blank, the cron expression in the database will not be overwritten.
+     * This cron expression will always be used and overrides the cron expression specified in the
+     * database. Returns null by default. If this method returns blank, the cron expression in the
+     * database will not be overwritten.
      */
     public String fixedCronExpression() {
         return null;
     }
 
     public final String getCronExpression() {
-        final var fixedCron = fixedCronExpression();
-        if (StringUtils.isNotBlank(fixedCron)) {
+        if (StringUtils.isNotBlank(fixedCronExpression())) {
+            final var fixedCron = fixedCronExpression();
+            if (!isCronExpressionValid(fixedCron)) {
+                throw new IllegalArgumentException(
+                        MessageFormat.format(
+                                "Could not instantiate job ''{0}'': fixedCronExpression is not valid: ''{1}''",
+                                job.name(), fixedCron));
+            }
             return fixedCron;
         }
 
-        final var databaseCron = job.databaseCronExpression();
-        if (StringUtils.isNotBlank(databaseCron)) {
-            return databaseCron;
+        if (StringUtils.isNotBlank(job.databaseCronExpression())) {
+            return job.databaseCronExpression();
         }
 
-        final var initialCron = initialCronExpression();
-        if (StringUtils.isNotBlank(initialCron)) {
+        if (StringUtils.isNotBlank(initialCronExpression())) {
+            final var initialCron = initialCronExpression();
+            if (!isCronExpressionValid(initialCron)) {
+                throw new IllegalArgumentException(
+                        MessageFormat.format(
+                                "Could not instantiate job ''{0}'': initialCronExpression is not valid: ''{1}''",
+                                job.name(), initialCron));
+            }
             return initialCron;
         }
 
@@ -82,8 +98,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     public final boolean isCronExpressionValid() {
-        return StringUtils.isBlank(getCronExpression())
-                || CronExpression.isValidExpression(getCronExpression());
+        return isCronExpressionValid(getCronExpression());
     }
 
     public final boolean isCronActive() {
