@@ -40,15 +40,21 @@ public class JobApplication {
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
 
+        logger.info("{} started with args {}", applicationClass, args);
+
         // Args parsing
         final var options = new Options();
         final var help = new Option("h", "help", false, "print this message");
         final var jobClassOption =
                 new Option("j", "job", true, "Fully qualified name of the job class to run now.");
+        final var jobRunIdOption =
+                new Option(
+                        "r", "run", true, "Job run id. Needed, if there already exists a job run.");
         final var forceRunOption =
                 new Option("f", "force", false, "Runs the job with the force option enabled.");
         options.addOption(help);
         options.addOption(jobClassOption);
+        options.addOption(jobRunIdOption);
         options.addOption(forceRunOption);
 
         final var parser = new DefaultParser();
@@ -58,22 +64,30 @@ public class JobApplication {
         try {
             command = parser.parse(options, args, false);
         } catch (final ParseException e) {
-            helpFormatter.printHelp("mvn", options);
+            logger.warn("Unexpected args {}", args, e);
+            helpFormatter.printHelp("java", options);
             return;
         }
         if (command.hasOption(help) || command.getArgs().length > 0) {
-            helpFormatter.printHelp("mvn", options);
+            helpFormatter.printHelp("java", options);
             return;
         }
 
         final var context = SpringApplication.run(applicationClass, args);
 
-
         if (command.hasOption(jobClassOption)) {
             final var jobClassName = command.getOptionValue(jobClassOption);
             final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClassName);
-            job.jobDataMap.put("forceRun", command.hasOption(forceRunOption));
+            final var forceRun = command.hasOption(forceRunOption);
+            job.jobDataMap.put("forceRun", forceRun);
+            logger.info("Starting {}, forceRun = {}", jobClassName, forceRun);
+            if (command.hasOption(jobRunIdOption)) {
+                final var runId = Integer.parseInt(command.getOptionValue(jobRunIdOption));
+                job.jobRun().setId(runId);
+                logger.info("Setting run id {}", runId);
+            }
             job.run(false);
+            logger.info("Completed job, going to shut down");
 
             SpringApplication.exit(context);
         } else {
