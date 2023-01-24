@@ -38,8 +38,6 @@ public abstract class BaseInputJob<T> extends BaseJob {
 
     @Override
     protected final JobRunState internalRun() throws Exception {
-        final boolean forceRun = jobDataMap.getBoolean("forceRun");
-
         // Load Inputs
         final var dataMaybe = tryLoadingInputs();
         if (dataMaybe.isEmpty()) {
@@ -51,7 +49,7 @@ public abstract class BaseInputJob<T> extends BaseJob {
         final var data = dataMaybe.get();
         if (isJobVersionDifferent()) {
             logger.info("The job version differs from the job version of the previous run.");
-        } else if (forceRun) {
+        } else if (isForceRunEnabled()) {
             logger.info("Forced run. Running even if inputs did not change.");
         } else if (areInputsEqual(data.inputFiles())) {
             logger.info("The inputs did not change. Stopping job run.");
