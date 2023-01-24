@@ -149,8 +149,10 @@ public class JobDataService {
         return jobRunRepository.save(jobRunEntity);
     }
 
-    public JobRunEntity newRunInstance() {
-        return new JobRunEntity();
+    public JobRunEntity newRunInstance(final Job job) {
+        final var entity = new JobRunEntity();
+        entity.setJobId(job.id());
+        return entity;
     }
 
     public Optional<JobRun> findJobRunById(final int jobRunId) {

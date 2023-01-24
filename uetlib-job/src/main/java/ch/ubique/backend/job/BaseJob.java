@@ -7,6 +7,7 @@ import ch.ubique.backend.job.highmem.HighMemoryJobService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import io.kubernetes.client.openapi.ApiException;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
@@ -50,7 +51,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
                         .orElse(null);
 
         this.job = jobDataService.registerJob(Job.fromClass(getClass()));
-        this.jobRun = jobDataService.newRunInstance();
+        this.jobRun = jobDataService.newRunInstance(job);
         this.jobDataMap = new JobDataMap();
     }
 
@@ -127,32 +128,47 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     public final void run(boolean mayUseHighMemoryJobService) {
+        logger.info("Running Job {}", getClass().getSimpleName());
+        setupLog();
+        updateJobRunStart();
+
+        final var jobState = runJob(mayUseHighMemoryJobService);
+        logger.info("Done. Job state: {}", jobState);
+
+        if (jobState != JobRunState.BUSY) {
+            updateJobRunEnd(jobState);
+        }
+        tearDownLog();
+        System.gc();
+    }
+
+    public final JobRunState runJob(boolean mayUseHighMemoryJobService) {
         if (isHighMemoryJob() && mayUseHighMemoryJobService) {
             logger.info("Run called for high memory job {}.", this);
             if (highMemoryJobService == null) {
                 throw new UnsupportedOperationException(
                         "You need to configure a high memory job service.");
             }
-            highMemoryJobService.run(this);
-            return;
+
+            try {
+                highMemoryJobService.run(this);
+                return JobRunState.BUSY;
+            } catch (IOException | ApiException e) {
+                logger.error("Exception running high memory job: ", e);
+                return JobRunState.ERROR;
+            }
         }
 
-        setupLog();
-        logger.info("Running Job {}", getClass().getSimpleName());
-        updateJobRunStart();
         try {
-            final var jobState = internalRun();
-            logger.info("Job finished in state {}", jobState);
-            updateJobRunEnd(jobState);
+            return internalRun();
         } catch (InterruptedException e) {
             logger.warn("Thread interrupted", e);
             Thread.currentThread().interrupt();
+            return JobRunState.ERROR;
         } catch (Exception e) {
             logger.error("Exception running job: ", e);
-            updateJobRunEnd(JobRunState.ERROR);
+            return JobRunState.ERROR;
         }
-        tearDownLog();
-        System.gc();
     }
 
     @Override
@@ -165,8 +181,15 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     protected abstract JobRunState internalRun() throws Exception;
 
     private void updateJobRunStart() {
+        if (jobRun.getId() != null) {
+            final var existingRun = jobDataService.findJobRunById(jobRun.getId()).orElseThrow();
+            jobRun.setStartedAt(existingRun.getStartedAt());
+        }
+
         jobRun.setState(JobRunState.BUSY);
-        jobRun.setStartedAt(Instant.now());
+        if (jobRun.getStartedAt() == null) {
+            jobRun.setStartedAt(Instant.now());
+        }
         jobRun.setJobId(job.id());
         jobRun.setJobVersion(version());
         Optional.ofNullable(logOutput)
@@ -252,5 +275,16 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
      */
     public boolean isHighMemoryJob() {
         return false;
+    }
+
+    public boolean isForceRunEnabled() {
+        if (jobDataMap == null) {
+            return false;
+        }
+        return jobDataMap.getBoolean("forceRun");
+    }
+
+    public JobRun jobRun() {
+        return jobRun;
     }
 }
