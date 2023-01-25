@@ -153,8 +153,14 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             try {
                 highMemoryJobService.run(this);
                 return JobRunState.BUSY;
-            } catch (IOException | ApiException e) {
+            } catch (final IOException e) {
                 logger.error("Exception running high memory job: ", e);
+                return JobRunState.ERROR;
+            } catch (final ApiException e) {
+                logger.error(
+                        "Kubernetes Client API exception. responseBody = {}",
+                        e.getResponseBody(),
+                        e);
                 return JobRunState.ERROR;
             }
         }
