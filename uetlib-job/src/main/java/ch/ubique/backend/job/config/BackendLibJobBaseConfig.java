@@ -22,10 +22,10 @@ public class BackendLibJobBaseConfig {
     @Bean
     public MonitoringService monitoringService(
             final RestTemplate restTemplate,
-            final @Value("${ch.ubique.backend.job.interface.heartbeat.enabled:true}") boolean
-                            heartbeatEnabled,
-            final @Value("${ch.ubique.backend.job.interface.heartbeat.endpoint:#{null}}") String
-                            heartbeatEndpoint) {
+            @Value("${ch.ubique.backend.job.interface.heartbeat.enabled:true}")
+                    final boolean heartbeatEnabled,
+            @Value("${ch.ubique.backend.job.interface.heartbeat.endpoint:#{null}}")
+                    final String heartbeatEndpoint) {
         if (heartbeatEnabled && Strings.isBlank(heartbeatEndpoint)) {
             throw new ValidationException(
                     "property 'ch.ubique.backend.job.interface.heartbeat.endpoint' must be set if 'ch.ubique.backend.job.interface.heartbeat.enabled' is not explicitly disabled");
