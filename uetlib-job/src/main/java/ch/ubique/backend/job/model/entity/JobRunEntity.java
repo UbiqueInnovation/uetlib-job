@@ -2,10 +2,12 @@ package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,6 +33,7 @@ public class JobRunEntity implements JobRun {
     @Column(name = "state", nullable = false, length = 20)
     private JobRunState state;
 
+    @Basic(fetch = FetchType.LAZY)
     @Column(name = "log_output", nullable = false)
     private String logOutput;
 
