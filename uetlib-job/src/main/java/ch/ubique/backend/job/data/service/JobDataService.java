@@ -1,9 +1,11 @@
 package ch.ubique.backend.job.data.service;
 
+import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.data.repository.JobRepository;
 import ch.ubique.backend.job.data.repository.JobRunInputRepository;
 import ch.ubique.backend.job.data.repository.JobRunRepository;
+import ch.ubique.backend.job.data.repository.LoggingEventRepository;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
@@ -11,6 +13,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
+import ch.ubique.backend.job.model.entity.LoggingEventEntity;
 import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.Collection;
@@ -29,16 +32,20 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
 
+    private final LoggingEventRepository loggingEventRepository;
+
     @Value("${job.startup.cleanUpBusyRuns:true}")
     private boolean cleanUpBusyRuns;
 
     public JobDataService(
             final JobRepository jobRepository,
             final JobRunRepository jobRunRepository,
-            final JobRunInputRepository jobRunInputRepository) {
+            final JobRunInputRepository jobRunInputRepository,
+            final LoggingEventRepository loggingEventRepository) {
         this.jobRepository = jobRepository;
         this.jobRunRepository = jobRunRepository;
         this.jobRunInputRepository = jobRunInputRepository;
+        this.loggingEventRepository = loggingEventRepository;
     }
 
     @PostConstruct
@@ -62,11 +69,6 @@ public class JobDataService {
                                     return jobRunRepository.save(jobRun);
                                 })
                         .toList());
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<String> findLogForJobRun(final Integer jobRunId) {
-        return jobRunRepository.findById(jobRunId).map(JobRunEntity::getLogOutput);
     }
 
     @Transactional(readOnly = true)
@@ -174,5 +176,11 @@ public class JobDataService {
 
     public Collection<JobRunInput> findJobRunInputs(int runId) {
         return jobRunInputRepository.findAllByRunId(runId);
+    }
+
+    public List<LoggingEvent> findLogsForJobRun(final int jobRunId) {
+        return loggingEventRepository.findByJobRunId(String.valueOf(jobRunId)).stream()
+                .map(LoggingEventEntity::toLoggingEvent)
+                .toList();
     }
 }
