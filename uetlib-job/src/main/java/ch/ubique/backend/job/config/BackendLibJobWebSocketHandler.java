@@ -1,12 +1,13 @@
 package ch.ubique.backend.job.config;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.WebSocketException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +32,8 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final JobDataService jobDataService;
 
+    private final PatternLayoutEncoder encoder;
+
     private final Map<String, Triple<WebSocketSession, Integer, AtomicLong>> activeSessions =
             new ConcurrentHashMap<>();
 
@@ -38,6 +41,12 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
             final ObjectMapper objectMapper, final JobDataService jobDataService) {
         this.objectMapper = objectMapper;
         this.jobDataService = jobDataService;
+        encoder = new PatternLayoutEncoder();
+        encoder.setPattern(
+                "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
+        encoder.setCharset(StandardCharsets.UTF_8);
+        encoder.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
+        encoder.start();
     }
 
     @Override
@@ -89,21 +98,14 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
     @NotNull
     private Optional<Stream<String>> getLogLines(final Integer jobRunId) {
-        return jobDataService
-                .findLogForJobRun(jobRunId)
-                .map(
-                        content -> {
-                            final var filePrefix = "file:";
-                            if (content.startsWith(filePrefix)) {
-                                final var file = Path.of(content.substring(filePrefix.length()));
-                                try {
-                                    return Files.lines(file);
-                                } catch (final IOException e) {
-                                    return Stream.of();
-                                }
-                            }
-                            return content.lines();
-                        });
+
+        final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        loggerContext.getLogger("ROOT").getAppender("console");
+
+        return Optional.of(
+                jobDataService.findLogsForJobRun(jobRunId).stream()
+                        .map(encoder::encode)
+                        .map(bytes -> new String(bytes, StandardCharsets.UTF_8)));
     }
 
     record Message(int jobRunId) {}

@@ -14,10 +14,6 @@ public interface JobRun {
 
     void setStartedAt(Instant startedAt);
 
-    String getLogOutput();
-
-    void setLogOutput(String logOutput);
-
     JobRunState getState();
 
     void setState(JobRunState state);

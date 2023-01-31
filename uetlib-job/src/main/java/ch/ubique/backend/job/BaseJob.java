@@ -1,7 +1,5 @@
 package ch.ubique.backend.job;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.highmem.HighMemoryJobService;
 import ch.ubique.backend.job.model.Job;
@@ -11,13 +9,8 @@ import io.kubernetes.client.openapi.ApiException;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
 import org.quartz.JobDataMap;
@@ -38,9 +31,6 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     @Nullable private final HighMemoryJobService highMemoryJobService;
 
     protected JobDataMap jobDataMap;
-
-    private Map<String, String> previousMDCContext;
-    private Path logOutput;
 
     protected BaseJob(@NotNull final ApplicationContext context) {
         this.context = context;
@@ -128,9 +118,9 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     public final void run(boolean mayUseHighMemoryJobService) {
-        logger.info("Running Job {}", getClass().getSimpleName());
-        setupLog();
         updateJobRunStart();
+        setupLog();
+        logger.info("Running Job {}", getClass().getSimpleName());
 
         final var jobState = runJob(mayUseHighMemoryJobService);
         logger.info("Done. Job state: {}", jobState);
@@ -138,8 +128,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         if (jobState != JobRunState.BUSY) {
             updateJobRunEnd(jobState);
         }
-        tearDownLog();
         System.gc();
+        tearDownLog();
     }
 
     public final JobRunState runJob(boolean mayUseHighMemoryJobService) {
@@ -198,57 +188,21 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         }
         jobRun.setJobId(job.id());
         jobRun.setJobVersion(version());
-        Optional.ofNullable(logOutput)
-                .map(lo -> "file:" + lo.toFile().getAbsolutePath())
-                .ifPresent(jobRun::setLogOutput);
         jobRun.setId(jobDataService.saveJobRun(jobRun).getId());
     }
 
-    private void updateJobRunEnd(JobRunState finalState) {
+    private void updateJobRunEnd(final JobRunState finalState) {
         jobRun.setState(finalState);
         jobRun.setFinishedAt(Instant.now());
-        jobRun.setLogOutput(getLogOutputContent());
         jobDataService.saveJobRun(jobRun);
     }
 
     private void setupLog() {
-        previousMDCContext = null;
-        try {
-            previousMDCContext = MDC.getCopyOfContextMap();
-            logOutput = Files.createTempFile(getClass().getName(), ".log");
-
-            MDC.put("logFileName", logOutput.toAbsolutePath().toString());
-        } catch (Exception e) {
-            logger.error("Exception setting up thread aware logging: ", e);
-        }
+        MDC.put("jobRunId", jobRun.getId().toString());
     }
 
     private void tearDownLog() {
-        if (previousMDCContext != null) {
-            MDC.setContextMap(previousMDCContext);
-        }
-        try {
-            final var logContent = FileUtils.readFileToString(logOutput.toFile(), UTF_8);
-            jobRun.setLogOutput(logContent);
-            jobDataService.saveJobRun(jobRun);
-        } catch (IOException e) {
-            logger.error("Exception reading log from file: ", e);
-        }
-        MDC.remove("logFileName");
-        FileUtils.deleteQuietly(logOutput.toFile());
-    }
-
-    @Nullable
-    private String getLogOutputContent() {
-        String logOutputText = null;
-        if (logOutput != null) {
-            try {
-                logOutputText = FileUtils.readFileToString(logOutput.toFile(), UTF_8);
-            } catch (final Exception e) {
-                logger.warn("Could not read content from job run log file.", e);
-            }
-        }
-        return logOutputText;
+        MDC.remove("jobRunId");
     }
 
     @NotNull
