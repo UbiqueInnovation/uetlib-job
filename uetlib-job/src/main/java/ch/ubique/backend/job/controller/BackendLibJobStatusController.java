@@ -1,17 +1,22 @@
 package ch.ubique.backend.job.controller;
 
+import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.JobInfosContainer;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
+import ch.ubique.backend.job.model.client.JobProperty;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.service.JobService;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -64,6 +69,18 @@ public class BackendLibJobStatusController {
                     InstantiationException, IllegalAccessException {
         jobService.updateCronExpression(id, cronExpression);
         return jobService.findJobById(id);
+    }
+
+    @GetMapping("/job/{id}/properties")
+    public List<JobProperty> getProperties(final @PathVariable int id) {
+        return jobService.getJobProperties(id);
+    }
+
+    @PostMapping("/job/{id}/properties")
+    public List<JobProperty> updateProperties(
+            final @PathVariable int id,
+            final @RequestBody Map<JobPropertyKey, String> updatedValues) {
+        return jobService.updateJobProperties(id, updatedValues);
     }
 
     @PostMapping("/job/{id}/start")

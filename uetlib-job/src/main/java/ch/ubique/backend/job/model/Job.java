@@ -4,19 +4,7 @@ import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.BaseJob;
 import com.pivovarit.function.exception.WrappedException;
 
-public record Job(
-        Integer id,
-        String clazzName,
-        String databaseCronExpression
-) {
-
-    public static Job withId(int id, Job job) {
-        return new Job(
-                id,
-                job.clazzName(),
-                job.databaseCronExpression()
-        );
-    }
+public record Job(Integer id, String clazzName, String databaseCronExpression) {
 
     public static Job fromClass(Class<? extends BaseJob> clazz) {
         return new Job(null, clazz.getCanonicalName(), null);

@@ -20,6 +20,7 @@ public record JobInfosContainer(
             @NotNull boolean cronActive,
             @NotNull boolean cronExpressionValid,
             @NotNull boolean cronFixed,
+            @NotNull boolean propertiesFixed,
             @NotNull boolean forceRunnable) {
 
         public static JobInfo from(final Job job, final BaseJob baseJob) {
@@ -31,6 +32,7 @@ public record JobInfosContainer(
                     baseJob.isCronActive(),
                     baseJob.isCronExpressionValid(),
                     baseJob.isCronFixed(),
+                    !baseJob.fixedProperties().isEmpty(),
                     job.isForceRunnable());
         }
     }
