@@ -1,7 +1,5 @@
 package ch.ubique.backend.job;
 
-import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.scheduler.JobScheduler;
 import ch.ubique.backend.job.service.JobCreator;
 import java.lang.reflect.InvocationTargetException;
@@ -97,17 +95,17 @@ public class JobApplication {
     }
 
     private static void registerJobs(
-            final Class<?> applicationClass, final ConfigurableApplicationContext context) {
-        final var jobDataService =
-                context.getBeansOfType(JobDataService.class).values().stream()
-                        .findFirst()
-                        .orElseThrow();
+            final Class<?> applicationClass, final ConfigurableApplicationContext context)
+            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+                    IllegalAccessException {
+
         final var reflections = new Reflections(applicationClass.getPackage().getName());
         for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
             //noinspection unchecked
-            final var job =
-                    jobDataService.registerJob(Job.fromClass((Class<? extends BaseJob>) cls));
-            logger.info("Registered {}", job);
+            final var jobClass = (Class<? extends BaseJob>) cls;
+            final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClass);
+            final var properties = job.properties();
+            logger.info("Registered {}. Properties = {}", jobClass, properties);
         }
     }
 }

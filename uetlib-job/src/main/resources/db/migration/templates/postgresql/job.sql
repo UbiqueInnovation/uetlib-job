@@ -10,6 +10,7 @@ create table t_job_properties
     fk_job_id integer not null references t_job (pk_job_id) on delete cascade on update cascade,
     key       varchar not null,
     value     varchar,
+    PRIMARY KEY (fk_job_id, key)
 );
 
 create table t_job_run

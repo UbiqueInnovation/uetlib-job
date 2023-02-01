@@ -1,16 +1,23 @@
 package ch.ubique.backend.job.model;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public enum JobPropertyKey {
     RUN_TIME_LIMIT(
             Duration.class,
+            null,
+            String.valueOf(Duration.ofHours(1).toMillis()),
+            false,
             "If set, the monitoring will report an error if this job runs longer than the specified limit."),
     RUNNER(
             String.class,
-            Set.of("current", "dedicated_k8s_job"),
-            "current",
+            JobRunnerKey.names(),
+            JobRunnerKey.CURRENT.name(),
             false,
             "Defines where the job is executed."),
 
@@ -70,5 +77,11 @@ public enum JobPropertyKey {
 
     public String getDescription() {
         return description;
+    }
+
+    public static Map<JobPropertyKey, String> defaultProperties() {
+        return Arrays.stream(JobPropertyKey.values())
+                .filter(key -> key.getDefaultValue() != null)
+                .collect(Collectors.toMap(Function.identity(), JobPropertyKey::getDefaultValue));
     }
 }

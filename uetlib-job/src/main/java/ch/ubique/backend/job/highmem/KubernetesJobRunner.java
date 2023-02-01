@@ -1,11 +1,13 @@
 package ch.ubique.backend.job.highmem;
 
 import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.model.JobPropertyKey;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobSpec;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -19,8 +21,8 @@ import io.kubernetes.client.util.Namespaces;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -31,13 +33,13 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
-public class KubernetesJobService implements HighMemoryJobService {
+public class KubernetesJobRunner implements JobRunner {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final Environment environment;
 
-    public KubernetesJobService(final Environment environment) {
+    public KubernetesJobRunner(final Environment environment) {
         this.environment = environment;
     }
 
@@ -104,29 +106,30 @@ public class KubernetesJobService implements HighMemoryJobService {
             args.add("--force");
         }
 
+        final var requests = new HashMap<String, Quantity>();
+        getProperty(job, JobPropertyKey.K8S_REQUESTS_CPU)
+                .ifPresent(value -> requests.put("cpu", Quantity.fromString(value)));
+        getProperty(job, JobPropertyKey.K8S_REQUESTS_MEMORY)
+                .ifPresent(value -> requests.put("memory", Quantity.fromString(value)));
+
+        final var limits = new HashMap<String, Quantity>();
+        getProperty(job, JobPropertyKey.K8S_LIMITS_CPU)
+                .ifPresent(value -> limits.put("cpu", Quantity.fromString(value)));
+        getProperty(job, JobPropertyKey.K8S_LIMITS_MEMORY)
+                .ifPresent(value -> limits.put("memory", Quantity.fromString(value)));
+
         final var container =
                 new V1Container()
                         .name("job-image")
                         .image(currentPodContainer.getImage())
                         .args(args)
                         .env(currentPodContainer.getEnv())
+                        .addEnvItem(
+                                new V1EnvVar().name("JAVA_OPTS").value("-XX:MaxRAMPercentage=95.0"))
                         .envFrom(currentPodContainer.getEnvFrom())
                         .volumeMounts(currentPodContainer.getVolumeMounts())
                         .imagePullPolicy(currentPodContainer.getImagePullPolicy())
-                        .resources(
-                                new V1ResourceRequirements()
-                                        .requests(
-                                                Map.of(
-                                                        "cpu",
-                                                        Quantity.fromString("1"),
-                                                        "memory",
-                                                        Quantity.fromString("60G")))
-                                        .limits(
-                                                Map.of(
-                                                        "cpu",
-                                                        Quantity.fromString("2"),
-                                                        "memory",
-                                                        Quantity.fromString("60G"))));
+                        .resources(new V1ResourceRequirements().requests(requests).limits(limits));
 
         final V1PodSpec podSpec =
                 new V1PodSpec()
@@ -134,13 +137,17 @@ public class KubernetesJobService implements HighMemoryJobService {
                         .imagePullSecrets(currentPodSpec.getImagePullSecrets())
                         .volumes(currentPodSpec.getVolumes())
                         .nodeSelector(currentPodSpec.getNodeSelector())
-                        .restartPolicy("Never")
-                        .addTolerationsItem(
-                                new V1Toleration()
-                                        .key("sku")
-                                        .operator("Equal")
-                                        .value("highmem")
-                                        .effect("NoSchedule"));
+                        .restartPolicy("Never");
+
+        getProperty(job, JobPropertyKey.K8S_SKU)
+                .ifPresent(
+                        value ->
+                                podSpec.addTolerationsItem(
+                                        new V1Toleration()
+                                                .key("sku")
+                                                .operator("Equal")
+                                                .value(value)
+                                                .effect("NoSchedule")));
 
         final var metadata = new V1ObjectMeta().namespace(namespace).name(jobName);
         final var jobSpec =
@@ -149,6 +156,11 @@ public class KubernetesJobService implements HighMemoryJobService {
                         .template(new V1PodTemplateSpec().spec(podSpec));
 
         return new V1Job().metadata(metadata).spec(jobSpec);
+    }
+
+    @NotNull
+    private static Optional<String> getProperty(final BaseJob job, final JobPropertyKey key) {
+        return Optional.ofNullable(StringUtils.defaultIfBlank(job.properties().get(key), null));
     }
 
     @NotNull

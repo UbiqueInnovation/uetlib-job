@@ -1,21 +1,12 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobPropertyKey;
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapKeyColumn;
-import jakarta.persistence.MapKeyEnumerated;
 import jakarta.persistence.Table;
-import java.util.EnumMap;
-import java.util.Map;
 
 @Table(name = "t_job")
 @Entity
@@ -31,13 +22,6 @@ public class JobEntity {
 
     @Column(name = "cron_expression", length = 20)
     private String cronExpression;
-
-    @ElementCollection
-    @CollectionTable(name = "t_job_properties", joinColumns = @JoinColumn(name = "fk_job_id"))
-    @MapKeyColumn(name = "key")
-    @MapKeyEnumerated(EnumType.STRING)
-    @Column(name = "value")
-    private Map<JobPropertyKey, String> properties = new EnumMap<>(JobPropertyKey.class);
 
     public Integer getId() {
         return id;

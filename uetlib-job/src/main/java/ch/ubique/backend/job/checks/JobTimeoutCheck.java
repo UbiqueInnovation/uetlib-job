@@ -2,6 +2,7 @@ package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
@@ -48,7 +49,9 @@ public class JobTimeoutCheck implements StatusCheck {
             return Optional.empty();
         }
 
-        final var runtimeLimit = Duration.ofHours(1);
+        final var runtimeProperty =
+                jobDataService.getProperty(job.id(), JobPropertyKey.RUN_TIME_LIMIT);
+        final var runtimeLimit = Duration.ofSeconds(Long.parseLong(runtimeProperty));
         if (latestRun.runDuration().toMillis() <= runtimeLimit.toMillis()) {
             return Optional.empty();
         }

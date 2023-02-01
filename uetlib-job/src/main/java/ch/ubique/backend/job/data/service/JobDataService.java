@@ -2,15 +2,18 @@ package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.job.data.repository.JobPropertyRepository;
 import ch.ubique.backend.job.data.repository.JobRepository;
 import ch.ubique.backend.job.data.repository.JobRunInputRepository;
 import ch.ubique.backend.job.data.repository.JobRunRepository;
 import ch.ubique.backend.job.data.repository.LoggingEventRepository;
 import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobEntity;
+import ch.ubique.backend.job.model.entity.JobPropertyEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.model.entity.LoggingEventEntity;
@@ -18,7 +21,9 @@ import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class JobDataService {
 
     private final JobRepository jobRepository;
+    private final JobPropertyRepository jobPropertyRepository;
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
 
@@ -39,10 +45,12 @@ public class JobDataService {
 
     public JobDataService(
             final JobRepository jobRepository,
+            final JobPropertyRepository jobPropertyRepository,
             final JobRunRepository jobRunRepository,
             final JobRunInputRepository jobRunInputRepository,
             final LoggingEventRepository loggingEventRepository) {
         this.jobRepository = jobRepository;
+        this.jobPropertyRepository = jobPropertyRepository;
         this.jobRunRepository = jobRunRepository;
         this.jobRunInputRepository = jobRunInputRepository;
         this.loggingEventRepository = loggingEventRepository;
@@ -182,5 +190,38 @@ public class JobDataService {
         return loggingEventRepository.findByJobRunId(String.valueOf(jobRunId)).stream()
                 .map(LoggingEventEntity::toLoggingEvent)
                 .toList();
+    }
+
+    public void saveProperty(final int jobId, final JobPropertyKey key, final String value) {
+        jobPropertyRepository.save(
+                new JobPropertyEntity().setJobId(jobId).setKey(key).setValue(value));
+    }
+
+    public Map<JobPropertyKey, String> getProperties(final int jobId) {
+        return jobPropertyRepository.findAllByJobId(jobId).stream()
+                .collect(Collectors.toMap(JobPropertyEntity::getKey, JobPropertyEntity::getValue));
+    }
+
+    public void clearProperties(final int jobId) {
+        jobPropertyRepository.deleteAllByJobId(jobId);
+    }
+
+    public void saveProperties(final int jobId, final Map<JobPropertyKey, String> properties) {
+        jobPropertyRepository.saveAll(
+                properties.entrySet().stream()
+                        .map(
+                                entry ->
+                                        new JobPropertyEntity()
+                                                .setJobId(jobId)
+                                                .setKey(entry.getKey())
+                                                .setValue(entry.getValue()))
+                        .toList());
+    }
+
+    public String getProperty(final Integer jobId, final JobPropertyKey key) {
+        return jobPropertyRepository
+                .findByJobIdAndKey(jobId, key)
+                .map(JobPropertyEntity::getValue)
+                .orElse(key.getDefaultValue());
     }
 }

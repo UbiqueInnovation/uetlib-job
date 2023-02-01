@@ -1,17 +1,26 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.highmem.HighMemoryJobService;
+import ch.ubique.backend.job.highmem.JobRunner;
+import ch.ubique.backend.job.highmem.KubernetesJobRunner;
 import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunnerKey;
 import io.kubernetes.client.openapi.ApiException;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.quartz.CronExpression;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
@@ -28,21 +37,48 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     @NotNull protected final JobRun jobRun;
     @NotNull protected final ApplicationContext context;
     @NotNull protected final JobDataService jobDataService;
-    @Nullable private final HighMemoryJobService highMemoryJobService;
+    @Nullable private final Map<JobRunnerKey, JobRunner> externalJobRunners;
+    @NotNull private final Map<JobPropertyKey, String> properties;
 
     protected JobDataMap jobDataMap;
 
     protected BaseJob(@NotNull final ApplicationContext context) {
         this.context = context;
         this.jobDataService = context.getBean(JobDataService.class);
-        this.highMemoryJobService =
-                context.getBeansOfType(HighMemoryJobService.class).values().stream()
-                        .findAny()
-                        .orElse(null);
+
+        this.externalJobRunners = new EnumMap<>(JobRunnerKey.class);
+        context.getBeansOfType(KubernetesJobRunner.class).values().stream()
+                .findAny()
+                .ifPresent(
+                        runner -> externalJobRunners.put(JobRunnerKey.DEDICATED_K8S_JOB, runner));
 
         this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance(job);
         this.jobDataMap = new JobDataMap();
+        this.properties = initializeProperties();
+    }
+
+    private Map<JobPropertyKey, String> initializeProperties() {
+        final var dbProperties = jobDataService.getProperties(job.id());
+        final var fixedProperties = Objects.requireNonNull(fixedProperties());
+        final var initialPlusDefaults = new EnumMap<>(JobPropertyKey.defaultProperties());
+        initialPlusDefaults.putAll(Objects.requireNonNull(initialProperties()));
+
+        if (!fixedProperties().isEmpty() && !fixedProperties.equals(dbProperties)) {
+            logger.warn(
+                    "Properties in database are different to the fixed properties. Going to overwrite values in database.");
+            jobDataService.clearProperties(job.id());
+            jobDataService.saveProperties(job.id(), fixedProperties());
+        }
+
+        initialPlusDefaults.forEach(
+                (key, value) -> {
+                    if (!dbProperties.containsKey(key)) {
+                        jobDataService.saveProperty(job.id(), key, value);
+                    }
+                });
+
+        return jobDataService.getProperties(job.id());
     }
 
     public static boolean isCronExpressionValid(final String cronExpression) {
@@ -67,6 +103,24 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     @Nullable
     public String fixedCronExpression() {
         return null;
+    }
+
+    /**
+     * For each entry in this map: the property will be set if the key of the entry is not in the
+     * database yet.
+     */
+    @Nullable
+    public Map<JobPropertyKey, String> initialProperties() {
+        return Map.of();
+    }
+
+    /**
+     * If this map is non-empty, these properties will always be used and overrides properties
+     * specified in the database.
+     */
+    @Nullable
+    public Map<JobPropertyKey, String> fixedProperties() {
+        return Map.of();
     }
 
     @NotNull
@@ -117,12 +171,12 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         run(true);
     }
 
-    public final void run(boolean mayUseHighMemoryJobService) {
+    public final void run(boolean mayUseExternalRunner) {
         updateJobRunStart();
         setupLog();
         logger.info("Running Job {}", getClass().getSimpleName());
 
-        final var jobState = runJob(mayUseHighMemoryJobService);
+        final var jobState = runJob(mayUseExternalRunner);
         logger.info("Done. Job state: {}", jobState);
 
         if (jobState != JobRunState.BUSY) {
@@ -132,16 +186,23 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         tearDownLog();
     }
 
-    public final JobRunState runJob(boolean mayUseHighMemoryJobService) {
-        if (isHighMemoryJob() && mayUseHighMemoryJobService) {
+    public final JobRunState runJob(boolean mayUseExternalRunner) {
+        final var runnerKey =
+                JobRunnerKey.parseString(
+                        properties()
+                                .getOrDefault(
+                                        JobPropertyKey.RUNNER,
+                                        JobPropertyKey.RUNNER.getDefaultValue()));
+
+        if (runnerKey != JobRunnerKey.CURRENT && mayUseExternalRunner) {
             logger.info("Run called for high memory job {}.", this);
-            if (highMemoryJobService == null) {
-                throw new UnsupportedOperationException(
-                        "You need to configure a high memory job service.");
+            final var externalJobRunner = externalJobRunners.get(runnerKey);
+            if (externalJobRunner == null) {
+                throw new NoSuchElementException("Could not find a runner for " + runnerKey);
             }
 
             try {
-                highMemoryJobService.run(this);
+                externalJobRunner.run(this);
                 return JobRunState.BUSY;
             } catch (final IOException e) {
                 logger.error("Exception running high memory job: ", e);
@@ -229,14 +290,6 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         return false;
     }
 
-    /**
-     * This method can be overwritten to indicate that the given job needs a lot of memory. If this
-     * method returns true, the job is executed as a separate kubernetes job.
-     */
-    public boolean isHighMemoryJob() {
-        return false;
-    }
-
     public boolean isForceRunEnabled() {
         if (jobDataMap == null) {
             return false;
@@ -246,5 +299,18 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     public JobRun jobRun() {
         return jobRun;
+    }
+
+    public Map<JobPropertyKey, String> properties() {
+        return properties;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+                .append("job", job)
+                .append("jobRun", jobRun)
+                .append("jobDataMap", jobDataMap)
+                .toString();
     }
 }
