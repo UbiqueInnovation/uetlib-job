@@ -98,6 +98,7 @@ public class KubernetesJobRunner implements JobRunner {
         final var args =
                 new ArrayList<>(
                         List.of(
+                                "--",
                                 "--job",
                                 job.getClass().getName(),
                                 "--run",
@@ -150,9 +151,15 @@ public class KubernetesJobRunner implements JobRunner {
                                                 .effect("NoSchedule")));
 
         final var metadata = new V1ObjectMeta().namespace(namespace).name(jobName);
+        final var ttl =
+                getProperty(job, JobPropertyKey.K8S_TTL_AFTER_FINISHED)
+                        .map(Long::parseLong)
+                        .map(Duration::ofMillis)
+                        .orElse(Duration.ofHours(1));
+
         final var jobSpec =
                 new V1JobSpec()
-                        .ttlSecondsAfterFinished((int) Duration.ofDays(7).toSeconds())
+                        .ttlSecondsAfterFinished((int) ttl.toSeconds())
                         .template(new V1PodTemplateSpec().spec(podSpec));
 
         return new V1Job().metadata(metadata).spec(jobSpec);
@@ -160,7 +167,8 @@ public class KubernetesJobRunner implements JobRunner {
 
     @NotNull
     private static Optional<String> getProperty(final BaseJob job, final JobPropertyKey key) {
-        return Optional.ofNullable(StringUtils.defaultIfBlank(job.properties().get(key), null));
+        return Optional.ofNullable(
+                StringUtils.defaultIfBlank(job.properties().get(key), key.getDefaultValue()));
     }
 
     @NotNull
