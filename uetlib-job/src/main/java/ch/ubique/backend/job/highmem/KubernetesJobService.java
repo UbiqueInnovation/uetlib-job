@@ -96,6 +96,7 @@ public class KubernetesJobService implements HighMemoryJobService {
         final var args =
                 new ArrayList<>(
                         List.of(
+                                "--",
                                 "--job",
                                 job.getClass().getName(),
                                 "--run",
