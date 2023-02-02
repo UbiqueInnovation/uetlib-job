@@ -159,20 +159,24 @@ public class JobDataService {
         return jobRunRepository.save(jobRunEntity);
     }
 
+
     public JobRunEntity newRunInstance(final Job job) {
         final var entity = new JobRunEntity();
         entity.setJobId(job.id());
         return entity;
     }
 
+    @Transactional(readOnly = true)
     public Optional<JobRun> findJobRunById(final int jobRunId) {
         return jobRunRepository.findById(jobRunId);
     }
 
+    @Transactional
     public void delete(Job job) {
         jobRepository.delete(JobEntity.fromJob(job));
     }
 
+    @Transactional
     public void insertJobRunInput(JobRunInput jobRunInput) {
         if (!(jobRunInput instanceof JobRunInputEntity jobRunInputEntity)) {
             throw new ClassCastException(
@@ -182,30 +186,36 @@ public class JobDataService {
         jobRunInputRepository.save(jobRunInputEntity);
     }
 
+    @Transactional(readOnly = true)
     public Collection<JobRunInput> findJobRunInputs(int runId) {
         return jobRunInputRepository.findAllByRunId(runId);
     }
 
+    @Transactional(readOnly = true)
     public List<LoggingEvent> findLogsForJobRun(final int jobRunId) {
         return loggingEventRepository.findByJobRunId(String.valueOf(jobRunId)).stream()
                 .map(LoggingEventEntity::toLoggingEvent)
                 .toList();
     }
 
+    @Transactional
     public void saveProperty(final int jobId, final JobPropertyKey key, final String value) {
         jobPropertyRepository.save(
                 new JobPropertyEntity().setJobId(jobId).setKey(key).setValue(value));
     }
 
+    @Transactional(readOnly = true)
     public Map<JobPropertyKey, String> getProperties(final int jobId) {
         return jobPropertyRepository.findAllByJobId(jobId).stream()
                 .collect(Collectors.toMap(JobPropertyEntity::getKey, JobPropertyEntity::getValue));
     }
 
+    @Transactional
     public void clearProperties(final int jobId) {
         jobPropertyRepository.deleteAllByJobId(jobId);
     }
 
+    @Transactional
     public void saveProperties(final int jobId, final Map<JobPropertyKey, String> properties) {
         jobPropertyRepository.saveAll(
                 properties.entrySet().stream()
@@ -218,6 +228,7 @@ public class JobDataService {
                         .toList());
     }
 
+    @Transactional(readOnly = true)
     public String getProperty(final Integer jobId, final JobPropertyKey key) {
         return jobPropertyRepository
                 .findByJobIdAndKey(jobId, key)

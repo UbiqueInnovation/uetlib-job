@@ -71,12 +71,14 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             jobDataService.saveProperties(job.id(), fixedProperties());
         }
 
-        initialPlusDefaults.forEach(
-                (key, value) -> {
-                    if (!dbProperties.containsKey(key)) {
-                        jobDataService.saveProperty(job.id(), key, value);
-                    }
-                });
+        if (fixedProperties.isEmpty()) {
+            initialPlusDefaults.forEach(
+                    (key, value) -> {
+                        if (!dbProperties.containsKey(key)) {
+                            jobDataService.saveProperty(job.id(), key, value);
+                        }
+                    });
+        }
 
         return jobDataService.getProperties(job.id());
     }
