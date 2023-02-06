@@ -87,7 +87,9 @@ public class JobApplication {
             job.run(false);
             logger.info("Completed job, going to shut down");
 
-            SpringApplication.exit(context);
+            final var exitCode = SpringApplication.exit(context);
+            logger.info("Shutdown completed. Exit code {}", exitCode);
+            System.exit(exitCode);
         } else {
             registerJobs(applicationClass, context);
             context.getBean(JobScheduler.class).scheduleAllRegisteredJobs();
