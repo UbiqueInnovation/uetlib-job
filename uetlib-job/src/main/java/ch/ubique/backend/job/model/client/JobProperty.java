@@ -10,6 +10,7 @@ public record JobProperty(
         String defaultValue,
         boolean nullable,
         String description,
+        String unit,
         String value) {
 
     public JobProperty(JobPropertyKey key, String value) {
@@ -20,6 +21,7 @@ public record JobProperty(
                 key.getDefaultValue(),
                 key.isNullable(),
                 key.getDescription(),
+                key.getUnit(),
                 value);
     }
 }

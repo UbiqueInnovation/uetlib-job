@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -159,7 +160,6 @@ public class JobDataService {
         return jobRunRepository.save(jobRunEntity);
     }
 
-
     public JobRunEntity newRunInstance(final Job job) {
         final var entity = new JobRunEntity();
         entity.setJobId(job.id());
@@ -200,13 +200,18 @@ public class JobDataService {
 
     @Transactional
     public void saveProperty(final int jobId, final JobPropertyKey key, final String value) {
-        jobPropertyRepository.save(
-                new JobPropertyEntity().setJobId(jobId).setKey(key).setValue(value));
+        if (StringUtils.isBlank(value)) {
+            jobPropertyRepository.delete(new JobPropertyEntity().setJobId(jobId).setKey(key));
+        } else {
+            jobPropertyRepository.save(
+                    new JobPropertyEntity().setJobId(jobId).setKey(key).setValue(value));
+        }
     }
 
     @Transactional(readOnly = true)
     public Map<JobPropertyKey, String> getProperties(final int jobId) {
         return jobPropertyRepository.findAllByJobId(jobId).stream()
+                .filter(property -> StringUtils.isNotBlank(property.getValue()))
                 .collect(Collectors.toMap(JobPropertyEntity::getKey, JobPropertyEntity::getValue));
     }
 
@@ -217,7 +222,7 @@ public class JobDataService {
 
     @Transactional
     public void saveProperties(final int jobId, final Map<JobPropertyKey, String> properties) {
-        jobPropertyRepository.saveAll(
+        final var entities =
                 properties.entrySet().stream()
                         .map(
                                 entry ->
@@ -225,7 +230,17 @@ public class JobDataService {
                                                 .setJobId(jobId)
                                                 .setKey(entry.getKey())
                                                 .setValue(entry.getValue()))
+                        .toList();
+
+        // Save all where value is set
+        jobPropertyRepository.saveAll(
+                entities.stream()
+                        .filter(entry -> StringUtils.isNotBlank(entry.getValue()))
                         .toList());
+
+        // Delete all where value is unset
+        jobPropertyRepository.deleteAll(
+                entities.stream().filter(entry -> StringUtils.isBlank(entry.getValue())).toList());
     }
 
     @Transactional(readOnly = true)
