@@ -140,7 +140,7 @@ public class JobService {
 
     public List<JobProperty> updateJobProperties(
             final int id, final Map<JobPropertyKey, String> updatedValues) {
-        updatedValues.forEach((key, value) -> jobDataService.saveProperty(id, key, value));
+        jobDataService.saveProperties(id, updatedValues);
         return getJobProperties(id);
     }
 }

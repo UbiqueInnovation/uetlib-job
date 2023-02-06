@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
             "https://status-dev.systems.ubique.ch",
             "http://localhost:3000"
         },
-        allowedHeaders = {"Authorization"})
+        allowedHeaders = {"Authorization", "Content-Type"})
 public class BackendLibJobStatusController {
 
     private final JobService jobService;
