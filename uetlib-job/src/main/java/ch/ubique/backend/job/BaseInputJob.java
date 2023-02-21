@@ -13,8 +13,8 @@ import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationContext;
 import org.springframework.retry.support.RetryTemplate;
@@ -131,7 +131,13 @@ public abstract class BaseInputJob<T> extends BaseJob {
         final var latestInputs = jobDataService.findJobRunInputs(latestJobRun.get().getId());
         final var latestInputsByName =
                 latestInputs.stream()
-                        .collect(Collectors.toMap(JobRunInput::getName, Function.identity()));
+                        .collect(Collectors.groupingBy(JobRunInput::getName))
+                        .entrySet()
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Entry::getKey,
+                                        e -> e.getValue().stream().findAny().orElseThrow()));
 
         final var latestInputNames = latestInputsByName.keySet();
         final var currentInputNames =
