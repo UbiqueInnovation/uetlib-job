@@ -11,31 +11,35 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 @Service
-public class JobRunStateCheck implements StatusCheck {
+public class JobUnfinishedStateCheck implements StatusCheck {
 
     private final JobDataService jobDataService;
 
-    public JobRunStateCheck(final JobDataService jobDataService) {
+    public JobUnfinishedStateCheck(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
     }
 
     @Override
     public CheckStatus check() {
-        final var jobsWithError =
-                jobDataService.findJobs().stream().filter(this::hasError).map(Job::clazz).toList();
+        final var unfinishedJobs =
+                jobDataService.findJobs().stream()
+                        .filter(this::isUnfinished)
+                        .map(Job::clazz)
+                        .toList();
 
-        if (!jobsWithError.isEmpty()) {
-            return new CheckFailed("Some jobs have errors", Map.of("jobsWithError", jobsWithError));
+        if (!unfinishedJobs.isEmpty()) {
+            return new CheckFailed(
+                    "Some jobs have errors", Map.of("unfinishedJobs", unfinishedJobs));
         }
 
         return CheckStatus.CHECK_PASSED;
     }
 
     @NotNull
-    private Boolean hasError(final Job job) {
+    private Boolean isUnfinished(final Job job) {
         return jobDataService
                 .findLatestJobRun(job.id())
-                .map(run -> run.getState() == JobRunState.ERROR)
+                .map(run -> run.getState() == JobRunState.UNFINISHED)
                 .orElse(false);
     }
 }
