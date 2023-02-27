@@ -1,6 +1,7 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.cleanup.CleanupJob;
 import ch.ubique.backend.job.scheduler.JobScheduler;
 import ch.ubique.backend.job.service.JobCreator;
 
@@ -114,9 +115,17 @@ public class JobApplication {
         for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
             //noinspection unchecked
             final var jobClass = (Class<? extends BaseJob>) cls;
-            final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClass);
-            final var properties = job.properties();
-            logger.info("Registered {}. Properties = {}", jobClass, properties);
+            registerJob(context, jobClass);
         }
+        registerJob(context, CleanupJob.class);
+    }
+
+    private static void registerJob(
+            ConfigurableApplicationContext context, Class<? extends BaseJob> jobClass)
+            throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+                    IllegalAccessException {
+        final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClass);
+        final var properties = job.properties();
+        logger.info("Registered {}. Properties = {}", jobClass, properties);
     }
 }
