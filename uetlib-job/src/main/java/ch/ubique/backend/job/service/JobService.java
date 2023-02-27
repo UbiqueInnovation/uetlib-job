@@ -5,22 +5,15 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.client.JobInfosContainer;
+import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
-import ch.ubique.backend.job.model.client.JobProperty;
-import ch.ubique.backend.job.model.client.JobRunInfo;
-import ch.ubique.backend.job.model.client.JobRunInfoContainer;
-import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.scheduler.JobScheduler;
+import org.springframework.stereotype.Service;
+
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.stereotype.Service;
 
 @Service
 public class JobService {
@@ -97,6 +90,16 @@ public class JobService {
                                 ResourceNotFoundException.throwWithMessage(
                                         "No Job with id {0} found", jobId));
         jobScheduler.runNow(job, forceRun);
+    }
+
+    public void startAllJobs(final boolean forceRun)
+            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
+                    InstantiationException, IllegalAccessException {
+
+        final var jobs = jobDataService.findJobs();
+        for (final var job : jobs) {
+            startJob(job.id(), forceRun);
+        }
     }
 
     public JobRunInfoContainer findJobRun(final int jobRunId) {

@@ -181,7 +181,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         final var jobState = runJob(mayUseExternalRunner);
         logger.info("Done. Job state: {}", jobState);
 
-        if (jobState != JobRunState.BUSY) {
+        if (jobState != JobRunState.SCHEDULED) {
             updateJobRunEnd(jobState);
         }
         System.gc();
@@ -205,7 +205,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
             try {
                 externalJobRunner.run(this);
-                return JobRunState.BUSY;
+                return JobRunState.SCHEDULED;
             } catch (final IOException e) {
                 logger.error("Exception running high memory job: ", e);
                 return JobRunState.ERROR;

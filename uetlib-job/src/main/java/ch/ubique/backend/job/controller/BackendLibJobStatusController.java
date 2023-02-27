@@ -8,18 +8,12 @@ import ch.ubique.backend.job.model.client.JobProperty;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.service.JobService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/v1/status")
@@ -90,5 +84,13 @@ public class BackendLibJobStatusController {
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         jobService.startJob(id, forceRun);
+    }
+
+    @PostMapping("/job/start_all")
+    public void startAllJobs(
+            final @RequestParam(required = false, defaultValue = "false") boolean forceRun)
+            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
+                    InstantiationException, IllegalAccessException {
+        jobService.startAllJobs(forceRun);
     }
 }
