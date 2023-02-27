@@ -3,10 +3,21 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.highmem.JobRunner;
 import ch.ubique.backend.job.highmem.KubernetesJobRunner;
-import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobPropertyKey;
+import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunnerKey;
 import io.kubernetes.client.openapi.ApiException;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.time.Instant;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -17,14 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.context.ApplicationContext;
-
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
 
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
