@@ -7,5 +7,6 @@ public enum JobRunState {
     ERROR,
     UNFINISHED,
     NONE,
-    SKIPPED
+    SKIPPED,
+    SCHEDULED,
 }
