@@ -29,7 +29,7 @@ public class JobUnfinishedStateCheck implements StatusCheck {
 
         if (!unfinishedJobs.isEmpty()) {
             return new CheckFailed(
-                    "Some jobs have errors", Map.of("unfinishedJobs", unfinishedJobs));
+                    "Some jobs are unfinished", Map.of("unfinishedJobs", unfinishedJobs));
         }
 
         return CheckStatus.CHECK_PASSED;
