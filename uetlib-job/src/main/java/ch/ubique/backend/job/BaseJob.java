@@ -181,9 +181,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         final var jobState = runJob(mayUseExternalRunner);
         logger.info("Done. Job state: {}", jobState);
 
-        if (jobState != JobRunState.SCHEDULED) {
-            updateJobRunEnd(jobState);
-        }
+        updateJobRunScheduledOrEnd(jobState);
+
         System.gc();
         tearDownLog();
     }
@@ -254,9 +253,11 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         jobRun.setId(jobDataService.saveJobRun(jobRun).getId());
     }
 
-    private void updateJobRunEnd(final JobRunState finalState) {
-        jobRun.setState(finalState);
-        jobRun.setFinishedAt(Instant.now());
+    private void updateJobRunScheduledOrEnd(final JobRunState state) {
+        jobRun.setState(state);
+        if (state != JobRunState.SCHEDULED) {
+            jobRun.setFinishedAt(Instant.now());
+        }
         jobDataService.saveJobRun(jobRun);
     }
 
