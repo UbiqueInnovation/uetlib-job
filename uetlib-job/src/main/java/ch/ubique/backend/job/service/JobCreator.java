@@ -26,7 +26,7 @@ public final class JobCreator {
         this.applicationContext = applicationContext;
     }
 
-    private Class<BaseJob> getClassForName(String clazz) throws ClassNotFoundException {
+    private Class<BaseJob> getClassForName(final String clazz) throws ClassNotFoundException {
         final var classLoader = Objects.requireNonNull(applicationContext.getClassLoader());
         //noinspection unchecked
         return (Class<BaseJob>) classLoader.loadClass(clazz);
@@ -39,7 +39,7 @@ public final class JobCreator {
         return createNewJobInstance(jobClass);
     }
 
-    public BaseJob createNewJobInstance(Job job)
+    public BaseJob createNewJobInstance(final Job job)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         return createNewJobInstance(job.clazzName());
@@ -56,7 +56,7 @@ public final class JobCreator {
         return jobClass.getConstructor(parameterTypes).newInstance(jobConstructorParameters);
     }
 
-    private Constructor<?> getConstructor(Class<? extends BaseJob> jobClass) {
+    private Constructor<?> getConstructor(final Class<? extends BaseJob> jobClass) {
         final var constructors = jobClass.getConstructors();
         if (constructors.length == 1) {
             // @JobAutowireConstructor annotation is not needed if there is only one constructor
@@ -70,14 +70,14 @@ public final class JobCreator {
                             throw new NoSuchElementException(
                                     MessageFormat.format(
                                             "Either declare a single, default, public constructor"
-                                                    + " or annotate one with annotation ''@{0}''",
+                                                    + " or annotate one with annotation ''@{0}'' for job ''{1}''",
                                             JobAutowireConstructor.class.getCanonicalName(),
                                             jobClass.getCanonicalName()));
                         });
     }
 
     @NotNull
-    private Object getBeanForParameter(Parameter p) {
+    private Object getBeanForParameter(final Parameter p) {
         final var qualifierAnnotations = p.getDeclaredAnnotationsByType(Qualifier.class);
         if (qualifierAnnotations.length > 0) {
             // in case there is a qualifier specified, get bean by qualifier (no fallback)
@@ -94,17 +94,17 @@ public final class JobCreator {
             // in case there are multiple beans for the same class try
             // getting bean by class and name first
             return applicationContext.getBean(p.getName(), p.getType());
-        } catch (BeansException e1) {
+        } catch (final BeansException e1) {
             try {
                 // don't enforce name matching if there is only one bean of
                 // the requested class
                 return applicationContext.getBean(p.getType());
-            } catch (BeansException e2) {
+            } catch (final BeansException e2) {
                 // Features such as AOP may "enhance" the registered bean instances,
                 // such that the type is now different to the original type.
                 // Thus getting the bean by type will fail.
                 // E.g. com.example.MyBean may become com.example.MyBean$$EnhancerBySpringCGLIB
-                //      but the name if not explicitly modified is myBean in both cases
+                //      but the name, if not explicitly modified, is myBean in both cases
                 return applicationContext.getBean(p.getName());
             }
         }
