@@ -13,12 +13,6 @@
     <packaging>jar</packaging>
 
     <dependencies>
-        <!-- Core -->
-        <dependency>
-            <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>backend-jvm-lib-storage</artifactId>
