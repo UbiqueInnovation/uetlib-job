@@ -1,12 +1,18 @@
 package ch.ubique.backend.job.scheduler;
 
 import ch.ubique.backend.job.BaseJob;
-import org.quartz.*;
+import java.util.Objects;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.Job;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class SchedulerService {
@@ -16,6 +22,10 @@ public class SchedulerService {
 
     public SchedulerService(final Scheduler scheduler) {
         this.scheduler = scheduler;
+    }
+
+    private static JobDetail createJobDetail(final JobKey key, final Job job) {
+        return JobBuilder.newJob(job.getClass()).withIdentity(key).build();
     }
 
     public void scheduleJob(final String identifier, final Job job, final String cronExpression) {
@@ -32,7 +42,7 @@ public class SchedulerService {
 
             scheduler.scheduleJob(jobDetail, trigger);
 
-        } catch (SchedulerException e) {
+        } catch (final SchedulerException e) {
             logger.error("Could not schedule job for: " + identifier, e);
         }
     }
@@ -54,7 +64,7 @@ public class SchedulerService {
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                             .build();
             scheduler.scheduleJob(jobDetail, trigger);
-        } catch (SchedulerException e) {
+        } catch (final SchedulerException e) {
             logger.error("Could not update job for: " + identifier, e);
         }
     }
@@ -64,12 +74,12 @@ public class SchedulerService {
             logger.info("Removing scheduled job {}", identifier);
             final var key = new JobKey(identifier);
 
-            var triggers = scheduler.getTriggersOfJob(key);
+            final var triggers = scheduler.getTriggersOfJob(key);
 
-            for (var trigger : triggers) {
+            for (final var trigger : triggers) {
                 scheduler.unscheduleJob(trigger.getKey());
             }
-        } catch (SchedulerException e) {
+        } catch (final SchedulerException e) {
             logger.error("Could not remove job {}", identifier, e);
         }
     }
@@ -86,18 +96,14 @@ public class SchedulerService {
             jobDetail.getJobDataMap().put("forceRun", forceRun);
             final var trigger = TriggerBuilder.newTrigger().startNow().build();
             scheduler.scheduleJob(jobDetail, trigger);
-        } catch (SchedulerException e) {
+        } catch (final SchedulerException e) {
             logger.error(
                     "Could not schedule job {} now. forceRun: {}", manualIdentifier, forceRun, e);
         }
     }
 
-    private static JobDetail createJobDetail(final JobKey key, final Job job) {
-        return JobBuilder.newJob(job.getClass()).withIdentity(key).build();
-    }
-
-    private JobDetail getOrCreateJobDetail(JobKey key, Job job) throws SchedulerException {
-        return Optional.ofNullable(scheduler.getJobDetail(key))
-                .orElseGet(() -> createJobDetail(key, job));
+    private JobDetail getOrCreateJobDetail(final JobKey key, final Job job) throws SchedulerException {
+        return Objects.requireNonNullElseGet(
+                scheduler.getJobDetail(key), () -> createJobDetail(key, job));
     }
 }
