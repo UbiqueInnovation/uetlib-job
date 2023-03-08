@@ -2,7 +2,7 @@ package ch.ubique.backend.job.model;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.Objects;
 
 public interface JobRun {
 
@@ -31,7 +31,7 @@ public interface JobRun {
     void setId(Integer id);
 
     default Duration runDuration() {
-        final var end = Optional.ofNullable(getFinishedAt()).orElse(Instant.now());
+        final var end = Objects.requireNonNullElse(getFinishedAt(), Instant.now());
         return Duration.between(getStartedAt(), end);
     }
 }
