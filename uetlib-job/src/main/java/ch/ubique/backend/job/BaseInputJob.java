@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunWithInputs;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.job.utils.DefaultRetryListener;
@@ -18,6 +19,7 @@ import org.springframework.retry.support.RetryTemplate;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -31,16 +33,70 @@ public abstract class BaseInputJob<T> extends BaseJob {
         jobRunStorage = context.getBean(JobRunStorage.class);
     }
 
+    /**
+     * Overriding this method allows skipping a run before {@link BaseInputJob#loadInputs()} is
+     * called.
+     *
+     * @param latestSuccessfulRun non-null info about the last successful run.
+     */
+    protected boolean hasNewInputs(@NotNull JobRunWithInputs latestSuccessfulRun) {
+        return true;
+    }
+
+    /**
+     * This method should be used to fetch data from all needed input sources.
+     *
+     * @return the data you want to pass to the {@link BaseInputJob#processInputs} method.
+     * @throws Exception if anything goes wrong, the job will stop and report an error.
+     */
     protected abstract DataAndInput<T> loadInputs() throws Exception;
 
+    /**
+     * This method is called once the data is loaded and can be used to consume the input data.
+     *
+     * @param data the data returned by {@link BaseInputJob#loadInputs()}
+     * @throws Exception if anything goes wrong, the job will stop and report an error.
+     */
     protected abstract JobRunState processInputs(T data) throws Exception;
 
+    /**
+     * Per default, input files are uploaded to the {@link JobRunStorage}. By overwriting this
+     * method, you can disable this feature.
+     */
     protected boolean isInputFileUploadEnabled() {
         return true;
     }
 
     @Override
     protected final JobRunState internalRun() throws Exception {
+
+        var allowSkipping = true;
+
+        if (isForceRunEnabled()) {
+            logger.info("Force run.");
+            allowSkipping = false;
+        }
+
+        if (isJobVersionDifferent()) {
+            logger.info("The job version differs from the job version of the previous run.");
+            allowSkipping = false;
+        }
+
+        final var maybeLatestSuccessfulRun = latestSuccessfulRun();
+        if (maybeLatestSuccessfulRun.isEmpty()) {
+            logger.info("No successful runs so far.");
+            allowSkipping = false;
+        }
+
+        if (!allowSkipping) {
+            logger.info("Job can not be skipped.");
+        }
+
+        if (allowSkipping && !hasNewInputs(maybeLatestSuccessfulRun.get())) {
+            logger.info("hasNewInputs() returned false. Stopping job run.");
+            return JobRunState.SKIPPED;
+        }
+
         // Load Inputs
         final var dataMaybe = tryLoadingInputs();
         if (dataMaybe.isEmpty()) {
@@ -50,11 +106,7 @@ public abstract class BaseInputJob<T> extends BaseJob {
 
         // Check for changes
         final var data = dataMaybe.get();
-        if (isJobVersionDifferent()) {
-            logger.info("The job version differs from the job version of the previous run.");
-        } else if (isForceRunEnabled()) {
-            logger.info("Forced run. Running even if inputs did not change.");
-        } else if (areInputsEqual(data.inputFiles())) {
+        if (allowSkipping && areInputsEqual(data.inputFiles())) {
             logger.info("The inputs did not change. Stopping job run.");
             return JobRunState.SKIPPED;
         }
@@ -115,8 +167,8 @@ public abstract class BaseInputJob<T> extends BaseJob {
     }
 
     private boolean isJobVersionDifferent() {
-        final var lastRun = jobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
-        return lastRun.isEmpty() || version() != lastRun.get().getJobVersion();
+        final var lastRun = latestSuccessfulRun();
+        return lastRun.isEmpty() || version() != lastRun.get().jobVersion();
     }
 
     private boolean areInputsEqual(final Collection<ByteFile> currentInputs) {
@@ -128,15 +180,14 @@ public abstract class BaseInputJob<T> extends BaseJob {
         }
 
         // Get inputs of the latest successful run
-        final var latestJobRun = jobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
+        final var latestJobRun = latestSuccessfulRun();
         if (latestJobRun.isEmpty()) {
             logger.info("No previous job run found => Inputs differ");
             return false;
         }
 
-        final var latestInputs = jobDataService.findJobRunInputs(latestJobRun.get().getId());
-        final var latestInputsByName =
-                latestInputs.stream()
+        final Map<String, JobRunInput> latestInputsByName =
+                latestJobRun.get().inputs().stream()
                         .collect(
                                 Collectors.toMap(
                                         JobRunInput::getName,
@@ -170,5 +221,20 @@ public abstract class BaseInputJob<T> extends BaseJob {
                             }
                             return true;
                         });
+    }
+
+    private Optional<JobRunWithInputs> latestSuccessfulRun() {
+        return jobDataService
+                .findLatestJobRunByState(job.id(), JobRunState.DONE)
+                .map(
+                        run ->
+                                new JobRunWithInputs(
+                                        run.getId(),
+                                        run.getJobVersion(),
+                                        run.getState(),
+                                        run.getStartedAt(),
+                                        run.getStartedAt(),
+                                        jobDataService.findJobRunInputs(run.getId()).stream()
+                                                .collect(Collectors.toUnmodifiableSet())));
     }
 }
