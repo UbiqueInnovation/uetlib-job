@@ -6,9 +6,12 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
+
 import jakarta.validation.constraints.NotNull;
-import java.util.Map;
+
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 @Service
 public class JobErrorStateCheck implements StatusCheck {
@@ -34,7 +37,7 @@ public class JobErrorStateCheck implements StatusCheck {
     @NotNull
     private Boolean hasError(final Job job) {
         return jobDataService
-                .findLatestJobRun(job.id())
+                .findLatestJobRunByStates(job.id(), JobRunState.allExceptRunning())
                 .map(run -> run.getState() == JobRunState.ERROR)
                 .orElse(false);
     }
