@@ -17,19 +17,22 @@ import ch.ubique.backend.job.model.entity.JobPropertyEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.model.entity.LoggingEventEntity;
+
 import jakarta.annotation.PostConstruct;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class JobDataService {
@@ -81,12 +84,12 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<Job> findJobByClazz(String clazz) {
+    public Optional<Job> findJobByClazz(final String clazz) {
         return jobRepository.findByClazz(clazz).map(JobEntity::toJob);
     }
 
     @Transactional(readOnly = true)
-    public Optional<Job> findJobById(int id) {
+    public Optional<Job> findJobById(final int id) {
         return jobRepository.findById(id).map(JobEntity::toJob);
     }
 
@@ -109,11 +112,11 @@ public class JobDataService {
         return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
     }
 
-    public Optional<JobRun> findLatestJobRunByState(int jobId, JobRunState state) {
+    public Optional<JobRun> findLatestJobRunByState(final int jobId, final JobRunState state) {
         return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
     }
 
-    public Optional<JobRun> findLatestJobRunByStates(int jobId, JobRunState... states) {
+    public Optional<JobRun> findLatestJobRunByStates(final int jobId, final JobRunState... states) {
         return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(
                 jobId, List.of(states));
     }
@@ -172,12 +175,12 @@ public class JobDataService {
     }
 
     @Transactional
-    public void delete(Job job) {
+    public void delete(final Job job) {
         jobRepository.delete(JobEntity.fromJob(job));
     }
 
     @Transactional
-    public void insertJobRunInput(JobRunInput jobRunInput) {
+    public void insertJobRunInput(final JobRunInput jobRunInput) {
         if (!(jobRunInput instanceof JobRunInputEntity jobRunInputEntity)) {
             throw new ClassCastException(
                     "jobRun cannot be instance of class to JobRunInputEntity, but is of class"
@@ -187,7 +190,7 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Collection<JobRunInput> findJobRunInputs(int runId) {
+    public Collection<JobRunInput> findJobRunInputs(final int runId) {
         return jobRunInputRepository.findAllByRunId(runId);
     }
 

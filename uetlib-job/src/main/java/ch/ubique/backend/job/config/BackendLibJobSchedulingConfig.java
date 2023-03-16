@@ -1,10 +1,12 @@
 package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.monitoring.service.MonitoringService;
-import java.util.concurrent.TimeUnit;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableScheduling

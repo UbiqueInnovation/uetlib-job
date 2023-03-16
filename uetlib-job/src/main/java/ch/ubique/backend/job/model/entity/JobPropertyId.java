@@ -1,9 +1,11 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobPropertyKey;
-import java.io.Serializable;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import java.io.Serializable;
 
 public class JobPropertyId implements Serializable {
 

@@ -8,6 +8,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.scheduler.JobScheduler;
+
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.InvocationTargetException;

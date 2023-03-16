@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobPropertyKey;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

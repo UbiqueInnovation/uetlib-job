@@ -2,8 +2,11 @@ package ch.ubique.backend.job.model.client;
 
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.model.Job;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 import java.util.Map;
 

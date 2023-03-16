@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.scheduler;
 
 import ch.ubique.backend.job.BaseJob;
-import java.util.Objects;
+
 import org.quartz.CronScheduleBuilder;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -13,6 +13,8 @@ import org.quartz.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 @Service
 public class SchedulerService {
