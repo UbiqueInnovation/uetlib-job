@@ -1,7 +1,9 @@
 package ch.ubique.backend.job.model.client;
 
 import ch.ubique.backend.job.model.JobRun;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

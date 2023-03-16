@@ -2,6 +2,7 @@ package ch.ubique.backend.job.highmem;
 
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.model.JobPropertyKey;
+
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
@@ -18,6 +19,14 @@ import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.util.Config;
 import io.kubernetes.client.util.Namespaces;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -25,12 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
 
 @Service
 public class KubernetesJobRunner implements JobRunner {

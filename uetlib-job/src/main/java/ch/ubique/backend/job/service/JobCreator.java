@@ -3,7 +3,15 @@ package ch.ubique.backend.job.service;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.scheduler.JobAutowireConstructor;
+
 import jakarta.validation.constraints.NotNull;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Parameter;
@@ -11,11 +19,6 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
 
 @Service
 public final class JobCreator {

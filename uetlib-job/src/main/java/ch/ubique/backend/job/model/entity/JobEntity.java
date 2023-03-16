@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.Job;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +23,14 @@ public class JobEntity {
 
     @Column(name = "cron_expression", length = 20)
     private String cronExpression;
+
+    public static JobEntity fromJob(Job job) {
+        final var jobEntity = new JobEntity();
+        jobEntity.id = job.id();
+        jobEntity.clazz = job.clazzName();
+        jobEntity.cronExpression = job.databaseCronExpression();
+        return jobEntity;
+    }
 
     public Integer getId() {
         return id;
@@ -49,13 +58,5 @@ public class JobEntity {
 
     public Job toJob() {
         return new Job(id, clazz, cronExpression);
-    }
-
-    public static JobEntity fromJob(Job job) {
-        final var jobEntity = new JobEntity();
-        jobEntity.id = job.id();
-        jobEntity.clazz = job.clazzName();
-        jobEntity.cronExpression = job.databaseCronExpression();
-        return jobEntity;
     }
 }

@@ -2,7 +2,7 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.scheduler.JobScheduler;
 import ch.ubique.backend.job.service.JobCreator;
-import java.lang.reflect.InvocationTargetException;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -15,11 +15,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.lang.reflect.InvocationTargetException;
+
 public class JobApplication {
 
-    private JobApplication() {}
-
     private static final Logger logger = LoggerFactory.getLogger(JobApplication.class);
+
+    private JobApplication() {}
 
     public static void run(Class<?> applicationClass, String[] args) {
 

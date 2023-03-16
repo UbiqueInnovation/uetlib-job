@@ -9,15 +9,18 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.job.utils.DefaultRetryListenerSupport;
+
 import jakarta.validation.constraints.NotNull;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.retry.support.RetryTemplate;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.context.ApplicationContext;
-import org.springframework.retry.support.RetryTemplate;
 
 public abstract class BaseInputJob<T> extends BaseJob {
 

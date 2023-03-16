@@ -2,6 +2,7 @@ package ch.ubique.backend.job.model.entity;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.LoggingEvent;
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -13,11 +14,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
 
 @Table(name = "logging_event")
 @Entity

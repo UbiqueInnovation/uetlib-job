@@ -7,11 +7,14 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
+
 import jakarta.validation.constraints.NotNull;
+
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.stereotype.Service;
 
 @Service
 public class JobTimeoutCheck implements StatusCheck {

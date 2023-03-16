@@ -2,6 +2,7 @@ package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.BaseJob;
+
 import com.pivovarit.function.exception.WrappedException;
 
 public record Job(Integer id, String clazzName, String databaseCronExpression) {

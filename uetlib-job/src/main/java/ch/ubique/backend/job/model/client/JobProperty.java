@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.client;
 
 import ch.ubique.backend.job.model.JobPropertyKey;
+
 import java.util.Set;
 
 public record JobProperty(

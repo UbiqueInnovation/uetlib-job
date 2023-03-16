@@ -73,6 +73,12 @@ public enum JobPropertyKey {
         this.unit = unit;
     }
 
+    public static Map<JobPropertyKey, String> defaultProperties() {
+        return Arrays.stream(JobPropertyKey.values())
+                .filter(key -> key.getDefaultValue() != null)
+                .collect(Collectors.toMap(Function.identity(), JobPropertyKey::getDefaultValue));
+    }
+
     public Class<?> getType() {
         return type;
     }
@@ -95,11 +101,5 @@ public enum JobPropertyKey {
 
     public String getDescription() {
         return description;
-    }
-
-    public static Map<JobPropertyKey, String> defaultProperties() {
-        return Arrays.stream(JobPropertyKey.values())
-                .filter(key -> key.getDefaultValue() != null)
-                .collect(Collectors.toMap(Function.identity(), JobPropertyKey::getDefaultValue));
     }
 }
