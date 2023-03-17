@@ -15,7 +15,9 @@ public class DefaultRetryListenerSupport extends RetryListenerSupport {
 
     @Override
     public <T, E extends Throwable> void onError(
-            RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+            final RetryContext context,
+            final RetryCallback<T, E> callback,
+            final Throwable throwable) {
         logger.warn("Got error while trying.", throwable);
         super.onError(context, callback, throwable);
     }

@@ -85,7 +85,7 @@ public abstract class BaseInputJob<T> extends BaseJob {
                         logger.info("Successfully loaded data.");
                         return Optional.of(inputs);
                     });
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.warn("Loading data failed", e);
             return Optional.empty();
         }
@@ -98,18 +98,18 @@ public abstract class BaseInputJob<T> extends BaseJob {
         }
     }
 
-    private void uploadInputFiles(Collection<ByteFile> inputFiles) throws IOException {
+    private void uploadInputFiles(final Collection<ByteFile> inputFiles) throws IOException {
         if (!isInputFileUploadEnabled()) {
             return;
         }
 
-        for (var file : inputFiles) {
+        for (final var file : inputFiles) {
             logger.info("Saving job run input file {}.", file.getFileName());
             saveJobRunInput(file, job, jobRun);
         }
     }
 
-    private void saveJobRunInput(ByteFile file, Job job, JobRun jobRun) throws IOException {
+    private void saveJobRunInput(final ByteFile file, final Job job, final JobRun jobRun) throws IOException {
         final var jobId = String.format("Run_%06d", jobRun.getId());
         final var fileName = file.getFileName() + ".gz";
 

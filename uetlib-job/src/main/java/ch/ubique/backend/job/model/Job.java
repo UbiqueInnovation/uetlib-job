@@ -7,7 +7,7 @@ import com.pivovarit.function.exception.WrappedException;
 
 public record Job(Integer id, String clazzName, String databaseCronExpression) {
 
-    public static Job fromClass(Class<? extends BaseJob> clazz) {
+    public static Job fromClass(final Class<? extends BaseJob> clazz) {
         return new Job(null, clazz.getCanonicalName(), null);
     }
 
@@ -19,7 +19,7 @@ public record Job(Integer id, String clazzName, String databaseCronExpression) {
         try {
             //noinspection unchecked
             return (Class<? extends BaseJob>) Class.forName(clazzName());
-        } catch (ClassNotFoundException | ClassCastException e) {
+        } catch (final ClassNotFoundException | ClassCastException e) {
             throw new WrappedException(e); // Rethrow as runtime exception
         }
     }
