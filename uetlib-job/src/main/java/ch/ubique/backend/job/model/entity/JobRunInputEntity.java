@@ -43,7 +43,7 @@ public class JobRunInputEntity implements JobRunInput {
     }
 
     @Override
-    public void setId(Integer id) {
+    public void setId(final Integer id) {
         this.id = id;
     }
 
@@ -53,7 +53,7 @@ public class JobRunInputEntity implements JobRunInput {
     }
 
     @Override
-    public void setRunId(Integer runId) {
+    public void setRunId(final Integer runId) {
         this.runId = runId;
     }
 
@@ -63,7 +63,7 @@ public class JobRunInputEntity implements JobRunInput {
     }
 
     @Override
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -73,7 +73,7 @@ public class JobRunInputEntity implements JobRunInput {
     }
 
     @Override
-    public void setHash(String hash) {
+    public void setHash(final String hash) {
         this.hash = hash;
     }
 }

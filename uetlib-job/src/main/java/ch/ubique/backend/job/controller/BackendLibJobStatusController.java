@@ -40,58 +40,70 @@ public class BackendLibJobStatusController {
 
     @GetMapping("/jobs")
     public ResponseEntity<JobInfosContainer> jobs()
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         return ResponseEntity.ok(jobService.findJobs());
     }
 
     @GetMapping("/runs")
     public ResponseEntity<JobRunInfosContainer> jobRuns(
-            final @RequestParam(value = "page", required = false, defaultValue = "0") int page,
-            final @RequestParam(value = "jobId", required = false) Integer jobId,
-            final @RequestParam(value = "state", required = false) JobRunState state) {
+            @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
+            @RequestParam(value = "jobId", required = false) final Integer jobId,
+            @RequestParam(value = "state", required = false) final JobRunState state) {
         return ResponseEntity.ok(jobService.findJobRuns(page, jobId, state));
     }
 
     @GetMapping("/run/{jobRunId}")
-    public ResponseEntity<JobRunInfoContainer> jobRun(final @PathVariable int jobRunId) {
+    public ResponseEntity<JobRunInfoContainer> jobRun(@PathVariable final int jobRunId) {
         return ResponseEntity.ok(jobService.findJobRun(jobRunId));
     }
 
     @PostMapping("/job/{id}/update")
-    public JobInfo updateJob(final @PathVariable int id, final @RequestParam String cronExpression)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+    public JobInfo updateJob(@PathVariable final int id, @RequestParam final String cronExpression)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         jobService.updateCronExpression(id, cronExpression);
         return jobService.findJobById(id);
     }
 
     @GetMapping("/job/{id}/properties")
-    public List<JobProperty> getProperties(final @PathVariable int id) {
+    public List<JobProperty> getProperties(@PathVariable final int id) {
         return jobService.getJobProperties(id);
     }
 
     @PostMapping("/job/{id}/properties")
     public List<JobProperty> updateProperties(
-            final @PathVariable int id,
-            final @RequestBody Map<JobPropertyKey, String> updatedValues) {
+            @PathVariable final int id,
+            @RequestBody final Map<JobPropertyKey, String> updatedValues) {
         return jobService.updateJobProperties(id, updatedValues);
     }
 
     @PostMapping("/job/{id}/start")
     public void startJob(
-            final @PathVariable int id,
-            final @RequestParam(required = false, defaultValue = "false") boolean forceRun)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            @PathVariable final int id,
+            @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         jobService.startJob(id, forceRun);
     }
 
     @PostMapping("/job/start_all")
     public void startAllJobs(
-            final @RequestParam(required = false, defaultValue = "false") boolean forceRun)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         jobService.startAllJobs(forceRun);
     }
 }

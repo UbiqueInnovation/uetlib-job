@@ -89,7 +89,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     public static boolean isCronExpressionValid(final String cronExpression) {
         return StringUtils.isBlank(cronExpression)
-                || CronExpression.isValidExpression(cronExpression);
+               || CronExpression.isValidExpression(cronExpression);
     }
 
     /**
@@ -177,7 +177,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         run(true);
     }
 
-    public final void run(boolean mayUseExternalRunner) {
+    public final void run(final boolean mayUseExternalRunner) {
         updateJobRunStart();
         setupLog();
         logger.info("Running Job {}", getClass().getSimpleName());
@@ -191,7 +191,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         tearDownLog();
     }
 
-    public final JobRunState runJob(boolean mayUseExternalRunner) {
+    public final JobRunState runJob(final boolean mayUseExternalRunner) {
         final var runnerKey =
                 JobRunnerKey.parseString(
                         properties()
@@ -223,18 +223,18 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
         try {
             return internalRun();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             logger.warn("Thread interrupted", e);
             Thread.currentThread().interrupt();
             return JobRunState.ERROR;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger.error("Exception running job: ", e);
             return JobRunState.ERROR;
         }
     }
 
     @Override
-    public final void execute(JobExecutionContext jobExecutionContext) {
+    public final void execute(final JobExecutionContext jobExecutionContext) {
         jobDataMap = jobExecutionContext.getJobDetail().getJobDataMap();
         run();
     }

@@ -14,7 +14,7 @@ public record JobProperty(
         String unit,
         String value) {
 
-    public JobProperty(JobPropertyKey key, String value) {
+    public JobProperty(final JobPropertyKey key, final String value) {
         this(
                 key,
                 key.getType().getName(),

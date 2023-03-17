@@ -85,7 +85,7 @@ public class JobRunEntity implements JobRun {
     }
 
     @Override
-    public void setJobVersion(Integer jobVersion) {
+    public void setJobVersion(final Integer jobVersion) {
         this.jobVersion = jobVersion;
     }
 

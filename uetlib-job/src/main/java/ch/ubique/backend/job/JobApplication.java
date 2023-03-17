@@ -23,7 +23,7 @@ public class JobApplication {
 
     private JobApplication() {}
 
-    public static void run(Class<?> applicationClass, String[] args) {
+    public static void run(final Class<?> applicationClass, final String[] args) {
 
         try {
             runJobOrStartScheduler(applicationClass, args);
@@ -36,9 +36,12 @@ public class JobApplication {
         }
     }
 
-    private static void runJobOrStartScheduler(Class<?> applicationClass, final String[] args)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+    private static void runJobOrStartScheduler(final Class<?> applicationClass, final String[] args)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
 
         logger.info("{} started with args {}", applicationClass, args);
 
@@ -100,7 +103,9 @@ public class JobApplication {
 
     private static void registerJobs(
             final Class<?> applicationClass, final ConfigurableApplicationContext context)
-            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+            throws InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
                     IllegalAccessException {
 
         final var reflections = new Reflections(applicationClass.getPackage().getName());

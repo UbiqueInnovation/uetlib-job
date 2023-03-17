@@ -45,7 +45,7 @@ public class SchedulerService {
             scheduler.scheduleJob(jobDetail, trigger);
 
         } catch (final SchedulerException e) {
-            logger.error("Could not schedule job for: " + identifier, e);
+            logger.error("Could not schedule job for: {}", identifier, e);
         }
     }
 
@@ -67,7 +67,7 @@ public class SchedulerService {
                             .build();
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (final SchedulerException e) {
-            logger.error("Could not update job for: " + identifier, e);
+            logger.error("Could not update job for: {}", identifier, e);
         }
     }
 
@@ -104,7 +104,8 @@ public class SchedulerService {
         }
     }
 
-    private JobDetail getOrCreateJobDetail(final JobKey key, final Job job) throws SchedulerException {
+    private JobDetail getOrCreateJobDetail(final JobKey key, final Job job)
+            throws SchedulerException {
         return Objects.requireNonNullElseGet(
                 scheduler.getJobDetail(key), () -> createJobDetail(key, job));
     }

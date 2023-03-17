@@ -43,7 +43,7 @@ public final class JobScheduler {
                     final var id = job.clazzName() + "_on_startup";
                     schedulerService.runJobNowManual(id, instance, false);
                 }
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 logger.warn(
                         "Could not find class for {}. Removing database entry.", job.clazzName());
                 jobDataService.delete(job);
@@ -63,7 +63,7 @@ public final class JobScheduler {
         schedulerService.updateJob(job.clazzName(), instance);
     }
 
-    public void runNow(final Job job, boolean forceRun)
+    public void runNow(final Job job, final boolean forceRun)
             throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
                     InstantiationException, IllegalAccessException {
         schedulerService.runJobNowManual(

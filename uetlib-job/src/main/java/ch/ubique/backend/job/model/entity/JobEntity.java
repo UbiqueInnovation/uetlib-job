@@ -24,7 +24,7 @@ public class JobEntity {
     @Column(name = "cron_expression", length = 20)
     private String cronExpression;
 
-    public static JobEntity fromJob(Job job) {
+    public static JobEntity fromJob(final Job job) {
         final var jobEntity = new JobEntity();
         jobEntity.id = job.id();
         jobEntity.clazz = job.clazzName();
@@ -36,7 +36,7 @@ public class JobEntity {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(final Integer id) {
         this.id = id;
     }
 
@@ -44,7 +44,7 @@ public class JobEntity {
         return clazz;
     }
 
-    public void setClazz(String clazz) {
+    public void setClazz(final String clazz) {
         this.clazz = clazz;
     }
 
@@ -52,7 +52,7 @@ public class JobEntity {
         return cronExpression;
     }
 
-    public void setCronExpression(String cronExpression) {
+    public void setCronExpression(final String cronExpression) {
         this.cronExpression = cronExpression;
     }
 

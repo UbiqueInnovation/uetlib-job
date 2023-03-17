@@ -186,7 +186,7 @@ public class KubernetesJobRunner implements JobRunner {
     private Optional<String> getCurrentKubernetesNamespace() {
         try {
             return Optional.of(Namespaces.getPodNamespace());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return Optional.ofNullable(System.getenv("K8S_NAMESPACE"));
         }
     }
