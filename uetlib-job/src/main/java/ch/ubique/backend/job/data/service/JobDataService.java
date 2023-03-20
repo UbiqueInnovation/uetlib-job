@@ -257,4 +257,9 @@ public class JobDataService {
                 .map(JobPropertyEntity::getValue)
                 .orElse(key.getDefaultValue());
     }
+
+    @Transactional
+    public int cleanupJobRuns(final Integer jobId, final Integer daysToKeep) {
+        return jobRunRepository.deleteByJobIdAndFinishedAt(jobId, daysToKeep);
+    }
 }
