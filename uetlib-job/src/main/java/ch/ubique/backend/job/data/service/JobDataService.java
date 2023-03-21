@@ -258,8 +258,18 @@ public class JobDataService {
                 .orElse(key.getDefaultValue());
     }
 
+    @Transactional(readOnly = true)
+    public List<JobRun> findCleanableRuns(final Integer jobId, final Integer daysToKeep) {
+        // JPA throws inexplicable error when attempting to return JobRun here
+        return jobRunRepository
+                .findAllByJobIdAndFinishedAt(jobId, daysToKeep)
+                .map(JobRun.class::cast)
+                .toList();
+    }
+
     @Transactional
-    public int cleanupJobRuns(final Integer jobId, final Integer daysToKeep) {
-        return jobRunRepository.deleteByJobIdAndFinishedAt(jobId, daysToKeep);
+    public void deleteJobRunByIds(List<Integer> jobRunIdList) {
+        // TODO: Can we use the batch deletion here? How do we re-sync the entity cache? [TOPO-2358]
+        jobRunRepository.deleteAllByIdInBatch(jobRunIdList);
     }
 }
