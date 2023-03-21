@@ -41,7 +41,21 @@ public enum JobPropertyKey {
     K8S_REQUESTS_CPU(String.class, "CPU request for the K8s job."),
     K8S_REQUESTS_MEMORY(String.class, "Memory request for the K8s job."),
     K8S_LIMITS_CPU(String.class, "CPU limit for the K8s job."),
-    K8S_LIMITS_MEMORY(String.class, "Memory limit for the K8s job.");
+    K8S_LIMITS_MEMORY(String.class, "Memory limit for the K8s job."),
+    CLEANUP_DAYS_TO_KEEP(
+            Integer.class,
+            null,
+            String.valueOf(0),
+            false,
+            "Number of days since the most recent DONE job after which job data is cleaned up.",
+            "days"),
+    CLEANUP_CHUNK_SIZE(
+            Integer.class,
+            null,
+            String.valueOf(1000),
+            false,
+            "Maximum number of jobs to clean up within one cleanup job run.",
+            "no. of job runs");
 
     private final Class<?> type;
 
