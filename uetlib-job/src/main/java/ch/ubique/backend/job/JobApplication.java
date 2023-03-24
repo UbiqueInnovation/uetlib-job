@@ -1,6 +1,7 @@
 package ch.ubique.backend.job;
 
-import ch.ubique.backend.job.data.service.JobDataService;import ch.ubique.backend.job.scheduler.JobScheduler;
+import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.scheduler.JobScheduler;
 import ch.ubique.backend.job.service.JobCreator;
 
 import org.apache.commons.cli.CommandLine;
