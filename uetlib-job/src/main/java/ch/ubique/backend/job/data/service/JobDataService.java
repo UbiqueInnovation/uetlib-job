@@ -12,13 +12,12 @@ import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunnerKey;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobPropertyEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.model.entity.LoggingEventEntity;
-
-import jakarta.annotation.PostConstruct;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,8 +43,8 @@ public class JobDataService {
 
     private final LoggingEventRepository loggingEventRepository;
 
-    @Value("${job.startup.cleanUpBusyRuns:true}")
-    private boolean cleanUpBusyRuns;
+    @Value("${job.startup.setBusyRunsToUnfinished:${job.startup.cleanUpBusyRuns:true}}")
+    private boolean setBusyRunsToUnfinished;
 
     public JobDataService(
             final JobRepository jobRepository,
@@ -60,20 +59,25 @@ public class JobDataService {
         this.loggingEventRepository = loggingEventRepository;
     }
 
-    @PostConstruct
     @Transactional
-    public void init() {
-        if (cleanUpBusyRuns) {
-            cleanUpBusyRuns();
+    public void setBusyRunsToUnfinished() {
+        if (!setBusyRunsToUnfinished) {
+            return;
         }
-    }
 
-    @Transactional
-    public void cleanUpBusyRuns() {
         final var now = Instant.now();
         jobRunRepository.saveAllAndFlush(
                 jobRunRepository.findAllByStateAndFinishedAtIsNull(JobRunState.BUSY).stream()
                         .map(JobRunEntity.class::cast)
+                        .filter(
+                                // Only for busy jobs with Runner = CURRENT
+                                jobRun ->
+                                        JobRunnerKey.CURRENT
+                                                .name()
+                                                .equals(
+                                                        getProperty(
+                                                                jobRun.getJobId(),
+                                                                JobPropertyKey.RUNNER)))
                         .map(
                                 jobRun -> {
                                     jobRun.setFinishedAt(now);
