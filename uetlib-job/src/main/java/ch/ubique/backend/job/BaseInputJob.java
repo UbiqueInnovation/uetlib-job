@@ -124,6 +124,11 @@ public abstract class BaseInputJob<T> extends BaseJob {
     private boolean areInputsEqual(final Collection<ByteFile> currentInputs) {
         logger.info("Comparing current inputs to last run");
 
+        if (currentInputs.isEmpty()) {
+            logger.info("Job has no inputs => do not compare inputs");
+            return false;
+        }
+
         // Get inputs of the latest successful run
         final var latestJobRun = jobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
         if (latestJobRun.isEmpty()) {
