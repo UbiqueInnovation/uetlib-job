@@ -1,6 +1,6 @@
 package ch.ubique.backend.job;
 
-import ch.ubique.backend.job.scheduler.JobScheduler;
+import ch.ubique.backend.job.data.service.JobDataService;import ch.ubique.backend.job.scheduler.JobScheduler;
 import ch.ubique.backend.job.service.JobCreator;
 
 import org.apache.commons.cli.CommandLine;
@@ -98,6 +98,7 @@ public class JobApplication {
         } else {
             registerJobs(applicationClass, context);
             context.getBean(JobScheduler.class).scheduleAllRegisteredJobs();
+            context.getBean(JobDataService.class).setBusyRunsToUnfinished();
         }
     }
 
