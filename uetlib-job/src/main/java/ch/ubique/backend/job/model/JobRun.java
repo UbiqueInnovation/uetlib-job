@@ -34,4 +34,8 @@ public interface JobRun {
         final var end = Objects.requireNonNullElse(getFinishedAt(), Instant.now());
         return Duration.between(getStartedAt(), end);
     }
+
+    default String readableId() {
+        return String.format("Run_%06d", getId());
+    }
 }

@@ -12,7 +12,7 @@ import java.io.IOException;
 @Storage(clientQualifier = "jobRunStorageClient", generateDocumentation = false)
 public interface JobRunStorage {
 
-    @OutputMapping(path = "{jobName}/{runId}/{fileName}")
+    @OutputMapping(path = "{jobName}/{runId}/{fileName}.gz")
     void saveJobRunInput(
             @StorageObject byte[] output,
             @PathVariable String jobName,
@@ -20,7 +20,7 @@ public interface JobRunStorage {
             @PathVariable String fileName)
             throws IOException;
 
-    @DeleteMapping(path = "{jobName}/{runId}/{fileName}")
+    @DeleteMapping(path = "{jobName}/{runId}/{fileName}.gz")
     boolean deleteJobRunInput(
             @PathVariable String jobName, @PathVariable String runId, @PathVariable String fileName)
             throws IOException;

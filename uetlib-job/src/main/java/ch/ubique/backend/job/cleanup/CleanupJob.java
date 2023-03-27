@@ -40,9 +40,7 @@ public class CleanupJob extends BaseJob {
                     final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
                     for (var input : jobRunInputs) {
                         if (!jobRunStorage.deleteJobRunInput(
-                                job.name(),
-                                String.format("Run_%06d", run.getId()),
-                                input.getName() + ".gz")) {
+                                job.name(), run.readableId(), input.getName())) {
                             logger.warn(
                                     "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
                                     job.id(),
@@ -54,7 +52,7 @@ public class CleanupJob extends BaseJob {
                     // Finally, clean input file directories
                     if (!jobRunInputs.isEmpty()
                             && !jobRunStorage.deleteJobRunInputDirectory(
-                                    job.name(), String.format("Run_%06d", run.getId()))) {
+                                    job.name(), run.readableId())) {
                         logger.warn(
                                 "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
                                 job.id(),

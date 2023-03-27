@@ -110,10 +110,8 @@ public abstract class BaseInputJob<T> extends BaseJob {
     }
 
     private void saveJobRunInput(final ByteFile file, final Job job, final JobRun jobRun) throws IOException {
-        final var jobId = String.format("Run_%06d", jobRun.getId());
-        final var fileName = file.getFileName() + ".gz";
-
-        jobRunStorage.saveJobRunInput(file.getBytes(), job.name(), jobId, fileName);
+        jobRunStorage.saveJobRunInput(
+                file.getBytes(), job.name(), jobRun.readableId(), file.getFileName());
     }
 
     private boolean isJobVersionDifferent() {
