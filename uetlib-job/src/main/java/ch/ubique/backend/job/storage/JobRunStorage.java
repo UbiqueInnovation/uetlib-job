@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.storage;
 
+import ch.ubique.backend.storage.annotations.DeleteMapping;
 import ch.ubique.backend.storage.annotations.OutputMapping;
 import ch.ubique.backend.storage.annotations.Storage;
 import ch.ubique.backend.storage.annotations.StorageObject;
@@ -17,5 +18,14 @@ public interface JobRunStorage {
             @PathVariable String jobName,
             @PathVariable String runId,
             @PathVariable String fileName)
+            throws IOException;
+
+    @DeleteMapping(path = "{jobName}/{runId}/{fileName}")
+    boolean deleteJobRunInput(
+            @PathVariable String jobName, @PathVariable String runId, @PathVariable String fileName)
+            throws IOException;
+
+    @DeleteMapping(path = "{jobName}/{runId}")
+    boolean deleteJobRunInputDirectory(@PathVariable String jobName, @PathVariable String runId)
             throws IOException;
 }

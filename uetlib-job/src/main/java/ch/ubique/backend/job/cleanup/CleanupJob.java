@@ -5,21 +5,18 @@ import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.storage.StorageClient;
+import ch.ubique.backend.job.storage.JobRunStorage;
 import java.io.IOException;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 
 @RegisteredJob
 public class CleanupJob extends BaseJob {
 
-    private final StorageClient storageClient;
+    private final JobRunStorage jobRunStorage;
 
-    public CleanupJob(
-            ApplicationContext context,
-            @Qualifier("jobRunStorageClient") StorageClient storageClient) {
+    public CleanupJob(ApplicationContext context, JobRunStorage jobRunStorage) {
         super(context);
-        this.storageClient = storageClient;
+        this.jobRunStorage = jobRunStorage;
     }
 
     @Override
@@ -37,33 +34,40 @@ public class CleanupJob extends BaseJob {
                                     job.id(), JobPropertyKey.CLEANUP_CHUNK_SIZE));
 
             final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep);
-            cleanableRuns.forEach(
-                    run -> {
-                        // Clean input files
-                        final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
-                        jobRunInputs.forEach(
-                                input -> {
-                                    final var path =
-                                            "{jobName}/{runId}/{fileName}"
-                                                    .replace("{jobName}", job.name())
-                                                    .replace(
-                                                            "{runId}",
-                                                            String.format("Run_%06d", run.getId()))
-                                                    .replace("{fileName}", input.getName() + ".gz");
-                                    try {
-                                        storageClient.delete(path);
-                                    } catch (IOException e) {
-                                        logger.warn(
-                                                "Failed to delete job run input [jobId: {}; runId: {}; inputName: {}]",
-                                                job.id(),
-                                                run.getId(),
-                                                input.getName());
-                                    }
-                                });
-                    });
+            try {
+                for (var run : cleanableRuns) {
+                    // Clean input files
+                    final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
+                    for (var input : jobRunInputs) {
+                        if (!jobRunStorage.deleteJobRunInput(
+                                job.name(),
+                                String.format("Run_%06d", run.getId()),
+                                input.getName() + ".gz")) {
+                            logger.warn(
+                                    "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
+                                    job.id(),
+                                    run.getId(),
+                                    input.getName());
+                        }
+                    }
+
+                    // Finally, clean input file directories
+                    if (!jobRunInputs.isEmpty()
+                            && !jobRunStorage.deleteJobRunInputDirectory(
+                                    job.name(), String.format("Run_%06d", run.getId()))) {
+                        logger.warn(
+                                "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
+                                job.id(),
+                                run.getId());
+                    }
+                }
+            } catch (IOException e) {
+                logger.error("Failed to delete run input file", e);
+                return JobRunState.ERROR;
+            }
 
             for (var i = 0; i < cleanableRuns.size(); i += chunkSize) {
-                // TODO: for-loops are out - any way to do this with streams? [TOPO-2358]
+                // Delete job runs - cascades to delete job run input files, too
                 jobDataService.deleteJobRunByIds(
                         cleanableRuns
                                 .subList(i, Math.min(i + chunkSize, cleanableRuns.size()))
