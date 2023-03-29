@@ -115,7 +115,7 @@ public class JobApplication {
             //noinspection unchecked
             final var jobClass = (Class<? extends BaseJob>) cls;
             final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClass);
-            final var properties = job.properties();
+            final var properties = job.getProperties();
             logger.info("Registered {}. Properties = {}", jobClass, properties);
         }
     }
