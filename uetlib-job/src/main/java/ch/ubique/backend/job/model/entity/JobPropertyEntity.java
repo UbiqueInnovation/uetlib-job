@@ -1,14 +1,15 @@
 package ch.ubique.backend.job.model.entity;
 
-import ch.ubique.backend.job.model.JobPropertyKey;
+import ch.ubique.backend.job.model.properties.JobProperty;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
+
+import org.apache.commons.lang3.StringUtils;
 
 @Table(name = "t_job_properties")
 @Entity
@@ -21,36 +22,24 @@ public class JobPropertyEntity {
 
     @Id
     @Column(name = "key", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private JobPropertyKey key;
+    private String key;
 
     @Column(name = "value")
     private String value;
 
-    public int getJobId() {
-        return jobId;
+    public static <T> JobPropertyEntity from(final int jobId, final JobProperty<T> property) {
+        final var entity = new JobPropertyEntity();
+        entity.jobId = jobId;
+        entity.value = property.encodedValue();
+        entity.key = property.key();
+        return entity;
     }
 
-    public JobPropertyEntity setJobId(final Integer jobId) {
-        this.jobId = jobId;
-        return this;
-    }
-
-    public JobPropertyKey getKey() {
-        return key;
-    }
-
-    public JobPropertyEntity setKey(final JobPropertyKey key) {
-        this.key = key;
-        return this;
+    public JobProperty<Object> toProperty() {
+        return JobPropertyDefinitions.get(key).createPropertyFromString(getValue());
     }
 
     public String getValue() {
-        return value;
-    }
-
-    public JobPropertyEntity setValue(final String value) {
-        this.value = value;
-        return this;
+        return StringUtils.defaultIfBlank(value, null);
     }
 }

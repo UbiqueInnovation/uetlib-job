@@ -8,16 +8,18 @@ import ch.ubique.backend.job.data.repository.JobRunInputRepository;
 import ch.ubique.backend.job.data.repository.JobRunRepository;
 import ch.ubique.backend.job.data.repository.LoggingEventRepository;
 import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.JobRunnerKey;
 import ch.ubique.backend.job.model.entity.JobEntity;
 import ch.ubique.backend.job.model.entity.JobPropertyEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.model.entity.LoggingEventEntity;
+import ch.ubique.backend.job.model.properties.JobProperty;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -73,11 +74,10 @@ public class JobDataService {
                                 // Only for busy jobs with Runner = CURRENT
                                 jobRun ->
                                         JobRunnerKey.CURRENT
-                                                .name()
-                                                .equals(
-                                                        getProperty(
+                                                == getProperty(
                                                                 jobRun.getJobId(),
-                                                                JobPropertyKey.RUNNER)))
+                                                                JobPropertyDefinitions.RUNNER)
+                                                        .value())
                         .map(
                                 jobRun -> {
                                     jobRun.setFinishedAt(now);
@@ -206,20 +206,21 @@ public class JobDataService {
     }
 
     @Transactional
-    public void saveProperty(final int jobId, final JobPropertyKey key, final String value) {
-        if (StringUtils.isBlank(value)) {
-            jobPropertyRepository.delete(new JobPropertyEntity().setJobId(jobId).setKey(key));
+    public <T> void saveProperty(final int jobId, final JobProperty<T> property) {
+        final var entity = JobPropertyEntity.from(jobId, property);
+        if (StringUtils.isBlank(property.encodedValue())) {
+            jobPropertyRepository.delete(entity);
         } else {
-            jobPropertyRepository.save(
-                    new JobPropertyEntity().setJobId(jobId).setKey(key).setValue(value));
+            jobPropertyRepository.save(entity);
         }
     }
 
     @Transactional(readOnly = true)
-    public Map<JobPropertyKey, String> getProperties(final int jobId) {
+    public Collection<JobProperty<Object>> getProperties(final int jobId) {
         return jobPropertyRepository.findAllByJobId(jobId).stream()
-                .filter(property -> StringUtils.isNotBlank(property.getValue()))
-                .collect(Collectors.toMap(JobPropertyEntity::getKey, JobPropertyEntity::getValue));
+                .map(JobPropertyEntity::toProperty)
+                .filter(JobProperty::isValuePresent)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Transactional
@@ -228,33 +229,29 @@ public class JobDataService {
     }
 
     @Transactional
-    public void saveProperties(final int jobId, final Map<JobPropertyKey, String> properties) {
-        final var entities =
-                properties.entrySet().stream()
-                        .map(
-                                entry ->
-                                        new JobPropertyEntity()
-                                                .setJobId(jobId)
-                                                .setKey(entry.getKey())
-                                                .setValue(entry.getValue()))
-                        .toList();
+    public void saveProperties(final int jobId, final Collection<JobProperty<?>> properties) {
 
         // Save all where value is set
         jobPropertyRepository.saveAll(
-                entities.stream()
-                        .filter(entry -> StringUtils.isNotBlank(entry.getValue()))
+                properties.stream()
+                        .filter(JobProperty::isValuePresent)
+                        .map(property -> JobPropertyEntity.from(jobId, property))
                         .toList());
 
         // Delete all where value is unset
         jobPropertyRepository.deleteAll(
-                entities.stream().filter(entry -> StringUtils.isBlank(entry.getValue())).toList());
+                properties.stream()
+                        .filter(property -> !property.isValuePresent())
+                        .map(property -> JobPropertyEntity.from(jobId, property))
+                        .toList());
     }
 
     @Transactional(readOnly = true)
-    public String getProperty(final Integer jobId, final JobPropertyKey key) {
+    public <T> JobProperty<T> getProperty(
+            final Integer jobId, final JobPropertyDefinition<T> definition) {
         return jobPropertyRepository
-                .findByJobIdAndKey(jobId, key)
-                .map(JobPropertyEntity::getValue)
-                .orElse(key.getDefaultValue());
+                .findByJobIdAndKey(jobId, definition.key())
+                .map(entity -> definition.createPropertyFromString(entity.getValue()))
+                .orElseGet(() -> definition.createProperty(null));
     }
 }

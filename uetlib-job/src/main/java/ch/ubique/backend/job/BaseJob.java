@@ -4,10 +4,13 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.highmem.JobRunner;
 import ch.ubique.backend.job.highmem.KubernetesJobRunner;
 import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.JobRunnerKey;
+import ch.ubique.backend.job.model.properties.JobProperty;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.JobService;
 
 import io.kubernetes.client.openapi.ApiException;
 
@@ -28,10 +31,13 @@ import org.springframework.context.ApplicationContext;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public abstract class BaseJob implements org.quartz.Job, Runnable {
 
@@ -40,14 +46,15 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     @NotNull protected final Job job;
     @NotNull protected final JobRun jobRun;
     @NotNull protected final ApplicationContext context;
+    @NotNull protected final JobService jobService;
     @NotNull protected final JobDataService jobDataService;
-    @Nullable private final Map<JobRunnerKey, JobRunner> externalJobRunners;
-    @NotNull private final Map<JobPropertyKey, String> properties;
+    @NotNull private final Map<JobRunnerKey, JobRunner> externalJobRunners;
 
     protected JobDataMap jobDataMap;
 
     protected BaseJob(@NotNull final ApplicationContext context) {
         this.context = context;
+        this.jobService = context.getBean(JobService.class);
         this.jobDataService = context.getBean(JobDataService.class);
 
         this.externalJobRunners = new EnumMap<>(JobRunnerKey.class);
@@ -59,14 +66,13 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance(job);
         this.jobDataMap = new JobDataMap();
-        this.properties = initializeProperties();
+
+        initializeProperties();
     }
 
-    private Map<JobPropertyKey, String> initializeProperties() {
+    private void initializeProperties() {
         final var dbProperties = jobDataService.getProperties(job.id());
         final var fixedProperties = Objects.requireNonNull(fixedProperties());
-        final var initialPlusDefaults = new EnumMap<>(JobPropertyKey.defaultProperties());
-        initialPlusDefaults.putAll(Objects.requireNonNull(initialProperties()));
 
         if (!fixedProperties().isEmpty() && !fixedProperties.equals(dbProperties)) {
             logger.warn(
@@ -76,20 +82,24 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         }
 
         if (fixedProperties.isEmpty()) {
-            initialPlusDefaults.forEach(
-                    (key, value) -> {
-                        if (!dbProperties.containsKey(key)) {
-                            jobDataService.saveProperty(job.id(), key, value);
-                        }
-                    });
-        }
+            final var dbPropertiesKeys =
+                    dbProperties.stream()
+                            .map(JobProperty::key)
+                            .collect(Collectors.toUnmodifiableSet());
 
-        return jobDataService.getProperties(job.id());
+            Objects.requireNonNull(initialProperties())
+                    .forEach(
+                            property -> {
+                                if (!dbPropertiesKeys.contains(property.definition().key())) {
+                                    jobDataService.saveProperty(job.id(), property);
+                                }
+                            });
+        }
     }
 
     public static boolean isCronExpressionValid(final String cronExpression) {
         return StringUtils.isBlank(cronExpression)
-               || CronExpression.isValidExpression(cronExpression);
+                || CronExpression.isValidExpression(cronExpression);
     }
 
     /**
@@ -115,18 +125,20 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
      * For each entry in this map: the property will be set if the key of the entry is not in the
      * database yet.
      */
-    @Nullable
-    public Map<JobPropertyKey, String> initialProperties() {
-        return Map.of();
+    @NotNull
+    @SuppressWarnings("java:S1452")
+    public Collection<JobProperty<?>> initialProperties() {
+        return Set.of();
     }
 
     /**
      * If this map is non-empty, these properties will always be used and overrides properties
      * specified in the database.
      */
-    @Nullable
-    public Map<JobPropertyKey, String> fixedProperties() {
-        return Map.of();
+    @NotNull
+    @SuppressWarnings("java:S1452")
+    public Collection<JobProperty<?>> fixedProperties() {
+        return Set.of();
     }
 
     @NotNull
@@ -192,18 +204,14 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     public final JobRunState runJob(final boolean mayUseExternalRunner) {
-        final var runnerKey =
-                JobRunnerKey.parseString(
-                        properties()
-                                .getOrDefault(
-                                        JobPropertyKey.RUNNER,
-                                        JobPropertyKey.RUNNER.getDefaultValue()));
+        final var runner =
+                jobDataService.getProperty(job.id(), JobPropertyDefinitions.RUNNER).value();
 
-        if (runnerKey != JobRunnerKey.CURRENT && mayUseExternalRunner) {
+        if (runner != JobRunnerKey.CURRENT && mayUseExternalRunner) {
             logger.info("Run called for high memory job {}.", this);
-            final var externalJobRunner = externalJobRunners.get(runnerKey);
+            final var externalJobRunner = externalJobRunners.get(runner);
             if (externalJobRunner == null) {
-                throw new NoSuchElementException("Could not find a runner for " + runnerKey);
+                throw new NoSuchElementException("Could not find a runner for " + runner);
             }
 
             try {
@@ -308,8 +316,12 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         return jobRun;
     }
 
-    public Map<JobPropertyKey, String> properties() {
-        return properties;
+    public <T> JobProperty<T> getProperty(final JobPropertyDefinition<T> definition) {
+        return jobDataService.getProperty(job.id(), definition);
+    }
+
+    public Collection<JobProperty<Object>> getProperties() {
+        return jobDataService.getProperties(job.id());
     }
 
     @Override

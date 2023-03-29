@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.model.entity;
 
-import ch.ubique.backend.job.model.JobPropertyKey;
-
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -10,7 +8,7 @@ import java.io.Serializable;
 public class JobPropertyId implements Serializable {
 
     private Integer jobId;
-    private JobPropertyKey key;
+    private String key;
 
     public Integer getJobId() {
         return jobId;
@@ -20,11 +18,11 @@ public class JobPropertyId implements Serializable {
         this.jobId = jobId;
     }
 
-    public JobPropertyKey getKey() {
+    public String getKey() {
         return key;
     }
 
-    public void setKey(final JobPropertyKey key) {
+    public void setKey(final String key) {
         this.key = key;
     }
 

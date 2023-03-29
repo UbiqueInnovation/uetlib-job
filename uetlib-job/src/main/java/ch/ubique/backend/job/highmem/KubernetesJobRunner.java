@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.highmem;
 
 import ch.ubique.backend.job.BaseJob;
-import ch.ubique.backend.job.model.JobPropertyKey;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiException;
@@ -28,10 +28,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -110,17 +109,31 @@ public class KubernetesJobRunner implements JobRunner {
             args.add("--force");
         }
 
-        final var requests = new HashMap<String, Quantity>();
-        getProperty(job, JobPropertyKey.K8S_REQUESTS_CPU)
-                .ifPresent(value -> requests.put("cpu", Quantity.fromString(value)));
-        getProperty(job, JobPropertyKey.K8S_REQUESTS_MEMORY)
-                .ifPresent(value -> requests.put("memory", Quantity.fromString(value)));
+        final var requests =
+                Map.ofEntries(
+                        Map.entry(
+                                "cpu",
+                                Quantity.fromString(
+                                        job.getProperty(JobPropertyDefinitions.K8S_REQUESTS_CPU)
+                                                .value())),
+                        Map.entry(
+                                "memory",
+                                Quantity.fromString(
+                                        job.getProperty(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
+                                                .value())));
 
-        final var limits = new HashMap<String, Quantity>();
-        getProperty(job, JobPropertyKey.K8S_LIMITS_CPU)
-                .ifPresent(value -> limits.put("cpu", Quantity.fromString(value)));
-        getProperty(job, JobPropertyKey.K8S_LIMITS_MEMORY)
-                .ifPresent(value -> limits.put("memory", Quantity.fromString(value)));
+        final var limits =
+                Map.ofEntries(
+                        Map.entry(
+                                "cpu",
+                                Quantity.fromString(
+                                        job.getProperty(JobPropertyDefinitions.K8S_LIMITS_CPU)
+                                                .value())),
+                        Map.entry(
+                                "memory",
+                                Quantity.fromString(
+                                        job.getProperty(JobPropertyDefinitions.K8S_LIMITS_MEMORY)
+                                                .value())));
 
         final var container =
                 new V1Container()
@@ -143,7 +156,9 @@ public class KubernetesJobRunner implements JobRunner {
                         .nodeSelector(currentPodSpec.getNodeSelector())
                         .restartPolicy("Never");
 
-        getProperty(job, JobPropertyKey.K8S_SKU)
+        job.getProperty(JobPropertyDefinitions.K8S_SKU)
+                .value()
+                .value()
                 .ifPresent(
                         value ->
                                 podSpec.addTolerationsItem(
@@ -154,11 +169,7 @@ public class KubernetesJobRunner implements JobRunner {
                                                 .effect("NoSchedule")));
 
         final var metadata = new V1ObjectMeta().namespace(namespace).name(jobName);
-        final var ttl =
-                getProperty(job, JobPropertyKey.K8S_TTL_AFTER_FINISHED)
-                        .map(Long::parseLong)
-                        .map(Duration::ofMillis)
-                        .orElse(Duration.ofHours(1));
+        final var ttl = job.getProperty(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED).value();
 
         final var jobSpec =
                 new V1JobSpec()
@@ -166,12 +177,6 @@ public class KubernetesJobRunner implements JobRunner {
                         .template(new V1PodTemplateSpec().spec(podSpec));
 
         return new V1Job().metadata(metadata).spec(jobSpec);
-    }
-
-    @NotNull
-    private static Optional<String> getProperty(final BaseJob job, final JobPropertyKey key) {
-        return Optional.ofNullable(
-                StringUtils.defaultIfBlank(job.properties().get(key), key.getDefaultValue()));
     }
 
     @NotNull
