@@ -11,13 +11,13 @@ class JobPropertyDefinitionsTest {
 
     @Test
     void someDefinitions() {
-        assertFalse(JobPropertyDefinitions.VALUES.isEmpty());
+        assertFalse(JobPropertyDefinitions.values().isEmpty());
     }
 
     @Test
     void testNoDuplicateKeys() {
         final var keys =
-                JobPropertyDefinitions.VALUES.stream()
+                JobPropertyDefinitions.values().stream()
                         .map(JobPropertyDefinition::key)
                         .collect(Collectors.toUnmodifiableSet());
 
@@ -36,7 +36,7 @@ class JobPropertyDefinitionsTest {
     void testNamesMatch() throws IllegalAccessException {
         for (final var field : JobPropertyDefinitions.class.getDeclaredFields()) {
             if (!Modifier.isStatic(field.getModifiers())
-                    || !(field.get(null) instanceof JobPropertyDefinition<?> definition)) {
+                    || !(field.get(null) instanceof final JobPropertyDefinition<?> definition)) {
                 continue;
             }
 
