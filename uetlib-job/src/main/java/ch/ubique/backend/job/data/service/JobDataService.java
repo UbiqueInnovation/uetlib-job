@@ -21,6 +21,9 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -36,6 +39,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class JobDataService {
+
+    @PersistenceContext private EntityManager entityManager;
 
     private final JobRepository jobRepository;
     private final JobPropertyRepository jobPropertyRepository;
@@ -253,5 +258,23 @@ public class JobDataService {
                 .findByJobIdAndKey(jobId, definition.key())
                 .map(entity -> definition.createPropertyFromString(entity.getValue()))
                 .orElseGet(() -> definition.createProperty(null));
+    }
+
+    @Transactional(readOnly = true)
+    public List<JobRun> findCleanableRuns(
+            final int jobId, final int daysToKeep, final int chunkSize) {
+        // JPA will throw an error when attempting to return JobRun from the select statement below
+        // --> need to cast
+        return jobRunRepository
+                .findAllByJobIdAndFinishedAt(jobId, daysToKeep, chunkSize)
+                .map(JobRun.class::cast)
+                .toList();
+    }
+
+    @Transactional
+    public void deleteJobRunByIds(List<Integer> jobRunIdList) {
+        // batch delete might leave the first-level cache and the db out-of-sync - need to flush
+        entityManager.flush();
+        jobRunRepository.deleteAllByIdInBatch(jobRunIdList);
     }
 }

@@ -58,6 +58,21 @@ public final class JobPropertyDefinitions {
             new StringPropertyDefinition(
                     "K8S_LIMITS_MEMORY", "Memory limit for the K8s job.", true, null, null);
 
+    public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
+            new IntPropertyDefinition(
+                    "CLEANUP_DAYS_TO_KEEP",
+                    "Number of days since the most recent DONE job after which job data is cleaned up.",
+                    false,
+                    1000,
+                    null);
+
+    public static final JobPropertyDefinition<Integer> CLEANUP_CHUNK_SIZE =
+            new IntPropertyDefinition(
+                    "CLEANUP_CHUNK_SIZE",
+                    "Maximum number of job runs to clean up per cleanup job run.",
+                    false,
+                    1000,
+                    null);
 
     // ------------------------------------
     // Helpers to get fields declared above
