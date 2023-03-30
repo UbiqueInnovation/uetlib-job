@@ -122,10 +122,12 @@ public class JobApplication {
 
     private static void registerJob(
             ConfigurableApplicationContext context, Class<? extends BaseJob> jobClass)
-            throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+            throws NoSuchMethodException,
+                    InvocationTargetException,
+                    InstantiationException,
                     IllegalAccessException {
         final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClass);
-        final var properties = job.properties();
+        final var properties = job.getProperties();
         logger.info("Registered {}. Properties = {}", jobClass, properties);
     }
 }

@@ -1,10 +1,9 @@
 package ch.ubique.backend.job.controller;
 
-import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.JobInfosContainer;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
-import ch.ubique.backend.job.model.client.JobProperty;
+import ch.ubique.backend.job.model.client.JobPropertyInfo;
 import ch.ubique.backend.job.model.client.JobRunInfoContainer;
 import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.service.JobService;
@@ -13,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 @RestController
@@ -73,14 +72,13 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/job/{id}/properties")
-    public List<JobProperty> getProperties(@PathVariable final int id) {
+    public Collection<JobPropertyInfo> getProperties(@PathVariable final int id) {
         return jobService.getJobProperties(id);
     }
 
     @PostMapping("/job/{id}/properties")
-    public List<JobProperty> updateProperties(
-            @PathVariable final int id,
-            @RequestBody final Map<JobPropertyKey, String> updatedValues) {
+    public Collection<JobPropertyInfo> updateProperties(
+            @PathVariable final int id, @RequestBody final Map<String, String> updatedValues) {
         return jobService.updateJobProperties(id, updatedValues);
     }
 
