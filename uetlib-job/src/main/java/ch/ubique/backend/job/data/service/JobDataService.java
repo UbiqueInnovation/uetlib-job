@@ -18,7 +18,14 @@ import ch.ubique.backend.job.model.entity.JobPropertyEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.model.entity.LoggingEventEntity;
-
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -26,15 +33,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Service
 public class JobDataService {
+
+    @PersistenceContext private EntityManager entityManager;
 
     private final JobRepository jobRepository;
     private final JobPropertyRepository jobPropertyRepository;
@@ -269,7 +271,8 @@ public class JobDataService {
 
     @Transactional
     public void deleteJobRunByIds(List<Integer> jobRunIdList) {
-        // TODO: Can we use the batch deletion here? How do we re-sync the entity cache? [TOPO-2358]
+        // batch delete might leave the first-level cache and the db out-of-sync - need to flush
+        entityManager.flush();
         jobRunRepository.deleteAllByIdInBatch(jobRunIdList);
     }
 }
