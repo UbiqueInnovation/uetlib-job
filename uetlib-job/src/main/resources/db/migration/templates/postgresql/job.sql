@@ -23,7 +23,7 @@ create table t_job_run
     finished_at   timestamp with time zone
 );
 
-create index idx_started_at on t_job_run (finished_at);
+create index idx_finished_at on t_job_run (finished_at);
 
 create table t_job_run_input
 (
