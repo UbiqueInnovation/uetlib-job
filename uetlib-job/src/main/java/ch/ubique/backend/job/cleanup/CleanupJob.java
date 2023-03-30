@@ -17,7 +17,7 @@ public class CleanupJob extends BaseJob {
 
     private final JobRunStorage jobRunStorage;
 
-    public CleanupJob(ApplicationContext context, JobRunStorage jobRunStorage) {
+    public CleanupJob(final ApplicationContext context, final JobRunStorage jobRunStorage) {
         super(context);
         this.jobRunStorage = jobRunStorage;
     }
@@ -29,9 +29,9 @@ public class CleanupJob extends BaseJob {
     }
 
     @Override
-    protected JobRunState internalRun() throws Exception {
+    protected JobRunState internalRun() {
 
-        for (var job : jobDataService.findJobs()) {
+        for (final var job : jobDataService.findJobs()) {
             // Get cleanup properties
             final var daysToKeep =
                     jobDataService
@@ -45,10 +45,10 @@ public class CleanupJob extends BaseJob {
             final var cleanableRuns =
                     jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
             try {
-                for (var run : cleanableRuns) {
+                for (final var run : cleanableRuns) {
                     cleanInputFiles(job, run);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 logger.error("Failed to delete run input file", e);
                 return JobRunState.ERROR;
             }
@@ -57,20 +57,18 @@ public class CleanupJob extends BaseJob {
             jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::getId).toList());
 
             logger.info(
-                    "Cleaned runs for job [jobId: {}; num_deletions: {}]",
-                    job.id(),
-                    cleanableRuns.size());
+                    "Cleaned runs for job [job: {}; num_deletions: {}]", job, cleanableRuns.size());
         }
 
         return JobRunState.DONE;
     }
 
     /** Attempts to delete all stored input files of a job run */
-    private void cleanInputFiles(Job job, JobRun run) throws IOException {
+    private void cleanInputFiles(final Job job, final JobRun run) throws IOException {
         // Clean input files
         final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
-        for (var input : jobRunInputs) {
-            boolean fileDidExist =
+        for (final var input : jobRunInputs) {
+            final var fileDidExist =
                     jobRunStorage.deleteJobRunInput(job.name(), run.readableId(), input.getName());
             if (fileDidExist) {
                 logger.info(
@@ -88,15 +86,15 @@ public class CleanupJob extends BaseJob {
         }
 
         // Finally, clean input file directories
-        boolean dirDidExist =
+        final var dirDidExist =
                 jobRunStorage.deleteJobRunInputDirectory(job.name(), run.readableId());
-        if (!jobRunInputs.isEmpty() && dirDidExist) {
+        if (dirDidExist) {
             logger.info(
                     "Deleted run input file directory [jobId: {}; runId: {}]",
                     job.id(),
                     run.getId());
         } else if (!jobRunInputs.isEmpty()) {
-            logger.info(
+            logger.debug(
                     "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
                     job.id(),
                     run.getId());
