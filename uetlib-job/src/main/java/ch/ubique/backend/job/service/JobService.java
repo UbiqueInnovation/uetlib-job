@@ -158,7 +158,7 @@ public class JobService {
         final var properties =
                 jobDataService.getProperties(id).stream()
                         .collect(Collectors.toMap(JobProperty::key, JobPropertyInfo::from));
-        return JobPropertyDefinitions.VALUES.stream()
+        return JobPropertyDefinitions.values().stream()
                 .map(
                         definition ->
                                 properties.getOrDefault(

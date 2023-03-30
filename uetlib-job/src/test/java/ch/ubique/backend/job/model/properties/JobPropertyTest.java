@@ -25,7 +25,7 @@ class JobPropertyTest {
 
     @Test
     void isValuePresent() {
-        for (final var definition : JobPropertyDefinitions.VALUES) {
+        for (final var definition : JobPropertyDefinitions.values()) {
 
             if (definition.defaultValue().isEmpty()) {
                 continue;
