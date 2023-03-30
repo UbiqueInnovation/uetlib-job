@@ -36,6 +36,7 @@ class JobPropertyDefinitionsTest {
     void testNamesMatch() throws IllegalAccessException {
         for (final var field : JobPropertyDefinitions.class.getDeclaredFields()) {
             if (!Modifier.isStatic(field.getModifiers())
+                    || !Modifier.isPublic(field.getModifiers())
                     || !(field.get(null) instanceof final JobPropertyDefinition<?> definition)) {
                 continue;
             }
