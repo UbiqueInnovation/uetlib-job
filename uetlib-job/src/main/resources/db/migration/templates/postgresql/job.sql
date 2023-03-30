@@ -23,6 +23,8 @@ create table t_job_run
     finished_at   timestamp with time zone
 );
 
+create index idx_started_at on t_job_run (started_at);
+
 create table t_job_run_input
 (
     pk_job_run_input_id integer generated always as identity primary key,
