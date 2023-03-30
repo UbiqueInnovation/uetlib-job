@@ -122,8 +122,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     /**
-     * For each entry in this map: the property will be set if the key of the entry is not in the
-     * database yet.
+     * For each entry in this set: the property will be set if it is not returned by {@link
+     * BaseJob#fixedProperties()}) and if it is not in the database yet.
      */
     @NotNull
     @SuppressWarnings("java:S1452")
@@ -132,7 +132,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     /**
-     * If this map is non-empty, these properties will always be used and overrides properties
+     * If this set is non-empty, these properties will always be used. This will override properties
      * specified in the database.
      */
     @NotNull
