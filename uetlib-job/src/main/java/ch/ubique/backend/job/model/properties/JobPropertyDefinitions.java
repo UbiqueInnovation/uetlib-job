@@ -58,9 +58,10 @@ public final class JobPropertyDefinitions {
             new StringPropertyDefinition(
                     "K8S_LIMITS_MEMORY", "Memory limit for the K8s job.", true, null, null);
 
-    // ---
-    //
-    // ---
+
+    // ------------------------------------
+    // Helpers to get fields declared above
+    // ------------------------------------
 
     /**
      * Collection of all static {@link JobPropertyDefinitions} defined in this class.
@@ -68,7 +69,7 @@ public final class JobPropertyDefinitions {
      * <p>This works by using reflections.
      */
     @SuppressWarnings("unchecked")
-    public static final Collection<JobPropertyDefinition<Object>> VALUES =
+    private static final Collection<JobPropertyDefinition<Object>> VALUES =
             // Get all declared fields
             Arrays.stream(JobPropertyDefinitions.class.getDeclaredFields())
                     // Only consider static field
@@ -81,6 +82,10 @@ public final class JobPropertyDefinitions {
                     .map(value -> (JobPropertyDefinition<Object>) value)
                     // To collection
                     .toList();
+
+    public static Collection<JobPropertyDefinition<Object>> values() {
+        return VALUES;
+    }
 
     public static JobPropertyDefinition<Object> get(final String key) {
         return VALUES.stream()
