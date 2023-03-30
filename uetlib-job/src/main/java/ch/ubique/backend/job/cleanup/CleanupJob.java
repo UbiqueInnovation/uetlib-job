@@ -3,9 +3,9 @@ package ch.ubique.backend.job.cleanup;
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
 import org.springframework.context.ApplicationContext;
@@ -34,13 +34,13 @@ public class CleanupJob extends BaseJob {
         for (var job : jobDataService.findJobs()) {
             // Get cleanup properties
             final var daysToKeep =
-                    Integer.parseUnsignedInt(
-                            jobDataService.getProperty(
-                                    job.id(), JobPropertyKey.CLEANUP_DAYS_TO_KEEP));
+                    jobDataService
+                            .getProperty(job.id(), JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP)
+                            .value();
             final var chunkSize =
-                    Integer.parseUnsignedInt(
-                            jobDataService.getProperty(
-                                    job.id(), JobPropertyKey.CLEANUP_CHUNK_SIZE));
+                    jobDataService
+                            .getProperty(job.id(), JobPropertyDefinitions.CLEANUP_CHUNK_SIZE)
+                            .value();
 
             final var cleanableRuns =
                     jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);

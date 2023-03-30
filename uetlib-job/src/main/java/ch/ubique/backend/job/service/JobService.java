@@ -3,10 +3,11 @@ package ch.ubique.backend.job.service;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
+import ch.ubique.backend.job.model.properties.JobProperty;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.scheduler.JobScheduler;
 
 import org.springframework.stereotype.Service;
@@ -36,8 +37,11 @@ public class JobService {
     }
 
     public JobInfosContainer findJobs()
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         final var jobs = jobDataService.findJobs();
         final var latestRuns = findLatestJobRuns(jobs);
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
@@ -75,15 +79,21 @@ public class JobService {
     }
 
     public void updateCronExpression(final int jobId, final String cronExpression)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         final var job = jobDataService.updateCronExpression(jobId, cronExpression);
         jobScheduler.update(job);
     }
 
     public void startJob(final int jobId, final boolean forceRun)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         final var job =
                 jobDataService
                         .findJobById(jobId)
@@ -94,8 +104,11 @@ public class JobService {
     }
 
     public void startAllJobs(final boolean forceRun)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
 
         final var jobs = jobDataService.findJobs();
         for (final var job : jobs) {
@@ -115,15 +128,21 @@ public class JobService {
     }
 
     public JobInfo findJobById(final int jobId)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         final var job = jobById(jobId);
         return jobInfo(job);
     }
 
     public JobInfo jobInfo(final Job job)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         return JobInfo.from(job, jobCreator.createNewJobInstance(job));
     }
 
@@ -135,16 +154,31 @@ public class JobService {
                                 "No Job with id {0} found", jobId));
     }
 
-    public List<JobProperty> getJobProperties(final int id) {
-        final var properties = jobDataService.getProperties(id);
-        return Arrays.stream(JobPropertyKey.values())
-                .map(key -> new JobProperty(key, properties.get(key)))
+    public Collection<JobPropertyInfo> getJobProperties(final int id) {
+        final var properties =
+                jobDataService.getProperties(id).stream()
+                        .collect(Collectors.toMap(JobProperty::key, JobPropertyInfo::from));
+        return JobPropertyDefinitions.values().stream()
+                .map(
+                        definition ->
+                                properties.getOrDefault(
+                                        definition.key(), JobPropertyInfo.from(definition)))
                 .toList();
     }
 
-    public List<JobProperty> updateJobProperties(
-            final int id, final Map<JobPropertyKey, String> updatedValues) {
-        jobDataService.saveProperties(id, updatedValues);
+    public Collection<JobPropertyInfo> updateJobProperties(
+            final int id, final Map<String, String> updatedValues) {
+        jobDataService.saveProperties(id, getPropertiesFromMap(updatedValues));
         return getJobProperties(id);
+    }
+
+    private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
+        final var list = new ArrayList<JobProperty<?>>(properties.values().size());
+        for (final var entry : properties.entrySet()) {
+            list.add(
+                    JobPropertyDefinitions.get(entry.getKey())
+                            .createPropertyFromString(entry.getValue()));
+        }
+        return list;
     }
 }
