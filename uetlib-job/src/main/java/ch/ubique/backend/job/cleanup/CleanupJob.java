@@ -40,7 +40,8 @@ public class CleanupJob extends BaseJob {
                             jobDataService.getProperty(
                                     job.id(), JobPropertyKey.CLEANUP_CHUNK_SIZE));
 
-            final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep);
+            final var cleanableRuns =
+                    jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
             try {
                 for (var run : cleanableRuns) {
                     cleanInputFiles(job, run);
@@ -50,15 +51,8 @@ public class CleanupJob extends BaseJob {
                 return JobRunState.ERROR;
             }
 
-            for (var i = 0; i < cleanableRuns.size(); i += chunkSize) {
-                // Delete job runs - cascades to delete job run input files, too
-                jobDataService.deleteJobRunByIds(
-                        cleanableRuns
-                                .subList(i, Math.min(i + chunkSize, cleanableRuns.size()))
-                                .stream()
-                                .map(JobRun::getId)
-                                .toList());
-            }
+            // Delete job runs - cascades to delete job run input files, too
+            jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::getId).toList());
 
             logger.info(
                     "Cleaned runs for job [jobId: {}; num_deletions: {}]",
