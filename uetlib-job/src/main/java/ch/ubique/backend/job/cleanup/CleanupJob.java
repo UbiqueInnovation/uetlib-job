@@ -7,8 +7,10 @@ import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.storage.JobRunStorage;
-import java.io.IOException;
+
 import org.springframework.context.ApplicationContext;
+
+import java.io.IOException;
 
 @RegisteredJob
 public class CleanupJob extends BaseJob {
@@ -68,8 +70,16 @@ public class CleanupJob extends BaseJob {
         // Clean input files
         final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
         for (var input : jobRunInputs) {
-            if (!jobRunStorage.deleteJobRunInput(job.name(), run.readableId(), input.getName())) {
-                logger.warn(
+            boolean fileDidExist =
+                    jobRunStorage.deleteJobRunInput(job.name(), run.readableId(), input.getName());
+            if (fileDidExist) {
+                logger.info(
+                        "Deleted run input file [jobId: {}; runId {}; inputName: {}]",
+                        job.id(),
+                        run.getId(),
+                        input.getName());
+            } else {
+                logger.info(
                         "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
                         job.id(),
                         run.getId(),
@@ -78,9 +88,15 @@ public class CleanupJob extends BaseJob {
         }
 
         // Finally, clean input file directories
-        if (!jobRunInputs.isEmpty()
-                && !jobRunStorage.deleteJobRunInputDirectory(job.name(), run.readableId())) {
-            logger.warn(
+        boolean dirDidExist =
+                jobRunStorage.deleteJobRunInputDirectory(job.name(), run.readableId());
+        if (!jobRunInputs.isEmpty() && dirDidExist) {
+            logger.info(
+                    "Deleted run input file directory [jobId: {}; runId: {}]",
+                    job.id(),
+                    run.getId());
+        } else if (!jobRunInputs.isEmpty()) {
+            logger.info(
                     "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
                     job.id(),
                     run.getId());
