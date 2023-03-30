@@ -54,7 +54,7 @@ public class JobTimeoutCheck implements StatusCheck {
         final var runtimeLimit =
                 jobDataService.getProperty(job.id(), JobPropertyDefinitions.RUN_TIME_LIMIT).value();
 
-        if (latestRun.runDuration().toMillis() <= runtimeLimit.toMillis()) {
+        if (latestRun.runDuration().compareTo(runtimeLimit) <= 0) {
             return Optional.empty();
         }
 

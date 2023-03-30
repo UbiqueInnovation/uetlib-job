@@ -11,9 +11,9 @@ import jakarta.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
 
-@Table(name = "t_job_properties")
 @Entity
 @IdClass(JobPropertyId.class)
+@Table(name = "t_job_properties")
 public class JobPropertyEntity {
 
     @Id

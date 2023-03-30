@@ -7,7 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 import java.util.Optional;
 
-public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, @Nullable T value) {
+public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T value) {
+
     public JobProperty(
             @NotNull @Valid final JobPropertyDefinition<T> definition, @Nullable final T value) {
         this.definition = Objects.requireNonNull(definition);
