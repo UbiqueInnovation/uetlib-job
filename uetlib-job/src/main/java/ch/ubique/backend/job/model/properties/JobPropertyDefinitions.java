@@ -63,7 +63,7 @@ public final class JobPropertyDefinitions {
                     "CLEANUP_DAYS_TO_KEEP",
                     "Number of days since the most recent DONE job after which job data is cleaned up.",
                     false,
-                    1000,
+                    30,
                     null);
 
     public static final JobPropertyDefinition<Integer> CLEANUP_CHUNK_SIZE =
