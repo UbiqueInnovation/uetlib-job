@@ -1,0 +1,105 @@
+package ch.ubique.backend.job.cleanup;
+
+import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.RegisteredJob;
+import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.storage.JobRunStorage;
+
+import org.springframework.context.ApplicationContext;
+
+import java.io.IOException;
+
+@RegisteredJob
+public class CleanupJob extends BaseJob {
+
+    private final JobRunStorage jobRunStorage;
+
+    public CleanupJob(ApplicationContext context, JobRunStorage jobRunStorage) {
+        super(context);
+        this.jobRunStorage = jobRunStorage;
+    }
+
+    @Override
+    public String initialCronExpression() {
+        // At 00:00:00am every day
+        return "0 0 0 ? * * *";
+    }
+
+    @Override
+    protected JobRunState internalRun() throws Exception {
+
+        for (var job : jobDataService.findJobs()) {
+            // Get cleanup properties
+            final var daysToKeep =
+                    jobDataService
+                            .getProperty(job.id(), JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP)
+                            .value();
+            final var chunkSize =
+                    jobDataService
+                            .getProperty(job.id(), JobPropertyDefinitions.CLEANUP_CHUNK_SIZE)
+                            .value();
+
+            final var cleanableRuns =
+                    jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
+            try {
+                for (var run : cleanableRuns) {
+                    cleanInputFiles(job, run);
+                }
+            } catch (IOException e) {
+                logger.error("Failed to delete run input file", e);
+                return JobRunState.ERROR;
+            }
+
+            // Delete job runs - cascades to delete job run input files, too
+            jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::getId).toList());
+
+            logger.info(
+                    "Cleaned runs for job [jobId: {}; num_deletions: {}]",
+                    job.id(),
+                    cleanableRuns.size());
+        }
+
+        return JobRunState.DONE;
+    }
+
+    /** Attempts to delete all stored input files of a job run */
+    private void cleanInputFiles(Job job, JobRun run) throws IOException {
+        // Clean input files
+        final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
+        for (var input : jobRunInputs) {
+            boolean fileDidExist =
+                    jobRunStorage.deleteJobRunInput(job.name(), run.readableId(), input.getName());
+            if (fileDidExist) {
+                logger.info(
+                        "Deleted run input file [jobId: {}; runId {}; inputName: {}]",
+                        job.id(),
+                        run.getId(),
+                        input.getName());
+            } else {
+                logger.info(
+                        "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
+                        job.id(),
+                        run.getId(),
+                        input.getName());
+            }
+        }
+
+        // Finally, clean input file directories
+        boolean dirDidExist =
+                jobRunStorage.deleteJobRunInputDirectory(job.name(), run.readableId());
+        if (!jobRunInputs.isEmpty() && dirDidExist) {
+            logger.info(
+                    "Deleted run input file directory [jobId: {}; runId: {}]",
+                    job.id(),
+                    run.getId());
+        } else if (!jobRunInputs.isEmpty()) {
+            logger.info(
+                    "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
+                    job.id(),
+                    run.getId());
+        }
+    }
+}
