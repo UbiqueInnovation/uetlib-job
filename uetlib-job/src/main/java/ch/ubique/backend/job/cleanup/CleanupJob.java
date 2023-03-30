@@ -20,6 +20,12 @@ public class CleanupJob extends BaseJob {
     }
 
     @Override
+    public String initialCronExpression() {
+        //  At 00:00:00am, on every Wednesday, every month
+        return "0 0 0 ? * WED *";
+    }
+
+    @Override
     protected JobRunState internalRun() throws Exception {
 
         for (var job : jobDataService.findJobs()) {

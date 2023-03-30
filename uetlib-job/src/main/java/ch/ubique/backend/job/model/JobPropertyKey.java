@@ -45,7 +45,7 @@ public enum JobPropertyKey {
     CLEANUP_DAYS_TO_KEEP(
             Integer.class,
             null,
-            String.valueOf(0),
+            String.valueOf(30),
             false,
             "Number of days since the most recent DONE job after which job data is cleaned up.",
             "days"),
