@@ -44,14 +44,14 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
                     """
                                         SELECT r_outer.pk_job_run_id, r_outer.fk_job_id, r_outer.state, r_outer.started_at, r_outer.finished_at, r_outer.job_version
                                         FROM t_job_run r_outer
-                                        WHERE r_outer.started_at + (:daysToKeep * INTERVAL '1 day') < (
-                                            SELECT started_at
+                                        WHERE r_outer.finished_at + (:daysToKeep * INTERVAL '1 day') < (
+                                            SELECT finished_at
                                             FROM t_job_run r_inner
                                             WHERE r_inner.state = 'DONE' AND r_inner.fk_job_id = :jobId
-                                            ORDER BY r_inner.started_at DESC
+                                            ORDER BY r_inner.finished_at DESC
                                             LIMIT 1
                                         ) AND r_outer.fk_job_id = :jobId
-                                        ORDER BY r_outer.started_at ASC
+                                        ORDER BY r_outer.finished_at ASC
                                         LIMIT :chunkSize
                             """,
             nativeQuery = true)
