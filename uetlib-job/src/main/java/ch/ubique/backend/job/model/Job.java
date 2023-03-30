@@ -27,4 +27,9 @@ public record Job(Integer id, String clazzName, String databaseCronExpression) {
     public boolean isForceRunnable() {
         return BaseInputJob.class.isAssignableFrom(clazz());
     }
+
+    @Override
+    public String toString() {
+        return name();
+    }
 }
