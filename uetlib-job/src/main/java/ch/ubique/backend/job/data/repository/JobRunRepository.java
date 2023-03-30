@@ -49,7 +49,8 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
                                             ORDER BY r_inner.finished_at DESC
                                             LIMIT 1
                                         ) AND r_outer.fk_job_id = :jobId
+                                        LIMIT :chunkSize
                             """,
             nativeQuery = true)
-    Stream<JobRunEntity> findAllByJobIdAndFinishedAt(int jobId, int toKeep);
+    Stream<JobRunEntity> findAllByJobIdAndFinishedAt(int jobId, int toKeep, int chunkSize);
 }

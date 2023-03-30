@@ -54,7 +54,7 @@ public enum JobPropertyKey {
             null,
             String.valueOf(1000),
             false,
-            "Maximum number of jobs to clean up within one cleanup job run.",
+            "Maximum number of job runs to clean up per cleanup job run.",
             "no. of job runs");
 
     private final Class<?> type;
