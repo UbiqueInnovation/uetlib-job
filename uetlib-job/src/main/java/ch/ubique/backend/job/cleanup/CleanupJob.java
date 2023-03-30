@@ -2,6 +2,7 @@ package ch.ubique.backend.job.cleanup;
 
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.RegisteredJob;
+import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobPropertyKey;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
@@ -42,28 +43,7 @@ public class CleanupJob extends BaseJob {
             final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep);
             try {
                 for (var run : cleanableRuns) {
-                    // Clean input files
-                    final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
-                    for (var input : jobRunInputs) {
-                        if (!jobRunStorage.deleteJobRunInput(
-                                job.name(), run.readableId(), input.getName())) {
-                            logger.warn(
-                                    "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
-                                    job.id(),
-                                    run.getId(),
-                                    input.getName());
-                        }
-                    }
-
-                    // Finally, clean input file directories
-                    if (!jobRunInputs.isEmpty()
-                            && !jobRunStorage.deleteJobRunInputDirectory(
-                                    job.name(), run.readableId())) {
-                        logger.warn(
-                                "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
-                                job.id(),
-                                run.getId());
-                    }
+                    cleanInputFiles(job, run);
                 }
             } catch (IOException e) {
                 logger.error("Failed to delete run input file", e);
@@ -87,5 +67,29 @@ public class CleanupJob extends BaseJob {
         }
 
         return JobRunState.DONE;
+    }
+
+    /** Attempts to delete all stored input files of a job run */
+    private void cleanInputFiles(Job job, JobRun run) throws IOException {
+        // Clean input files
+        final var jobRunInputs = jobDataService.findJobRunInputs(run.getId());
+        for (var input : jobRunInputs) {
+            if (!jobRunStorage.deleteJobRunInput(job.name(), run.readableId(), input.getName())) {
+                logger.warn(
+                        "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
+                        job.id(),
+                        run.getId(),
+                        input.getName());
+            }
+        }
+
+        // Finally, clean input file directories
+        if (!jobRunInputs.isEmpty()
+                && !jobRunStorage.deleteJobRunInputDirectory(job.name(), run.readableId())) {
+            logger.warn(
+                    "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
+                    job.id(),
+                    run.getId());
+        }
     }
 }
