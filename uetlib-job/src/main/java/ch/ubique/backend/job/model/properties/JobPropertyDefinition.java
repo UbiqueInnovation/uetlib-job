@@ -14,7 +14,10 @@ import java.util.Optional;
 import java.util.Set;
 
 public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDecoder<T>
-        permits DurationPropertyDefinition, EnumPropertyDefinition, StringPropertyDefinition {
+        permits DurationPropertyDefinition,
+                EnumPropertyDefinition,
+                IntPropertyDefinition,
+                StringPropertyDefinition {
 
     @NotNull private final String key;
 
@@ -30,8 +33,8 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
             @NotNull final String key,
             @NotBlank final String description,
             final boolean nullable,
-            final T defaultValue,
-            final Set<T> allowedValues) {
+            @Nullable final T defaultValue,
+            @Nullable final Set<T> allowedValues) {
 
         this.key = StringUtils.requireNonBlank(key);
         this.description = StringUtils.requireNonBlank(description);
