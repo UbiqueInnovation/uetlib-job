@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.model.properties;
 
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
-import ch.ubique.backend.job.model.properties.enums.KubernetesSku;
 
 import com.google.common.collect.MoreCollectors;
 import com.pivovarit.function.ThrowingFunction;
@@ -12,6 +11,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Set;
 
 public final class JobPropertyDefinitions {
 
@@ -28,12 +28,13 @@ public final class JobPropertyDefinitions {
             new EnumPropertyDefinition<>(
                     "RUNNER", "Defines where the job is executed.", JobRunnerKey.CURRENT);
 
-    public static final JobPropertyDefinition<KubernetesSku> K8S_SKU =
-            new EnumPropertyDefinition<>(
+    public static final JobPropertyDefinition<String> K8S_SKU =
+            new StringPropertyDefinition(
                     "K8S_SKU",
                     "If set, the K8s job will run on the selected node pool.",
-                    KubernetesSku.UNSET,
-                    KubernetesSku.STRING_ENCODER_DECODER);
+                    true,
+                    null,
+                    Set.of("highmem", "highperf"));
 
     public static final JobPropertyDefinition<Duration> K8S_TTL_AFTER_FINISHED =
             new DurationPropertyDefinition(
