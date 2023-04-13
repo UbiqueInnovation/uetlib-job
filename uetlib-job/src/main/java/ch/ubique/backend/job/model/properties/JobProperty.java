@@ -30,4 +30,8 @@ public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T val
     public boolean isValuePresent() {
         return value != null;
     }
+
+    public Optional<T> valueMaybe() {
+        return Optional.ofNullable(value);
+    }
 }

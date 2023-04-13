@@ -157,8 +157,7 @@ public class KubernetesJobRunner implements JobRunner {
                         .restartPolicy("Never");
 
         job.getProperty(JobPropertyDefinitions.K8S_SKU)
-                .value()
-                .value()
+                .valueMaybe()
                 .ifPresent(
                         value ->
                                 podSpec.addTolerationsItem(
