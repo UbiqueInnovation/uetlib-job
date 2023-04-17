@@ -5,6 +5,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public record JobPropertyInfo(
         String key,
@@ -25,6 +26,7 @@ public record JobPropertyInfo(
 
     private static <T> JobPropertyInfo from(
             final JobPropertyDefinition<T> definition, final String value) {
+        final var defaultValue = definition.defaultValue().map(definition::encode).orElse(null);
         return new JobPropertyInfo(
                 definition.key(),
                 definition.getClass().getName(),
@@ -37,9 +39,9 @@ public record JobPropertyInfo(
                                                 .filter(Objects::nonNull)
                                                 .toList())
                         .orElse(null),
-                definition.defaultValue().map(definition::encode).orElse(null),
+                defaultValue,
                 definition.nullable(),
                 definition.description(),
-                value);
+                Optional.ofNullable(value).orElse(defaultValue));
     }
 }
