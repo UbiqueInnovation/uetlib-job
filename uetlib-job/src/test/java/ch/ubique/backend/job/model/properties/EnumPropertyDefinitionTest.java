@@ -12,7 +12,9 @@ class EnumPropertyDefinitionTest {
 
     @Test
     void testEncodeDecode() {
-        final var definition = new EnumPropertyDefinition<>("RUNNER", "ABC", JobRunnerKey.CURRENT);
+        final var definition =
+                new EnumPropertyDefinition<>(
+                        "RUNNER", "ABC", JobPropertyDefinitionGroup.RUNNER, JobRunnerKey.CURRENT);
 
         assertEquals(JobRunnerKey.CURRENT.name(), definition.encode(JobRunnerKey.CURRENT));
         assertEquals(
@@ -25,7 +27,9 @@ class EnumPropertyDefinitionTest {
 
     @Test
     void testConstructor() {
-        final var definition = new EnumPropertyDefinition<>("RUNNER", "ABC", JobRunnerKey.CURRENT);
+        final var definition =
+                new EnumPropertyDefinition<>(
+                        "RUNNER", "ABC", JobPropertyDefinitionGroup.RUNNER, JobRunnerKey.CURRENT);
 
         assertEquals("RUNNER", definition.key());
         assertEquals("ABC", definition.description());
@@ -37,24 +41,44 @@ class EnumPropertyDefinitionTest {
     }
 
     @Test
-    void testRequiredFileds() {
+    void testRequiredFields() {
         assertThrows(
-                NullPointerException.class, () -> new EnumPropertyDefinition<>(null, null, null));
+                NullPointerException.class,
+                () ->
+                        new EnumPropertyDefinition<>(
+                                null, null, JobPropertyDefinitionGroup.RUNNER, null));
 
         assertThrows(
                 NullPointerException.class,
-                () -> new EnumPropertyDefinition<>(null, "ABC", JobRunnerKey.CURRENT));
+                () ->
+                        new EnumPropertyDefinition<>(
+                                null,
+                                "ABC",
+                                JobPropertyDefinitionGroup.RUNNER,
+                                JobRunnerKey.CURRENT));
 
         assertThrows(
                 NullPointerException.class,
-                () -> new EnumPropertyDefinition<>("RUNNER", null, JobRunnerKey.CURRENT));
+                () ->
+                        new EnumPropertyDefinition<>(
+                                "RUNNER",
+                                null,
+                                JobPropertyDefinitionGroup.RUNNER,
+                                JobRunnerKey.CURRENT));
 
         assertThrows(
                 RuntimeException.class,
-                () -> new EnumPropertyDefinition<>("RUNNER", " ", JobRunnerKey.CURRENT));
+                () ->
+                        new EnumPropertyDefinition<>(
+                                "RUNNER",
+                                " ",
+                                JobPropertyDefinitionGroup.RUNNER,
+                                JobRunnerKey.CURRENT));
 
         assertThrows(
                 NullPointerException.class,
-                () -> new EnumPropertyDefinition<>("RUNNER", "ABC", null));
+                () ->
+                        new EnumPropertyDefinition<>(
+                                "RUNNER", "ABC", JobPropertyDefinitionGroup.RUNNER, null));
     }
 }

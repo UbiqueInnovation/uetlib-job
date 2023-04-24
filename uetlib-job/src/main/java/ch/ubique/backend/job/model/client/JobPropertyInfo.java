@@ -10,6 +10,7 @@ import java.util.Optional;
 public record JobPropertyInfo(
         String key,
         String type,
+        JobPropertyGroupInfo group,
         List<String> allowedValues,
         String defaultValue,
         boolean nullable,
@@ -30,6 +31,7 @@ public record JobPropertyInfo(
         return new JobPropertyInfo(
                 definition.key(),
                 definition.getClass().getName(),
+                new JobPropertyGroupInfo(definition.group()),
                 definition
                         .allowedValues()
                         .map(
