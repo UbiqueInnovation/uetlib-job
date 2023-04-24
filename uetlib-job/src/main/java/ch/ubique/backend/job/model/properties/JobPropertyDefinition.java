@@ -23,6 +23,8 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
 
     @NotBlank private final String description;
 
+    @NotNull private final JobPropertyDefinitionGroup group;
+
     private final boolean nullable;
 
     @Nullable private final T defaultValue;
@@ -32,12 +34,14 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
     protected JobPropertyDefinition(
             @NotNull final String key,
             @NotBlank final String description,
+            @NotNull final JobPropertyDefinitionGroup group,
             final boolean nullable,
             @Nullable final T defaultValue,
             @Nullable final Set<T> allowedValues) {
 
         this.key = StringUtils.requireNonBlank(key);
         this.description = StringUtils.requireNonBlank(description);
+        this.group = group;
         this.nullable = nullable;
         this.defaultValue = defaultValue;
         this.allowedValues = allowedValues;
@@ -49,6 +53,10 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
 
     public String description() {
         return description;
+    }
+
+    public JobPropertyDefinitionGroup group() {
+        return group;
     }
 
     public boolean nullable() {

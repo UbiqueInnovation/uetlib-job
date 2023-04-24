@@ -1,5 +1,9 @@
 package ch.ubique.backend.job.model.properties;
 
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 import org.apache.commons.lang3.math.NumberUtils;
 
 import java.time.Duration;
@@ -7,11 +11,12 @@ import java.time.Duration;
 final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
 
     public DurationPropertyDefinition(
-            final String key,
-            final String description,
+            @NotBlank final String key,
+            @NotBlank final String description,
+            @NotNull final JobPropertyDefinitionGroup group,
             final boolean nullable,
-            final Duration defaultValue) {
-        super(key, description, nullable, defaultValue, null);
+            @Nullable final Duration defaultValue) {
+        super(key, description, group, nullable, defaultValue, null);
     }
 
     @Override

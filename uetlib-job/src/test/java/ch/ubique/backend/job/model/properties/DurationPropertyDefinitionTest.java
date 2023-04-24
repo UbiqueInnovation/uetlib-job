@@ -9,7 +9,9 @@ class DurationPropertyDefinitionTest {
 
     @Test
     void testEncodeDecode() {
-        final var definition = new DurationPropertyDefinition("RUN_TIME_LIMIT", "ABC", true, null);
+        final var definition =
+                new DurationPropertyDefinition(
+                        "RUN_TIME_LIMIT", "ABC", JobPropertyDefinitionGroup.RUNNER, true, null);
 
         final var duration = Duration.ofHours(42);
 

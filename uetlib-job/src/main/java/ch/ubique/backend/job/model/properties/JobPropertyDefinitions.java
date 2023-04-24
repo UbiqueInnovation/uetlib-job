@@ -21,17 +21,22 @@ public final class JobPropertyDefinitions {
             new DurationPropertyDefinition(
                     "RUN_TIME_LIMIT",
                     "If set, the monitoring will report an error if this job runs longer than the specified limit.",
+                    JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofHours(1));
 
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(
-                    "RUNNER", "Defines where the job is executed.", JobRunnerKey.CURRENT);
+                    "RUNNER",
+                    "Defines where the job is executed.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    JobRunnerKey.CURRENT);
 
     public static final JobPropertyDefinition<String> K8S_SKU =
             new StringPropertyDefinition(
                     "K8S_SKU",
                     "If set, the K8s job will run on the selected node pool.",
+                    JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
                     Set.of("highmem", "highperf"));
@@ -40,29 +45,51 @@ public final class JobPropertyDefinitions {
             new DurationPropertyDefinition(
                     "K8S_TTL_AFTER_FINISHED",
                     "Defines how long the kubernetes job should live after completion. Useful to view logs after run has finished.",
+                    JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofHours(1));
 
     public static final JobPropertyDefinition<String> K8S_REQUESTS_CPU =
             new StringPropertyDefinition(
-                    "K8S_REQUESTS_CPU", "CPU request for the K8s job.", true, null, null);
+                    "K8S_REQUESTS_CPU",
+                    "CPU request for the K8s job.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
+                    null);
 
     public static final JobPropertyDefinition<String> K8S_REQUESTS_MEMORY =
             new StringPropertyDefinition(
-                    "K8S_REQUESTS_MEMORY", "Memory request for the K8s job.", true, null, null);
+                    "K8S_REQUESTS_MEMORY",
+                    "Memory request for the K8s job.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
+                    null);
 
     public static final JobPropertyDefinition<String> K8S_LIMITS_CPU =
             new StringPropertyDefinition(
-                    "K8S_LIMITS_CPU", "CPU limit for the K8s job.", true, null, null);
+                    "K8S_LIMITS_CPU",
+                    "CPU limit for the K8s job.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
+                    null);
 
     public static final JobPropertyDefinition<String> K8S_LIMITS_MEMORY =
             new StringPropertyDefinition(
-                    "K8S_LIMITS_MEMORY", "Memory limit for the K8s job.", true, null, null);
+                    "K8S_LIMITS_MEMORY",
+                    "Memory limit for the K8s job.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
+                    null);
 
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(
                     "CLEANUP_DAYS_TO_KEEP",
                     "Number of days since the most recent DONE job after which job data is cleaned up.",
+                    JobPropertyDefinitionGroup.CLEANUP,
                     false,
                     30,
                     null);
@@ -71,6 +98,7 @@ public final class JobPropertyDefinitions {
             new IntPropertyDefinition(
                     "CLEANUP_CHUNK_SIZE",
                     "Maximum number of job runs to clean up per cleanup job run.",
+                    JobPropertyDefinitionGroup.CLEANUP,
                     false,
                     1000,
                     null);
