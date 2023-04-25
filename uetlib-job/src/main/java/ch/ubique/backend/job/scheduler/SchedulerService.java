@@ -2,6 +2,8 @@ package ch.ubique.backend.job.scheduler;
 
 import ch.ubique.backend.job.BaseJob;
 
+import org.apache.commons.lang3.StringUtils;
+import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -12,9 +14,13 @@ import org.quartz.SchedulerException;
 import org.quartz.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.time.ZoneId;
 import java.util.Objects;
+import java.util.TimeZone;
 
 @Service
 public class SchedulerService {
@@ -22,8 +28,13 @@ public class SchedulerService {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerService.class);
     private final Scheduler scheduler;
 
-    public SchedulerService(final Scheduler scheduler) {
+    private final ZoneId zoneId;
+
+    public SchedulerService(
+            final Scheduler scheduler,
+            @Value("${ch.ubique.backend.job.cron.timezone:}") final String zoneId) {
         this.scheduler = scheduler;
+        this.zoneId = ZoneId.of(StringUtils.defaultIfBlank(zoneId, "UTC"));
     }
 
     private static JobDetail createJobDetail(final JobKey key, final Job job) {
@@ -50,23 +61,26 @@ public class SchedulerService {
     }
 
     public void updateJob(final String identifier, final BaseJob job) {
-        final var cronExpression = job.getCronExpression();
+        final var cronExpressionString = job.getCronExpression();
         try {
             logger.info(
                     "Updating scheduled job {} with cron expression: {}",
                     identifier,
-                    cronExpression);
+                    cronExpressionString);
             final var key = new JobKey(identifier);
             final var jobDetail = getOrCreateJobDetail(key, job);
 
             removeScheduleJob(identifier);
+
+            final var cronExpression = new CronExpression(cronExpressionString);
+            cronExpression.setTimeZone(TimeZone.getTimeZone(zoneId));
 
             final var trigger =
                     TriggerBuilder.newTrigger()
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                             .build();
             scheduler.scheduleJob(jobDetail, trigger);
-        } catch (final SchedulerException e) {
+        } catch (final SchedulerException | ParseException e) {
             logger.error("Could not update job for: {}", identifier, e);
         }
     }
