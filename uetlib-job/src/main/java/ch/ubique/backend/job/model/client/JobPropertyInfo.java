@@ -3,19 +3,23 @@ package ch.ubique.backend.job.model.client;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 public record JobPropertyInfo(
-        String key,
-        String type,
-        JobPropertyGroupInfo group,
-        List<String> allowedValues,
-        String defaultValue,
-        boolean nullable,
-        String description,
-        String value) {
+        @NotBlank String key,
+        @NotBlank String type,
+        @NotNull JobPropertyGroupInfo group,
+        @Nullable List<String> allowedValues,
+        @Nullable String defaultValue,
+        @NotNull boolean nullable,
+        @NotBlank String description,
+        @Nullable String value) {
 
     public static JobPropertyInfo from(final JobProperty<?> property) {
         return from(property.definition(), property.encodedValue());

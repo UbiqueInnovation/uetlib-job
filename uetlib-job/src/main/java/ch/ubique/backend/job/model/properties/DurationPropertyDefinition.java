@@ -14,7 +14,7 @@ final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            final boolean nullable,
+            @NotNull final boolean nullable,
             @Nullable final Duration defaultValue) {
         super(key, description, group, nullable, defaultValue, null);
     }

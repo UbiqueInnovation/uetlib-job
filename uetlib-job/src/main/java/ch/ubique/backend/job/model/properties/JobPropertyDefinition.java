@@ -25,7 +25,7 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
 
     @NotNull private final JobPropertyDefinitionGroup group;
 
-    private final boolean nullable;
+    @NotNull private final boolean nullable;
 
     @Nullable private final T defaultValue;
 
@@ -35,7 +35,7 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
             @NotNull final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            final boolean nullable,
+            @NotNull final boolean nullable,
             @Nullable final T defaultValue,
             @Nullable final Set<T> allowedValues) {
 

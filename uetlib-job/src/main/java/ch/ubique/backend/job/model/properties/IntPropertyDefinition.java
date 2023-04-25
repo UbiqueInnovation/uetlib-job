@@ -13,8 +13,8 @@ final class IntPropertyDefinition extends JobPropertyDefinition<Integer> {
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            final boolean nullable,
-            final int defaultValue,
+            @NotNull final boolean nullable,
+            @Nullable final Integer defaultValue,
             @Nullable final Set<Integer> allowedValues) {
         super(key, description, group, nullable, defaultValue, allowedValues);
     }
