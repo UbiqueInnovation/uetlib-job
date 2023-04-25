@@ -12,7 +12,7 @@ final class StringPropertyDefinition extends JobPropertyDefinition<String> {
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            final boolean nullable,
+            @NotNull final boolean nullable,
             @Nullable final String defaultValue,
             @Nullable final Set<String> allowedValues) {
         super(key, description, group, nullable, defaultValue, allowedValues);

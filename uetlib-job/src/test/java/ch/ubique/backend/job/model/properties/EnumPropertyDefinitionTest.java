@@ -33,6 +33,7 @@ class EnumPropertyDefinitionTest {
 
         assertEquals("RUNNER", definition.key());
         assertEquals("ABC", definition.description());
+        assertEquals(JobPropertyDefinitionGroup.RUNNER, definition.group());
         assertFalse(definition.nullable());
         assertTrue(definition.defaultValue().isPresent());
         assertEquals(JobRunnerKey.CURRENT, definition.defaultValue().get());
