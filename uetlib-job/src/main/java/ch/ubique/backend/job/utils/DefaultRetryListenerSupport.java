@@ -3,9 +3,9 @@ package ch.ubique.backend.job.utils;
 import org.slf4j.Logger;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
-import org.springframework.retry.listener.RetryListenerSupport;
+import org.springframework.retry.RetryListener;
 
-public class DefaultRetryListenerSupport extends RetryListenerSupport {
+public class DefaultRetryListenerSupport implements RetryListener {
 
     private final Logger logger;
 
@@ -18,7 +18,6 @@ public class DefaultRetryListenerSupport extends RetryListenerSupport {
             final RetryContext context,
             final RetryCallback<T, E> callback,
             final Throwable throwable) {
-        logger.warn("Got error while trying.", throwable);
-        super.onError(context, callback, throwable);
+        logger.warn("Got error while trying: ", throwable);
     }
 }
