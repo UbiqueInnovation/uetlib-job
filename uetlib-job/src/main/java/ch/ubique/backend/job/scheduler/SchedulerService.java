@@ -2,7 +2,6 @@ package ch.ubique.backend.job.scheduler;
 
 import ch.ubique.backend.job.BaseJob;
 
-import org.apache.commons.lang3.StringUtils;
 import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.Job;
@@ -32,9 +31,9 @@ public class SchedulerService {
 
     public SchedulerService(
             final Scheduler scheduler,
-            @Value("${ch.ubique.backend.job.cron.timezone:}") final String zoneId) {
+            @Value("${ch.ubique.backend.job.cron.timezone:UTC}") final String zoneId) {
         this.scheduler = scheduler;
-        this.zoneId = ZoneId.of(StringUtils.defaultIfBlank(zoneId, "UTC"));
+        this.zoneId = ZoneId.of(zoneId);
     }
 
     private static JobDetail createJobDetail(final JobKey key, final Job job) {
