@@ -97,7 +97,7 @@
             <plugin>
                 <groupId>org.hibernate.orm.tooling</groupId>
                 <artifactId>hibernate-enhance-maven-plugin</artifactId>
-                <version>6.2.0.Final</version>
+                <version>6.2.2.Final</version>
                 <executions>
                     <execution>
                         <configuration>
