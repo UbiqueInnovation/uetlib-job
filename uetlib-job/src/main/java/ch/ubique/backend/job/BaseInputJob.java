@@ -8,7 +8,7 @@ import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
-import ch.ubique.backend.job.utils.DefaultRetryListenerSupport;
+import ch.ubique.backend.job.utils.DefaultRetryListener;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -74,7 +74,7 @@ public abstract class BaseInputJob<T> extends BaseJob {
                                 Duration.ofSeconds(2).toMillis(),
                                 2,
                                 Duration.ofMinutes(5).toMillis())
-                        .withListener(new DefaultRetryListenerSupport(logger))
+                        .withListener(new DefaultRetryListener(logger))
                         .build();
 
         try {
