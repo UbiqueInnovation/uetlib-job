@@ -36,20 +36,28 @@ public final class JobCreator {
     }
 
     public BaseJob createNewJobInstance(final String className)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         final var jobClass = getClassForName(className);
         return createNewJobInstance(jobClass);
     }
 
     public BaseJob createNewJobInstance(final Job job)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         return createNewJobInstance(job.clazzName());
     }
 
-    public BaseJob createNewJobInstance(final Class<? extends BaseJob> jobClass)
-            throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+    public <T extends BaseJob> T createNewJobInstance(final Class<T> jobClass)
+            throws NoSuchMethodException,
+                    InvocationTargetException,
+                    InstantiationException,
                     IllegalAccessException {
         final var parameters = getConstructor(jobClass).getParameters();
         final var jobConstructorParameters =
@@ -69,14 +77,13 @@ public final class JobCreator {
                 .filter(c -> c.isAnnotationPresent(JobAutowireConstructor.class))
                 .findFirst()
                 .orElseThrow(
-                        () -> {
-                            throw new NoSuchElementException(
-                                    MessageFormat.format(
-                                            "Either declare a single, default, public constructor"
-                                                    + " or annotate one with annotation ''@{0}'' for job ''{1}''",
-                                            JobAutowireConstructor.class.getCanonicalName(),
-                                            jobClass.getCanonicalName()));
-                        });
+                        () ->
+                                new NoSuchElementException(
+                                        MessageFormat.format(
+                                                "Either declare a single, default, public constructor"
+                                                        + " or annotate one with annotation ''@{0}'' for job ''{1}''",
+                                                JobAutowireConstructor.class.getCanonicalName(),
+                                                jobClass.getCanonicalName())));
     }
 
     @NotNull
