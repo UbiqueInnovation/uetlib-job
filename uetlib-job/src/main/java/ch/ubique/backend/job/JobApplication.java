@@ -122,8 +122,8 @@ public class JobApplication {
         registerJob(context, HealthCheckJob.class);
     }
 
-    private static void registerJob(
-            final ConfigurableApplicationContext context, final Class<? extends BaseJob> jobClass)
+    private static <T extends BaseJob> void registerJob(
+            final ConfigurableApplicationContext context, final Class<T> jobClass)
             throws NoSuchMethodException,
                     InvocationTargetException,
                     InstantiationException,
