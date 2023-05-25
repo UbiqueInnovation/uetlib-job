@@ -123,7 +123,7 @@ public class JobApplication {
     }
 
     private static void registerJob(
-            ConfigurableApplicationContext context, Class<? extends BaseJob> jobClass)
+            final ConfigurableApplicationContext context, final Class<? extends BaseJob> jobClass)
             throws NoSuchMethodException,
                     InvocationTargetException,
                     InstantiationException,
