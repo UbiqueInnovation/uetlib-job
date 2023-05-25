@@ -20,10 +20,18 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Duration> RUN_TIME_LIMIT =
             new DurationPropertyDefinition(
                     "RUN_TIME_LIMIT",
-                    "If set, the monitoring will report an error if this job runs longer than the specified limit.",
+                    "The monitoring will report an error if this job runs longer than the specified limit.",
                     JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofHours(1));
+
+    public static final JobPropertyDefinition<Duration> LAST_RUN_MAX_AGE =
+            new DurationPropertyDefinition(
+                    "LAST_RUN_MAX_AGE",
+                    "The monitoring will report an error if the latest run is older than the specified value.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false,
+                    Duration.ofDays(30));
 
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(

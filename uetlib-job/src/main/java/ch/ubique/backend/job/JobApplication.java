@@ -2,6 +2,7 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.cleanup.CleanupJob;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.heath.HealthCheckJob;
 import ch.ubique.backend.job.scheduler.JobScheduler;
 import ch.ubique.backend.job.service.JobCreator;
 
@@ -118,6 +119,7 @@ public class JobApplication {
             registerJob(context, jobClass);
         }
         registerJob(context, CleanupJob.class);
+        registerJob(context, HealthCheckJob.class);
     }
 
     private static void registerJob(
