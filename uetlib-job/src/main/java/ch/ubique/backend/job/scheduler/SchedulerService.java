@@ -2,15 +2,8 @@ package ch.ubique.backend.job.scheduler;
 
 import ch.ubique.backend.job.BaseJob;
 
-import org.quartz.CronExpression;
-import org.quartz.CronScheduleBuilder;
-import org.quartz.Job;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.JobKey;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.TriggerBuilder;
+import org.quartz.*;
+import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.TimeZone;
 
@@ -121,5 +116,24 @@ public class SchedulerService {
             throws SchedulerException {
         return Objects.requireNonNullElseGet(
                 scheduler.getJobDetail(key), () -> createJobDetail(key, job));
+    }
+
+    public Collection<TriggerKey> getAllTriggerKeys() throws SchedulerException {
+        return scheduler.getTriggerKeys(GroupMatcher.anyGroup());
+    }
+
+    public Collection<TriggerKey> getTriggerKeys(final Trigger.TriggerState triggerState)
+            throws SchedulerException {
+        final var result = new ArrayList<TriggerKey>();
+        for (final var key : getAllTriggerKeys()) {
+            if (scheduler.getTriggerState(key) == triggerState) {
+                result.add(key);
+            }
+        }
+        return result;
+    }
+
+    public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws SchedulerException {
+        scheduler.resetTriggerFromErrorState(triggerKey);
     }
 }
