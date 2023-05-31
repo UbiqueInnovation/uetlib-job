@@ -77,6 +77,14 @@
             <artifactId>artifact-version-service</artifactId>
             <version>1.1.0</version>
         </dependency>
+
+        <!-- Additional utils for parsing and serializing time ranges -->
+        <dependency>
+            <groupId>net.time4j</groupId>
+            <artifactId>time4j-base</artifactId>
+            <version>5.9.2</version>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
