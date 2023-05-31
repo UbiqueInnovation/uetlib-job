@@ -33,6 +33,8 @@ final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
     public String encode(final Duration value) {
         // We use the time4j normalizer to get nicer string representations. E.g. PT720H gets
         // converted to P30D
-        return net.time4j.Duration.STD_PERIOD.normalize(net.time4j.Duration.from(value)).toString();
+        return net.time4j.Duration.STD_CLOCK_PERIOD
+                .normalize(net.time4j.Duration.from(value))
+                .toString();
     }
 }
