@@ -8,6 +8,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 
 import java.time.Duration;
 
+@SuppressWarnings("NullableProblems")
 final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
 
     public DurationPropertyDefinition(
@@ -24,11 +25,14 @@ final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
         if (NumberUtils.isDigits(value)) {
             return Duration.ofMillis(Long.parseLong(value));
         }
+
         return Duration.parse(value);
     }
 
     @Override
     public String encode(final Duration value) {
-        return value.toString();
+        // We use the time4j normalizer to get nicer string representations. E.g. PT720H gets
+        // converted to P30D
+        return net.time4j.Duration.STD_PERIOD.normalize(net.time4j.Duration.from(value)).toString();
     }
 }

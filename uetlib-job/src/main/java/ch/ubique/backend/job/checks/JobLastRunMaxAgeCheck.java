@@ -43,6 +43,17 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
 
     @NotNull
     private Optional<Map<String, Object>> checkJobOverdue(final Job job) {
+        final var lastRunMaxAgeMaybe =
+                jobDataService
+                        .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
+                        .valueMaybe();
+
+        if (lastRunMaxAgeMaybe.isEmpty()) {
+            return Optional.empty();
+        }
+
+        final var lastRunMaxAge = lastRunMaxAgeMaybe.get();
+
         final var lastRunStartedAt =
                 jobDataService
                         .findLatestJobRun(job.id())
@@ -50,11 +61,6 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
                         .orElse(Instant.EPOCH);
 
         final var lastRunAge = Duration.between(lastRunStartedAt, Instant.now());
-
-        final var lastRunMaxAge =
-                jobDataService
-                        .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
-                        .value();
 
         if (lastRunAge.compareTo(lastRunMaxAge) <= 0) {
             return Optional.empty();
