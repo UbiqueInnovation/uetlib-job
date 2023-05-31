@@ -1,0 +1,43 @@
+package ch.ubique.backend.job.checks;
+
+import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.monitoring.check.StatusCheck;
+import ch.ubique.backend.monitoring.check.models.CheckFailed;
+import ch.ubique.backend.monitoring.check.models.CheckStatus;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
+
+    private final JobDataService jobDataService;
+
+    public JobLastRunMaxAgeConfiguredCheck(final JobDataService jobDataService) {
+        this.jobDataService = jobDataService;
+    }
+
+    @Override
+    public CheckStatus check() {
+        final var jobsWithMissingMaxAge =
+                jobDataService.findJobs().stream()
+                        .filter(this::isMaxAgeMissing)
+                        .map(Job::clazzName)
+                        .toList();
+
+        if (!jobsWithMissingMaxAge.isEmpty()) {
+            return new CheckFailed(
+                    "The following jobs do not have LAST_RUN_MAX_AGE configured.",
+                    jobsWithMissingMaxAge);
+        }
+
+        return CheckStatus.CHECK_PASSED;
+    }
+
+    private boolean isMaxAgeMissing(final Job job) {
+        return !jobDataService
+                .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
+                .isValuePresent();
+    }
+}

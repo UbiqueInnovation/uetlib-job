@@ -8,7 +8,6 @@ import org.apache.commons.lang3.math.NumberUtils;
 
 import java.text.ParseException;
 import java.time.Duration;
-import java.time.Period;
 
 final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
 
