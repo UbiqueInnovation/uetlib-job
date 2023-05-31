@@ -30,8 +30,8 @@ public final class JobPropertyDefinitions {
                     "LAST_RUN_MAX_AGE",
                     "The monitoring will report an error if the latest run is older than the specified value.",
                     JobPropertyDefinitionGroup.MONITORING,
-                    false,
-                    Duration.ofDays(30));
+                    true,
+                    null);
 
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(
