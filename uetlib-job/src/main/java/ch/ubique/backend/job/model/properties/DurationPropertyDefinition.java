@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.math.NumberUtils;
 
-import java.text.ParseException;
 import java.time.Duration;
 
 final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
@@ -25,13 +24,8 @@ final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
         if (NumberUtils.isDigits(value)) {
             return Duration.ofMillis(Long.parseLong(value));
         }
-        try {
-            // By using time4j, we can support parsing duration strings with period components,
-            // like P30D
-            return Duration.from(net.time4j.Duration.parsePeriod(value).toTemporalAmount());
-        } catch (final ParseException e) {
-            throw new RuntimeException(e);
-        }
+
+        return Duration.parse(value);
     }
 
     @Override
