@@ -30,7 +30,9 @@ public class BackendLibJobBaseConfig {
                     final String heartbeatEndpoint) {
         if (heartbeatEnabled && Strings.isBlank(heartbeatEndpoint)) {
             throw new ValidationException(
-                    "property 'ch.ubique.backend.job.interface.heartbeat.endpoint' must be set if 'ch.ubique.backend.job.interface.heartbeat.enabled' is not explicitly disabled");
+                    "property 'ch.ubique.backend.job.interface.heartbeat.endpoint' must be set if"
+                        + " 'ch.ubique.backend.job.interface.heartbeat.enabled' is not explicitly"
+                        + " disabled");
         }
         return new MonitoringService(restTemplate, heartbeatEnabled, heartbeatEndpoint);
     }

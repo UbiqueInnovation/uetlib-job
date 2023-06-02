@@ -161,7 +161,8 @@ public abstract class BaseInputJob<T> extends BaseJob {
         }
     }
 
-    private void saveJobRunInput(final ByteFile file, final Job job, final JobRun jobRun) throws IOException {
+    private void saveJobRunInput(final ByteFile file, final Job job, final JobRun jobRun)
+            throws IOException {
         jobRunStorage.saveJobRunInput(
                 file.getBytes(), job.name(), jobRun.readableId(), file.getFileName());
     }

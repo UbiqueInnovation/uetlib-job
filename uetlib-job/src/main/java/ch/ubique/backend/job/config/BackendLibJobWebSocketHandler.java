@@ -47,7 +47,8 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         this.jobDataService = jobDataService;
         encoder = new PatternLayoutEncoder();
         encoder.setPattern(
-                "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
+                "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint}"
+                    + " %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
         encoder.setCharset(StandardCharsets.UTF_8);
         encoder.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
         encoder.start();

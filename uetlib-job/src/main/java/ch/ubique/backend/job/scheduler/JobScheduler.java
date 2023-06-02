@@ -30,7 +30,9 @@ public final class JobScheduler {
     }
 
     public void scheduleAllRegisteredJobs()
-            throws InvocationTargetException, NoSuchMethodException, InstantiationException,
+            throws InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
                     IllegalAccessException {
         for (final var job : jobDataService.findJobs()) {
             try {
@@ -52,8 +54,11 @@ public final class JobScheduler {
     }
 
     public void update(final Job job)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         final var instance = jobCreator.createNewJobInstance(job);
         if (!instance.isCronActive() || !instance.isCronExpressionValid()) {
             schedulerService.removeScheduleJob(job.clazzName());
@@ -64,8 +69,11 @@ public final class JobScheduler {
     }
 
     public void runNow(final Job job, final boolean forceRun)
-            throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
-                    InstantiationException, IllegalAccessException {
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
         schedulerService.runJobNowManual(
                 job.clazzName(), jobCreator.createNewJobInstance(job), forceRun);
     }

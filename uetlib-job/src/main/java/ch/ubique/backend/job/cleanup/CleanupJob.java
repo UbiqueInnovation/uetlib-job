@@ -78,7 +78,8 @@ public class CleanupJob extends BaseJob {
                         input.getName());
             } else {
                 logger.info(
-                        "Failed to delete run input file: doesn't exist [jobId: {}; runId: {}; inputName: {}]",
+                        "Failed to delete run input file: doesn't exist [jobId: {}; runId: {};"
+                                + " inputName: {}]",
                         job.id(),
                         run.getId(),
                         input.getName());
@@ -95,7 +96,8 @@ public class CleanupJob extends BaseJob {
                     run.getId());
         } else if (!jobRunInputs.isEmpty()) {
             logger.debug(
-                    "Failed to delete run input file directory: doesn't exist [jobId: {}; runId: {}]",
+                    "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
+                            + " {}]",
                     job.id(),
                     run.getId());
         }
