@@ -80,8 +80,9 @@ public final class JobCreator {
                         () ->
                                 new NoSuchElementException(
                                         MessageFormat.format(
-                                                "Either declare a single, default, public constructor"
-                                                        + " or annotate one with annotation ''@{0}'' for job ''{1}''",
+                                                "Either declare a single, default, public"
+                                                    + " constructor or annotate one with annotation"
+                                                    + " ''@{0}'' for job ''{1}''",
                                                 JobAutowireConstructor.class.getCanonicalName(),
                                                 jobClass.getCanonicalName())));
     }

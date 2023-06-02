@@ -76,7 +76,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
         if (!fixedProperties().isEmpty() && !fixedProperties.equals(dbProperties)) {
             logger.warn(
-                    "Properties in database are different to the fixed properties. Going to overwrite values in database.");
+                    "Properties in database are different to the fixed properties. Going to"
+                            + " overwrite values in database.");
             jobDataService.clearProperties(job.id());
             jobDataService.saveProperties(job.id(), fixedProperties());
         }
@@ -148,7 +149,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             if (!isCronExpressionValid(fixedCron)) {
                 throw new IllegalArgumentException(
                         MessageFormat.format(
-                                "Could not instantiate job ''{0}'': fixedCronExpression is not valid: ''{1}''",
+                                "Could not instantiate job ''{0}'': fixedCronExpression is not"
+                                        + " valid: ''{1}''",
                                 job.name(), fixedCron));
             }
             return fixedCron;
@@ -163,7 +165,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
             if (!isCronExpressionValid(initialCron)) {
                 throw new IllegalArgumentException(
                         MessageFormat.format(
-                                "Could not instantiate job ''{0}'': initialCronExpression is not valid: ''{1}''",
+                                "Could not instantiate job ''{0}'': initialCronExpression is not"
+                                        + " valid: ''{1}''",
                                 job.name(), initialCron));
             }
             return initialCron;

@@ -20,7 +20,8 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Duration> RUN_TIME_LIMIT =
             new DurationPropertyDefinition(
                     "RUN_TIME_LIMIT",
-                    "The monitoring will report an error if this job runs longer than the specified limit.",
+                    "The monitoring will report an error if this job runs longer than the specified"
+                            + " limit.",
                     JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofHours(1));
@@ -28,7 +29,8 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Duration> LAST_RUN_MAX_AGE =
             new DurationPropertyDefinition(
                     "LAST_RUN_MAX_AGE",
-                    "The monitoring will report an error if the latest run is older than the specified value.",
+                    "The monitoring will report an error if the latest run is older than the"
+                            + " specified value.",
                     JobPropertyDefinitionGroup.MONITORING,
                     true,
                     null);
@@ -52,7 +54,8 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Duration> K8S_TTL_AFTER_FINISHED =
             new DurationPropertyDefinition(
                     "K8S_TTL_AFTER_FINISHED",
-                    "Defines how long the kubernetes job should live after completion. Useful to view logs after run has finished.",
+                    "Defines how long the kubernetes job should live after completion. Useful to"
+                            + " view logs after run has finished.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofHours(1));
@@ -96,7 +99,8 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(
                     "CLEANUP_DAYS_TO_KEEP",
-                    "Number of days since the most recent DONE job after which job data is cleaned up.",
+                    "Number of days since the most recent DONE job after which job data is cleaned"
+                            + " up.",
                     JobPropertyDefinitionGroup.CLEANUP,
                     false,
                     30,

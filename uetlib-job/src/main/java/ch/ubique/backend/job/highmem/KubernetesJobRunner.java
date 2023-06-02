@@ -56,7 +56,9 @@ public class KubernetesJobRunner implements JobRunner {
         final var namespaceMaybe = getCurrentKubernetesNamespace();
         if (namespaceMaybe.isEmpty()) {
             logger.warn(
-                    "Could not get kubernetes namespace. Running pod in the current context. If you are running the job on your local machine, this is the expected behaviour.");
+                    "Could not get kubernetes namespace. Running pod in the current context. If you"
+                            + " are running the job on your local machine, this is the expected"
+                            + " behaviour.");
             job.run(false);
             return;
         }
@@ -65,7 +67,8 @@ public class KubernetesJobRunner implements JobRunner {
         final var currentPodName = System.getenv("HOSTNAME");
         if (StringUtils.isBlank(currentPodName)) {
             logger.warn(
-                    "Could not get pod name. Running pod in the current context. If you are running the job on your local machine, this is the expected behaviour.");
+                    "Could not get pod name. Running pod in the current context. If you are running"
+                            + " the job on your local machine, this is the expected behaviour.");
             job.run(false);
             return;
         }
@@ -93,7 +96,9 @@ public class KubernetesJobRunner implements JobRunner {
         final var currentPodSpec = Objects.requireNonNull(currentPod.getSpec());
         if (currentPodSpec.getContainers().size() != 1) {
             throw new IllegalArgumentException(
-                    "Expected current importer pod to have exactly one container. This is a simplification of the current implementation. If needed, you can modify this code to drop this restriction.");
+                    "Expected current importer pod to have exactly one container. This is a"
+                        + " simplification of the current implementation. If needed, you can modify"
+                        + " this code to drop this restriction.");
         }
         final var currentPodContainer = currentPodSpec.getContainers().get(0);
 
