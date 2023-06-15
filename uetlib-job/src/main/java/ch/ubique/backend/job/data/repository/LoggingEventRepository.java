@@ -14,10 +14,12 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
 
     @Transactional(readOnly = true)
     @Query(
-            """
-    SELECT e FROM LoggingEventEntity e
-    JOIN LoggingEventPropertyEntity p ON e.eventId = p.eventId
-    WHERE p.mappedKey = "jobRunId" AND p.mappedValue = :id
-    ORDER BY timestamp""")
+            value =
+                    """
+                            select le.* from logging_event le
+                            join logging_event_property lep on le.event_id = lep.event_id
+                            where lep.mapped_key = 'jobRunId' and lep.mapped_value = :id
+                            order by le.timestmp""",
+            nativeQuery = true)
     List<LoggingEventEntity> findByJobRunId(String id);
 }

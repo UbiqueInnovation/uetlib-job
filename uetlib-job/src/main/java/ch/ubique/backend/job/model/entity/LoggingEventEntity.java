@@ -3,22 +3,12 @@ package ch.ubique.backend.job.model.entity;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.LoggingEvent;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OrderBy;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -76,7 +66,7 @@ public class LoggingEventEntity {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "logging_event_exception", joinColumns = @JoinColumn(name = "event_id"))
     @OrderBy("i")
-    private List<LoggingEventExceptionEmbeddable> eventExceptions;
+    private List<LoggingEventExceptionEmbeddable> eventExceptions = new ArrayList<>();
 
     public LoggingEvent toLoggingEvent() {
         final var event = new LoggingEvent();
@@ -92,14 +82,10 @@ public class LoggingEventEntity {
 
     @NotNull
     private String getMessage() {
-        if (eventExceptions.isEmpty()) {
-            return formattedMessage;
-        }
-
-        return formattedMessage
-                + "\n"
-                + eventExceptions.stream()
-                        .map(LoggingEventExceptionEmbeddable::getTraceLine)
-                        .collect(Collectors.joining("\n"));
+        return Stream.concat(
+                        Stream.of(formattedMessage),
+                        eventExceptions.stream().map(LoggingEventExceptionEmbeddable::getTraceLine))
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.joining("\n"));
     }
 }
