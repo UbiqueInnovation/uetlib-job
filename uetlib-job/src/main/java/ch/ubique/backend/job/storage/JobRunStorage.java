@@ -25,7 +25,7 @@ public interface JobRunStorage {
             @PathVariable String jobName, @PathVariable String runId, @PathVariable String fileName)
             throws IOException;
 
-    @DeleteMapping(path = "{jobName}/{runId}")
+    @DeleteMapping(path = "{jobName}/{runId}", recursive = true)
     boolean deleteJobRunInputDirectory(@PathVariable String jobName, @PathVariable String runId)
             throws IOException;
 }
