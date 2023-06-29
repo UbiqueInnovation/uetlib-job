@@ -5,12 +5,18 @@ import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.storage.JobRunStorage;
+
+import jakarta.validation.constraints.NotNull;
 
 import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Set;
 
 @RegisteredJob
 public class CleanupJob extends BaseJob {
@@ -23,11 +29,21 @@ public class CleanupJob extends BaseJob {
     }
 
     @Override
-    public String initialCronExpression() {
-        // At 00:00:00am every day
-        return "0 0 0 ? * * *";
+    public String fixedCronExpression() {
+        // Every day at 2am
+        return "0 0 2 * * ?";
     }
 
+    @NotNull
+    @Override
+    public Collection<JobProperty<?>> fixedProperties() {
+        return Set.of(
+                JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
+                JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(15)),
+                JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofDays(2)));
+    }
+
+    @NotNull
     @Override
     protected JobRunState internalRun() {
 
@@ -47,6 +63,7 @@ public class CleanupJob extends BaseJob {
             try {
                 for (final var run : cleanableRuns) {
                     cleanInputFiles(job, run);
+                    cleanLogs(run);
                 }
             } catch (final IOException e) {
                 logger.error("Failed to delete run input file", e);
@@ -101,5 +118,10 @@ public class CleanupJob extends BaseJob {
                     job.id(),
                     run.getId());
         }
+    }
+
+    /** Deletes all logs for the specified job and run */
+    private void cleanLogs(final JobRun run) {
+        jobDataService.deleteLogsForJobRunId(run.getId());
     }
 }
