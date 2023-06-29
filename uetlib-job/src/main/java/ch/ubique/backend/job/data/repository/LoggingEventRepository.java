@@ -22,4 +22,17 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
                             order by le.timestmp""",
             nativeQuery = true)
     List<LoggingEventEntity> findByJobRunId(String id);
+
+    @Transactional
+    @Query(
+            value =
+                    """
+                    DELETE
+                    FROM logging_event
+                    WHERE event_id IN
+                          (SELECT event_id
+                           FROM logging_event_property
+                           WHERE mapped_key = 'jobRunId' AND mapped_value = (:jobRunId)::VARCHAR)""",
+            nativeQuery = true)
+    void deleteLogsForJobRunId(final int jobRunId);
 }

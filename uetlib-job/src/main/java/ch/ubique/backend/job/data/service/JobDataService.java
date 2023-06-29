@@ -164,7 +164,7 @@ public class JobDataService {
 
     @Transactional
     public JobRunEntity saveJobRun(final JobRun jobRun) {
-        if (!(jobRun instanceof JobRunEntity jobRunEntity)) {
+        if (!(jobRun instanceof final JobRunEntity jobRunEntity)) {
             throw new ClassCastException(
                     "jobRun cannot be instance of class to JobRunEntity, but is of class"
                             + jobRun.getClass());
@@ -190,7 +190,7 @@ public class JobDataService {
 
     @Transactional
     public void insertJobRunInput(final JobRunInput jobRunInput) {
-        if (!(jobRunInput instanceof JobRunInputEntity jobRunInputEntity)) {
+        if (!(jobRunInput instanceof final JobRunInputEntity jobRunInputEntity)) {
             throw new ClassCastException(
                     "jobRun cannot be instance of class to JobRunInputEntity, but is of class"
                             + jobRunInput.getClass());
@@ -272,9 +272,14 @@ public class JobDataService {
     }
 
     @Transactional
-    public void deleteJobRunByIds(List<Integer> jobRunIdList) {
+    public void deleteJobRunByIds(final List<Integer> jobRunIdList) {
         // batch delete might leave the first-level cache and the db out-of-sync - need to flush
         entityManager.flush();
         jobRunRepository.deleteAllByIdInBatch(jobRunIdList);
+    }
+
+    @Transactional
+    public void deleteLogsForJobRunId(final int jobRunId) {
+        loggingEventRepository.deleteLogsForJobRunId(jobRunId);
     }
 }
