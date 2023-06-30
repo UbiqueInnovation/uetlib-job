@@ -195,14 +195,25 @@ public class JobService {
     }
 
     public JobSystemInfoResponse getInfo() throws SchedulerException {
-
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
                         new JobSystemCronInfo(schedulerService.zoneId()),
                         new JobSystemSchedulerInfo(
+                                getMetaData(),
                                 schedulerService.scheduler().getJobGroupNames().stream()
                                         .map(ThrowingFunction.unchecked(this::groupInfo))
                                         .toList())));
+    }
+
+    private JobSystemSchedulerMetaData getMetaData() throws SchedulerException {
+        final var metaData = schedulerService.scheduler().getMetaData();
+        return new JobSystemSchedulerMetaData(
+                metaData.getThreadPoolSize(),
+                metaData.getNumberOfJobsExecuted(),
+                metaData.getSchedulerClass().getCanonicalName(),
+                metaData.getThreadPoolClass().getCanonicalName(),
+                metaData.getVersion(),
+                metaData.getRunningSince().toInstant());
     }
 
     private JobSystemSchedulerGroupInfo groupInfo(final String groupName)

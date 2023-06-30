@@ -6,4 +6,5 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Collection;
 
 public record JobSystemSchedulerInfo(
+        @Valid @NotNull JobSystemSchedulerMetaData metaData,
         @Valid @NotNull Collection<JobSystemSchedulerGroupInfo> groups) {}
