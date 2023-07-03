@@ -11,4 +11,4 @@ WHERE event_id IN
       (SELECT event_id
        FROM logging_event_property
        WHERE mapped_key = 'jobRunId'
-         AND mapped_value NOT IN (SELECT cast(pk_job_run_id AS varchar) FROM t_job_run))
+         AND mapped_value NOT IN (SELECT cast(pk_job_run_id AS varchar) FROM t_job_run));
