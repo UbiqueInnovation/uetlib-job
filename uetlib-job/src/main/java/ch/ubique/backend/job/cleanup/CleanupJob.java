@@ -40,7 +40,8 @@ public class CleanupJob extends BaseJob {
         return Set.of(
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(15)),
-                JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofDays(2)));
+                JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(
+                        Duration.ofDays(1).plusHours(1)));
     }
 
     @NotNull
@@ -120,7 +121,7 @@ public class CleanupJob extends BaseJob {
         }
     }
 
-    /** Deletes all logs for the specified job and run */
+    /** Deletes all logs for the specified run */
     private void cleanLogs(final JobRun run) {
         jobDataService.deleteLogsForJobRunId(run.getId());
     }

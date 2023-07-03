@@ -197,16 +197,18 @@ public class JobService {
     public JobSystemInfoResponse getInfo() throws SchedulerException {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
-                        new JobSystemCronInfo(schedulerService.zoneId()),
-                        new JobSystemSchedulerInfo(
-                                getMetaData(),
-                                schedulerService.scheduler().getJobGroupNames().stream()
-                                        .map(ThrowingFunction.unchecked(this::groupInfo))
-                                        .toList())));
+                        new JobSystemCronInfo(schedulerService.getZoneId()),
+                        new JobSystemSchedulerInfo(getMetaData(), getGroups())));
+    }
+
+    private List<JobSystemSchedulerGroupInfo> getGroups() throws SchedulerException {
+        return schedulerService.getScheduler().getJobGroupNames().stream()
+                .map(ThrowingFunction.unchecked(this::groupInfo))
+                .toList();
     }
 
     private JobSystemSchedulerMetaData getMetaData() throws SchedulerException {
-        final var metaData = schedulerService.scheduler().getMetaData();
+        final var metaData = schedulerService.getScheduler().getMetaData();
         return new JobSystemSchedulerMetaData(
                 metaData.getThreadPoolSize(),
                 metaData.getNumberOfJobsExecuted(),
@@ -219,26 +221,24 @@ public class JobService {
     private JobSystemSchedulerGroupInfo groupInfo(final String groupName)
             throws SchedulerException {
 
-        final var scheduler = schedulerService.scheduler();
+        final var scheduler = schedulerService.getScheduler();
         final var jobKeys = scheduler.getJobKeys(GroupMatcher.jobGroupEquals(groupName));
         final var currentlyExecutingJobs = scheduler.getCurrentlyExecutingJobs();
 
-        final var jobKeysNotCurrentlyExecuting =
-                SetUtils.difference(
-                        jobKeys,
-                        currentlyExecutingJobs.stream()
-                                .map(context -> context.getJobDetail().getKey())
-                                .collect(Collectors.toUnmodifiableSet()));
+        final var currentlyExecutingJobKeys =
+                currentlyExecutingJobs.stream()
+                        .map(context -> context.getJobDetail().getKey())
+                        .collect(Collectors.toUnmodifiableSet());
 
+        final var jobKeysNotCurrentlyExecuting =
+                SetUtils.difference(jobKeys, currentlyExecutingJobKeys);
+
+        final var now = Instant.now();
         final var queueSize =
                 jobKeysNotCurrentlyExecuting.stream()
                         .map(ThrowingFunction.unchecked(scheduler::getTriggersOfJob))
                         .flatMap(Collection::stream)
-                        .filter(
-                                trigger ->
-                                        trigger.getNextFireTime()
-                                                .toInstant()
-                                                .isBefore(Instant.now()))
+                        .filter(trigger -> trigger.getNextFireTime().toInstant().isBefore(now))
                         .count();
 
         return new JobSystemSchedulerGroupInfo(
