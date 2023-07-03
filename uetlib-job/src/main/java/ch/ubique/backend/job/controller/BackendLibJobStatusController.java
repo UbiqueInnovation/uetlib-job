@@ -1,13 +1,12 @@
 package ch.ubique.backend.job.controller;
 
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.client.JobInfosContainer;
+import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
-import ch.ubique.backend.job.model.client.JobPropertyInfo;
-import ch.ubique.backend.job.model.client.JobRunInfoContainer;
-import ch.ubique.backend.job.model.client.JobRunInfosContainer;
+import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.service.JobService;
 
+import org.quartz.SchedulerException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,32 +31,37 @@ public class BackendLibJobStatusController {
         this.jobService = jobService;
     }
 
-    @GetMapping("")
+    @GetMapping
     public ResponseEntity<Void> up() {
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/jobs")
-    public ResponseEntity<JobInfosContainer> jobs()
+    public JobInfosContainer jobs()
             throws ClassNotFoundException,
                     InvocationTargetException,
                     NoSuchMethodException,
                     InstantiationException,
                     IllegalAccessException {
-        return ResponseEntity.ok(jobService.findJobs());
+        return jobService.findJobs();
     }
 
     @GetMapping("/runs")
-    public ResponseEntity<JobRunInfosContainer> jobRuns(
+    public JobRunInfosContainer jobRuns(
             @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
             @RequestParam(value = "jobId", required = false) final Integer jobId,
             @RequestParam(value = "state", required = false) final JobRunState state) {
-        return ResponseEntity.ok(jobService.findJobRuns(page, jobId, state));
+        return jobService.findJobRuns(page, jobId, state);
+    }
+
+    @GetMapping("/info")
+    public JobSystemInfoResponse info() throws SchedulerException {
+        return jobService.getInfo();
     }
 
     @GetMapping("/run/{jobRunId}")
-    public ResponseEntity<JobRunInfoContainer> jobRun(@PathVariable final int jobRunId) {
-        return ResponseEntity.ok(jobService.findJobRun(jobRunId));
+    public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
+        return jobService.findJobRun(jobRunId);
     }
 
     @PostMapping("/job/{id}/update")
