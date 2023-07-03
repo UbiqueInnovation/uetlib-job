@@ -37,14 +37,15 @@ public final class HealthCheckJob extends BaseJob {
 
     @Override
     public String fixedCronExpression() {
-        return "0 * * ? * * *";
+        return "0 */10 * ? * *";
     }
 
     @Override
     public @NotNull Collection<JobProperty<?>> fixedProperties() {
         return Set.of(
-                JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofMinutes(3)),
+                JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(1)),
-                JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1));
+                JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(0),
+                JobPropertyDefinitions.CLEANUP_CHUNK_SIZE.createProperty(10_000));
     }
 }

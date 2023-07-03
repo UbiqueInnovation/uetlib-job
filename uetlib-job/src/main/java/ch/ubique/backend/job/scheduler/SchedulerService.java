@@ -11,10 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.TimeZone;
+import java.util.*;
 
 @Service
 public class SchedulerService {
@@ -95,7 +92,7 @@ public class SchedulerService {
     }
 
     public void runJobNowManual(final String identifier, final Job job, final boolean forceRun) {
-        final var manualIdentifier = identifier + "_MANUAL";
+        final var manualIdentifier = identifier + "_MANUAL_" + UUID.randomUUID();
         try {
             logger.info(
                     "Manually scheduled job {} to run now. forceRun: {}",
@@ -135,5 +132,13 @@ public class SchedulerService {
 
     public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws SchedulerException {
         scheduler.resetTriggerFromErrorState(triggerKey);
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
+    }
+
+    public ZoneId getZoneId() {
+        return zoneId;
     }
 }
