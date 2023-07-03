@@ -37,21 +37,21 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/jobs")
-    public ResponseEntity<JobInfosContainer> jobs()
+    public JobInfosContainer jobs()
             throws ClassNotFoundException,
                     InvocationTargetException,
                     NoSuchMethodException,
                     InstantiationException,
                     IllegalAccessException {
-        return ResponseEntity.ok(jobService.findJobs());
+        return jobService.findJobs();
     }
 
     @GetMapping("/runs")
-    public ResponseEntity<JobRunInfosContainer> jobRuns(
+    public JobRunInfosContainer jobRuns(
             @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
             @RequestParam(value = "jobId", required = false) final Integer jobId,
             @RequestParam(value = "state", required = false) final JobRunState state) {
-        return ResponseEntity.ok(jobService.findJobRuns(page, jobId, state));
+        return jobService.findJobRuns(page, jobId, state);
     }
 
     @GetMapping("/info")
@@ -60,8 +60,8 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/run/{jobRunId}")
-    public ResponseEntity<JobRunInfoContainer> jobRun(@PathVariable final int jobRunId) {
-        return ResponseEntity.ok(jobService.findJobRun(jobRunId));
+    public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
+        return jobService.findJobRun(jobRunId);
     }
 
     @PostMapping("/job/{id}/update")

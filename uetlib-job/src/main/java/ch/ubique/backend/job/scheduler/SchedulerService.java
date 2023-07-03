@@ -134,11 +134,11 @@ public class SchedulerService {
         scheduler.resetTriggerFromErrorState(triggerKey);
     }
 
-    public Scheduler scheduler() {
+    public Scheduler getScheduler() {
         return scheduler;
     }
 
-    public ZoneId zoneId() {
+    public ZoneId getZoneId() {
         return zoneId;
     }
 }

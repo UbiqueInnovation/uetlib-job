@@ -19,6 +19,8 @@ public class JobScheduledStateCheck implements StatusCheck {
 
     private final JobDataService jobDataService;
 
+    private static final Duration MAX_DURATION_IN_SCHEDULED_STATE = Duration.ofMinutes(15);
+
     public JobScheduledStateCheck(final JobDataService jobDataService) {
         this.jobDataService = jobDataService;
     }
@@ -54,7 +56,7 @@ public class JobScheduledStateCheck implements StatusCheck {
             return Optional.empty();
         }
 
-        if (latestRun.runDuration().compareTo(Duration.ofMinutes(15)) <= 0) {
+        if (latestRun.runDuration().compareTo(MAX_DURATION_IN_SCHEDULED_STATE) <= 0) {
             return Optional.empty();
         }
 
