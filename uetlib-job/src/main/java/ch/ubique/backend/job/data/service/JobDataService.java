@@ -202,7 +202,7 @@ public class JobDataService {
     public List<JobRun> findCleanableRuns(
             final int jobId, final int daysToKeep, final int chunkSize) {
         return jobRunRepository
-                .findAllByJobIdAndFinishedAt(jobId, daysToKeep, chunkSize)
+                .findAllByJobIdAndFinishedAt(jobId, String.valueOf(daysToKeep), chunkSize)
                 .map(JobRunEntity::toJobRun)
                 .toList();
     }
