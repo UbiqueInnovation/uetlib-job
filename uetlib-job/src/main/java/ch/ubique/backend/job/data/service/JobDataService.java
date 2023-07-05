@@ -204,12 +204,15 @@ public class JobDataService {
             final int jobId, final int daysToKeep, final int chunkSize) {
         // JPA will throw an error when attempting to return JobRun from the select statement below
         // --> need to cast
+        final var jobRun =
+                jobRunRepository.findFirstByStateAndAndJobIdOrderByFinishedAtDesc(
+                        JobRunState.DONE, jobId);
         final var finishedBefore =
-                jobRunRepository
-                        .findFirstByStateAndAndJobIdOrderByFinishedAtDesc(JobRunState.DONE, jobId)
-                        .get()
-                        .getFinishedAt()
-                        .minusSeconds(daysToKeep * 24 * 60 * 60);
+                jobRun.isPresent()
+                        ? jobRun.get()
+                                .getFinishedAt()
+                                .minusSeconds((long) daysToKeep * 24 * 60 * 60)
+                        : Instant.MIN;
         return jobRunRepository
                 .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
                         jobId, finishedBefore, PageRequest.of(0, chunkSize))
