@@ -1,7 +1,7 @@
 -- Logback: the reliable, generic, fast and flexible logging framework.
 -- Copyright (C) 1999-2010, QOS.ch. All rights reserved.
 --
--- See http://logback.qos.ch/license.html for the applicable licensing 
+-- See http://logback.qos.ch/license.html for the applicable licensing
 -- conditions.
 
 -- This SQL script creates the required tables by ch.qos.logback.classic.db.DBAppender
@@ -11,11 +11,6 @@
 DROP TABLE IF EXISTS logging_event_property;
 DROP TABLE IF EXISTS logging_event_exception;
 DROP TABLE IF EXISTS logging_event;
-DROP SEQUENCE IF EXISTS logging_event_id_seq;
-
-
-CREATE SEQUENCE logging_event_id_seq MINVALUE 1 START 1;
-
 
 CREATE TABLE logging_event
 (
@@ -33,7 +28,7 @@ CREATE TABLE logging_event
     caller_class      VARCHAR(254) NOT NULL,
     caller_method     VARCHAR(254) NOT NULL,
     caller_line       CHAR(4)      NOT NULL,
-    event_id          BIGINT DEFAULT nextval('logging_event_id_seq') PRIMARY KEY
+    event_id          BIGINT auto_increment PRIMARY KEY
 );
 
 CREATE TABLE logging_event_property
