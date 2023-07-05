@@ -21,6 +21,7 @@ import jakarta.persistence.PersistenceContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -201,8 +202,17 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public List<JobRun> findCleanableRuns(
             final int jobId, final int daysToKeep, final int chunkSize) {
+        // JPA will throw an error when attempting to return JobRun from the select statement below
+        // --> need to cast
+        final var finishedBefore =
+                jobRunRepository
+                        .findFirstByStateAndAndJobIdOrderByFinishedAtDesc(JobRunState.DONE, jobId)
+                        .get()
+                        .getFinishedAt()
+                        .minusSeconds(daysToKeep * 24 * 60 * 60);
         return jobRunRepository
-                .findAllByJobIdAndFinishedAt(jobId, String.valueOf(daysToKeep), chunkSize)
+                .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
+                        jobId, finishedBefore, PageRequest.of(0, chunkSize))
                 .map(JobRunEntity::toJobRun)
                 .toList();
     }
