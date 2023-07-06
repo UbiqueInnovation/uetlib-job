@@ -196,7 +196,8 @@ public class JobDataService {
             final Integer jobId, final JobPropertyDefinition<T> definition) {
         return jobPropertyRepository
                 .findByJobIdAndKey(jobId, definition.key())
-                .map(entity -> definition.createPropertyFromString(entity.getValue()))
+                .map(JobPropertyEntity::getValue)
+                .map(definition::createPropertyFromString)
                 .orElseGet(() -> definition.createProperty(null));
     }
 
