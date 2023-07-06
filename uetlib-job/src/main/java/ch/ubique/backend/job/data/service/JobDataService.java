@@ -21,11 +21,11 @@ import jakarta.persistence.PersistenceContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +41,7 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final LoggingEventRepository loggingEventRepository;
+    @PersistenceContext private EntityManager entityManager;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -202,17 +203,13 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public List<JobRun> findCleanableRuns(
             final int jobId, final int daysToKeep, final int chunkSize) {
+        final var finishedBefore =
+                jobRunRepository
+                        .findFirstByStateAndAndJobIdOrderByFinishedAtDesc(JobRunState.DONE, jobId)
+                        .map(jobRun -> jobRun.getFinishedAt().minus(daysToKeep, ChronoUnit.DAYS))
+                        .orElse(Instant.MIN);
         // JPA will throw an error when attempting to return JobRun from the select statement below
         // --> need to cast
-        final var jobRun =
-                jobRunRepository.findFirstByStateAndAndJobIdOrderByFinishedAtDesc(
-                        JobRunState.DONE, jobId);
-        final var finishedBefore =
-                jobRun.isPresent()
-                        ? jobRun.get()
-                                .getFinishedAt()
-                                .minusSeconds((long) daysToKeep * 24 * 60 * 60)
-                        : Instant.MIN;
         return jobRunRepository
                 .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
                         jobId, finishedBefore, PageRequest.of(0, chunkSize))
