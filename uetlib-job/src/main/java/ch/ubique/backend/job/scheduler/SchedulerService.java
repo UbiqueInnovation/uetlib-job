@@ -32,7 +32,8 @@ public class SchedulerService {
         return JobBuilder.newJob(job.getClass()).withIdentity(key).build();
     }
 
-    public void scheduleJob(final String identifier, final Job job, final String cronExpression) {
+    public void scheduleJob(
+            final String identifier, final BaseJob job, final String cronExpression) {
         try {
             logger.info("Scheduling {} with cron expression: {}", identifier, cronExpression);
             final var key = new JobKey(identifier);
@@ -42,6 +43,7 @@ public class SchedulerService {
             final var trigger =
                     TriggerBuilder.newTrigger()
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                            .withPriority(job.priority())
                             .build();
 
             scheduler.scheduleJob(jobDetail, trigger);
@@ -69,6 +71,7 @@ public class SchedulerService {
             final var trigger =
                     TriggerBuilder.newTrigger()
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                            .withPriority(job.priority())
                             .build();
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (final SchedulerException | ParseException e) {
@@ -91,7 +94,8 @@ public class SchedulerService {
         }
     }
 
-    public void runJobNowManual(final String identifier, final Job job, final boolean forceRun) {
+    public void runJobNowManual(
+            final String identifier, final BaseJob job, final boolean forceRun) {
         final var manualIdentifier = identifier + "_MANUAL_" + UUID.randomUUID();
         try {
             logger.info(
@@ -101,7 +105,8 @@ public class SchedulerService {
             final var key = new JobKey(manualIdentifier);
             final var jobDetail = createJobDetail(key, job);
             jobDetail.getJobDataMap().put("forceRun", forceRun);
-            final var trigger = TriggerBuilder.newTrigger().startNow().build();
+            final var trigger =
+                    TriggerBuilder.newTrigger().startNow().withPriority(job.priority()).build();
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (final SchedulerException e) {
             logger.error(

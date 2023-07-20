@@ -23,6 +23,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.quartz.CronExpression;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
+import org.quartz.Trigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -334,5 +335,9 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
                 .append("jobRun", jobRun)
                 .append("jobDataMap", jobDataMap)
                 .toString();
+    }
+
+    public int priority() {
+        return Trigger.DEFAULT_PRIORITY;
     }
 }
