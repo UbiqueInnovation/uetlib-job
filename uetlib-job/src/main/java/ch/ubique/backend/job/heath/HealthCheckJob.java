@@ -48,4 +48,9 @@ public final class HealthCheckJob extends BaseJob {
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(0),
                 JobPropertyDefinitions.CLEANUP_CHUNK_SIZE.createProperty(10_000));
     }
+
+    @Override
+    public int priority() {
+        return 1_000;
+    }
 }
