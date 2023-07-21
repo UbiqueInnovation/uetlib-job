@@ -93,8 +93,8 @@ public class KubernetesJobRunner implements JobRunner {
         if (currentPodSpec.getContainers().size() != 1) {
             throw new IllegalArgumentException(
                     "Expected current importer pod to have exactly one container. This is a"
-                        + " simplification of the current implementation. If needed, you can modify"
-                        + " this code to drop this restriction.");
+                            + " simplification of the current implementation. If needed, you can modify"
+                            + " this code to drop this restriction.");
         }
         final var currentPodContainer = currentPodSpec.getContainers().get(0);
 
@@ -149,7 +149,7 @@ public class KubernetesJobRunner implements JobRunner {
                         .imagePullPolicy(currentPodContainer.getImagePullPolicy())
                         .resources(new V1ResourceRequirements().requests(requests).limits(limits));
 
-        final V1PodSpec podSpec =
+        final var podSpec =
                 new V1PodSpec()
                         .addContainersItem(container)
                         .imagePullSecrets(currentPodSpec.getImagePullSecrets())
@@ -169,12 +169,14 @@ public class KubernetesJobRunner implements JobRunner {
                                                 .effect("NoSchedule")));
 
         // Add annotations to make Prometheus scrape our job
-        Map<String, String> annotations = new HashMap<>();
-        annotations.put("prometheus.io/path", "/actuator/prometheus");
-        annotations.put("prometheus.io/port", "8085");
-        annotations.put("prometheus.io/scrape", "true");
+        final var annotations =
+                Map.ofEntries(
+                        Map.entry("prometheus.io/path", "/actuator/prometheus"),
+                        Map.entry("prometheus.io/port", "8085"),
+                        Map.entry("prometheus.io/scrape", "true"));
 
-        final var metadata = new V1ObjectMeta().namespace(namespace).name(jobName).annotations(annotations);
+        final var metadata =
+                new V1ObjectMeta().namespace(namespace).name(jobName).annotations(annotations);
         final var ttl = job.getProperty(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED).value();
 
         final var jobSpec =
