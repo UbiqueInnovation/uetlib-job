@@ -28,11 +28,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class KubernetesJobRunner implements JobRunner {
@@ -172,7 +168,13 @@ public class KubernetesJobRunner implements JobRunner {
                                                 .value(value)
                                                 .effect("NoSchedule")));
 
-        final var metadata = new V1ObjectMeta().namespace(namespace).name(jobName);
+        // Add annotations to make Prometheus scrape our job
+        Map<String, String> annotations = new HashMap<>();
+        annotations.put("prometheus.io/path", "/actuator/prometheus");
+        annotations.put("prometheus.io/port", "8085");
+        annotations.put("prometheus.io/scrape", "true");
+
+        final var metadata = new V1ObjectMeta().namespace(namespace).name(jobName).annotations(annotations);
         final var ttl = job.getProperty(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED).value();
 
         final var jobSpec =
