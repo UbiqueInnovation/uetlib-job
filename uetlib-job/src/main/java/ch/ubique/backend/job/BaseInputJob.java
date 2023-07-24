@@ -89,7 +89,7 @@ public abstract class BaseInputJob<T> extends BaseJob {
         }
 
         if (!allowSkipping) {
-            logger.info("Job can not be skipped.");
+            logger.info("Job cannot be skipped.");
         }
 
         if (allowSkipping && !hasNewInputs(maybeLatestSuccessfulRun.get())) {
