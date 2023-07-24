@@ -110,31 +110,16 @@ public class KubernetesJobRunner implements JobRunner {
             args.add("--force");
         }
 
-        final var requests =
-                Map.ofEntries(
-                        Map.entry(
-                                "cpu",
-                                Quantity.fromString(
-                                        job.getProperty(JobPropertyDefinitions.K8S_REQUESTS_CPU)
-                                                .value())),
-                        Map.entry(
-                                "memory",
-                                Quantity.fromString(
-                                        job.getProperty(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
-                                                .value())));
+        final var cpuRequests =
+                Quantity.fromString(
+                        job.getProperty(JobPropertyDefinitions.K8S_REQUESTS_CPU).value());
+        final var memoryRequests =
+                Quantity.fromString(
+                        job.getProperty(JobPropertyDefinitions.K8S_REQUESTS_MEMORY).value());
 
-        final var limits =
-                Map.ofEntries(
-                        Map.entry(
-                                "cpu",
-                                Quantity.fromString(
-                                        job.getProperty(JobPropertyDefinitions.K8S_LIMITS_CPU)
-                                                .value())),
-                        Map.entry(
-                                "memory",
-                                Quantity.fromString(
-                                        job.getProperty(JobPropertyDefinitions.K8S_LIMITS_MEMORY)
-                                                .value())));
+        final var requests =
+                Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));
+        final var limits = Map.ofEntries(Map.entry("memory", memoryRequests));
 
         final var container =
                 new V1Container()
