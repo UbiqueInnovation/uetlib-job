@@ -40,14 +40,13 @@ import java.util.stream.Collectors;
 @Service
 public class JobDataService {
 
-    @PersistenceContext private EntityManager entityManager;
-
     private final JobRepository jobRepository;
     private final JobPropertyRepository jobPropertyRepository;
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
-
     private final LoggingEventRepository loggingEventRepository;
+
+    @PersistenceContext private EntityManager entityManager;
 
     @Value("${job.startup.setBusyRunsToUnfinished:${job.startup.cleanUpBusyRuns:true}}")
     private boolean setBusyRunsToUnfinished;
@@ -281,5 +280,12 @@ public class JobDataService {
     @Transactional
     public void deleteLogsForJobRunId(final int jobRunId) {
         loggingEventRepository.deleteLogsForJobRunId(jobRunId);
+    }
+
+    @Transactional
+    public void clearUnknownJobProperties() {
+        final var jobPropertyNames =
+                JobPropertyDefinitions.values().stream().map(JobPropertyDefinition::key).toList();
+        jobPropertyRepository.deleteAllByKeyNotIn(jobPropertyNames);
     }
 }
