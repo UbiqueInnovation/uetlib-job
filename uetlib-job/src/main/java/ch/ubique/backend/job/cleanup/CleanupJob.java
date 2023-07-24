@@ -49,11 +49,14 @@ public class CleanupJob extends BaseJob {
     protected JobRunState internalRun() {
 
         final var cleanJobRunsState = cleanJobRuns();
-        if (cleanJobRunsState != JobRunState.DONE) return cleanJobRunsState;
+        if (cleanJobRunsState != JobRunState.DONE) {
+            return cleanJobRunsState;
+        }
 
         final var clearUnknownJobPropertiesState = clearUnknownJobProperties();
-        if (clearUnknownJobPropertiesState != JobRunState.DONE)
+        if (clearUnknownJobPropertiesState != JobRunState.DONE) {
             return clearUnknownJobPropertiesState;
+        }
 
         return JobRunState.DONE;
     }
