@@ -15,8 +15,6 @@ import java.util.Set;
 
 public final class JobPropertyDefinitions {
 
-    private JobPropertyDefinitions() {}
-
     public static final JobPropertyDefinition<Duration> RUN_TIME_LIMIT =
             new DurationPropertyDefinition(
                     "RUN_TIME_LIMIT",
@@ -25,7 +23,6 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofHours(1));
-
     public static final JobPropertyDefinition<Duration> LAST_RUN_MAX_AGE =
             new DurationPropertyDefinition(
                     "LAST_RUN_MAX_AGE",
@@ -34,14 +31,12 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.MONITORING,
                     true,
                     null);
-
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(
                     "RUNNER",
                     "Defines where the job is executed.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobRunnerKey.CURRENT);
-
     public static final JobPropertyDefinition<String> K8S_SKU =
             new StringPropertyDefinition(
                     "K8S_SKU",
@@ -50,7 +45,6 @@ public final class JobPropertyDefinitions {
                     true,
                     null,
                     Set.of("highmem", "highperf"));
-
     public static final JobPropertyDefinition<Duration> K8S_TTL_AFTER_FINISHED =
             new DurationPropertyDefinition(
                     "K8S_TTL_AFTER_FINISHED",
@@ -59,43 +53,22 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofHours(1));
-
     public static final JobPropertyDefinition<String> K8S_REQUESTS_CPU =
             new StringPropertyDefinition(
                     "K8S_REQUESTS_CPU",
-                    "CPU request for the K8s job.",
+                    "CPU request for the K8s job. CPU limit will stay as unset",
                     JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
                     null);
-
     public static final JobPropertyDefinition<String> K8S_REQUESTS_MEMORY =
             new StringPropertyDefinition(
                     "K8S_REQUESTS_MEMORY",
-                    "Memory request for the K8s job.",
+                    "Memory request and limit for the K8s job.",
                     JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
                     null);
-
-    public static final JobPropertyDefinition<String> K8S_LIMITS_CPU =
-            new StringPropertyDefinition(
-                    "K8S_LIMITS_CPU",
-                    "CPU limit for the K8s job.",
-                    JobPropertyDefinitionGroup.RUNNER,
-                    true,
-                    null,
-                    null);
-
-    public static final JobPropertyDefinition<String> K8S_LIMITS_MEMORY =
-            new StringPropertyDefinition(
-                    "K8S_LIMITS_MEMORY",
-                    "Memory limit for the K8s job.",
-                    JobPropertyDefinitionGroup.RUNNER,
-                    true,
-                    null,
-                    null);
-
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(
                     "CLEANUP_DAYS_TO_KEEP",
@@ -105,7 +78,6 @@ public final class JobPropertyDefinitions {
                     false,
                     30,
                     null);
-
     public static final JobPropertyDefinition<Integer> CLEANUP_CHUNK_SIZE =
             new IntPropertyDefinition(
                     "CLEANUP_CHUNK_SIZE",
@@ -138,6 +110,8 @@ public final class JobPropertyDefinitions {
                     .map(value -> (JobPropertyDefinition<Object>) value)
                     // To collection
                     .toList();
+
+    private JobPropertyDefinitions() {}
 
     public static Collection<JobPropertyDefinition<Object>> values() {
         return VALUES;
