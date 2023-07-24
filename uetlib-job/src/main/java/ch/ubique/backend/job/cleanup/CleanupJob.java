@@ -48,6 +48,24 @@ public class CleanupJob extends BaseJob {
     @Override
     protected JobRunState internalRun() {
 
+        final var cleanJobRunsState = cleanJobRuns();
+        if (cleanJobRunsState != JobRunState.DONE) return cleanJobRunsState;
+
+        final var clearUnknownJobPropertiesState = clearUnknownJobProperties();
+        if (clearUnknownJobPropertiesState != JobRunState.DONE)
+            return clearUnknownJobPropertiesState;
+
+        return JobRunState.DONE;
+    }
+
+    @NotNull
+    private JobRunState clearUnknownJobProperties() {
+        jobDataService.clearUnknownJobProperties();
+        return JobRunState.DONE;
+    }
+
+    @NotNull
+    private JobRunState cleanJobRuns() {
         for (final var job : jobDataService.findJobs()) {
             // Get cleanup properties
             final var daysToKeep =
