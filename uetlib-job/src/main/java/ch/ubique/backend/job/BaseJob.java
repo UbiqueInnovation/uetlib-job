@@ -212,7 +212,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
                 jobDataService.getProperty(job.id(), JobPropertyDefinitions.RUNNER).value();
 
         if (runner != JobRunnerKey.CURRENT && mayUseExternalRunner) {
-            logger.info("Run called for high memory job {}.", this);
+            logger.info("Run called for dedicated job instance on external runner {}.", this);
             final var externalJobRunner = externalJobRunners.get(runner);
             if (externalJobRunner == null) {
                 throw new NoSuchElementException("Could not find a runner for " + runner);
