@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRunState;
@@ -113,6 +114,30 @@ public class JobService {
                                 ResourceNotFoundException.throwWithMessage(
                                         "No Job with id {0} found", jobId));
         jobScheduler.runNow(job, forceRun);
+    }
+
+    public void startJob(final String className, final boolean forceRun)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
+        final var job =
+                jobDataService
+                        .findJobByClazz(className)
+                        .orElseThrow(
+                                ResourceNotFoundException.throwWithMessage(
+                                        "No Job with name {0} found", className));
+        jobScheduler.runNow(job, forceRun);
+    }
+
+    public void startJob(final Class<? extends BaseJob> jobClass, final boolean forceRun)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
+        startJob(jobClass.getCanonicalName(), forceRun);
     }
 
     public void startAllJobs(final boolean forceRun)

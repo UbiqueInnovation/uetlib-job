@@ -98,6 +98,18 @@ public class BackendLibJobStatusController {
         jobService.startJob(id, forceRun);
     }
 
+    @PostMapping("/job/{className}/start")
+    public void startJob(
+            @PathVariable final String className,
+            @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
+            throws ClassNotFoundException,
+                    InvocationTargetException,
+                    NoSuchMethodException,
+                    InstantiationException,
+                    IllegalAccessException {
+        jobService.startJob(className, forceRun);
+    }
+
     @PostMapping("/job/start_all")
     public void startAllJobs(
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
