@@ -86,28 +86,20 @@ public class BackendLibJobStatusController {
         return jobService.updateJobProperties(id, updatedValues);
     }
 
-    @PostMapping("/job/{id}/start")
+    @PostMapping("/job/{idOrClassName}/start")
     public void startJob(
-            @PathVariable final int id,
+            @PathVariable final String idOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException,
                     InvocationTargetException,
                     NoSuchMethodException,
                     InstantiationException,
                     IllegalAccessException {
-        jobService.startJob(id, forceRun);
-    }
-
-    @PostMapping("/job/{className}/start")
-    public void startJob(
-            @PathVariable final String className,
-            @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
-        jobService.startJob(className, forceRun);
+        try {
+            jobService.startJob(Integer.parseInt(idOrClassName), forceRun);
+        } catch (final NumberFormatException ignored) {
+            jobService.startJob(idOrClassName, forceRun);
+        }
     }
 
     @PostMapping("/job/start_all")
