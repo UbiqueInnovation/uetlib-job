@@ -2,6 +2,7 @@ package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.data.repository.JobPropertyRepository;
 import ch.ubique.backend.job.data.repository.JobRepository;
 import ch.ubique.backend.job.data.repository.JobRunInputRepository;
@@ -92,13 +93,17 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<Job> findJobByClazz(final String clazz) {
-        return jobRepository.findByClazz(clazz).map(JobEntity::toJob);
+    public Optional<Job> findJobById(final int id) {
+        return jobRepository.findById(id).map(JobEntity::toJob);
     }
 
     @Transactional(readOnly = true)
-    public Optional<Job> findJobById(final int id) {
-        return jobRepository.findById(id).map(JobEntity::toJob);
+    public Optional<Job> findJobByClazz(final String clazz) {
+        return jobRepository.findByClazz(clazz).map(JobEntity::toJob);
+    }
+    @Transactional(readOnly = true)
+    public Optional<Job> findJobByClazz(final Class<? extends BaseJob> clazz) {
+        return findJobByClazz(clazz.getCanonicalName());
     }
 
     @Transactional
