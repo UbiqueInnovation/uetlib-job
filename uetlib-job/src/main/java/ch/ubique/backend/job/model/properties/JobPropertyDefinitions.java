@@ -44,7 +44,7 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
-                    Set.of("highmem", "highperf"));
+                    Set.of("highmem"));
     public static final JobPropertyDefinition<Duration> K8S_TTL_AFTER_FINISHED =
             new DurationPropertyDefinition(
                     "K8S_TTL_AFTER_FINISHED",

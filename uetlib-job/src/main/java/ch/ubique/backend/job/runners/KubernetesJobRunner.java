@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.highmem;
+package ch.ubique.backend.job.runners;
 
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
