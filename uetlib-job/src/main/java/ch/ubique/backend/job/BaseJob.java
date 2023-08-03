@@ -1,8 +1,6 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.highmem.JobRunner;
-import ch.ubique.backend.job.highmem.KubernetesJobRunner;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
@@ -10,6 +8,8 @@ import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.runners.JobRunner;
+import ch.ubique.backend.job.runners.KubernetesJobRunner;
 import ch.ubique.backend.job.service.JobService;
 
 import io.kubernetes.client.openapi.ApiException;
@@ -49,7 +49,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     @NotNull protected final ApplicationContext context;
     @NotNull protected final JobService jobService;
     @NotNull protected final JobDataService jobDataService;
-    @NotNull private final Map<JobRunnerKey, JobRunner> externalJobRunners;
+    @NotNull private final Map<JobRunnerKey, JobRunner> jobRunners;
 
     protected JobDataMap jobDataMap;
 
@@ -58,11 +58,10 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
         this.jobService = context.getBean(JobService.class);
         this.jobDataService = context.getBean(JobDataService.class);
 
-        this.externalJobRunners = new EnumMap<>(JobRunnerKey.class);
+        this.jobRunners = new EnumMap<>(JobRunnerKey.class);
         context.getBeansOfType(KubernetesJobRunner.class).values().stream()
                 .findAny()
-                .ifPresent(
-                        runner -> externalJobRunners.put(JobRunnerKey.DEDICATED_K8S_JOB, runner));
+                .ifPresent(runner -> jobRunners.put(JobRunnerKey.DEDICATED_K8S_JOB, runner));
 
         this.job = jobDataService.registerJob(Job.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance(job);
@@ -213,7 +212,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
         if (runner != JobRunnerKey.CURRENT && mayUseExternalRunner) {
             logger.info("Run called for dedicated job instance on external runner {}.", this);
-            final var externalJobRunner = externalJobRunners.get(runner);
+            final var externalJobRunner = jobRunners.get(runner);
             if (externalJobRunner == null) {
                 throw new NoSuchElementException("Could not find a runner for " + runner);
             }
@@ -222,7 +221,8 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
                 externalJobRunner.run(this);
                 return JobRunState.SCHEDULED;
             } catch (final IOException e) {
-                logger.error("Exception running high memory job: ", e);
+                logger.error(
+                        "Exception for dedicated job instance on external runner {}.", this, e);
                 return JobRunState.ERROR;
             } catch (final ApiException e) {
                 logger.error(

@@ -1,8 +1,7 @@
 package ch.ubique.backend.job.model.properties.enums;
 
 public enum KubernetesSku {
-    HIGH_MEMORY("highmem"),
-    HIGH_PERFORMANCE("highperf");
+    HIGH_MEMORY("highmem");
 
     private final String value;
 
