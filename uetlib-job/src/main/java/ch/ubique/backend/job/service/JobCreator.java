@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.service;
 
 import ch.ubique.backend.job.BaseJob;
-import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.scheduler.JobAutowireConstructor;
 
 import jakarta.validation.constraints.NotNull;
@@ -38,10 +37,6 @@ public final class JobCreator {
     public BaseJob createNewJobInstance(final String className) throws ClassNotFoundException {
         final var jobClass = getClassForName(className);
         return createNewJobInstance(jobClass);
-    }
-
-    public BaseJob createNewJobInstance(final Job job) throws ClassNotFoundException {
-        return createNewJobInstance(job.clazzName());
     }
 
     public <T extends BaseJob> T createNewJobInstance(final Class<T> jobClass) {

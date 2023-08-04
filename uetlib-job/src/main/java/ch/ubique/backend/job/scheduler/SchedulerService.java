@@ -6,7 +6,6 @@ import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -19,13 +18,8 @@ public class SchedulerService {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerService.class);
     private final Scheduler scheduler;
 
-    private final ZoneId zoneId;
-
-    public SchedulerService(
-            final Scheduler scheduler,
-            @Value("${ch.ubique.backend.job.cron.timezone:UTC}") final String zoneId) {
+    public SchedulerService(final Scheduler scheduler) {
         this.scheduler = scheduler;
-        this.zoneId = ZoneId.of(zoneId);
     }
 
     private static JobDetail createJobDetail(final JobKey key, final Job job) {
@@ -33,37 +27,15 @@ public class SchedulerService {
     }
 
     public void scheduleJob(
-            final String identifier, final BaseJob job, final String cronExpression) {
+            final String identifier,
+            final BaseJob job,
+            final String cronExpressionString,
+            final ZoneId zoneId) {
         try {
-            logger.info("Scheduling {} with cron expression: {}", identifier, cronExpression);
+            logger.info("Scheduling {} with cron expression: {}", identifier, cronExpressionString);
             final var key = new JobKey(identifier);
 
             final var jobDetail = createJobDetail(key, job);
-
-            final var trigger =
-                    TriggerBuilder.newTrigger()
-                            .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                            .withPriority(job.priority())
-                            .build();
-
-            scheduler.scheduleJob(jobDetail, trigger);
-
-        } catch (final SchedulerException e) {
-            logger.error("Could not schedule job for: {}", identifier, e);
-        }
-    }
-
-    public void updateJob(final String identifier, final BaseJob job) {
-        final var cronExpressionString = job.getCronExpression();
-        try {
-            logger.info(
-                    "Updating scheduled job {} with cron expression: {}",
-                    identifier,
-                    cronExpressionString);
-            final var key = new JobKey(identifier);
-            final var jobDetail = getOrCreateJobDetail(key, job);
-
-            removeScheduleJob(identifier);
 
             final var cronExpression = new CronExpression(cronExpressionString);
             cronExpression.setTimeZone(TimeZone.getTimeZone(zoneId));
@@ -73,10 +45,23 @@ public class SchedulerService {
                             .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                             .withPriority(job.priority())
                             .build();
+
             scheduler.scheduleJob(jobDetail, trigger);
+
         } catch (final SchedulerException | ParseException e) {
-            logger.error("Could not update job for: {}", identifier, e);
+            logger.error("Could not schedule job for: {}", identifier, e);
         }
+    }
+
+    public void updateJob(final String identifier, final BaseJob job, final ZoneId zoneId) {
+        final var cronExpressionString = job.getCronExpression();
+        logger.info(
+                "Updating scheduled job {} with cron expression: {}",
+                identifier,
+                cronExpressionString);
+
+        removeScheduleJob(identifier);
+        scheduleJob(identifier, job, cronExpressionString, zoneId);
     }
 
     public void removeScheduleJob(final String identifier) {
@@ -94,23 +79,18 @@ public class SchedulerService {
         }
     }
 
-    public void runJobNowManual(
-            final String identifier, final BaseJob job, final boolean forceRun) {
-        final var manualIdentifier = identifier + "_MANUAL_" + UUID.randomUUID();
+    public void runJobNowManual(final BaseJob job, final boolean forceRun) {
+        final var identifier = job.getClass().getCanonicalName() + "_MANUAL_" + UUID.randomUUID();
         try {
-            logger.info(
-                    "Manually scheduled job {} to run now. forceRun: {}",
-                    manualIdentifier,
-                    forceRun);
-            final var key = new JobKey(manualIdentifier);
+            logger.info("Manually scheduled job {} to run now. forceRun: {}", identifier, forceRun);
+            final var key = new JobKey(identifier);
             final var jobDetail = createJobDetail(key, job);
             jobDetail.getJobDataMap().put("forceRun", forceRun);
             final var trigger =
                     TriggerBuilder.newTrigger().startNow().withPriority(job.priority()).build();
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (final SchedulerException e) {
-            logger.error(
-                    "Could not schedule job {} now. forceRun: {}", manualIdentifier, forceRun, e);
+            logger.error("Could not schedule job {} now. forceRun: {}", identifier, forceRun, e);
         }
     }
 
@@ -137,13 +117,5 @@ public class SchedulerService {
 
     public void resetTriggerFromErrorState(final TriggerKey triggerKey) throws SchedulerException {
         scheduler.resetTriggerFromErrorState(triggerKey);
-    }
-
-    public Scheduler getScheduler() {
-        return scheduler;
-    }
-
-    public ZoneId getZoneId() {
-        return zoneId;
     }
 }

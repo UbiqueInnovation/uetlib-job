@@ -4,13 +4,12 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
-import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.JobControllerService;
 
 import org.quartz.SchedulerException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -25,9 +24,9 @@ import java.util.Map;
         allowedHeaders = {"Authorization", "Content-Type"})
 public class BackendLibJobStatusController {
 
-    private final JobService jobService;
+    private final JobControllerService jobService;
 
-    public BackendLibJobStatusController(final JobService jobService) {
+    public BackendLibJobStatusController(final JobControllerService jobService) {
         this.jobService = jobService;
     }
 
@@ -37,12 +36,7 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/jobs")
-    public JobInfosContainer jobs()
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public JobInfosContainer jobs() throws ClassNotFoundException {
         return jobService.findJobs();
     }
 
@@ -66,12 +60,8 @@ public class BackendLibJobStatusController {
 
     @PostMapping("/job/{id}/update")
     public JobInfo updateJob(@PathVariable final int id, @RequestParam final String cronExpression)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
-        jobService.updateCronExpression(id, cronExpression);
+            throws ClassNotFoundException {
+        // TODO replace jobService.updateCronExpression(id, cronExpression);
         return jobService.findJobById(id);
     }
 
@@ -90,11 +80,7 @@ public class BackendLibJobStatusController {
     public void startJob(
             @PathVariable final String idOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+            throws ClassNotFoundException {
         try {
             jobService.startJob(Integer.parseInt(idOrClassName), forceRun);
         } catch (final NumberFormatException ignored) {
@@ -105,11 +91,7 @@ public class BackendLibJobStatusController {
     @PostMapping("/job/start_all")
     public void startAllJobs(
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+            throws ClassNotFoundException {
         jobService.startAllJobs(forceRun);
     }
 }
