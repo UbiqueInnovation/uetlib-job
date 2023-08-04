@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.Job;
 import ch.ubique.backend.job.model.JobRunState;
@@ -18,9 +19,11 @@ import com.pivovarit.function.ThrowingFunction;
 import org.apache.commons.collections4.SetUtils;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
+import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.InvocationTargetException;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
@@ -28,14 +31,13 @@ import java.util.stream.Collectors;
 
 @Service
 public class JobService {
-
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final int PAGE_SIZE = 30;
 
     private final JobDataService jobDataService;
     private final JobScheduler jobScheduler;
 
     private final SchedulerService schedulerService;
-
     private final JobCreator jobCreator;
 
     public JobService(
@@ -47,14 +49,26 @@ public class JobService {
         this.jobScheduler = jobScheduler;
         this.schedulerService = schedulerService;
         this.jobCreator = jobCreator;
+
+        registerAllJobs();
+        jobScheduler.scheduleAllRegisteredJobs();
+        jobDataService.setBusyRunsToUnfinished();
     }
 
-    public JobInfosContainer findJobs()
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    private void registerAllJobs() {
+        final var reflections = new Reflections();
+        for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
+            try {
+                final var job = jobCreator.createNewJobInstance(cls.getCanonicalName());
+                final var properties = job.getProperties();
+                logger.info("Registered {}. Properties = {}", job, properties);
+            } catch (final ClassNotFoundException e) {
+                logger.error("Reflections discovered a class that can not be found.", e);
+            }
+        }
+    }
+
+    public JobInfosContainer findJobs() throws ClassNotFoundException {
         final var jobs = jobDataService.findJobs();
         final var latestRuns = findLatestJobRuns(jobs);
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
@@ -92,21 +106,12 @@ public class JobService {
     }
 
     public void updateCronExpression(final int jobId, final String cronExpression)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+            throws ClassNotFoundException {
         final var job = jobDataService.updateCronExpression(jobId, cronExpression);
         jobScheduler.update(job);
     }
 
-    public void startJob(final int jobId, final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public void startJob(final int jobId, final boolean forceRun) throws ClassNotFoundException {
         final var job =
                 jobDataService
                         .findJobById(jobId)
@@ -117,11 +122,7 @@ public class JobService {
     }
 
     public void startJob(final String className, final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+            throws ClassNotFoundException {
         final var job =
                 jobDataService
                         .findJobByClazz(className)
@@ -132,20 +133,11 @@ public class JobService {
     }
 
     public void startJob(final Class<? extends BaseJob> jobClass, final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+            throws ClassNotFoundException {
         startJob(jobClass.getCanonicalName(), forceRun);
     }
 
-    public void startAllJobs(final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
 
         final var jobs = jobDataService.findJobs();
         for (final var job : jobs) {
@@ -164,22 +156,12 @@ public class JobService {
         return JobRunInfoContainer.from(jobRun, jobName);
     }
 
-    public JobInfo findJobById(final int jobId)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public JobInfo findJobById(final int jobId) throws ClassNotFoundException {
         final var job = jobById(jobId);
         return jobInfo(job);
     }
 
-    public JobInfo jobInfo(final Job job)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public JobInfo jobInfo(final Job job) throws ClassNotFoundException {
         return JobInfo.from(job, jobCreator.createNewJobInstance(job));
     }
 

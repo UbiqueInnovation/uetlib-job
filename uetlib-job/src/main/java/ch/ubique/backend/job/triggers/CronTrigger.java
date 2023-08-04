@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.triggers;
 
 import ch.ubique.backend.core.validator.ValidCron;
+
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 
