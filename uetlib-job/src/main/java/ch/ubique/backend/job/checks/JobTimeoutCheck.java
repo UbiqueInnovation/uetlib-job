@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.monitoring.check.StatusCheck;
@@ -40,14 +40,14 @@ public class JobTimeoutCheck implements StatusCheck {
     }
 
     @NotNull
-    private Optional<Map<String, Object>> timeoutError(final Job job) {
+    private Optional<Map<String, Object>> timeoutError(final JobClassAndId job) {
         final var latestRunMaybe = jobDataService.findLatestJobRun(job.id());
         if (latestRunMaybe.isEmpty()) {
             return Optional.empty();
         }
 
         final var latestRun = latestRunMaybe.get();
-        if (latestRun.getState() != JobRunState.BUSY) {
+        if (latestRun.state() != JobRunState.BUSY) {
             return Optional.empty();
         }
 
@@ -61,7 +61,7 @@ public class JobTimeoutCheck implements StatusCheck {
         return Optional.of(
                 Map.of(
                         "job",
-                        job.clazz(),
+                        job.canonicalClassName(),
                         "limit",
                         runtimeLimit,
                         "duration",

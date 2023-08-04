@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
@@ -23,7 +23,7 @@ public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
         final var jobsWithMissingMaxAge =
                 jobDataService.findJobs().stream()
                         .filter(this::isMaxAgeMissing)
-                        .map(Job::clazzName)
+                        .map(JobClassAndId::canonicalClassName)
                         .toList();
 
         if (!jobsWithMissingMaxAge.isEmpty()) {
@@ -35,7 +35,7 @@ public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
         return CheckStatus.CHECK_PASSED;
     }
 
-    private boolean isMaxAgeMissing(final Job job) {
+    private boolean isMaxAgeMissing(final JobClassAndId job) {
         return !jobDataService
                 .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
                 .isValuePresent();

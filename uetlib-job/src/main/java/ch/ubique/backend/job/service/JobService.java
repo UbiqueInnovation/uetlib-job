@@ -2,6 +2,8 @@ package ch.ubique.backend.job.service;
 
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.properties.JobProperties;
+import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.scheduler.SchedulerService;
 
 import org.reflections.Reflections;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
+import java.util.Collection;
 
 @Service
 public class JobService {
@@ -66,6 +69,19 @@ public class JobService {
                 jobDataService.delete(job);
             }
         }
+    }
+
+    public Collection<JobProperty<Object>> getProperties(final String jobClassName)
+            throws ClassNotFoundException {
+        final var instance = jobCreator.createNewJobInstance(jobClassName);
+        if (instance.properties().isFixed()) {
+            return instance.properties().values();
+        }
+        return jobDataService.getProperties(jobClassName); // TODO or else initial
+    }
+
+    private int getJobIdByCanonicalClassName(final String jobClassName) {
+        return jobDataService.findJobByCanonicalClassName(jobClassName).orElseThrow().id();
     }
 
     public void startJob(final String className, final boolean forceRun)

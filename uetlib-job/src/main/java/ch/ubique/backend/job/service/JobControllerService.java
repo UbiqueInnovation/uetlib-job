@@ -1,9 +1,9 @@
 package ch.ubique.backend.job.service;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
@@ -52,7 +52,7 @@ public class JobControllerService {
         return new JobInfosContainer(jobInfos, latestRuns);
     }
 
-    public Map<Integer, JobRunInfo> findLatestJobRuns(final List<Job> jobs) {
+    public Map<Integer, JobRunInfo> findLatestJobRuns(final List<JobClassAndId> jobs) {
         return jobs.stream()
                 .map(
                         job ->
@@ -68,7 +68,9 @@ public class JobControllerService {
             final int page, final Integer jobId, final JobRunState state) {
         final var jobNames =
                 jobDataService.findJobs().stream()
-                        .collect(Collectors.toUnmodifiableMap(Job::id, Job::name));
+                        .collect(
+                                Collectors.toUnmodifiableMap(
+                                        JobClassAndId::id, JobClassAndId::name));
         final var jobRunsPage = jobDataService.findJobRuns(page, PAGE_SIZE, jobId, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
@@ -86,7 +88,7 @@ public class JobControllerService {
                         .orElseThrow(
                                 ResourceNotFoundException.throwWithMessage(
                                         "No Job with id {0} found", jobId));
-        jobService.startJob(job.clazzName(), forceRun);
+        jobService.startJob(job.canonicalClassName(), forceRun);
     }
 
     public void startJob(final String className, final boolean forceRun)
@@ -94,7 +96,7 @@ public class JobControllerService {
         jobService.startJob(className, forceRun);
     }
 
-    public void startJob(final Class<? extends BaseJob> jobClass, final boolean forceRun)
+    public void startJob(final Class<? extends Job> jobClass, final boolean forceRun)
             throws ClassNotFoundException {
         startJob(jobClass.getCanonicalName(), forceRun);
     }
@@ -114,7 +116,7 @@ public class JobControllerService {
                         .orElseThrow(
                                 ResourceNotFoundException.throwWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
-        final var jobName = jobById(jobRun.getJobId()).name();
+        final var jobName = jobById(jobRun.jobId()).name();
         return JobRunInfoContainer.from(jobRun, jobName);
     }
 
@@ -123,11 +125,12 @@ public class JobControllerService {
         return jobInfo(job);
     }
 
-    public JobInfo jobInfo(final Job job) throws ClassNotFoundException {
-        return JobInfo.from(job, jobCreator.createNewJobInstance(job.clazzName()));
+    public JobInfo jobInfo(final JobClassAndId job) throws ClassNotFoundException {
+        // TODO implement
+        return null;
     }
 
-    private Job jobById(final int jobId) {
+    private JobClassAndId jobById(final int jobId) {
         return jobDataService
                 .findJobById(jobId)
                 .orElseThrow(

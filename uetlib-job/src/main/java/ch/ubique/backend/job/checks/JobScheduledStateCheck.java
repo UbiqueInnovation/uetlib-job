@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
@@ -45,14 +45,14 @@ public class JobScheduledStateCheck implements StatusCheck {
     }
 
     @NotNull
-    private Optional<String> scheduledForTooLong(final Job job) {
+    private Optional<String> scheduledForTooLong(final JobClassAndId job) {
         final var latestRunMaybe = jobDataService.findLatestJobRun(job.id());
         if (latestRunMaybe.isEmpty()) {
             return Optional.empty();
         }
 
         final var latestRun = latestRunMaybe.get();
-        if (latestRun.getState() != JobRunState.SCHEDULED) {
+        if (latestRun.state() != JobRunState.SCHEDULED) {
             return Optional.empty();
         }
 
@@ -60,6 +60,6 @@ public class JobScheduledStateCheck implements StatusCheck {
             return Optional.empty();
         }
 
-        return Optional.of(job.clazz().getCanonicalName());
+        return Optional.of(job.canonicalClassName());
     }
 }

@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
@@ -25,7 +25,10 @@ public class JobErrorStateCheck implements StatusCheck {
     @Override
     public CheckStatus check() {
         final var jobsWithError =
-                jobDataService.findJobs().stream().filter(this::hasError).map(Job::clazz).toList();
+                jobDataService.findJobs().stream()
+                        .filter(this::hasError)
+                        .map(JobClassAndId::canonicalClassName)
+                        .toList();
 
         if (!jobsWithError.isEmpty()) {
             return new CheckFailed("Some jobs have errors", Map.of("jobsWithError", jobsWithError));
@@ -35,10 +38,10 @@ public class JobErrorStateCheck implements StatusCheck {
     }
 
     @NotNull
-    private Boolean hasError(final Job job) {
+    private Boolean hasError(final JobClassAndId job) {
         return jobDataService
                 .findLatestJobRunByStates(job.id(), JobRunState.allExceptRunning())
-                .map(run -> run.getState() == JobRunState.ERROR)
+                .map(run -> run.state() == JobRunState.ERROR)
                 .orElse(false);
     }
 }

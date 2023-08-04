@@ -1,14 +1,13 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
-import ch.ubique.backend.job.runners.JobRunner;
 import ch.ubique.backend.job.runners.KubernetesJobRunner;
 import ch.ubique.backend.job.service.JobService;
 
@@ -40,20 +39,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public abstract class BaseJob implements org.quartz.Job, Runnable {
+public abstract class BaseJobBackup implements org.quartz.Job, Runnable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @NotNull protected final Job job;
+    @NotNull protected final JobClassAndId job;
     @NotNull protected final JobRun jobRun;
     @NotNull protected final ApplicationContext context;
     @NotNull protected final JobService jobService;
     @NotNull protected final JobDataService jobDataService;
-    @NotNull private final Map<JobRunnerKey, JobRunner> jobRunners;
+    @NotNull private final Map<JobRunnerKey, ch.ubique.backend.job.runners.JobRunner> jobRunners;
 
     protected JobDataMap jobDataMap;
 
-    protected BaseJob(@NotNull final ApplicationContext context) {
+    protected BaseJobBackup(@NotNull final ApplicationContext context) {
         this.context = context;
         this.jobService = context.getBean(JobService.class);
         this.jobDataService = context.getBean(JobDataService.class);
@@ -63,7 +62,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
                 .findAny()
                 .ifPresent(runner -> jobRunners.put(JobRunnerKey.DEDICATED_K8S_JOB, runner));
 
-        this.job = jobDataService.registerJob(Job.fromClass(getClass()));
+        this.job = jobDataService.registerJob(JobClassAndId.fromClass(getClass()));
         this.jobRun = jobDataService.newRunInstance(job);
         this.jobDataMap = new JobDataMap();
 
@@ -124,7 +123,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     /**
      * For each entry in this set: the property will be set if it is not returned by {@link
-     * BaseJob#fixedProperties()}) and if it is not in the database yet.
+     * BaseJobBackup#fixedProperties()}) and if it is not in the database yet.
      */
     @NotNull
     @SuppressWarnings("java:S1452")
@@ -255,18 +254,18 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     protected abstract JobRunState internalRun() throws Exception;
 
     private void updateJobRunStart() {
-        if (jobRun.getId() != null) {
-            final var existingRun = jobDataService.findJobRunById(jobRun.getId()).orElseThrow();
-            jobRun.setStartedAt(existingRun.getStartedAt());
+        if (jobRun.id() != null) {
+            final var existingRun = jobDataService.findJobRunById(jobRun.id()).orElseThrow();
+            jobRun.setStartedAt(existingRun.startedAt());
         }
 
         jobRun.setState(JobRunState.BUSY);
-        if (jobRun.getStartedAt() == null) {
+        if (jobRun.startedAt() == null) {
             jobRun.setStartedAt(Instant.now());
         }
         jobRun.setJobId(job.id());
         jobRun.setJobVersion(version());
-        jobRun.setId(jobDataService.saveJobRun(jobRun).getId());
+        jobRun.setId(jobDataService.saveJobRun(jobRun).id());
     }
 
     private void updateJobRunScheduledOrEnd(final JobRunState state) {
@@ -278,7 +277,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
     }
 
     private void setupLog() {
-        MDC.put("jobRunId", jobRun.getId().toString());
+        MDC.put("jobRunId", jobRun.id().toString());
     }
 
     private void tearDownLog() {
@@ -287,7 +286,7 @@ public abstract class BaseJob implements org.quartz.Job, Runnable {
 
     @NotNull
     public JobRunState state() {
-        return jobRun.getState();
+        return jobRun.state();
     }
 
     /**

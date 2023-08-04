@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.service;
 
-import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.scheduler.JobAutowireConstructor;
 
 import jakarta.validation.constraints.NotNull;
@@ -28,18 +28,18 @@ public final class JobCreator {
         this.applicationContext = applicationContext;
     }
 
-    private Class<BaseJob> getClassForName(final String clazz) throws ClassNotFoundException {
+    private Class<Job> getClassForName(final String clazz) throws ClassNotFoundException {
         final var classLoader = Objects.requireNonNull(applicationContext.getClassLoader());
         //noinspection unchecked
-        return (Class<BaseJob>) classLoader.loadClass(clazz);
+        return (Class<Job>) classLoader.loadClass(clazz);
     }
 
-    public BaseJob createNewJobInstance(final String className) throws ClassNotFoundException {
+    public Job createNewJobInstance(final String className) throws ClassNotFoundException {
         final var jobClass = getClassForName(className);
         return createNewJobInstance(jobClass);
     }
 
-    public <T extends BaseJob> T createNewJobInstance(final Class<T> jobClass) {
+    public <T extends Job> T createNewJobInstance(final Class<T> jobClass) {
         final var parameters = getConstructor(jobClass).getParameters();
         final var jobConstructorParameters =
                 Arrays.stream(parameters).map(this::getBeanForParameter).toArray();
@@ -55,7 +55,7 @@ public final class JobCreator {
         }
     }
 
-    private Constructor<?> getConstructor(final Class<? extends BaseJob> jobClass) {
+    private Constructor<?> getConstructor(final Class<? extends Job> jobClass) {
         final var constructors = jobClass.getConstructors();
         if (constructors.length == 1) {
             // @JobAutowireConstructor annotation is not needed if there is only one constructor
