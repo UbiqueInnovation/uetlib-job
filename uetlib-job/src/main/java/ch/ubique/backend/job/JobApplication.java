@@ -1,24 +1,14 @@
 package ch.ubique.backend.job;
 
-import ch.ubique.backend.job.cleanup.CleanupJob;
-import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.heath.HealthCheckJob;
-import ch.ubique.backend.job.scheduler.JobScheduler;
+import ch.ubique.backend.job.commands.JobApplicationArgsParser;
+import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
 import ch.ubique.backend.job.service.JobCreator;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
-
-import java.lang.reflect.InvocationTargetException;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 
 public class JobApplication {
 
@@ -27,109 +17,45 @@ public class JobApplication {
     private JobApplication() {}
 
     public static void run(final Class<?> applicationClass, final String[] args) {
-
-        try {
-            runJobOrStartScheduler(applicationClass, args);
-        } catch (final ClassNotFoundException
-                | InvocationTargetException
-                | NoSuchMethodException
-                | InstantiationException
-                | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static void runJobOrStartScheduler(final Class<?> applicationClass, final String[] args)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
-
         logger.info("{} started with args {}", applicationClass, args);
 
-        // Args parsing
-        final var options = new Options();
-        final var help = new Option("h", "help", false, "print this message");
-        final var jobClassOption =
-                new Option("j", "job", true, "Fully qualified name of the job class to run now.");
-        final var jobRunIdOption =
-                new Option(
-                        "r", "run", true, "Job run id. Needed, if there already exists a job run.");
-        final var forceRunOption =
-                new Option("f", "force", false, "Runs the job with the force option enabled.");
-        options.addOption(help);
-        options.addOption(jobClassOption);
-        options.addOption(jobRunIdOption);
-        options.addOption(forceRunOption);
+        final var jobApplicationArgs = new JobApplicationArgsParser().parse(args);
+        if (jobApplicationArgs.isEmpty()) {
+            return; // Args could not be parsed -> do not continue
+        }
 
-        final var parser = new DefaultParser();
-        final var helpFormatter = new HelpFormatter();
+        final var jobToStartArgs = jobApplicationArgs.get().jobToStart();
 
-        final CommandLine command;
+        if (jobToStartArgs != null) {
+            logger.info("Running job now. args = {}", jobToStartArgs);
+            runJobNow(applicationClass, jobToStartArgs);
+        } else {
+            logger.info("Starting Spring application now.");
+            SpringApplication.run(applicationClass, args);
+        }
+    }
+
+    private static void runJobNow(
+            final Class<?> applicationClass, final JobApplicationJobToStartArgs jobToStartArgs) {
+
+        final var context =
+                new SpringApplicationBuilder(applicationClass).web(WebApplicationType.NONE).run();
+
+        final var jobClassName = jobToStartArgs.jobClassName();
+
         try {
-            command = parser.parse(options, args, false);
-        } catch (final ParseException e) {
-            logger.warn("Unexpected args {}", args, e);
-            helpFormatter.printHelp("java", options);
-            return;
-        }
-        if (command.hasOption(help) || command.getArgs().length > 0) {
-            helpFormatter.printHelp("java", options);
-            return;
-        }
-
-        final var context = SpringApplication.run(applicationClass, args);
-
-        if (command.hasOption(jobClassOption)) {
-            final var jobClassName = command.getOptionValue(jobClassOption);
             final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClassName);
-            final var forceRun = command.hasOption(forceRunOption);
-            job.jobDataMap.put("forceRun", forceRun);
-            logger.info("Starting {}, forceRun = {}", jobClassName, forceRun);
-            if (command.hasOption(jobRunIdOption)) {
-                final var runId = Integer.parseInt(command.getOptionValue(jobRunIdOption));
-                job.jobRun().setId(runId);
-                logger.info("Setting run id {}", runId);
-            }
+            job.jobDataMap.put("forceRun", jobToStartArgs.forceRun());
+            jobToStartArgs.optionalJobRunId().ifPresent(job.jobRun()::setId);
+
             job.run(false);
             logger.info("Completed job, going to shut down");
-
-            final var exitCode = SpringApplication.exit(context);
-            logger.info("Shutdown completed. Exit code {}", exitCode);
-            System.exit(exitCode);
-        } else {
-            registerJobs(applicationClass, context);
-            context.getBean(JobScheduler.class).scheduleAllRegisteredJobs();
-            context.getBean(JobDataService.class).setBusyRunsToUnfinished();
+        } catch (final ClassNotFoundException e) {
+            logger.error("The specified job {} can not be found", jobClassName, e);
         }
-    }
 
-    private static void registerJobs(
-            final Class<?> applicationClass, final ConfigurableApplicationContext context)
-            throws InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
-
-        final var reflections = new Reflections(applicationClass.getPackage().getName());
-        for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
-            //noinspection unchecked
-            final var jobClass = (Class<? extends BaseJob>) cls;
-            registerJob(context, jobClass);
-        }
-        registerJob(context, CleanupJob.class);
-        registerJob(context, HealthCheckJob.class);
-    }
-
-    private static <T extends BaseJob> void registerJob(
-            final ConfigurableApplicationContext context, final Class<T> jobClass)
-            throws NoSuchMethodException,
-                    InvocationTargetException,
-                    InstantiationException,
-                    IllegalAccessException {
-        final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClass);
-        final var properties = job.getProperties();
-        logger.info("Registered {}. Properties = {}", jobClass, properties);
+        final var exitCode = SpringApplication.exit(context);
+        logger.info("Shutdown completed. Exit code {}", exitCode);
+        System.exit(exitCode);
     }
 }

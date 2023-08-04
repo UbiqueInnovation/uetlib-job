@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.heath;
 
 import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
@@ -14,6 +15,7 @@ import java.util.Collection;
 import java.util.Set;
 
 /** Checks if the job module is working properly. I.e. this is a self-check-job. */
+@RegisteredJob
 public final class HealthCheckJob extends BaseJob {
 
     private final SchedulerCheckService schedulerCheckService;

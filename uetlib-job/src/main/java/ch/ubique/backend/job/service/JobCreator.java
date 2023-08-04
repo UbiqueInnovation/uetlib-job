@@ -35,36 +35,29 @@ public final class JobCreator {
         return (Class<BaseJob>) classLoader.loadClass(clazz);
     }
 
-    public BaseJob createNewJobInstance(final String className)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public BaseJob createNewJobInstance(final String className) throws ClassNotFoundException {
         final var jobClass = getClassForName(className);
         return createNewJobInstance(jobClass);
     }
 
-    public BaseJob createNewJobInstance(final Job job)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public BaseJob createNewJobInstance(final Job job) throws ClassNotFoundException {
         return createNewJobInstance(job.clazzName());
     }
 
-    public <T extends BaseJob> T createNewJobInstance(final Class<T> jobClass)
-            throws NoSuchMethodException,
-                    InvocationTargetException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public <T extends BaseJob> T createNewJobInstance(final Class<T> jobClass) {
         final var parameters = getConstructor(jobClass).getParameters();
         final var jobConstructorParameters =
                 Arrays.stream(parameters).map(this::getBeanForParameter).toArray();
         final var parameterTypes =
                 Arrays.stream(parameters).map(Parameter::getType).toArray(Class<?>[]::new);
-        return jobClass.getConstructor(parameterTypes).newInstance(jobConstructorParameters);
+        try {
+            return jobClass.getConstructor(parameterTypes).newInstance(jobConstructorParameters);
+        } catch (final InstantiationException
+                | IllegalAccessException
+                | InvocationTargetException
+                | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Constructor<?> getConstructor(final Class<? extends BaseJob> jobClass) {
@@ -81,8 +74,8 @@ public final class JobCreator {
                                 new NoSuchElementException(
                                         MessageFormat.format(
                                                 "Either declare a single, default, public"
-                                                    + " constructor or annotate one with annotation"
-                                                    + " ''@{0}'' for job ''{1}''",
+                                                        + " constructor or annotate one with annotation"
+                                                        + " ''@{0}'' for job ''{1}''",
                                                 JobAutowireConstructor.class.getCanonicalName(),
                                                 jobClass.getCanonicalName())));
     }

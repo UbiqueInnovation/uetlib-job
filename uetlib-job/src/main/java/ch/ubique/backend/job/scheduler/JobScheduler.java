@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.InvocationTargetException;
-
 @Service
 public final class JobScheduler {
 
@@ -29,11 +27,7 @@ public final class JobScheduler {
         this.jobCreator = jobCreator;
     }
 
-    public void scheduleAllRegisteredJobs()
-            throws InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public void scheduleAllRegisteredJobs() {
         for (final var job : jobDataService.findJobs()) {
             try {
                 final var instance = jobCreator.createNewJobInstance(job);
@@ -53,12 +47,7 @@ public final class JobScheduler {
         }
     }
 
-    public void update(final Job job)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public void update(final Job job) throws ClassNotFoundException {
         final var instance = jobCreator.createNewJobInstance(job);
         if (!instance.isCronActive() || !instance.isCronExpressionValid()) {
             schedulerService.removeScheduleJob(job.clazzName());
@@ -68,12 +57,7 @@ public final class JobScheduler {
         schedulerService.updateJob(job.clazzName(), instance);
     }
 
-    public void runNow(final Job job, final boolean forceRun)
-            throws ClassNotFoundException,
-                    InvocationTargetException,
-                    NoSuchMethodException,
-                    InstantiationException,
-                    IllegalAccessException {
+    public void runNow(final Job job, final boolean forceRun) throws ClassNotFoundException {
         schedulerService.runJobNowManual(
                 job.clazzName(), jobCreator.createNewJobInstance(job), forceRun);
     }

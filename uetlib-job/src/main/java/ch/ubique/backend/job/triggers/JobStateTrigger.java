@@ -2,6 +2,7 @@ package ch.ubique.backend.job.triggers;
 
 import ch.ubique.backend.job.BaseJob;
 import ch.ubique.backend.job.model.JobRunState;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
