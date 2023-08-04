@@ -116,7 +116,7 @@ public class JobDataService {
                             return jobRepository.save(entity).toJob();
                         })
                 .orElseThrow(
-                        ResourceNotFoundException.throwWithMessage(
+                        ResourceNotFoundException.supplierWithMessage(
                                 "No JobEntity with id {0} found", id));
     }
 
