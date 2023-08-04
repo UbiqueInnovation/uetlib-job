@@ -111,7 +111,7 @@ public class JobService {
                 jobDataService
                         .findJobById(jobId)
                         .orElseThrow(
-                                ResourceNotFoundException.throwWithMessage(
+                                ResourceNotFoundException.supplierWithMessage(
                                         "No Job with id {0} found", jobId));
         jobScheduler.runNow(job, forceRun);
     }
@@ -126,7 +126,7 @@ public class JobService {
                 jobDataService
                         .findJobByClazz(className)
                         .orElseThrow(
-                                ResourceNotFoundException.throwWithMessage(
+                                ResourceNotFoundException.supplierWithMessage(
                                         "No Job with name {0} found", className));
         jobScheduler.runNow(job, forceRun);
     }
@@ -158,7 +158,7 @@ public class JobService {
                 jobDataService
                         .findJobRunById(jobRunId)
                         .orElseThrow(
-                                ResourceNotFoundException.throwWithMessage(
+                                ResourceNotFoundException.supplierWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
         final var jobName = jobById(jobRun.getJobId()).name();
         return JobRunInfoContainer.from(jobRun, jobName);
@@ -187,7 +187,7 @@ public class JobService {
         return jobDataService
                 .findJobById(jobId)
                 .orElseThrow(
-                        ResourceNotFoundException.throwWithMessage(
+                        ResourceNotFoundException.supplierWithMessage(
                                 "No Job with id {0} found", jobId));
     }
 
