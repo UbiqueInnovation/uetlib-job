@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
@@ -27,7 +27,7 @@ public class JobUnfinishedStateCheck implements StatusCheck {
         final var unfinishedJobs =
                 jobDataService.findJobs().stream()
                         .filter(this::isUnfinished)
-                        .map(Job::clazz)
+                        .map(JobClassAndId::canonicalClassName)
                         .toList();
 
         if (!unfinishedJobs.isEmpty()) {
@@ -39,10 +39,10 @@ public class JobUnfinishedStateCheck implements StatusCheck {
     }
 
     @NotNull
-    private Boolean isUnfinished(final Job job) {
+    private Boolean isUnfinished(final JobClassAndId job) {
         return jobDataService
                 .findLatestJobRunByStates(job.id(), JobRunState.allExceptRunning())
-                .map(run -> run.getState() == JobRunState.UNFINISHED)
+                .map(run -> run.state() == JobRunState.UNFINISHED)
                 .orElse(false);
     }
 }

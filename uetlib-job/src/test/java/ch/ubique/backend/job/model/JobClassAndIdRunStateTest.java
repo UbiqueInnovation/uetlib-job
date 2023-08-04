@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-class JobRunStateTest {
+class JobClassAndIdRunStateTest {
 
     @Test
     void allExceptRunning() {

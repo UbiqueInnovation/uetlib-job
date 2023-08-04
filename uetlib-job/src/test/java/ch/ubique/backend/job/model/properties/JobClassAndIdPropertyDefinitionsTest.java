@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Modifier;
 import java.util.stream.Collectors;
 
-class JobPropertyDefinitionsTest {
+class JobClassAndIdPropertyDefinitionsTest {
 
     @Test
     void someDefinitions() {

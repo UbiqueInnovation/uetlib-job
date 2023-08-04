@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.checks;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.monitoring.check.StatusCheck;
@@ -42,7 +42,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
     }
 
     @NotNull
-    private Optional<Map<String, Object>> checkJobOverdue(final Job job) {
+    private Optional<Map<String, Object>> checkJobOverdue(final JobClassAndId job) {
         final var lastRunMaxAgeMaybe =
                 jobDataService
                         .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
@@ -57,7 +57,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
         final var lastRunStartedAt =
                 jobDataService
                         .findLatestJobRun(job.id())
-                        .map(JobRun::getStartedAt)
+                        .map(JobRun::startedAt)
                         .orElse(Instant.EPOCH);
 
         final var lastRunAge = Duration.between(lastRunStartedAt, Instant.now());
@@ -68,7 +68,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
 
         return Optional.of(
                 Map.ofEntries(
-                        Map.entry("job", job.clazz()),
+                        Map.entry("job", job.canonicalClassName()),
                         Map.entry("lastRunMaxAge", lastRunMaxAge),
                         Map.entry("lastRunStartedAt", lastRunStartedAt),
                         Map.entry("lastRunAge", lastRunAge)));

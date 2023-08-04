@@ -31,7 +31,7 @@ public class JobRunInputEntity implements JobRunInput {
 
     public static JobRunInputEntity from(final JobRun jobRun, final ByteFile file) {
         final var input = new JobRunInputEntity();
-        input.setRunId(jobRun.getId());
+        input.setRunId(jobRun.id());
         input.setName(file.getFileName());
         input.setHash(file.getFileHash());
         return input;

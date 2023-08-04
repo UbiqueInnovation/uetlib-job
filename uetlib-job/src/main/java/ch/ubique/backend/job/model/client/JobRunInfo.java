@@ -22,13 +22,13 @@ public record JobRunInfo(
 
     public static JobRunInfo from(final JobRun jobRun) {
         return new JobRunInfo(
-                jobRun.getId(),
-                jobRun.getJobId(),
-                jobRun.getJobVersion(),
-                jobRun.getState(),
-                jobRun.getStartedAt(),
-                jobRun.getFinishedAt(),
+                jobRun.id(),
+                jobRun.jobId(),
+                jobRun.jobVersion(),
+                jobRun.state(),
+                jobRun.startedAt(),
+                jobRun.finishedAt(),
                 StringFormattingUtils.formatDuration(
-                        jobRun.getStartedAt(), jobRun.getFinishedAt()));
+                        jobRun.startedAt(), jobRun.finishedAt()));
     }
 }

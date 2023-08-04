@@ -16,7 +16,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run")
-public class JobRunEntity implements JobRun {
+public class JobRunEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,63 +39,18 @@ public class JobRunEntity implements JobRun {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
-    @Override
-    public Instant getFinishedAt() {
-        return finishedAt;
+    public JobRunEntity() {}
+
+    public JobRunEntity(final JobRun jobRun) {
+        id = jobRun.id();
+        jobId = jobRun.jobId();
+        jobVersion = jobRun.jobVersion();
+        state = jobRun.state();
+        startedAt = jobRun.startedAt();
+        finishedAt = jobRun.finishedAt();
     }
 
-    @Override
-    public void setFinishedAt(final Instant finishedAt) {
-        this.finishedAt = finishedAt;
-    }
-
-    @Override
-    public Instant getStartedAt() {
-        return startedAt;
-    }
-
-    @Override
-    public void setStartedAt(final Instant startedAt) {
-        this.startedAt = startedAt;
-    }
-
-    @Override
-    public JobRunState getState() {
-        return state;
-    }
-
-    @Override
-    public void setState(final JobRunState state) {
-        this.state = state;
-    }
-
-    @Override
-    public Integer getJobId() {
-        return jobId;
-    }
-
-    @Override
-    public void setJobId(final Integer jobId) {
-        this.jobId = jobId;
-    }
-
-    @Override
-    public Integer getJobVersion() {
-        return jobVersion;
-    }
-
-    @Override
-    public void setJobVersion(final Integer jobVersion) {
-        this.jobVersion = jobVersion;
-    }
-
-    @Override
-    public Integer getId() {
-        return id;
-    }
-
-    @Override
-    public void setId(final Integer id) {
-        this.id = id;
+    public JobRun toJobRun() {
+        return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state);
     }
 }

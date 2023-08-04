@@ -6,7 +6,7 @@ import ch.ubique.backend.job.model.client.JobPropertyGroupInfo;
 
 import org.junit.jupiter.api.Test;
 
-class JobPropertyGroupInfoTest {
+class JobClassAndIdPropertyGroupInfoTest {
 
     @Test
     void testCapitalize() {

@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.model.entity;
 
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,44 +19,20 @@ public class JobEntity {
     private Integer id;
 
     @Column(name = "clazz", nullable = false)
-    private String clazz;
+    private String canonicalClassName;
 
-    @Column(name = "cron_expression", length = 20)
-    private String cronExpression;
+    public JobEntity() {}
 
-    public static JobEntity fromJob(final Job job) {
-        final var jobEntity = new JobEntity();
-        jobEntity.id = job.id();
-        jobEntity.clazz = job.clazzName();
-        jobEntity.cronExpression = job.databaseCronExpression();
-        return jobEntity;
+    public JobEntity(final String canonicalClassName) {
+        this.canonicalClassName = canonicalClassName;
     }
 
-    public Integer getId() {
-        return id;
+    public JobEntity(final JobClassAndId jobClassAndId) {
+        this.id = jobClassAndId.id();
+        this.canonicalClassName = jobClassAndId.canonicalClassName();
     }
 
-    public void setId(final Integer id) {
-        this.id = id;
-    }
-
-    public String getClazz() {
-        return clazz;
-    }
-
-    public void setClazz(final String clazz) {
-        this.clazz = clazz;
-    }
-
-    public String getCronExpression() {
-        return cronExpression;
-    }
-
-    public void setCronExpression(final String cronExpression) {
-        this.cronExpression = cronExpression;
-    }
-
-    public Job toJob() {
-        return new Job(id, clazz, cronExpression);
+    public JobClassAndId toRecord() {
+        return new JobClassAndId(id, canonicalClassName);
     }
 }

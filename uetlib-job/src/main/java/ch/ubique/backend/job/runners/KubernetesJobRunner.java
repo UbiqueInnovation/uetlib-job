@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.runners;
 
-import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
 import io.kubernetes.client.custom.Quantity;
@@ -42,7 +42,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public void run(final BaseJob job) throws IOException, ApiException {
+    public void run(final Job job) throws IOException, ApiException {
         logger.info("Connecting to Kubernetes API");
         final var client = Config.defaultClient();
         final var coreApi = new CoreV1Api(client);
@@ -83,7 +83,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     private V1Job createKubernetesJob(
-            final BaseJob job,
+            final Job job,
             final String namespace,
             final String jobName,
             final V1Pod currentPod) {
@@ -173,7 +173,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @NotNull
-    private String jobName(final BaseJob job) {
+    private String jobName(final Job job) {
         return environment.getProperty("spring.application.name")
                 + "-"
                 + job.getClass().getSimpleName().toLowerCase()

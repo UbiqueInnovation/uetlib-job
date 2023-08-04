@@ -1,13 +1,19 @@
 package ch.ubique.backend.job.heath;
 
-import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
+import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
+import ch.ubique.backend.job.model.properties.JobTriggers;
+import ch.ubique.backend.job.triggers.CronTrigger;
 import jakarta.validation.constraints.NotNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import java.time.Duration;
@@ -16,12 +22,12 @@ import java.util.Set;
 
 /** Checks if the job module is working properly. I.e. this is a self-check-job. */
 @RegisteredJob
-public final class HealthCheckJob extends BaseJob {
+public final class HealthCheckJob implements Job {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final SchedulerCheckService schedulerCheckService;
 
     public HealthCheckJob(@NotNull final ApplicationContext context) {
-        super(context);
         this.schedulerCheckService = context.getBean(SchedulerCheckService.class);
     }
 
@@ -31,20 +37,21 @@ public final class HealthCheckJob extends BaseJob {
      *     <p>{@link JobRunState#WARNING} if an error was identified and a fix was available.
      *     <p>{@link JobRunState#DONE} if no issues were identified
      */
+    @NotNull
     @Override
-    protected @NotNull JobRunState internalRun() {
+    public JobRunState run(final JobRunContext context) {
         logger.info("Performing health checks");
         return schedulerCheckService.checkSchedulerTriggers().orElse(JobRunState.DONE);
     }
 
     @Override
-    public String fixedCronExpression() {
-        return "0 */10 * ? * *";
+    public JobTriggers triggers() {
+        return JobTriggers.fixed(new CronTrigger("0 */10 * ? * *"));
     }
 
     @Override
-    public @NotNull Collection<JobProperty<?>> fixedProperties() {
-        return Set.of(
+    public JobProperties properties() {
+        return JobProperties.fixed(
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(1)),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(0),

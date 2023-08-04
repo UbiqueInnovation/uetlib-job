@@ -2,35 +2,36 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
-import ch.ubique.backend.job.model.Job;
-import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobRunInput;
-import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.JobRunWithInputs;
+import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.job.utils.DefaultRetryListener;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.retry.support.RetryTemplate;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class BaseInputJob<T> extends BaseJob {
+public abstract class BaseInputJob<T> implements Job {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final JobRunStorage jobRunStorage;
+    private final JobDataService jobDataService;
 
     protected BaseInputJob(@NotNull final ApplicationContext context) {
-        super(context);
         jobRunStorage = context.getBean(JobRunStorage.class);
+        jobDataService = context.getBean(JobDataService.class);
     }
 
     /**
@@ -68,21 +69,21 @@ public abstract class BaseInputJob<T> extends BaseJob {
     }
 
     @Override
-    protected final JobRunState internalRun() throws Exception {
+    public final JobRunState run(final JobRunContext context) throws Exception {
 
         var allowSkipping = true;
 
-        if (isForceRunEnabled()) {
+        if (context.arguments().forceRun()) {
             logger.info("Force run.");
             allowSkipping = false;
         }
 
-        if (isJobVersionDifferent()) {
+        if (isJobVersionDifferent(context.job())) {
             logger.info("The job version differs from the job version of the previous run.");
             allowSkipping = false;
         }
 
-        final var maybeLatestSuccessfulRun = latestSuccessfulRun();
+        final var maybeLatestSuccessfulRun = latestSuccessfulRun(context.job());
         if (maybeLatestSuccessfulRun.isEmpty()) {
             logger.info("No successful runs so far.");
             allowSkipping = false;
@@ -106,13 +107,13 @@ public abstract class BaseInputJob<T> extends BaseJob {
 
         // Check for changes
         final var data = dataMaybe.get();
-        if (allowSkipping && areInputsEqual(data.inputFiles())) {
+        if (allowSkipping && areInputsEqual(data.inputFiles(), context.job())) {
             logger.info("The inputs did not change. Stopping job run.");
             return JobRunState.SKIPPED;
         }
 
-        saveRunInputsToDatabase(data.inputFiles());
-        uploadInputFiles(data.inputFiles());
+        saveRunInputsToDatabase(data.inputFiles(), context.jobRun());
+        uploadInputFiles(data.inputFiles(), context.jobRun());
 
         return processInputs(data.data());
     }
@@ -143,36 +144,39 @@ public abstract class BaseInputJob<T> extends BaseJob {
         }
     }
 
-    private void saveRunInputsToDatabase(final Collection<ByteFile> inputs) {
+    private void saveRunInputsToDatabase(final Collection<ByteFile> inputs, final JobRun jobRun) {
         for (final var input : inputs) {
             logger.info("Saving input {} to database.", input.getFileName());
             jobDataService.insertJobRunInput(JobRunInputEntity.from(jobRun, input));
         }
     }
 
-    private void uploadInputFiles(final Collection<ByteFile> inputFiles) throws IOException {
+    private void uploadInputFiles(final Collection<ByteFile> inputFiles, final JobRun jobRun)
+            throws IOException {
         if (!isInputFileUploadEnabled()) {
             return;
         }
 
         for (final var file : inputFiles) {
             logger.info("Saving job run input file {}.", file.getFileName());
-            saveJobRunInput(file, job, jobRun);
+            saveJobRunInput(file, jobRun);
         }
     }
 
-    private void saveJobRunInput(final ByteFile file, final Job job, final JobRun jobRun)
-            throws IOException {
+    private void saveJobRunInput(final ByteFile file, final JobRun jobRun) throws IOException {
         jobRunStorage.saveJobRunInput(
-                file.getBytes(), job.name(), jobRun.readableId(), file.getFileName());
+                file.getBytes(),
+                getClass().getSimpleName(),
+                jobRun.readableId(),
+                file.getFileName());
     }
 
-    private boolean isJobVersionDifferent() {
-        final var lastRun = latestSuccessfulRun();
+    private boolean isJobVersionDifferent(final JobClassAndId job) {
+        final var lastRun = latestSuccessfulRun(job);
         return lastRun.isEmpty() || version() != lastRun.get().jobVersion();
     }
 
-    private boolean areInputsEqual(final Collection<ByteFile> currentInputs) {
+    private boolean areInputsEqual(final Collection<ByteFile> currentInputs, final JobClassAndId job) {
         logger.info("Comparing current inputs to last run");
 
         if (currentInputs.isEmpty()) {
@@ -181,13 +185,13 @@ public abstract class BaseInputJob<T> extends BaseJob {
         }
 
         // Get inputs of the latest successful run
-        final var latestJobRun = latestSuccessfulRun();
+        final var latestJobRun = latestSuccessfulRun(job);
         if (latestJobRun.isEmpty()) {
             logger.info("No previous job run found => Inputs differ");
             return false;
         }
 
-        final Map<String, JobRunInput> latestInputsByName =
+        final var latestInputsByName =
                 latestJobRun.get().inputs().stream()
                         .collect(
                                 Collectors.toMap(
@@ -224,18 +228,18 @@ public abstract class BaseInputJob<T> extends BaseJob {
                         });
     }
 
-    private Optional<JobRunWithInputs> latestSuccessfulRun() {
+    private Optional<JobRunWithInputs> latestSuccessfulRun(final JobClassAndId job) {
         return jobDataService
                 .findLatestJobRunByState(job.id(), JobRunState.DONE)
                 .map(
                         run ->
                                 new JobRunWithInputs(
-                                        run.getId(),
-                                        run.getJobVersion(),
-                                        run.getState(),
-                                        run.getStartedAt(),
-                                        run.getStartedAt(),
-                                        jobDataService.findJobRunInputs(run.getId()).stream()
+                                        run.id(),
+                                        run.jobVersion(),
+                                        run.state(),
+                                        run.startedAt(),
+                                        run.startedAt(),
+                                        jobDataService.findJobRunInputs(run.id()).stream()
                                                 .collect(Collectors.toUnmodifiableSet())));
     }
 }

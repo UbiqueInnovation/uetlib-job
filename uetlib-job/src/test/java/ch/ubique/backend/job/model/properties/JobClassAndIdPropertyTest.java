@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Period;
 
-class JobPropertyTest {
+class JobClassAndIdPropertyTest {
 
     @Test
     void key() {

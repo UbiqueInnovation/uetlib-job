@@ -1,14 +1,13 @@
 package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
-import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.JobPropertyRepository;
 import ch.ubique.backend.job.data.repository.JobRepository;
 import ch.ubique.backend.job.data.repository.JobRunInputRepository;
 import ch.ubique.backend.job.data.repository.JobRunRepository;
 import ch.ubique.backend.job.data.repository.LoggingEventRepository;
-import ch.ubique.backend.job.model.Job;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
@@ -74,50 +73,35 @@ public class JobDataService {
         final var now = Instant.now();
         jobRunRepository.saveAllAndFlush(
                 jobRunRepository.findAllByStateAndFinishedAtIsNull(JobRunState.BUSY).stream()
-                        .map(JobRunEntity.class::cast)
                         .filter(
                                 // Only for busy jobs with Runner = CURRENT
                                 jobRun ->
                                         JobRunnerKey.CURRENT
                                                 == getProperty(
-                                                                jobRun.getJobId(),
+                                                                jobRun.jobId(),
                                                                 JobPropertyDefinitions.RUNNER)
                                                         .value())
                         .map(
-                                jobRun -> {
-                                    jobRun.setFinishedAt(now);
-                                    jobRun.setState(JobRunState.UNFINISHED);
-                                    return jobRunRepository.save(jobRun);
-                                })
+                                jobRun ->
+                                        saveJobRun(
+                                                new JobRun(
+                                                        jobRun.id(),
+                                                        jobRun.jobId(),
+                                                        jobRun.jobVersion(),
+                                                        jobRun.startedAt(),
+                                                        now,
+                                                        JobRunState.UNFINISHED)))
                         .toList());
     }
 
     @Transactional(readOnly = true)
-    public Optional<Job> findJobById(final int id) {
-        return jobRepository.findById(id).map(JobEntity::toJob);
+    public Optional<JobClassAndId> findJobById(final int id) {
+        return jobRepository.findById(id).map(JobEntity::toRecord);
     }
 
     @Transactional(readOnly = true)
-    public Optional<Job> findJobByClazz(final String clazz) {
-        return jobRepository.findByClazz(clazz).map(JobEntity::toJob);
-    }
-    @Transactional(readOnly = true)
-    public Optional<Job> findJobByClazz(final Class<? extends BaseJob> clazz) {
-        return findJobByClazz(clazz.getCanonicalName());
-    }
-
-    @Transactional
-    public Job updateCronExpression(final int id, final String cronExpression) {
-        return jobRepository
-                .findById(id)
-                .map(
-                        entity -> {
-                            entity.setCronExpression(cronExpression);
-                            return jobRepository.save(entity).toJob();
-                        })
-                .orElseThrow(
-                        ResourceNotFoundException.throwWithMessage(
-                                "No JobEntity with id {0} found", id));
+    public Optional<JobClassAndId> findJobByCanonicalClassName(final String clazz) {
+        return jobRepository.findByClazz(clazz).map(JobEntity::toRecord);
     }
 
     @Transactional(readOnly = true)
@@ -135,8 +119,8 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public List<Job> findJobs() {
-        return jobRepository.findAllByOrderById().stream().map(JobEntity::toJob).toList();
+    public List<JobClassAndId> findJobs() {
+        return jobRepository.findAllByOrderById().stream().map(JobEntity::toRecord).toList();
     }
 
     @Transactional(readOnly = true)
@@ -157,29 +141,15 @@ public class JobDataService {
     }
 
     @Transactional
-    public Job registerJob(final Job job) {
-        return findJobByClazz(job.clazzName())
-                .orElseGet(
-                        () -> {
-                            final var entity = JobEntity.fromJob(job);
-                            return jobRepository.save(entity).toJob();
-                        });
+    public JobClassAndId registerJob(final Class<? extends Job> jobClass) {
+        final var canonicalClassName = jobClass.getCanonicalName();
+        return findJobByCanonicalClassName(canonicalClassName)
+                .orElseGet(() -> jobRepository.save(new JobEntity(canonicalClassName)).toRecord());
     }
 
     @Transactional
     public JobRunEntity saveJobRun(final JobRun jobRun) {
-        if (!(jobRun instanceof final JobRunEntity jobRunEntity)) {
-            throw new ClassCastException(
-                    "jobRun cannot be instance of class to JobRunEntity, but is of class"
-                            + jobRun.getClass());
-        }
-        return jobRunRepository.save(jobRunEntity);
-    }
-
-    public JobRunEntity newRunInstance(final Job job) {
-        final var entity = new JobRunEntity();
-        entity.setJobId(job.id());
-        return entity;
+        return jobRunRepository.save(new JobRunEntity(jobRun));
     }
 
     @Transactional(readOnly = true)
@@ -188,8 +158,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public void delete(final Job job) {
-        jobRepository.delete(JobEntity.fromJob(job));
+    public void delete(final JobClassAndId job) {
+        jobRepository.delete(new JobEntity(job));
     }
 
     @Transactional
@@ -226,6 +196,14 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Collection<JobProperty<Object>> getProperties(final int jobId) {
+        return jobPropertyRepository.findAllByJobId(jobId).stream()
+                .map(JobPropertyEntity::toProperty)
+                .filter(JobProperty::isValuePresent)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobProperty<Object>> getProperties(final String jobClassName) {
         return jobPropertyRepository.findAllByJobId(jobId).stream()
                 .map(JobPropertyEntity::toProperty)
                 .filter(JobProperty::isValuePresent)

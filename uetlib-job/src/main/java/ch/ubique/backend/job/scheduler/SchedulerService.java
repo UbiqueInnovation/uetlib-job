@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.scheduler;
 
-import ch.ubique.backend.job.BaseJob;
+import ch.ubique.backend.job.Job;
 
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
@@ -22,13 +22,13 @@ public class SchedulerService {
         this.scheduler = scheduler;
     }
 
-    private static JobDetail createJobDetail(final JobKey key, final Job job) {
+    private static JobDetail createJobDetail(final JobKey key, final org.quartz.Job job) {
         return JobBuilder.newJob(job.getClass()).withIdentity(key).build();
     }
 
     public void scheduleJob(
             final String identifier,
-            final BaseJob job,
+            final Job job,
             final String cronExpressionString,
             final ZoneId zoneId) {
         try {
@@ -53,7 +53,7 @@ public class SchedulerService {
         }
     }
 
-    public void updateJob(final String identifier, final BaseJob job, final ZoneId zoneId) {
+    public void updateJob(final String identifier, final Job job, final ZoneId zoneId) {
         final var cronExpressionString = job.getCronExpression();
         logger.info(
                 "Updating scheduled job {} with cron expression: {}",
@@ -79,7 +79,7 @@ public class SchedulerService {
         }
     }
 
-    public void runJobNowManual(final BaseJob job, final boolean forceRun) {
+    public void runJobNowManual(final Job job, final boolean forceRun) {
         final var identifier = job.getClass().getCanonicalName() + "_MANUAL_" + UUID.randomUUID();
         try {
             logger.info("Manually scheduled job {} to run now. forceRun: {}", identifier, forceRun);
@@ -94,7 +94,7 @@ public class SchedulerService {
         }
     }
 
-    private JobDetail getOrCreateJobDetail(final JobKey key, final Job job)
+    private JobDetail getOrCreateJobDetail(final JobKey key, final org.quartz.Job job)
             throws SchedulerException {
         return Objects.requireNonNullElseGet(
                 scheduler.getJobDetail(key), () -> createJobDetail(key, job));
