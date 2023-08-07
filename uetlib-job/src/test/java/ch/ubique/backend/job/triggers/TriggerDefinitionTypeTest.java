@@ -7,7 +7,7 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import org.junit.jupiter.api.Test;
 
-class TriggerTypeTest {
+class TriggerDefinitionTypeTest {
 
     @Test
     void testTypesMatch() {

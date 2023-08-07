@@ -2,6 +2,7 @@ package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 import ch.ubique.backend.job.model.triggers.Trigger;
+import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,13 +32,32 @@ public class JobTriggerEntity {
 
     public JobTriggerEntity() {}
 
-    public JobTriggerEntity(final int jobId, final Trigger trigger) throws JsonProcessingException {
-        this.jobId = jobId;
-        this.type = trigger.type();
-        this.data = objectMapper.writeValueAsString(trigger);
+    private JobTriggerEntity(final int jobId, final TriggerDefinition triggerDefinition) {
+        this(null, jobId, triggerDefinition);
     }
 
-    public Trigger toTrigger() throws JsonProcessingException {
-        return objectMapper.readValue(data, TriggerType.getClassForType(type));
+    public JobTriggerEntity(final Trigger trigger) {
+        this(trigger.id(), trigger.jobId(), trigger.definition());
+    }
+
+    private JobTriggerEntity(
+            final Integer id, final int jobId, final TriggerDefinition triggerDefinition) {
+        this.id = id;
+        this.jobId = jobId;
+        this.type = triggerDefinition.type();
+        try {
+            this.data = objectMapper.writeValueAsString(triggerDefinition);
+        } catch (final JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Trigger toTrigger() {
+        try {
+            return new Trigger(
+                    id, jobId, objectMapper.readValue(data, TriggerType.getClassForType(type)));
+        } catch (final JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
