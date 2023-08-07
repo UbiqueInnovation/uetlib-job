@@ -8,10 +8,11 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.ZoneId;
 
-public record CronTrigger(@NotBlank @ValidCron String cronExpression, @Nullable ZoneId timeZone)
-        implements Trigger {
+public record CronTriggerDefinition(
+        @NotBlank @ValidCron String cronExpression, @Nullable ZoneId timeZone)
+        implements TriggerDefinition {
 
-    public CronTrigger(@NotBlank @ValidCron final String cronExpression) {
+    public CronTriggerDefinition(@NotBlank @ValidCron final String cronExpression) {
         this(cronExpression, null);
     }
 

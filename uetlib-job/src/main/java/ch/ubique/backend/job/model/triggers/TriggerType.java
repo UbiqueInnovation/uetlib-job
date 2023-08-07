@@ -5,11 +5,11 @@ public enum TriggerType {
     STARTUP,
     JOB_RUN_STATE;
 
-    public static Class<? extends Trigger> getClassForType(final TriggerType type) {
+    public static Class<? extends TriggerDefinition> getClassForType(final TriggerType type) {
         return switch (type) {
-            case CRON -> CronTrigger.class;
-            case STARTUP -> StartupTrigger.class;
-            case JOB_RUN_STATE -> JobStateTrigger.class;
+            case CRON -> CronTriggerDefinition.class;
+            case STARTUP -> StartupTriggerDefinition.class;
+            case JOB_RUN_STATE -> JobStateTriggerDefinition.class;
         };
     }
 }

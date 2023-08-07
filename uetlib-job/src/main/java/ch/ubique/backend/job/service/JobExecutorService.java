@@ -36,6 +36,16 @@ public class JobExecutorService {
                 jobRunners.stream().collect(Collectors.toMap(JobRunner::key, Function.identity()));
     }
 
+    public void execute(@NotNull final Class<? extends Job> jobClass) {
+        execute(jobClass, null);
+    }
+
+    public void execute(
+            @NotNull final Class<? extends Job> jobClass,
+            @Nullable final JobRunArguments arguments) {
+        execute(jobClass, arguments, null, null);
+    }
+
     public void execute(
             @NotNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,

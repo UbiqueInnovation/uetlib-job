@@ -4,6 +4,7 @@ import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
@@ -27,19 +28,18 @@ import java.util.stream.Collectors;
 public class JobControllerService {
     private static final int PAGE_SIZE = 30;
     private final JobService jobService;
+
+    private final TriggerService triggerService;
     private final Scheduler scheduler;
-    private final JobCreator jobCreator;
     private final JobDataService jobDataService;
 
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
-            final Scheduler scheduler,
-            final JobCreator jobCreator) {
+            final Scheduler scheduler) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.scheduler = scheduler;
-        this.jobCreator = jobCreator;
     }
 
     public JobInfosContainer findJobs() throws ClassNotFoundException {
@@ -82,18 +82,12 @@ public class JobControllerService {
     }
 
     public void startJob(final int jobId, final boolean forceRun) throws ClassNotFoundException {
-        final var job =
-                jobDataService
-                        .findJobById(jobId)
-                        .orElseThrow(
-                                ResourceNotFoundException.throwWithMessage(
-                                        "No Job with id {0} found", jobId));
-        jobService.startJob(job.canonicalClassName(), forceRun);
+        jobService.startJob(jobService.getJobClass(jobId), new JobRunArguments(forceRun));
     }
 
     public void startJob(final String className, final boolean forceRun)
             throws ClassNotFoundException {
-        jobService.startJob(className, forceRun);
+        jobService.startJob(jobService.getJobClass(className), new JobRunArguments(forceRun));
     }
 
     public void startJob(final Class<? extends Job> jobClass, final boolean forceRun)
@@ -169,7 +163,7 @@ public class JobControllerService {
     public JobSystemInfoResponse getInfo() throws SchedulerException {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
-                        new JobSystemCronInfo(jobService.getDefaultZoneId()),
+                        new JobSystemCronInfo(triggerService.getDefaultZoneId()),
                         new JobSystemSchedulerInfo(getMetaData(), getGroups())));
     }
 

@@ -271,4 +271,8 @@ public class JobDataService {
                 .save(new JobRunEntity(jobId, jobVersion, JobRunState.BUSY, Instant.now(), null))
                 .toJobRun();
     }
+
+    public Trigger saveTrigger(final Trigger trigger) {
+        return jobTriggerRepository.save(new JobTriggerEntity(trigger)).toTrigger();
+    }
 }

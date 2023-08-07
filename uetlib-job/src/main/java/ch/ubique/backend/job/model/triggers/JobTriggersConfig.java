@@ -10,38 +10,42 @@ import java.util.Set;
 public final class JobTriggersConfig {
 
     private final boolean isFixed;
-    private final Collection<Trigger> triggers;
+    private final Collection<TriggerDefinition> triggerDefinitions;
 
-    private JobTriggersConfig(final boolean isFixed, @NotNull final Collection<Trigger> triggers) {
+    private JobTriggersConfig(
+            final boolean isFixed,
+            @NotNull final Collection<TriggerDefinition> triggerDefinitions) {
         this.isFixed = isFixed;
-        this.triggers = Collections.unmodifiableCollection(triggers);
+        this.triggerDefinitions = Collections.unmodifiableCollection(triggerDefinitions);
     }
 
     public static JobTriggersConfig unset() {
         return new JobTriggersConfig(false, Set.of());
     }
 
-    public static JobTriggersConfig initial(final Trigger trigger) {
-        return initial(Set.of(trigger));
+    public static JobTriggersConfig initial(final TriggerDefinition triggerDefinition) {
+        return initial(Set.of(triggerDefinition));
     }
 
-    public static JobTriggersConfig initial(@NotEmpty final Collection<Trigger> triggers) {
-        return new JobTriggersConfig(false, triggers);
+    public static JobTriggersConfig initial(
+            @NotEmpty final Collection<TriggerDefinition> triggerDefinitions) {
+        return new JobTriggersConfig(false, triggerDefinitions);
     }
 
-    public static JobTriggersConfig fixed(final Trigger trigger) {
-        return fixed(Set.of(trigger));
+    public static JobTriggersConfig fixed(final TriggerDefinition triggerDefinition) {
+        return fixed(Set.of(triggerDefinition));
     }
 
-    public static JobTriggersConfig fixed(@NotEmpty final Collection<Trigger> triggers) {
-        return new JobTriggersConfig(true, triggers);
+    public static JobTriggersConfig fixed(
+            @NotEmpty final Collection<TriggerDefinition> triggerDefinitions) {
+        return new JobTriggersConfig(true, triggerDefinitions);
     }
 
     public boolean isFixed() {
         return isFixed;
     }
 
-    public Collection<Trigger> triggers() {
-        return triggers;
+    public Collection<TriggerDefinition> triggers() {
+        return triggerDefinitions;
     }
 }

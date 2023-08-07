@@ -5,8 +5,9 @@ import ch.ubique.backend.job.model.JobRunState;
 
 import jakarta.validation.constraints.NotNull;
 
-public record JobStateTrigger(@NotNull Class<? extends Job> jobClass, @NotNull JobRunState state)
-        implements Trigger {
+public record JobStateTriggerDefinition(
+        @NotNull Class<? extends Job> jobClass, @NotNull JobRunState state)
+        implements TriggerDefinition {
 
     @Override
     @NotNull
