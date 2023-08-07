@@ -11,13 +11,14 @@ import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.scheduler.SchedulerService;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.StartupTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
+import ch.ubique.backend.job.scheduler.SchedulerService;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
+
 import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

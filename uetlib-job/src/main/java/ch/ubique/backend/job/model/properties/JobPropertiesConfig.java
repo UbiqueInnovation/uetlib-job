@@ -10,7 +10,8 @@ public final class JobPropertiesConfig {
     private final boolean isFixed;
     private final Collection<JobProperty<Object>> properties;
 
-    private JobPropertiesConfig(final boolean isFixed, final Collection<JobProperty<Object>> properties) {
+    private JobPropertiesConfig(
+            final boolean isFixed, final Collection<JobProperty<Object>> properties) {
         this.isFixed = isFixed;
         this.properties = Collections.unmodifiableCollection(properties);
     }

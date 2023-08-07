@@ -41,17 +41,17 @@ public class JobExecutorService {
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
-        
+
         logger.info("Executing {}", jobClass);
 
         final var job = jobService.instantiateJob(jobClass);
         final var context = createContext(job, arguments, runId);
         final var runner = getJobRunner(context, jobRunnerKey);
-        
+
         logger.info("Running job {} with context {} using runner {}", job, context, runner);
         final var jobState = runner.run(job, context);
         logger.info("Done. Job state: {}", jobState);
-        
+
         updateJobRunScheduledOrEnd(context.jobRun(), jobState);
     }
 
