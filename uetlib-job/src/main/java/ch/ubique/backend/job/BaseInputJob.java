@@ -40,7 +40,7 @@ public abstract class BaseInputJob<T> implements Job {
      *
      * @param latestSuccessfulRun non-null info about the last successful run.
      */
-    protected boolean hasNewInputs(@NotNull JobRunWithInputs latestSuccessfulRun) {
+    protected boolean hasNewInputs(@NotNull final JobRunWithInputs latestSuccessfulRun) {
         return true;
     }
 
@@ -176,7 +176,8 @@ public abstract class BaseInputJob<T> implements Job {
         return lastRun.isEmpty() || version() != lastRun.get().jobVersion();
     }
 
-    private boolean areInputsEqual(final Collection<ByteFile> currentInputs, final JobClassAndId job) {
+    private boolean areInputsEqual(
+            final Collection<ByteFile> currentInputs, final JobClassAndId job) {
         logger.info("Comparing current inputs to last run");
 
         if (currentInputs.isEmpty()) {

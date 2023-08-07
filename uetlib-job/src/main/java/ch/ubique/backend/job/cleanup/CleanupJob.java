@@ -7,11 +7,11 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.properties.JobProperties;
+import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.properties.JobTriggers;
+import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 import ch.ubique.backend.job.storage.JobRunStorage;
-import ch.ubique.backend.job.triggers.CronTrigger;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -35,14 +35,14 @@ public class CleanupJob implements Job {
 
     @NotNull
     @Override
-    public JobTriggers triggers() {
-        return JobTriggers.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
+    public JobTriggersConfig triggersConfig() {
+        return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
     }
 
     @NotNull
     @Override
-    public JobProperties properties() {
-        return JobProperties.fixed(
+    public JobPropertiesConfig propertiesConfig() {
+        return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(
@@ -59,11 +59,7 @@ public class CleanupJob implements Job {
         }
 
         final var clearUnknownJobPropertiesState = clearUnknownJobProperties();
-        if (clearUnknownJobPropertiesState != JobRunState.DONE) {
-            return clearUnknownJobPropertiesState;
-        }
-
-        return JobRunState.DONE;
+        return clearUnknownJobPropertiesState;
     }
 
     @NotNull

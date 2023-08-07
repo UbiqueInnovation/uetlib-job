@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface JobPropertyRepository extends JpaRepository<JobPropertyEntity, JobPropertyId> {
 
     List<JobPropertyEntity> findAllByJobId(final int jobId);
-
+    
     Optional<JobPropertyEntity> findByJobIdAndKey(final int jobId, final String key);
 
     void deleteAllByJobId(final int jobId);

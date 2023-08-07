@@ -28,7 +28,6 @@ public record JobRunInfo(
                 jobRun.state(),
                 jobRun.startedAt(),
                 jobRun.finishedAt(),
-                StringFormattingUtils.formatDuration(
-                        jobRun.startedAt(), jobRun.finishedAt()));
+                StringFormattingUtils.formatDuration(jobRun.startedAt(), jobRun.finishedAt()));
     }
 }

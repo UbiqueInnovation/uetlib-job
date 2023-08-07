@@ -2,8 +2,8 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.properties.JobProperties;
-import ch.ubique.backend.job.model.properties.JobTriggers;
+import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
+import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -24,14 +24,14 @@ public interface Job {
 
     /** You can override this method to set initial or fixed properties for this job. */
     @NotNull
-    default JobProperties properties() {
-        return JobProperties.unset();
+    default JobPropertiesConfig propertiesConfig() {
+        return JobPropertiesConfig.unset();
     }
 
     /** You can override this method to set initial or fixed triggers for this job. */
     @NotNull
-    default JobTriggers triggers() {
-        return JobTriggers.unset();
+    default JobTriggersConfig triggersConfig() {
+        return JobTriggersConfig.unset();
     }
 
     /** You can override this method to give the job a higher priority when waiting in a queue. */

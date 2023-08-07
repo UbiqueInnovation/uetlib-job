@@ -1,0 +1,43 @@
+package ch.ubique.backend.job.model.entity;
+
+import ch.ubique.backend.core.jackson.ObjectMapperUtils;
+import ch.ubique.backend.job.model.triggers.Trigger;
+import ch.ubique.backend.job.model.triggers.TriggerType;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.persistence.*;
+
+@Table(name = "t_job_trigger")
+@Entity
+public class JobTriggerEntity {
+
+    private static final ObjectMapper objectMapper = ObjectMapperUtils.objectMapper();
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Integer id;
+
+    @Column(name = "job_id", nullable = false)
+    private Integer jobId;
+
+    @Column(name = "type", nullable = false)
+    private TriggerType type;
+
+    @Column(name = "data", nullable = false)
+    private String data;
+
+    public JobTriggerEntity() {}
+
+    public JobTriggerEntity(final int jobId, final Trigger trigger) throws JsonProcessingException {
+        this.jobId = jobId;
+        this.type = trigger.type();
+        this.data = objectMapper.writeValueAsString(trigger);
+    }
+
+    public Trigger toTrigger() throws JsonProcessingException {
+        return objectMapper.readValue(data, TriggerType.getClassForType(type));
+    }
+}

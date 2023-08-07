@@ -17,28 +17,17 @@ import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 @Service
 public final class JobCreator {
 
     private final ApplicationContext applicationContext;
 
-    public JobCreator(final ApplicationContext applicationContext) {
+    public JobCreator(
+            final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
-
-    private Class<Job> getClassForName(final String clazz) throws ClassNotFoundException {
-        final var classLoader = Objects.requireNonNull(applicationContext.getClassLoader());
-        //noinspection unchecked
-        return (Class<Job>) classLoader.loadClass(clazz);
-    }
-
-    public Job createNewJobInstance(final String className) throws ClassNotFoundException {
-        final var jobClass = getClassForName(className);
-        return createNewJobInstance(jobClass);
-    }
-
+    
     public <T extends Job> T createNewJobInstance(final Class<T> jobClass) {
         final var parameters = getConstructor(jobClass).getParameters();
         final var jobConstructorParameters =

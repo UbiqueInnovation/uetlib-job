@@ -4,12 +4,11 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.properties.JobProperties;
-import ch.ubique.backend.job.model.properties.JobProperty;
+import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 
-import ch.ubique.backend.job.model.properties.JobTriggers;
-import ch.ubique.backend.job.triggers.CronTrigger;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -17,8 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Set;
 
 /** Checks if the job module is working properly. I.e. this is a self-check-job. */
 @RegisteredJob
@@ -45,13 +42,13 @@ public final class HealthCheckJob implements Job {
     }
 
     @Override
-    public JobTriggers triggers() {
-        return JobTriggers.fixed(new CronTrigger("0 */10 * ? * *"));
+    public JobTriggersConfig triggersConfig() {
+        return JobTriggersConfig.fixed(new CronTrigger("0 */10 * ? * *"));
     }
 
     @Override
-    public JobProperties properties() {
-        return JobProperties.fixed(
+    public JobPropertiesConfig propertiesConfig() {
+        return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(1)),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(0),
