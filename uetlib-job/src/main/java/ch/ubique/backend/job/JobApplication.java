@@ -2,7 +2,10 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
-import ch.ubique.backend.job.service.JobCreator;
+import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.JobExecutorService;
+import ch.ubique.backend.job.service.JobService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,11 +47,14 @@ public class JobApplication {
         final var jobClassName = jobToStartArgs.jobClassName();
 
         try {
-            final var job = context.getBean(JobCreator.class).createNewJobInstance(jobClassName);
-            job.jobDataMap.put("forceRun", jobToStartArgs.forceRun());
-            jobToStartArgs.optionalJobRunId().ifPresent(job.jobRun()::setId);
+            final var jobClass = context.getBean(JobService.class).getJobClass(jobClassName);
+            context.getBean(JobExecutorService.class)
+                    .execute(
+                            jobClass,
+                            new JobRunArguments(jobToStartArgs.forceRun()),
+                            jobToStartArgs.jobRunId(),
+                            JobRunnerKey.CURRENT);
 
-            job.run(false);
             logger.info("Completed job, going to shut down");
         } catch (final ClassNotFoundException e) {
             logger.error("The specified job {} can not be found", jobClassName, e);

@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.triggers;
+package ch.ubique.backend.job.model.triggers;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -6,7 +6,7 @@ public record StartupTrigger() implements Trigger {
 
     @Override
     @NotNull
-    public String type() {
-        return "startup";
+    public TriggerType type() {
+        return TriggerType.STARTUP;
     }
 }

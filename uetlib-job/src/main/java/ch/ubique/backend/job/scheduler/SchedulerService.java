@@ -27,10 +27,10 @@ public class SchedulerService {
     }
 
     public void scheduleJob(
-            final String identifier,
             final Job job,
             final String cronExpressionString,
             final ZoneId zoneId) {
+        final var identifier = job.getClass().getCanonicalName() + UUID.randomUUID();
         try {
             logger.info("Scheduling {} with cron expression: {}", identifier, cronExpressionString);
             final var key = new JobKey(identifier);

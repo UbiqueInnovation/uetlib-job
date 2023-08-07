@@ -2,24 +2,19 @@ package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.job.Job;
-import ch.ubique.backend.job.data.repository.JobPropertyRepository;
-import ch.ubique.backend.job.data.repository.JobRepository;
-import ch.ubique.backend.job.data.repository.JobRunInputRepository;
-import ch.ubique.backend.job.data.repository.JobRunRepository;
-import ch.ubique.backend.job.data.repository.LoggingEventRepository;
+import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.entity.JobEntity;
-import ch.ubique.backend.job.model.entity.JobPropertyEntity;
-import ch.ubique.backend.job.model.entity.JobRunEntity;
-import ch.ubique.backend.job.model.entity.JobRunInputEntity;
-import ch.ubique.backend.job.model.entity.LoggingEventEntity;
+import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.triggers.Trigger;
+
+import com.pivovarit.function.ThrowingFunction;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -41,6 +36,7 @@ import java.util.stream.Collectors;
 public class JobDataService {
 
     private final JobRepository jobRepository;
+    private final JobTriggerRepository jobTriggerRepository;
     private final JobPropertyRepository jobPropertyRepository;
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
@@ -53,11 +49,13 @@ public class JobDataService {
 
     public JobDataService(
             final JobRepository jobRepository,
+            final JobTriggerRepository jobTriggerRepository,
             final JobPropertyRepository jobPropertyRepository,
             final JobRunRepository jobRunRepository,
             final JobRunInputRepository jobRunInputRepository,
             final LoggingEventRepository loggingEventRepository) {
         this.jobRepository = jobRepository;
+        this.jobTriggerRepository = jobTriggerRepository;
         this.jobPropertyRepository = jobPropertyRepository;
         this.jobRunRepository = jobRunRepository;
         this.jobRunInputRepository = jobRunInputRepository;
@@ -84,13 +82,10 @@ public class JobDataService {
                         .map(
                                 jobRun ->
                                         saveJobRun(
-                                                new JobRun(
-                                                        jobRun.id(),
-                                                        jobRun.jobId(),
-                                                        jobRun.jobVersion(),
-                                                        jobRun.startedAt(),
-                                                        now,
-                                                        JobRunState.UNFINISHED)))
+                                                jobRun.modify()
+                                                        .finishedAt(now)
+                                                        .state(JobRunState.UNFINISHED)
+                                                        .toJobRun()))
                         .toList());
     }
 
@@ -202,14 +197,6 @@ public class JobDataService {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    @Transactional(readOnly = true)
-    public Collection<JobProperty<Object>> getProperties(final String jobClassName) {
-        return jobPropertyRepository.findAllByJobId(jobId).stream()
-                .map(JobPropertyEntity::toProperty)
-                .filter(JobProperty::isValuePresent)
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
     @Transactional
     public void clearProperties(final int jobId) {
         jobPropertyRepository.deleteAllByJobId(jobId);
@@ -270,5 +257,18 @@ public class JobDataService {
         final var jobPropertyNames =
                 JobPropertyDefinitions.values().stream().map(JobPropertyDefinition::key).toList();
         jobPropertyRepository.deleteAllByKeyNotIn(jobPropertyNames);
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<Trigger> getTriggers(final int jobId) {
+        return jobTriggerRepository.findAllByJobId(jobId).stream()
+                .map(ThrowingFunction.unchecked(JobTriggerEntity::toTrigger))
+                .toList();
+    }
+
+    public JobRun createJobRun(final int jobId, final int jobVersion) {
+        return jobRunRepository
+                .save(new JobRunEntity(jobId, jobVersion, JobRunState.BUSY, Instant.now(), null))
+                .toJobRun();
     }
 }

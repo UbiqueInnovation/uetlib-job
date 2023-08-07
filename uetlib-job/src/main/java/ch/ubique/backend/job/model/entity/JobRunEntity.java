@@ -50,6 +50,19 @@ public class JobRunEntity {
         finishedAt = jobRun.finishedAt();
     }
 
+    public JobRunEntity(
+            final int jobId,
+            final int jobVersion,
+            final JobRunState state,
+            final Instant startedAt,
+            final Instant finishedAt) {
+        this.jobId = jobId;
+        this.jobVersion = jobVersion;
+        this.state = state;
+        this.startedAt = startedAt;
+        this.finishedAt = finishedAt;
+    }
+
     public JobRun toJobRun() {
         return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state);
     }
