@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service;
 
-import ch.ubique.backend.job.Job;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;

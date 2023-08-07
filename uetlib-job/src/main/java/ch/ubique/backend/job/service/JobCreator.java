@@ -23,8 +23,7 @@ public final class JobCreator {
 
     private final ApplicationContext applicationContext;
 
-    public JobCreator(
-            final ApplicationContext applicationContext) {
+    public JobCreator(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
     
