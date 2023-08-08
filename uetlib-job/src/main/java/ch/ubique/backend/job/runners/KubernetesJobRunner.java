@@ -75,7 +75,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState run(final Job job, final JobRunContext context) {
+    public JobRunState submit(final Job job, final JobRunContext context) {
         final ApiClient client;
         try {
             logger.info("Connecting to Kubernetes API");

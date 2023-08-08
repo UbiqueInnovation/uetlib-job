@@ -21,7 +21,10 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState run(final Job job, final JobRunContext context) {
+    public JobRunState submit(final Job job, final JobRunContext context) {
+        // TODO let executer run this part, do not block in the current thread
+        // updateJobRunStart(context.jobRun(), jobState);
+        // updateJobRunScheduledOrEnd(context.jobRun(), jobState);
         MDC.put("jobRunId", String.valueOf(context.jobRun().id()));
         try {
             return job.run(context);
@@ -32,4 +35,13 @@ public final class CurrentJobRunner implements JobRunner {
             MDC.remove("jobRunId");
         }
     }
+
+    //    private void updateJobRunScheduledOrEnd(final JobRun run, final JobRunState state) {
+    //        final var modifiableJobRun = run.modify();
+    //        modifiableJobRun.state(state);
+    //        if (state != JobRunState.SCHEDULED) {
+    //            modifiableJobRun.finishedAt(Instant.now());
+    //        }
+    //        jobService.updateJobRun(modifiableJobRun.toJobRun());
+    //    }
 }

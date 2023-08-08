@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -59,10 +58,8 @@ public class JobExecutorService {
         final var runner = getJobRunner(context, jobRunnerKey);
 
         logger.info("Running job {} with context {} using runner {}", job, context, runner);
-        final var jobState = runner.run(job, context);
+        final var jobState = runner.submit(job, context);
         logger.info("Done. Job state: {}", jobState);
-
-        updateJobRunScheduledOrEnd(context.jobRun(), jobState);
     }
 
     @NotNull
@@ -95,14 +92,5 @@ public class JobExecutorService {
     @NotNull
     private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobRunContext context) {
         return context.properties().get(JobPropertyDefinitions.RUNNER).value();
-    }
-
-    private void updateJobRunScheduledOrEnd(final JobRun run, final JobRunState state) {
-        final var modifiableJobRun = run.modify();
-        modifiableJobRun.state(state);
-        if (state != JobRunState.SCHEDULED) {
-            modifiableJobRun.finishedAt(Instant.now());
-        }
-        jobService.updateJobRun(modifiableJobRun.toJobRun());
     }
 }

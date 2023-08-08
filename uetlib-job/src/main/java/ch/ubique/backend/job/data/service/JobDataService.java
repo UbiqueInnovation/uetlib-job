@@ -13,6 +13,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.Trigger;
+import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 
 import com.pivovarit.function.ThrowingFunction;
 
@@ -272,7 +273,20 @@ public class JobDataService {
                 .toJobRun();
     }
 
-    public Trigger saveTrigger(final Trigger trigger) {
-        return jobTriggerRepository.save(new JobTriggerEntity(trigger)).toTrigger();
+    public void saveTrigger(final Trigger trigger) {
+        jobTriggerRepository.save(new JobTriggerEntity(trigger)).toTrigger();
+    }
+
+    public void deleteTriggerForJob(final int jobId) {
+        jobTriggerRepository.deleteByJobId(jobId);
+    }
+
+    public Collection<Trigger> insertTriggers(
+            final int jobId, final Collection<TriggerDefinition> triggerDefinitions) {
+        final var entities =
+                triggerDefinitions.stream().map(def -> new JobTriggerEntity(jobId, def)).toList();
+        return jobTriggerRepository.saveAll(entities).stream()
+                .map(JobTriggerEntity::toTrigger)
+                .toList();
     }
 }
