@@ -4,7 +4,6 @@ import ch.ubique.backend.core.validator.ValidCron;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.ZoneId;
 
@@ -14,11 +13,5 @@ public record CronTriggerDefinition(
 
     public CronTriggerDefinition(@NotBlank @ValidCron final String cronExpression) {
         this(cronExpression, null);
-    }
-
-    @Override
-    @NotNull
-    public TriggerType type() {
-        return TriggerType.CRON;
     }
 }

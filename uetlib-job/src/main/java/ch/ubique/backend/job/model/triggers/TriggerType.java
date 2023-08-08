@@ -1,15 +1,27 @@
 package ch.ubique.backend.job.model.triggers;
 
-public enum TriggerType {
-    CRON,
-    STARTUP,
-    JOB_RUN_STATE;
+import java.util.Arrays;
 
-    public static Class<? extends TriggerDefinition> getClassForType(final TriggerType type) {
-        return switch (type) {
-            case CRON -> CronTriggerDefinition.class;
-            case STARTUP -> StartupTriggerDefinition.class;
-            case JOB_RUN_STATE -> JobStateTriggerDefinition.class;
-        };
+public enum TriggerType {
+    CRON(CronTriggerDefinition.class),
+    STARTUP(StartupTriggerDefinition.class),
+    JOB_RUN_STATE(JobStateTriggerDefinition.class);
+
+    private final Class<? extends TriggerDefinition> defintionClass;
+
+    TriggerType(final Class<? extends TriggerDefinition> defintionClass) {
+        this.defintionClass = defintionClass;
+    }
+
+    public Class<? extends TriggerDefinition> defintionClass() {
+        return defintionClass;
+    }
+
+    public static TriggerType getTypeForClass(
+            final Class<? extends TriggerDefinition> defintionClass) {
+        return Arrays.stream(TriggerType.values())
+                .filter(type -> type.defintionClass.equals(defintionClass))
+                .findFirst()
+                .orElseThrow();
     }
 }
