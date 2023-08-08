@@ -32,7 +32,7 @@ public class JobTriggerEntity {
 
     public JobTriggerEntity() {}
 
-    private JobTriggerEntity(final int jobId, final TriggerDefinition triggerDefinition) {
+    public JobTriggerEntity(final int jobId, final TriggerDefinition triggerDefinition) {
         this(null, jobId, triggerDefinition);
     }
 

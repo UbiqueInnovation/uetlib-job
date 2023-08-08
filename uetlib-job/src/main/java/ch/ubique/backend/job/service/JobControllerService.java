@@ -36,9 +36,11 @@ public class JobControllerService {
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
+            final TriggerService triggerService,
             final Scheduler scheduler) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
+        this.triggerService = triggerService;
         this.scheduler = scheduler;
     }
 

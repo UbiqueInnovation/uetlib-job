@@ -13,7 +13,6 @@ import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
 import java.time.Duration;
 
@@ -22,11 +21,6 @@ import java.time.Duration;
 public final class HealthCheckJob implements Job {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final SchedulerCheckService schedulerCheckService;
-
-    public HealthCheckJob(@NotNull final ApplicationContext context) {
-        this.schedulerCheckService = context.getBean(SchedulerCheckService.class);
-    }
 
     /**
      * @return We use the following semantic:
@@ -37,8 +31,8 @@ public final class HealthCheckJob implements Job {
     @NotNull
     @Override
     public JobRunState run(final JobRunContext context) {
-        logger.info("Performing health checks");
-        return schedulerCheckService.checkSchedulerTriggers().orElse(JobRunState.DONE);
+        logger.info("Running health check.");
+        return JobRunState.DONE;
     }
 
     @Override

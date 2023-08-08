@@ -13,5 +13,5 @@ public interface JobRunner {
         return true;
     }
 
-    JobRunState run(Job job, JobRunContext context);
+    JobRunState submit(Job job, JobRunContext context);
 }
