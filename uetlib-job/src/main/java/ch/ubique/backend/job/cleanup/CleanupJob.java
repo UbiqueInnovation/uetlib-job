@@ -9,7 +9,7 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
@@ -36,8 +36,7 @@ public class CleanupJob implements Job {
     @NotNull
     @Override
     public JobTriggersConfig triggersConfig() {
-        return JobTriggersConfig.fixed(
-                new CronTriggerDefinition("0 0 2 * * ?")); // Every day at 2am
+        return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
     }
 
     @NotNull
@@ -59,8 +58,7 @@ public class CleanupJob implements Job {
             return cleanJobRunsState;
         }
 
-        final var clearUnknownJobPropertiesState = clearUnknownJobProperties();
-        return clearUnknownJobPropertiesState;
+        return clearUnknownJobProperties();
     }
 
     @NotNull

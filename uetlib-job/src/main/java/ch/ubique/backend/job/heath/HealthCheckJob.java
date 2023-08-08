@@ -6,7 +6,7 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 
 import jakarta.validation.constraints.NotNull;
@@ -37,7 +37,7 @@ public final class HealthCheckJob implements Job {
 
     @Override
     public JobTriggersConfig triggersConfig() {
-        return JobTriggersConfig.fixed(new CronTriggerDefinition("0 */10 * ? * *"));
+        return JobTriggersConfig.fixed(new CronTrigger("0 */10 * ? * *"));
     }
 
     @Override

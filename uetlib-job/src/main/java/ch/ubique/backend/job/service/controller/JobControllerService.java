@@ -12,7 +12,7 @@ import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
@@ -130,8 +130,8 @@ public class JobControllerService {
         final var cronExpression =
                 getCronTriggers(job)
                         .findAny()
-                        .map(trigger -> (CronTriggerDefinition) trigger.definition())
-                        .map(CronTriggerDefinition::cronExpression);
+                        .map(trigger -> (CronTrigger) trigger.definition())
+                        .map(CronTrigger::cronExpression);
 
         return new JobInfo(
                 jobService.getId(job),
@@ -243,8 +243,7 @@ public class JobControllerService {
         getCronTriggers(job).forEach(triggerCoordinatorService::removeTrigger);
         if (StringUtils.isNotBlank(cronExpression)
                 && CronExpression.isValidExpression(cronExpression)) {
-            triggerCoordinatorService.createTrigger(
-                    jobClass, new CronTriggerDefinition(cronExpression));
+            triggerCoordinatorService.createTrigger(jobClass, new CronTrigger(cronExpression));
         }
 
         return jobInfo(job);

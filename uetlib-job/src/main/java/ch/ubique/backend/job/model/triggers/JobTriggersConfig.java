@@ -23,7 +23,7 @@ public final class JobTriggersConfig {
         return new JobTriggersConfig(false, Set.of());
     }
 
-    public static JobTriggersConfig initial(final TriggerDefinition triggerDefinition) {
+    public static JobTriggersConfig initial(final TriggerDefinition... triggerDefinition) {
         return initial(Set.of(triggerDefinition));
     }
 
@@ -32,7 +32,7 @@ public final class JobTriggersConfig {
         return new JobTriggersConfig(false, triggerDefinitions);
     }
 
-    public static JobTriggersConfig fixed(final TriggerDefinition triggerDefinition) {
+    public static JobTriggersConfig fixed(final TriggerDefinition... triggerDefinition) {
         return fixed(Set.of(triggerDefinition));
     }
 

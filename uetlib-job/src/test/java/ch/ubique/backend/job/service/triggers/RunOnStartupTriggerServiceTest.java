@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-class StartupTriggerServiceTest {
+class RunOnStartupTriggerServiceTest {
 
     private final StartupTriggerService triggerService = new StartupTriggerService();
 

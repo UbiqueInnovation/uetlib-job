@@ -3,9 +3,9 @@ package ch.ubique.backend.job.model.triggers;
 import java.util.Arrays;
 
 public enum TriggerType {
-    CRON(CronTriggerDefinition.class),
-    STARTUP(StartupTriggerDefinition.class),
-    JOB_RUN_STATE(JobStateTriggerDefinition.class);
+    CRON(CronTrigger.class),
+    STARTUP(RunOnStartupTrigger.class),
+    JOB_RUN_STATE(JobStateTrigger.class);
 
     private final Class<? extends TriggerDefinition> defintionClass;
 
