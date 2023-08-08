@@ -6,14 +6,12 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.core.JobCreator;
-import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -24,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -34,35 +33,34 @@ public class JobService {
     private final JobDataService jobDataService;
     private final JobCreator jobCreator;
     private final ClassLoaderService classLoaderService;
-    private final JobExecutorService jobExecutorService;
 
     public JobService(
             final JobDataService jobDataService,
             final JobCreator jobCreator,
-            final ClassLoaderService classLoaderService,
-            final JobExecutorService jobExecutorService) {
+            final ClassLoaderService classLoaderService) {
         this.jobDataService = jobDataService;
         this.jobCreator = jobCreator;
         this.classLoaderService = classLoaderService;
-        this.jobExecutorService = jobExecutorService;
 
         registerAllJobs();
         jobDataService.setBusyRunsToUnfinished();
     }
 
     private void registerAllJobs() {
-        final var reflections = new Reflections();
-        for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
-            try {
-                final var jobClass = cls.asSubclass(Job.class);
-                jobDataService.registerJob(jobClass);
-                logger.info("Registered {}.", jobClass);
-            } catch (final ClassCastException e) {
-                throw new ClassCastException(
-                        "Class annotated with "
-                                + RegisteredJob.class
-                                + " must implement "
-                                + Job.class);
+        for (final var reflections :
+                Set.of(new Reflections(), new Reflections("ch.ubique.backend"))) {
+            for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
+                try {
+                    final var jobClass = cls.asSubclass(Job.class);
+                    jobDataService.registerJob(jobClass);
+                    logger.info("Registered {}.", jobClass);
+                } catch (final ClassCastException e) {
+                    throw new ClassCastException(
+                            "Class annotated with "
+                                    + RegisteredJob.class
+                                    + " must implement "
+                                    + Job.class);
+                }
             }
         }
 
@@ -133,11 +131,6 @@ public class JobService {
 
     public Class<? extends Job> getJobClass(final int jobId) throws ClassNotFoundException {
         return getJobClass(jobDataService.findJobById(jobId).orElseThrow().canonicalClassName());
-    }
-
-    public void startJob(
-            final Class<? extends Job> jobClass, @Nullable final JobRunArguments arguments) {
-        jobExecutorService.submit(jobClass, arguments, null, null);
     }
 
     public JobRun createNewJobRun(@NotNull final Job job) {

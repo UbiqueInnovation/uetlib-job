@@ -59,7 +59,8 @@ public class JobExecutorService {
         final var context = createContext(job, arguments, runId);
         final var runner = getJobRunner(context, jobRunnerKey);
 
-        logger.info("Running job {} with context {} using runner {}", job, context, runner);
+        logger.info(
+                "Running job {} with context {} using runner {}", job, context, runner.getClass());
         final var jobState = runner.submit(job, context);
         logger.info("Done. Job state: {}", jobState);
 

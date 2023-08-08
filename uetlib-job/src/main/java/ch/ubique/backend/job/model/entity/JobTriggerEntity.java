@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.*;
 
+import java.io.IOException;
+
 @Table(name = "t_job_trigger")
 @Entity
 public class JobTriggerEntity {
@@ -25,6 +27,7 @@ public class JobTriggerEntity {
     private Integer jobId;
 
     @Column(name = "type", nullable = false)
+    @Enumerated(EnumType.STRING)
     private TriggerType type;
 
     @Column(name = "data", nullable = false)
@@ -55,7 +58,7 @@ public class JobTriggerEntity {
     public Trigger toTrigger() {
         try {
             return new Trigger(id, jobId, objectMapper.readValue(data, type.defintionClass()));
-        } catch (final JsonProcessingException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
