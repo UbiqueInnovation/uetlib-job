@@ -97,7 +97,7 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Optional<JobClassAndId> findJobByCanonicalClassName(final String clazz) {
-        return jobRepository.findByClazz(clazz).map(JobEntity::toRecord);
+        return jobRepository.findByCanonicalClassName(clazz).map(JobEntity::toRecord);
     }
 
     @Transactional(readOnly = true)

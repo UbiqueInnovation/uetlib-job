@@ -13,7 +13,7 @@ public interface JobRepository extends JpaRepository<JobEntity, Integer> {
 
     Optional<JobEntity> findById(int id);
 
-    Optional<JobEntity> findByClazz(String clazz);
+    Optional<JobEntity> findByCanonicalClassName(String canonicalClassName);
 
     List<JobEntity> findAllByOrderById();
 }
