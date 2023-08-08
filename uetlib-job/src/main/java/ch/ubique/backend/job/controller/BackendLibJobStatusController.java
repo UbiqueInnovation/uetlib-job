@@ -24,10 +24,10 @@ import java.util.Map;
         allowedHeaders = {"Authorization", "Content-Type"})
 public class BackendLibJobStatusController {
 
-    private final JobControllerService jobService;
+    private final JobControllerService jobControllerService;
 
-    public BackendLibJobStatusController(final JobControllerService jobService) {
-        this.jobService = jobService;
+    public BackendLibJobStatusController(final JobControllerService jobControllerService) {
+        this.jobControllerService = jobControllerService;
     }
 
     @GetMapping
@@ -37,7 +37,7 @@ public class BackendLibJobStatusController {
 
     @GetMapping("/jobs")
     public JobInfosContainer jobs() throws ClassNotFoundException {
-        return jobService.findJobs();
+        return jobControllerService.findJobs();
     }
 
     @GetMapping("/runs")
@@ -45,35 +45,34 @@ public class BackendLibJobStatusController {
             @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
             @RequestParam(value = "jobId", required = false) final Integer jobId,
             @RequestParam(value = "state", required = false) final JobRunState state) {
-        return jobService.findJobRuns(page, jobId, state);
+        return jobControllerService.findJobRuns(page, jobId, state);
     }
 
     @GetMapping("/info")
     public JobSystemInfoResponse info() throws SchedulerException {
-        return jobService.getInfo();
+        return jobControllerService.getInfo();
     }
 
     @GetMapping("/run/{jobRunId}")
     public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
-        return jobService.findJobRun(jobRunId);
+        return jobControllerService.findJobRun(jobRunId);
     }
 
     @PostMapping("/job/{id}/update")
     public JobInfo updateJob(@PathVariable final int id, @RequestParam final String cronExpression)
             throws ClassNotFoundException {
-        // TODO replace jobService.updateCronExpression(id, cronExpression);
-        return jobService.findJobById(id);
+        return jobControllerService.updateCronExpression(id, cronExpression);
     }
 
     @GetMapping("/job/{id}/properties")
     public Collection<JobPropertyInfo> getProperties(@PathVariable final int id) {
-        return jobService.getJobProperties(id);
+        return jobControllerService.getJobProperties(id);
     }
 
     @PostMapping("/job/{id}/properties")
     public Collection<JobPropertyInfo> updateProperties(
             @PathVariable final int id, @RequestBody final Map<String, String> updatedValues) {
-        return jobService.updateJobProperties(id, updatedValues);
+        return jobControllerService.updateJobProperties(id, updatedValues);
     }
 
     @PostMapping("/job/{idOrClassName}/start")
@@ -82,9 +81,9 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
         try {
-            jobService.startJob(Integer.parseInt(idOrClassName), forceRun);
+            jobControllerService.startJob(Integer.parseInt(idOrClassName), forceRun);
         } catch (final NumberFormatException ignored) {
-            jobService.startJob(idOrClassName, forceRun);
+            jobControllerService.startJob(idOrClassName, forceRun);
         }
     }
 
@@ -92,6 +91,6 @@ public class BackendLibJobStatusController {
     public void startAllJobs(
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        jobService.startAllJobs(forceRun);
+        jobControllerService.startAllJobs(forceRun);
     }
 }

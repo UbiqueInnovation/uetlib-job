@@ -4,7 +4,6 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.service.JobService;
-import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,19 +20,16 @@ public class TriggerCoordinatorService {
     private final JobDataService jobDataService;
 
     private final JobService jobService;
-    private final JobExecutorService jobExecutorService;
 
     private final Map<TriggerType, TriggerService<?>> triggerServices;
 
     public TriggerCoordinatorService(
             final JobDataService jobDataService,
             final JobService jobService,
-            final JobExecutorService jobExecutorService,
             final Collection<TriggerService<?>> triggerServices)
             throws ClassNotFoundException {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
-        this.jobExecutorService = jobExecutorService;
         this.triggerServices =
                 triggerServices.stream()
                         .collect(
@@ -53,6 +49,13 @@ public class TriggerCoordinatorService {
                         .onStartup(trigger.id(), trigger.definition(), runnable(jobClass));
             }
         }
+    }
+
+    public void createTrigger(
+            final Class<? extends Job> jobClass, final TriggerDefinition triggerDefinition) {
+        final var jobId = jobService.getJobId(jobClass);
+        final var trigger = jobDataService.insertTrigger(jobId, triggerDefinition);
+        addTrigger(jobClass, trigger);
     }
 
     public void addTrigger(final Class<? extends Job> jobClass, final Trigger trigger) {
@@ -120,7 +123,7 @@ public class TriggerCoordinatorService {
     private Runnable runnable(final Class<? extends Job> jobClass) {
         return () -> {
             logger.info("Submitting job {}", jobClass);
-            jobExecutorService.submit(jobClass);
+            jobService.startJob(jobClass, null);
         };
     }
 }
