@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -35,17 +36,17 @@ public class JobExecutorService {
                 jobRunners.stream().collect(Collectors.toMap(JobRunner::key, Function.identity()));
     }
 
-    public void execute(@NotNull final Class<? extends Job> jobClass) {
-        execute(jobClass, null);
+    public void submit(@NotNull final Class<? extends Job> jobClass) {
+        submit(jobClass, null);
     }
 
-    public void execute(
+    public void submit(
             @NotNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments) {
-        execute(jobClass, arguments, null, null);
+        submit(jobClass, arguments, null, null);
     }
 
-    public void execute(
+    public void submit(
             @NotNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
@@ -60,6 +61,8 @@ public class JobExecutorService {
         logger.info("Running job {} with context {} using runner {}", job, context, runner);
         final var jobState = runner.submit(job, context);
         logger.info("Done. Job state: {}", jobState);
+
+        updateJobRunScheduledOrEnd(context.jobRun(), jobState);
     }
 
     @NotNull
@@ -92,5 +95,14 @@ public class JobExecutorService {
     @NotNull
     private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobRunContext context) {
         return context.properties().get(JobPropertyDefinitions.RUNNER).value();
+    }
+
+    private void updateJobRunScheduledOrEnd(final JobRun run, final JobRunState state) {
+        final var modifiableJobRun = run.modify();
+        modifiableJobRun.state(state);
+        if (state != JobRunState.SCHEDULED) {
+            modifiableJobRun.finishedAt(Instant.now());
+        }
+        jobService.updateJobRun(modifiableJobRun.toJobRun());
     }
 }

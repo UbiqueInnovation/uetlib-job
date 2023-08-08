@@ -49,7 +49,7 @@ public class JobApplication {
         try {
             final var jobClass = context.getBean(JobService.class).getJobClass(jobClassName);
             context.getBean(JobExecutorService.class)
-                    .execute(
+                    .submit(
                             jobClass,
                             new JobRunArguments(jobToStartArgs.forceRun()),
                             jobToStartArgs.jobRunId(),

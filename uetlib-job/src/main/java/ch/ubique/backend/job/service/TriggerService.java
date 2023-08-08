@@ -69,7 +69,7 @@ public class TriggerService {
     private void onStartup(final Class<? extends Job> jobClass, final Trigger trigger) {
         final var triggerDefinition = trigger.definition();
         if (triggerDefinition instanceof StartupTriggerDefinition) {
-            jobExecutorService.execute(jobClass);
+            jobExecutorService.submit(jobClass);
         } else if (triggerDefinition instanceof final CronTriggerDefinition cronDefinition) {
             scheduleCronTrigger(jobClass, trigger.id(), cronDefinition);
         } else {
@@ -83,7 +83,7 @@ public class TriggerService {
             final CronTriggerDefinition cronDefinition) {
         final var scheduledFuture =
                 taskScheduler.schedule(
-                        () -> jobExecutorService.execute(jobClass),
+                        () -> jobExecutorService.submit(jobClass),
                         new org.springframework.scheduling.support.CronTrigger(
                                 cronDefinition.cronExpression(),
                                 ofNullable(cronDefinition.timeZone()).orElse(defaultZoneId)));
