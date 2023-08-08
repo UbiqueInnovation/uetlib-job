@@ -2,7 +2,7 @@ package ch.ubique.backend.job.service.triggers;
 
 import static java.util.Optional.ofNullable;
 
-import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
-public class CronTriggerService implements TriggerService<CronTriggerDefinition> {
+public class CronTriggerService implements TriggerService<CronTrigger> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ZoneId defaultZoneId;
 
@@ -34,17 +34,13 @@ public class CronTriggerService implements TriggerService<CronTriggerDefinition>
 
     @Override
     public void onStartup(
-            final int triggerId,
-            final CronTriggerDefinition triggerDefinition,
-            final Runnable runnable) {
+            final int triggerId, final CronTrigger triggerDefinition, final Runnable runnable) {
         scheduleCronTrigger(triggerId, triggerDefinition, runnable);
     }
 
     @Override
     public void addTrigger(
-            final int triggerId,
-            final CronTriggerDefinition triggerDefinition,
-            final Runnable runnable) {
+            final int triggerId, final CronTrigger triggerDefinition, final Runnable runnable) {
         scheduleCronTrigger(triggerId, triggerDefinition, runnable);
     }
 
@@ -57,9 +53,7 @@ public class CronTriggerService implements TriggerService<CronTriggerDefinition>
     }
 
     private void scheduleCronTrigger(
-            final int triggerId,
-            final CronTriggerDefinition cronDefinition,
-            final Runnable runnable) {
+            final int triggerId, final CronTrigger cronDefinition, final Runnable runnable) {
         final var scheduledFuture =
                 taskScheduler.schedule(
                         runnable,

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
+import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import io.netty.util.concurrent.ScheduledFuture;
@@ -31,17 +31,14 @@ class CronTriggerServiceTest {
     @Test
     void onStartup() {
         final var runCount = new AtomicInteger();
-        triggerService.onStartup(
-                0, new CronTriggerDefinition("0 0 2 * * ?"), runCount::incrementAndGet);
+        triggerService.onStartup(0, new CronTrigger("0 0 2 * * ?"), runCount::incrementAndGet);
         assertEquals(0, runCount.get());
     }
 
     @Test
     void addTrigger() {
         assertDoesNotThrow(
-                () ->
-                        triggerService.addTrigger(
-                                0, new CronTriggerDefinition("0 0 2 * * ?"), () -> {}));
+                () -> triggerService.addTrigger(0, new CronTrigger("0 0 2 * * ?"), () -> {}));
     }
 
     @Test
