@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.controller;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
@@ -11,20 +12,28 @@ import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
+import ch.ubique.backend.job.model.triggers.Trigger;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
+import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import com.pivovarit.function.ThrowingFunction;
 
 import org.apache.commons.collections4.SetUtils;
-import org.quartz.*;
+import org.apache.commons.lang3.StringUtils;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.quartz.impl.matchers.GroupMatcher;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class JobControllerService {
@@ -32,6 +41,8 @@ public class JobControllerService {
     private final JobService jobService;
 
     private final CronTriggerService cronTriggerService;
+
+    private final TriggerCoordinatorService triggerCoordinatorService;
     private final Scheduler scheduler;
     private final JobDataService jobDataService;
 
@@ -39,10 +50,12 @@ public class JobControllerService {
             final JobDataService jobDataService,
             final JobService jobService,
             final CronTriggerService cronTriggerService,
+            final TriggerCoordinatorService triggerCoordinatorService,
             final Scheduler scheduler) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.cronTriggerService = cronTriggerService;
+        this.triggerCoordinatorService = triggerCoordinatorService;
         this.scheduler = scheduler;
     }
 
@@ -51,7 +64,7 @@ public class JobControllerService {
         final var latestRuns = findLatestJobRuns(jobs);
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var job : jobs) {
-            jobInfos.add(jobInfo(job));
+            jobInfos.add(jobInfo(jobService.instantiateJob(jobService.getJobClass(job.id()))));
         }
         return new JobInfosContainer(jobInfos, latestRuns);
     }
@@ -94,11 +107,6 @@ public class JobControllerService {
         jobService.startJob(jobService.getJobClass(className), new JobRunArguments(forceRun));
     }
 
-    public void startJob(final Class<? extends Job> jobClass, final boolean forceRun)
-            throws ClassNotFoundException {
-        startJob(jobClass.getCanonicalName(), forceRun);
-    }
-
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
 
         final var jobs = jobDataService.findJobs();
@@ -118,14 +126,28 @@ public class JobControllerService {
         return JobRunInfoContainer.from(jobRun, jobName);
     }
 
-    public JobInfo findJobById(final int jobId) throws ClassNotFoundException {
-        final var job = jobById(jobId);
-        return jobInfo(job);
+    public JobInfo jobInfo(final Job job) {
+        final var cronExpression =
+                getCronTriggers(job)
+                        .findAny()
+                        .map(trigger -> (CronTriggerDefinition) trigger.definition())
+                        .map(CronTriggerDefinition::cronExpression);
+
+        return new JobInfo(
+                jobService.getId(job),
+                job.getClass().getSimpleName(),
+                job.getClass().getCanonicalName(),
+                cronExpression.orElse(null),
+                cronExpression.isPresent(),
+                cronExpression.map(CronExpression::isValidExpression).orElse(true),
+                job.triggersConfig().isFixed(),
+                job.propertiesConfig().isFixed(),
+                job instanceof BaseInputJob<?>);
     }
 
-    public JobInfo jobInfo(final JobClassAndId job) throws ClassNotFoundException {
-        // TODO implement
-        return null;
+    private Stream<Trigger> getCronTriggers(final Job job) {
+        return triggerCoordinatorService.getTriggers(job).stream()
+                .filter(trigger -> trigger.definition().type() == TriggerType.CRON);
     }
 
     private JobClassAndId jobById(final int jobId) {
@@ -212,5 +234,19 @@ public class JobControllerService {
 
         return new JobSystemSchedulerGroupInfo(
                 groupName, jobKeys.size(), currentlyExecutingJobs.size(), queueSize);
+    }
+
+    public JobInfo updateCronExpression(final int jobId, final String cronExpression)
+            throws ClassNotFoundException {
+        final var jobClass = jobService.getJobClass(jobId);
+        final var job = jobService.instantiateJob(jobClass);
+        getCronTriggers(job).forEach(triggerCoordinatorService::removeTrigger);
+        if (StringUtils.isNotBlank(cronExpression)
+                && CronExpression.isValidExpression(cronExpression)) {
+            triggerCoordinatorService.createTrigger(
+                    jobClass, new CronTriggerDefinition(cronExpression));
+        }
+
+        return jobInfo(job);
     }
 }

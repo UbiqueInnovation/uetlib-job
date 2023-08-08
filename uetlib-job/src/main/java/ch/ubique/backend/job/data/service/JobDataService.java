@@ -289,4 +289,9 @@ public class JobDataService {
                 .map(JobTriggerEntity::toTrigger)
                 .toList();
     }
+
+    public Trigger insertTrigger(final int jobId, final TriggerDefinition triggerDefinition) {
+        final var entity = new JobTriggerEntity(jobId, triggerDefinition);
+        return jobTriggerRepository.save(entity).toTrigger();
+    }
 }

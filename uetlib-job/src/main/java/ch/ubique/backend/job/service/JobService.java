@@ -117,9 +117,11 @@ public class JobService {
         return jobCreator.createNewJobInstance(jobClass);
     }
 
-
-    public int getJobIdByCanonicalClassName(final String jobClassName) {
-        return jobDataService.findJobByCanonicalClassName(jobClassName).orElseThrow().id();
+    public int getJobId(final Class<? extends Job> jobClass) {
+        return jobDataService
+                .findJobByCanonicalClassName(jobClass.getCanonicalName())
+                .orElseThrow()
+                .id();
     }
 
     public int getId(final Job job) {
@@ -139,7 +141,7 @@ public class JobService {
     }
 
     public JobRun createNewJobRun(@NotNull final Job job) {
-        final var jobId = getJobIdByCanonicalClassName(job.getClass().getCanonicalName());
+        final var jobId = getJobId(job.getClass());
         return jobDataService.createJobRun(jobId, job.version());
     }
 
