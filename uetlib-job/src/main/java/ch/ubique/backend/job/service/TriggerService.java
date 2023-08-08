@@ -36,6 +36,7 @@ public class TriggerService {
 
     private final Map<Integer, ScheduledFuture<?>> scheduledCronJobs;
 
+    // TODO Create sub-service for each trigger type
     public TriggerService(
             final JobDataService jobDataService,
             @Value("${ch.ubique.backend.job.cron.timezone:UTC}") final String defaultZoneId,
