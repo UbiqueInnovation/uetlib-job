@@ -16,6 +16,7 @@ import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
@@ -40,6 +41,8 @@ public class JobControllerService {
     private static final int PAGE_SIZE = 30;
     private final JobService jobService;
 
+    private final JobExecutorService jobExecutorService;
+
     private final CronTriggerService cronTriggerService;
 
     private final TriggerCoordinatorService triggerCoordinatorService;
@@ -49,11 +52,13 @@ public class JobControllerService {
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
+            final JobExecutorService jobExecutorService,
             final CronTriggerService cronTriggerService,
             final TriggerCoordinatorService triggerCoordinatorService,
             final Scheduler scheduler) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
+        this.jobExecutorService = jobExecutorService;
         this.cronTriggerService = cronTriggerService;
         this.triggerCoordinatorService = triggerCoordinatorService;
         this.scheduler = scheduler;
@@ -99,12 +104,12 @@ public class JobControllerService {
     }
 
     public void startJob(final int jobId, final boolean forceRun) throws ClassNotFoundException {
-        jobService.startJob(jobService.getJobClass(jobId), new JobRunArguments(forceRun));
+        jobExecutorService.submit(jobService.getJobClass(jobId), new JobRunArguments(forceRun));
     }
 
     public void startJob(final String className, final boolean forceRun)
             throws ClassNotFoundException {
-        jobService.startJob(jobService.getJobClass(className), new JobRunArguments(forceRun));
+        jobExecutorService.submit(jobService.getJobClass(className), new JobRunArguments(forceRun));
     }
 
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
@@ -158,9 +163,13 @@ public class JobControllerService {
                                 "No Job with id {0} found", jobId));
     }
 
-    public Collection<JobPropertyInfo> getJobProperties(final int id) {
+    public Collection<JobPropertyInfo> getJobProperties(final int id)
+            throws ClassNotFoundException {
         final var properties =
-                jobDataService.getProperties(id).stream()
+                jobService
+                        .getProperties(jobService.instantiateJob(jobService.getJobClass(id)))
+                        .values()
+                        .stream()
                         .collect(Collectors.toMap(JobProperty::key, JobPropertyInfo::from));
         return JobPropertyDefinitions.values().stream()
                 .map(
@@ -171,7 +180,7 @@ public class JobControllerService {
     }
 
     public Collection<JobPropertyInfo> updateJobProperties(
-            final int id, final Map<String, String> updatedValues) {
+            final int id, final Map<String, String> updatedValues) throws ClassNotFoundException {
         jobDataService.saveProperties(id, getPropertiesFromMap(updatedValues));
         return getJobProperties(id);
     }
@@ -240,7 +249,7 @@ public class JobControllerService {
             throws ClassNotFoundException {
         final var jobClass = jobService.getJobClass(jobId);
         final var job = jobService.instantiateJob(jobClass);
-        getCronTriggers(job).forEach(triggerCoordinatorService::removeTrigger);
+        getCronTriggers(job).forEach(triggerCoordinatorService::deleteTrigger);
         if (StringUtils.isNotBlank(cronExpression)
                 && CronExpression.isValidExpression(cronExpression)) {
             triggerCoordinatorService.createTrigger(jobClass, new CronTrigger(cronExpression));

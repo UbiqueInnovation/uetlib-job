@@ -65,13 +65,15 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/job/{id}/properties")
-    public Collection<JobPropertyInfo> getProperties(@PathVariable final int id) {
+    public Collection<JobPropertyInfo> getProperties(@PathVariable final int id)
+            throws ClassNotFoundException {
         return jobControllerService.getJobProperties(id);
     }
 
     @PostMapping("/job/{id}/properties")
     public Collection<JobPropertyInfo> updateProperties(
-            @PathVariable final int id, @RequestBody final Map<String, String> updatedValues) {
+            @PathVariable final int id, @RequestBody final Map<String, String> updatedValues)
+            throws ClassNotFoundException {
         return jobControllerService.updateJobProperties(id, updatedValues);
     }
 

@@ -8,12 +8,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.stream.Collectors;
 
 @Service
 public class CronTriggerService implements TriggerService<CronTrigger> {
@@ -58,10 +62,29 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
                 taskScheduler.schedule(
                         runnable,
                         new org.springframework.scheduling.support.CronTrigger(
-                                cronDefinition.cronExpression(),
+                                validateCronExpression(cronDefinition),
                                 ofNullable(cronDefinition.timeZone()).orElse(defaultZoneId)));
         scheduledCronJobs.put(triggerId, scheduledFuture);
         logger.info("Scheduled cron trigger {} with definition {}", triggerId, cronDefinition);
+    }
+
+    private static String validateCronExpression(final CronTrigger cronDefinition) {
+        final var expression = cronDefinition.cronExpression();
+        if (CronExpression.isValidExpression(expression)) {
+            return expression;
+        }
+
+        // Strip additional tokes from the end
+        final var limitToSixTokens =
+                Arrays.stream(StringUtils.tokenizeToStringArray(expression, " "))
+                        .limit(6)
+                        .collect(Collectors.joining(" "));
+        if (CronExpression.isValidExpression(limitToSixTokens)) {
+            return limitToSixTokens;
+        }
+
+        throw new IllegalArgumentException(
+                "The specified cron expression is invalid: " + expression);
     }
 
     public ZoneId getDefaultZoneId() {

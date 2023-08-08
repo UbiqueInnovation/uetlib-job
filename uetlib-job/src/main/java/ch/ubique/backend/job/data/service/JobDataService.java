@@ -20,7 +20,6 @@ import com.pivovarit.function.ThrowingFunction;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -77,13 +76,14 @@ public class JobDataService {
                                 jobRun ->
                                         JobRunnerKey.CURRENT
                                                 == getProperty(
-                                                                jobRun.jobId(),
+                                                                jobRun.toJobRun().jobId(),
                                                                 JobPropertyDefinitions.RUNNER)
                                                         .value())
                         .map(
                                 jobRun ->
                                         saveJobRun(
-                                                jobRun.modify()
+                                                jobRun.toJobRun()
+                                                        .modify()
                                                         .finishedAt(now)
                                                         .state(JobRunState.UNFINISHED)
                                                         .toJobRun()))
@@ -102,16 +102,21 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Optional<JobRun> findLatestJobRun(final int jobId) {
-        return jobRunRepository.findFirstByJobIdOrderByStartedAtDesc(jobId);
+        return jobRunRepository
+                .findFirstByJobIdOrderByStartedAtDesc(jobId)
+                .map(JobRunEntity::toJobRun);
     }
 
     public Optional<JobRun> findLatestJobRunByState(final int jobId, final JobRunState state) {
-        return jobRunRepository.findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state);
+        return jobRunRepository
+                .findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state)
+                .map(JobRunEntity::toJobRun);
     }
 
     public Optional<JobRun> findLatestJobRunByStates(final int jobId, final JobRunState... states) {
-        return jobRunRepository.findFirstByJobIdAndStateInOrderByStartedAtDesc(
-                jobId, List.of(states));
+        return jobRunRepository
+                .findFirstByJobIdAndStateInOrderByStartedAtDesc(jobId, List.of(states))
+                .map(JobRunEntity::toJobRun);
     }
 
     @Transactional(readOnly = true)
@@ -125,22 +130,30 @@ public class JobDataService {
         final var pageRequest = PageRequest.of(page, pageSize);
         if (jobId != null) {
             if (state != null) {
-                return jobRunRepository.findAllByJobIdAndStateOrderByStartedAtDesc(
-                        jobId, state, pageRequest);
+                return jobRunRepository
+                        .findAllByJobIdAndStateOrderByStartedAtDesc(jobId, state, pageRequest)
+                        .map(JobRunEntity::toJobRun);
             }
-            return jobRunRepository.findAllByJobIdOrderByStartedAtDesc(jobId, pageRequest);
+            return jobRunRepository
+                    .findAllByJobIdOrderByStartedAtDesc(jobId, pageRequest)
+                    .map(JobRunEntity::toJobRun);
         }
         if (state != null) {
-            return jobRunRepository.findAllByStateOrderByStartedAtDesc(state, pageRequest);
+            return jobRunRepository
+                    .findAllByStateOrderByStartedAtDesc(state, pageRequest)
+                    .map(JobRunEntity::toJobRun);
         }
-        return jobRunRepository.findAllByOrderByStartedAtDesc(pageRequest);
+        return jobRunRepository
+                .findAllByOrderByStartedAtDesc(pageRequest)
+                .map(JobRunEntity::toJobRun);
     }
 
     @Transactional
-    public JobClassAndId registerJob(final Class<? extends Job> jobClass) {
+    public void registerJob(final Class<? extends Job> jobClass) {
         final var canonicalClassName = jobClass.getCanonicalName();
-        return findJobByCanonicalClassName(canonicalClassName)
-                .orElseGet(() -> jobRepository.save(new JobEntity(canonicalClassName)).toRecord());
+        if (findJobByCanonicalClassName(canonicalClassName).isEmpty()) {
+            jobRepository.save(new JobEntity(canonicalClassName));
+        }
     }
 
     @Transactional
@@ -150,7 +163,7 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Optional<JobRun> findJobRunById(final int jobRunId) {
-        return jobRunRepository.findById(jobRunId);
+        return jobRunRepository.findById(jobRunId).map(JobRunEntity::toJobRun);
     }
 
     @Transactional
@@ -180,27 +193,12 @@ public class JobDataService {
                 .toList();
     }
 
-    @Transactional
-    public <T> void saveProperty(final int jobId, final JobProperty<T> property) {
-        final var entity = JobPropertyEntity.from(jobId, property);
-        if (StringUtils.isBlank(property.encodedValue())) {
-            jobPropertyRepository.delete(entity);
-        } else {
-            jobPropertyRepository.save(entity);
-        }
-    }
-
     @Transactional(readOnly = true)
     public Collection<JobProperty<Object>> getProperties(final int jobId) {
         return jobPropertyRepository.findAllByJobId(jobId).stream()
                 .map(JobPropertyEntity::toProperty)
                 .filter(JobProperty::isValuePresent)
                 .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Transactional
-    public void clearProperties(final int jobId) {
-        jobPropertyRepository.deleteAllByJobId(jobId);
     }
 
     @Transactional
@@ -279,6 +277,10 @@ public class JobDataService {
 
     public void deleteTriggerForJob(final int jobId) {
         jobTriggerRepository.deleteByJobId(jobId);
+    }
+
+    public void delete(final Trigger trigger) {
+        jobTriggerRepository.delete(new JobTriggerEntity(trigger));
     }
 
     public Collection<Trigger> insertTriggers(
