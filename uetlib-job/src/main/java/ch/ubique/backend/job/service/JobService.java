@@ -11,6 +11,9 @@ import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.service.core.ClassLoaderService;
+import ch.ubique.backend.job.service.core.JobCreator;
+import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;

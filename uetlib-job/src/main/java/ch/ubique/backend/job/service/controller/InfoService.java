@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service;
+package ch.ubique.backend.job.service.controller;
 
 import ch.ubique.backend.job.model.client.*;
 

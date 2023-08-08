@@ -4,8 +4,8 @@ import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
-import ch.ubique.backend.job.service.JobExecutorService;
 import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

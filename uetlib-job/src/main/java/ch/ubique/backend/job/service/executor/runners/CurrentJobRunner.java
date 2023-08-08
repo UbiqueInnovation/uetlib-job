@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.runners;
+package ch.ubique.backend.job.service.executor.runners;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRunContext;

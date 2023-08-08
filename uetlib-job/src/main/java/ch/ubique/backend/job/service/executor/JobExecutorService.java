@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service;
+package ch.ubique.backend.job.service.executor;
 
 import static java.util.Optional.ofNullable;
 
@@ -6,7 +6,8 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
-import ch.ubique.backend.job.runners.JobRunner;
+import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;

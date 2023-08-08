@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.controller;
 
 import ch.ubique.backend.job.model.client.InfoResponse;
-import ch.ubique.backend.job.service.InfoService;
+import ch.ubique.backend.job.service.controller.InfoService;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;

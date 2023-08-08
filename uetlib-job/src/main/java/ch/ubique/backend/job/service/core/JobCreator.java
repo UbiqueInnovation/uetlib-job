@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service;
+package ch.ubique.backend.job.service.core;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.scheduler.JobAutowireConstructor;

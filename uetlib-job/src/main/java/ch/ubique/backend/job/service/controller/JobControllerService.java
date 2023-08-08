@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service;
+package ch.ubique.backend.job.service.controller;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.Job;
@@ -11,6 +11,8 @@ import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.triggers.TriggerService;
 
 import com.pivovarit.function.ThrowingFunction;
 
