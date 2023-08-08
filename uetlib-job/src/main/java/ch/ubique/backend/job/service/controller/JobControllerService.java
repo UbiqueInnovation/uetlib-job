@@ -12,7 +12,7 @@ import ch.ubique.backend.job.model.client.info.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.JobService;
-import ch.ubique.backend.job.service.triggers.TriggerService;
+import ch.ubique.backend.job.service.triggers.CronTriggerService;
 
 import com.pivovarit.function.ThrowingFunction;
 
@@ -31,18 +31,18 @@ public class JobControllerService {
     private static final int PAGE_SIZE = 30;
     private final JobService jobService;
 
-    private final TriggerService triggerService;
+    private final CronTriggerService cronTriggerService;
     private final Scheduler scheduler;
     private final JobDataService jobDataService;
 
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
-            final TriggerService triggerService,
+            final CronTriggerService cronTriggerService,
             final Scheduler scheduler) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
-        this.triggerService = triggerService;
+        this.cronTriggerService = cronTriggerService;
         this.scheduler = scheduler;
     }
 
@@ -167,7 +167,7 @@ public class JobControllerService {
     public JobSystemInfoResponse getInfo() throws SchedulerException {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
-                        new JobSystemCronInfo(triggerService.getDefaultZoneId()),
+                        new JobSystemCronInfo(cronTriggerService.getDefaultZoneId()),
                         new JobSystemSchedulerInfo(getMetaData(), getGroups())));
     }
 

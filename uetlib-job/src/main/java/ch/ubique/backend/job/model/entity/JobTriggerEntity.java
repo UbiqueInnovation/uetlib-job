@@ -54,8 +54,7 @@ public class JobTriggerEntity {
 
     public Trigger toTrigger() {
         try {
-            return new Trigger(
-                    id, jobId, objectMapper.readValue(data, TriggerType.getClassForType(type)));
+            return new Trigger(id, jobId, objectMapper.readValue(data, type.defintionClass()));
         } catch (final JsonProcessingException e) {
             throw new RuntimeException(e);
         }
