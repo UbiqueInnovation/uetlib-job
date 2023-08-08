@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service;
+package ch.ubique.backend.job.service.triggers;
 
 import static java.util.Optional.ofNullable;
 
@@ -7,6 +7,8 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.triggers.CronTriggerDefinition;
 import ch.ubique.backend.job.model.triggers.StartupTriggerDefinition;
 import ch.ubique.backend.job.model.triggers.Trigger;
+import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;

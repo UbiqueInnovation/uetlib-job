@@ -4,7 +4,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
-import ch.ubique.backend.job.service.JobControllerService;
+import ch.ubique.backend.job.service.controller.JobControllerService;
 
 import org.quartz.SchedulerException;
 import org.springframework.http.ResponseEntity;
