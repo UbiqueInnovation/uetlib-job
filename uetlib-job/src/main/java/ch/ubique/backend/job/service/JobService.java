@@ -132,7 +132,7 @@ public class JobService {
 
     public void startJob(
             final Class<? extends Job> jobClass, @Nullable final JobRunArguments arguments) {
-        jobExecutorService.execute(jobClass, arguments, null, null);
+        jobExecutorService.submit(jobClass, arguments, null, null);
     }
 
     public JobRun createNewJobRun(@NotNull final Job job) {
