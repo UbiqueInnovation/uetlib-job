@@ -2,16 +2,15 @@ package ch.ubique.backend.job.model.properties;
 
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
-import com.google.common.collect.MoreCollectors;
 import com.pivovarit.function.ThrowingFunction;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class JobPropertyDefinitions {
 
@@ -111,6 +110,12 @@ public final class JobPropertyDefinitions {
                     // To collection
                     .toList();
 
+    private static final Map<String, JobPropertyDefinition<Object>> VALUES_BY_KEY =
+            VALUES.stream()
+                    .collect(
+                            Collectors.toUnmodifiableMap(
+                                    JobPropertyDefinition::key, Function.identity()));
+
     private JobPropertyDefinitions() {}
 
     public static Collection<JobPropertyDefinition<Object>> values() {
@@ -118,8 +123,11 @@ public final class JobPropertyDefinitions {
     }
 
     public static JobPropertyDefinition<Object> get(final String key) {
-        return VALUES.stream()
-                .filter(value -> value.key().equals(key))
-                .collect(MoreCollectors.onlyElement());
+        return Objects.requireNonNull(
+                VALUES_BY_KEY.get(key),
+                () ->
+                        MessageFormat.format(
+                                "found no job property definition for key {0}. Available keys: {1}",
+                                key, VALUES_BY_KEY.keySet()));
     }
 }
