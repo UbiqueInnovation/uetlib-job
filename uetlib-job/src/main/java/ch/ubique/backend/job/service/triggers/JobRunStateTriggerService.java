@@ -20,7 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class JobRunStateTriggerService implements TriggerService<JobRunStateTrigger> {
@@ -44,31 +43,38 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     }
 
     @Scheduled(fixedRate = 30, timeUnit = TimeUnit.SECONDS)
-    private void checkJobRuns() throws ClassNotFoundException {
+    public void checkJobRuns() throws ClassNotFoundException {
         final var aBitBeforePreviousCheck = lastCheck.minus(Duration.ofMinutes(1));
         lastCheck = Instant.now();
 
-        final var currentJobRunsById =
-                Stream.of(
-                                jobDataService.findJobRunsWithoutFinishedTimestamp(),
-                                jobDataService.findJobRunsFinishedAfter(aBitBeforePreviousCheck))
-                        .flatMap(Collection::stream)
-                        .distinct()
-                        .collect(Collectors.toMap(JobRun::id, Function.identity()));
-
-        for (final var jobRun : activeJobRuns) {
-            if (currentJobRunsById.containsKey(jobRun.id())) {
-                final var currentState = currentJobRunsById.get(jobRun.id()).state();
-                if (currentState != jobRun.state()) {
-                    onStateChanged(jobRun, currentState);
+        // Check if the currently active jobs differ to before
+        final var currentlyActive = jobDataService.findJobRunsWithoutFinishedTimestamp();
+        final var previouslyActiveById =
+                activeJobRuns.stream().collect(Collectors.toMap(JobRun::id, Function.identity()));
+        for (final var jobRun : currentlyActive) {
+            if (!previouslyActiveById.containsKey(jobRun.id())) { // Job Run is new
+                onStateChanged(jobRun, jobRun.state());
+            } else {
+                final var previousState = previouslyActiveById.get(jobRun.id()).state();
+                if (previousState != jobRun.state()) {
+                    onStateChanged(jobRun, jobRun.state());
                 }
             }
         }
 
-        this.activeJobRuns =
-                currentJobRunsById.values().stream()
-                        .filter(jobRun -> jobRun.finishedAt() == null)
-                        .toList();
+        // Check if any jobs finished recently
+        final var recentlyFinishedJobRunsById =
+                jobDataService.findJobRunsFinishedAfter(aBitBeforePreviousCheck).stream()
+                        .collect(Collectors.toMap(JobRun::id, Function.identity()));
+
+        for (final var jobRun : activeJobRuns) {
+            if (recentlyFinishedJobRunsById.containsKey(jobRun.id())) {
+                final var currentState = recentlyFinishedJobRunsById.get(jobRun.id()).state();
+                onStateChanged(jobRun, currentState);
+            }
+        }
+
+        this.activeJobRuns = currentlyActive;
     }
 
     private void onStateChanged(final JobRun jobRun, final JobRunState newState)
