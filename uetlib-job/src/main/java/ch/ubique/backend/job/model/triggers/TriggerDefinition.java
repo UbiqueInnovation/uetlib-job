@@ -3,7 +3,7 @@ package ch.ubique.backend.job.model.triggers;
 import jakarta.validation.constraints.NotNull;
 
 public sealed interface TriggerDefinition
-        permits CronTrigger, FixedRateTrigger, JobStateTrigger, RunOnStartupTrigger {
+        permits CronTrigger, FixedRateTrigger, JobRunStateTrigger, RunOnStartupTrigger {
     @NotNull
     default TriggerType type() {
         return TriggerType.getTypeForClass(getClass());

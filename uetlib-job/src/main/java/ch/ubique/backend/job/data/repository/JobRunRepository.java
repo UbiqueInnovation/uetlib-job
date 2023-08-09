@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,10 @@ import java.util.stream.Stream;
 
 @Repository
 public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
+
+    Collection<JobRunEntity> findAllByFinishedAtIsNull();
+
+    Collection<JobRunEntity> findAllByFinishedAtIsNotNullAndFinishedAtAfter(Instant instant);
 
     List<JobRunEntity> findAllByStateAndFinishedAtIsNull(final JobRunState state);
 
@@ -50,7 +55,7 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
                                             ORDER BY r_inner.finished_at DESC
                                             LIMIT 1
                                         ) AND r_outer.fk_job_id = :jobId
-                                        ORDER BY r_outer.finished_at ASC
+                                        ORDER BY r_outer.finished_at
                                         LIMIT :chunkSize
                             """,
             nativeQuery = true)

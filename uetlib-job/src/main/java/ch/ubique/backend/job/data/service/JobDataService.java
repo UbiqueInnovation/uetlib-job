@@ -296,4 +296,16 @@ public class JobDataService {
         final var entity = new JobTriggerEntity(jobId, triggerDefinition);
         return jobTriggerRepository.save(entity).toTrigger();
     }
+
+    public Collection<JobRun> findJobRunsWithoutFinishedTimestamp() {
+        return jobRunRepository.findAllByFinishedAtIsNull().stream()
+                .map(JobRunEntity::toJobRun)
+                .toList();
+    }
+
+    public Collection<JobRun> findJobRunsFinishedAfter(final Instant instant) {
+        return jobRunRepository.findAllByFinishedAtIsNotNullAndFinishedAtAfter(instant).stream()
+                .map(JobRunEntity::toJobRun)
+                .toList();
+    }
 }

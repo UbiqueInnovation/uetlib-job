@@ -6,7 +6,7 @@ public enum TriggerType {
     CRON(CronTrigger.class),
     STARTUP(RunOnStartupTrigger.class),
     FIXED_RATE(FixedRateTrigger.class),
-    JOB_RUN_STATE(JobStateTrigger.class);
+    JOB_RUN_STATE(JobRunStateTrigger.class);
 
     private final Class<? extends TriggerDefinition> defintionClass;
 
