@@ -115,7 +115,7 @@ public class JobControllerService {
                 jobDataService
                         .findJobRunById(jobRunId)
                         .orElseThrow(
-                                ResourceNotFoundException.throwWithMessage(
+                                ResourceNotFoundException.supplierWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
         final var jobName = jobById(jobRun.jobId()).name();
         return JobRunInfoContainer.from(jobRun, jobName);
@@ -149,7 +149,7 @@ public class JobControllerService {
         return jobDataService
                 .findJobById(jobId)
                 .orElseThrow(
-                        ResourceNotFoundException.throwWithMessage(
+                        ResourceNotFoundException.supplierWithMessage(
                                 "No Job with id {0} found", jobId));
     }
 
