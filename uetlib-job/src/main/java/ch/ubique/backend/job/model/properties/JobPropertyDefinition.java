@@ -16,6 +16,7 @@ import java.util.Set;
 public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDecoder<T>
         permits DurationPropertyDefinition,
                 EnumPropertyDefinition,
+                GenericPropertyDefinition,
                 IntPropertyDefinition,
                 StringPropertyDefinition {
 

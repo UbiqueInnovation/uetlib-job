@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.properties;
 
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.runner.RunnerGroup;
 
 import com.pivovarit.function.ThrowingFunction;
 
@@ -36,6 +37,18 @@ public final class JobPropertyDefinitions {
                     "Defines where the job is executed.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobRunnerKey.CURRENT);
+
+    public static final JobPropertyDefinition<RunnerGroup> RUNNER_GROUP =
+            new GenericPropertyDefinition<>(
+                    "RUNNER_GROUP",
+                    "Jobs with the same runner group share the same executor service. "
+                            + "Jobs with different groups use different executors and may run in parallel. "
+                            + "Only applicable for RUNNER == CURRENT",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    new RunnerGroup("default", 1),
+                    null);
+
     public static final JobPropertyDefinition<String> K8S_SKU =
             new StringPropertyDefinition(
                     "K8S_SKU",
