@@ -5,6 +5,7 @@ import java.util.Arrays;
 public enum TriggerType {
     CRON(CronTrigger.class),
     STARTUP(RunOnStartupTrigger.class),
+    FIXED_RATE(FixedRateTrigger.class),
     JOB_RUN_STATE(JobStateTrigger.class);
 
     private final Class<? extends TriggerDefinition> defintionClass;
