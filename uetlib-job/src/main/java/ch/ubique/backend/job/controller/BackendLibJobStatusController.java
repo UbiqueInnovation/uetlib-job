@@ -6,7 +6,6 @@ import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
-import org.quartz.SchedulerException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,7 +48,7 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/info")
-    public JobSystemInfoResponse info() throws SchedulerException {
+    public JobSystemInfoResponse info() {
         return jobControllerService.getInfo();
     }
 
