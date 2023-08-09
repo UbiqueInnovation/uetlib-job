@@ -16,3 +16,7 @@ WHERE cron_expression IS NOT NULL;
 
 ALTER TABLE t_job
     DROP COLUMN cron_expression;
+
+DELETE
+FROM t_job_properties
+WHERE key IN ('K8S_LIMITS_CPU', 'K8S_LIMITS_MEMORY');
