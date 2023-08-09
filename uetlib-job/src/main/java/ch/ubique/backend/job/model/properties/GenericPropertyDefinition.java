@@ -9,8 +9,6 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import org.springframework.core.GenericTypeResolver;
-
 import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.Set;
@@ -19,13 +17,16 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperUtils.objectMapper();
 
+    private final Class<T> genericClass;
+
     GenericPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
             @NotNull final boolean nullable,
-            @NotNull final T defaultValue,
-            @Nullable final Set<T> allowedValues) {
+            @Nullable final T defaultValue,
+            @Nullable final Set<T> allowedValues,
+            @NotNull final Class<T> genericClass) {
         super(
                 key,
                 description,
@@ -33,12 +34,13 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
                 nullable,
                 Objects.requireNonNull(defaultValue),
                 allowedValues);
+        this.genericClass = genericClass;
     }
 
     @Override
     public T decode(final String value) {
         try {
-            return OBJECT_MAPPER.readValue(value, genericClass());
+            return OBJECT_MAPPER.readValue(value, genericClass);
         } catch (final JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
@@ -51,12 +53,5 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
         } catch (final JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private Class<T> genericClass() {
-        //noinspection unchecked
-        return (Class<T>)
-                GenericTypeResolver.resolveTypeArgument(
-                        getClass(), GenericPropertyDefinition.class);
     }
 }
