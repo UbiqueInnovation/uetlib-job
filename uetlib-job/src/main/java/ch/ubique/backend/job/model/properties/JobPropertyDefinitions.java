@@ -47,7 +47,8 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     new RunnerGroup("default", 1),
-                    null);
+                    null,
+                    RunnerGroup.class);
 
     public static final JobPropertyDefinition<String> K8S_SKU =
             new StringPropertyDefinition(

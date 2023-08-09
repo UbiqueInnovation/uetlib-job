@@ -33,7 +33,7 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
     @Nullable private final Set<T> allowedValues;
 
     protected JobPropertyDefinition(
-            @NotNull final String key,
+            @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
             @NotNull final boolean nullable,
