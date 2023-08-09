@@ -20,10 +20,10 @@ public class JobTriggerEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
+    @Column(name = "pk_job_trigger_id", nullable = false)
     private Integer id;
 
-    @Column(name = "job_id", nullable = false)
+    @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
 
     @Column(name = "type", nullable = false)
