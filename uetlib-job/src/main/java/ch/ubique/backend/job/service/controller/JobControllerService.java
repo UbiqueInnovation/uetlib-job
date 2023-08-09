@@ -20,17 +20,10 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
-import com.pivovarit.function.ThrowingFunction;
-
-import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.impl.matchers.GroupMatcher;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -46,7 +39,6 @@ public class JobControllerService {
     private final CronTriggerService cronTriggerService;
 
     private final TriggerCoordinatorService triggerCoordinatorService;
-    private final Scheduler scheduler;
     private final JobDataService jobDataService;
 
     public JobControllerService(
@@ -54,14 +46,12 @@ public class JobControllerService {
             final JobService jobService,
             final JobExecutorService jobExecutorService,
             final CronTriggerService cronTriggerService,
-            final TriggerCoordinatorService triggerCoordinatorService,
-            final Scheduler scheduler) {
+            final TriggerCoordinatorService triggerCoordinatorService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
         this.cronTriggerService = cronTriggerService;
         this.triggerCoordinatorService = triggerCoordinatorService;
-        this.scheduler = scheduler;
     }
 
     public JobInfosContainer findJobs() throws ClassNotFoundException {
@@ -195,54 +185,15 @@ public class JobControllerService {
         return list;
     }
 
-    public JobSystemInfoResponse getInfo() throws SchedulerException {
+    public JobSystemInfoResponse getInfo() {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
                         new JobSystemCronInfo(cronTriggerService.getDefaultZoneId()),
-                        new JobSystemSchedulerInfo(getMetaData(), getGroups())));
+                        new JobSystemSchedulerInfo(getGroups())));
     }
 
-    private List<JobSystemSchedulerGroupInfo> getGroups() throws SchedulerException {
-        return scheduler.getJobGroupNames().stream()
-                .map(ThrowingFunction.unchecked(this::groupInfo))
-                .toList();
-    }
-
-    private JobSystemSchedulerMetaData getMetaData() throws SchedulerException {
-        final var metaData = scheduler.getMetaData();
-        return new JobSystemSchedulerMetaData(
-                metaData.getThreadPoolSize(),
-                metaData.getNumberOfJobsExecuted(),
-                metaData.getSchedulerClass().getCanonicalName(),
-                metaData.getThreadPoolClass().getCanonicalName(),
-                metaData.getVersion(),
-                metaData.getRunningSince().toInstant());
-    }
-
-    private JobSystemSchedulerGroupInfo groupInfo(final String groupName)
-            throws SchedulerException {
-
-        final var jobKeys = scheduler.getJobKeys(GroupMatcher.jobGroupEquals(groupName));
-        final var currentlyExecutingJobs = scheduler.getCurrentlyExecutingJobs();
-
-        final var currentlyExecutingJobKeys =
-                currentlyExecutingJobs.stream()
-                        .map(context -> context.getJobDetail().getKey())
-                        .collect(Collectors.toUnmodifiableSet());
-
-        final var jobKeysNotCurrentlyExecuting =
-                SetUtils.difference(jobKeys, currentlyExecutingJobKeys);
-
-        final var now = Instant.now();
-        final var queueSize =
-                jobKeysNotCurrentlyExecuting.stream()
-                        .map(ThrowingFunction.unchecked(scheduler::getTriggersOfJob))
-                        .flatMap(Collection::stream)
-                        .filter(trigger -> trigger.getNextFireTime().toInstant().isBefore(now))
-                        .count();
-
-        return new JobSystemSchedulerGroupInfo(
-                groupName, jobKeys.size(), currentlyExecutingJobs.size(), queueSize);
+    private List<JobSystemSchedulerGroupInfo> getGroups() {
+        return List.of();
     }
 
     public JobInfo updateCronExpression(final int jobId, final String cronExpression)
