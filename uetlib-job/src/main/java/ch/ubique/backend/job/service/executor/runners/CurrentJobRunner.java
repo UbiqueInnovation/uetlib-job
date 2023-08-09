@@ -1,9 +1,12 @@
 package ch.ubique.backend.job.service.executor.runners;
 
+import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.RUNNER_GROUP;
+
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
 import org.slf4j.Logger;
@@ -11,35 +14,22 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.*;
 
 @Service
 public final class CurrentJobRunner implements JobRunner {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final ExecutorService executorService;
+    private final Map<RunnerGroup, ExecutorService> executorServices;
 
     private final JobService jobService;
 
     public CurrentJobRunner(final JobService jobService) {
         this.jobService = jobService;
-
-        final var corePoolSize = 1;
-        final var maximumPoolSize = 1;
-        final var keepAliveTime = Duration.ZERO;
-        executorService =
-                new ThreadPoolExecutor(
-                        corePoolSize,
-                        maximumPoolSize,
-                        keepAliveTime.toSeconds(),
-                        TimeUnit.SECONDS,
-                        new LinkedBlockingQueue<>());
+        executorServices = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -49,8 +39,45 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     public synchronized JobRunState submit(final Job job, final JobRunContext context) {
+        final var runnerGroup = context.properties().get(RUNNER_GROUP).value();
+        check(job, runnerGroup);
+        final var executorService = getExecutorService(runnerGroup);
         executorService.submit(() -> run(job, context));
         return JobRunState.SCHEDULED;
+    }
+
+    private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
+        return executorServices.computeIfAbsent(runnerGroup, this::createExecutorService);
+    }
+
+    private ThreadPoolExecutor createExecutorService(final RunnerGroup runnerGroup) {
+        return new ThreadPoolExecutor(
+                runnerGroup.threadPoolSize(),
+                runnerGroup.threadPoolSize(),
+                0,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>());
+    }
+
+    private void check(final Job job, final RunnerGroup runnerGroup) {
+        if (!runnerGroup.allowedJobs().isEmpty()
+                && !runnerGroup.allowedJobs().contains(job.getClass())) {
+            throw new IllegalArgumentException(
+                    "The runner group only allows the following job classes: "
+                            + runnerGroup.allowedJobs()
+                            + " but a job of the following class was provided: "
+                            + job.getClass());
+        }
+
+        if (executorServices.keySet().stream()
+                .anyMatch(existing -> sameIdentifierButNotEqual(runnerGroup, existing))) {
+            throw new IllegalArgumentException(
+                    "There is already a different RunnerGroup with the same identifier.");
+        }
+    }
+
+    private static boolean sameIdentifierButNotEqual(final RunnerGroup a, final RunnerGroup b) {
+        return b.identifier().equals(a.identifier()) && !b.equals(a);
     }
 
     private void run(final Job job, final JobRunContext initialContext) {
