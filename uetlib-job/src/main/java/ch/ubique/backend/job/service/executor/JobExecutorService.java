@@ -81,16 +81,21 @@ public class JobExecutorService {
 
     private boolean tryToSchedule(
             final JobRunner runner, final Job job, final JobRunContext context) {
-        if (!runner.isAvailable()) {
-            logger.error("The requested runner {} is not available.", runner);
+        try {
+            if (!runner.isAvailable()) {
+                logger.error("The requested runner {} is not available.", runner);
+                return false;
+            }
+            logger.info(
+                    "Scheduling job {} with context {} using runner {}",
+                    job,
+                    context,
+                    runner.getClass());
+            return runner.submit(job, context);
+        } catch (final Exception e) {
+            logger.warn("Unhandled exception while trying to schedule job.", e);
             return false;
         }
-        logger.info(
-                "Scheduling job {} with context {} using runner {}",
-                job,
-                context,
-                runner.getClass());
-        return runner.isAvailable() && runner.submit(job, context);
     }
 
     @NotNull

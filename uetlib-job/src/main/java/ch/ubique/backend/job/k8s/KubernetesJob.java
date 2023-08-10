@@ -10,12 +10,15 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.models.*;
+import io.kubernetes.client.util.Config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import java.io.IOException;
 import java.util.*;
 
 public abstract class KubernetesJob implements Job {
@@ -32,6 +35,10 @@ public abstract class KubernetesJob implements Job {
             return kubernetesJob;
         }
         return new KubernetesJobWrapper(context, job);
+    }
+
+    public ApiClient apiClient() throws IOException {
+        return Config.defaultClient();
     }
 
     @Override
