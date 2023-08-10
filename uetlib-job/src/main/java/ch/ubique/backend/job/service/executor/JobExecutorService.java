@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -53,18 +54,43 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
 
-        logger.info("Executing {}", jobClass);
+        logger.info("{} submitted to executor.", jobClass);
 
         final var job = jobService.instantiateJob(jobClass);
         final var context = createContext(job, arguments, runId);
         final var runner = getJobRunner(context, jobRunnerKey);
 
-        logger.info(
-                "Running job {} with context {} using runner {}", job, context, runner.getClass());
-        final var jobState = runner.submit(job, context);
-        logger.info("Done. Job state: {}", jobState);
+        MDC.put("jobRunId", String.valueOf(context.jobRun().id()));
 
-        updateJobRunScheduledOrEnd(context.jobRun(), jobState);
+        final var scheduled = tryToSchedule(runner, job, context);
+
+        if (scheduled) {
+            logger.info("Job {} successfully scheduled", job);
+        } else {
+            logger.error("Job {} could not be scheduled", job);
+            jobService.updateJobRun(
+                    context.jobRun()
+                            .modify()
+                            .state(JobRunState.ERROR)
+                            .finishedAt(Instant.now())
+                            .toJobRun());
+        }
+
+        MDC.remove("jobRunId");
+    }
+
+    private boolean tryToSchedule(
+            final JobRunner runner, final Job job, final JobRunContext context) {
+        if (!runner.isAvailable()) {
+            logger.error("The requested runner {} is not available.", runner);
+            return false;
+        }
+        logger.info(
+                "Scheduling job {} with context {} using runner {}",
+                job,
+                context,
+                runner.getClass());
+        return runner.isAvailable() && runner.submit(job, context);
     }
 
     @NotNull
@@ -97,14 +123,5 @@ public class JobExecutorService {
     @NotNull
     private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobRunContext context) {
         return context.properties().get(JobPropertyDefinitions.RUNNER).value();
-    }
-
-    private void updateJobRunScheduledOrEnd(final JobRun run, final JobRunState state) {
-        final var modifiableJobRun = run.modify();
-        modifiableJobRun.state(state);
-        if (state != JobRunState.SCHEDULED) {
-            modifiableJobRun.finishedAt(Instant.now());
-        }
-        jobService.updateJobRun(modifiableJobRun.toJobRun());
     }
 }

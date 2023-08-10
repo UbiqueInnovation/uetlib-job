@@ -38,12 +38,19 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized JobRunState submit(final Job job, final JobRunContext context) {
-        final var runnerGroup = context.properties().get(RUNNER_GROUP).value();
-        check(job, runnerGroup);
+    public synchronized boolean submit(final Job job, final JobRunContext context) {
+        final var runnerGroup = runnerGroup(context);
+        if (!check(job, runnerGroup)) {
+            return false;
+        }
+
         final var executorService = getExecutorService(runnerGroup);
         executorService.submit(() -> run(job, context));
-        return JobRunState.SCHEDULED;
+        return true;
+    }
+
+    private static RunnerGroup runnerGroup(final JobRunContext context) {
+        return context.properties().get(RUNNER_GROUP).value();
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
@@ -59,27 +66,6 @@ public final class CurrentJobRunner implements JobRunner {
                 new LinkedBlockingQueue<>());
     }
 
-    private void check(final Job job, final RunnerGroup runnerGroup) {
-        if (!runnerGroup.allowedJobs().isEmpty()
-                && !runnerGroup.allowedJobs().contains(job.getClass())) {
-            throw new IllegalArgumentException(
-                    "The runner group only allows the following job classes: "
-                            + runnerGroup.allowedJobs()
-                            + " but a job of the following class was provided: "
-                            + job.getClass());
-        }
-
-        if (executorServices.keySet().stream()
-                .anyMatch(existing -> sameIdentifierButNotEqual(runnerGroup, existing))) {
-            throw new IllegalArgumentException(
-                    "There is already a different RunnerGroup with the same identifier.");
-        }
-    }
-
-    private static boolean sameIdentifierButNotEqual(final RunnerGroup a, final RunnerGroup b) {
-        return b.identifier().equals(a.identifier()) && !b.equals(a);
-    }
-
     private void run(final Job job, final JobRunContext initialContext) {
         final var context = prepareRun(initialContext);
         final var state = runJob(job, context);
@@ -90,7 +76,12 @@ public final class CurrentJobRunner implements JobRunner {
         final var context =
                 new JobRunContext(
                         initialContext.job(),
-                        initialContext.jobRun().modify().state(JobRunState.BUSY).toJobRun(),
+                        initialContext
+                                .jobRun()
+                                .modify()
+                                .startedAt(Instant.now())
+                                .state(JobRunState.BUSY)
+                                .toJobRun(),
                         initialContext.arguments(),
                         initialContext.properties());
         jobService.updateJobRun(context.jobRun());
@@ -114,5 +105,17 @@ public final class CurrentJobRunner implements JobRunner {
         jobService.updateJobRun(
                 context.jobRun().modify().state(finalState).finishedAt(Instant.now()).toJobRun());
         MDC.remove("jobRunId");
+    }
+
+    private boolean check(final Job job, final RunnerGroup runnerGroup) {
+        if (!runnerGroup.allowedJobs().isEmpty()
+                && !runnerGroup.allowedJobs().contains(job.getClass())) {
+            logger.error(
+                    "The runner group only allows the following job classes: {} but a job of the following class was provided:  {}",
+                    runnerGroup.allowedJobs(),
+                    job.getClass());
+            return false;
+        }
+        return true;
     }
 }

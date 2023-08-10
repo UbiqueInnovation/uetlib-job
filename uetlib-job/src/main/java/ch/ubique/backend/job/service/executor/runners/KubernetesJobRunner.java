@@ -2,7 +2,6 @@ package ch.ubique.backend.job.service.executor.runners;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRunContext;
-import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
@@ -75,14 +74,14 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState submit(final Job job, final JobRunContext context) {
+    public boolean submit(final Job job, final JobRunContext context) {
         final ApiClient client;
         try {
             logger.info("Connecting to Kubernetes API");
             client = Config.defaultClient();
         } catch (final IOException e) {
             logger.error("Could not connect to k8s", e);
-            return JobRunState.ERROR;
+            return false;
         }
         final var coreApi = new CoreV1Api(client);
         final var batchApi = new BatchV1Api(client);
@@ -99,11 +98,11 @@ public class KubernetesJobRunner implements JobRunner {
             batchApi.createNamespacedJob(namespace, kubernetesJob, null, null, null, null);
 
             logger.info("Successfully created kubernetes job {}", jobName);
-            return JobRunState.SCHEDULED;
+            return true;
 
         } catch (final ApiException e) {
             logger.error("k8s exception: {}", e.getResponseBody(), e);
-            return JobRunState.ERROR;
+            return false;
         }
     }
 

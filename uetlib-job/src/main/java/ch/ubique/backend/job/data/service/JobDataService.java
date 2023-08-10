@@ -267,7 +267,9 @@ public class JobDataService {
 
     public JobRun createJobRun(final int jobId, final int jobVersion) {
         return jobRunRepository
-                .save(new JobRunEntity(jobId, jobVersion, JobRunState.BUSY, Instant.now(), null))
+                .save(
+                        new JobRunEntity(
+                                jobId, jobVersion, JobRunState.SCHEDULED, Instant.now(), null))
                 .toJobRun();
     }
 
