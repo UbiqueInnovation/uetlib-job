@@ -16,14 +16,16 @@ public class KubernetesJobWrapper extends KubernetesJob {
 
     private final Job originalJob;
 
-    public KubernetesJobWrapper(final ApplicationContext context, final Job originalJob) {
-        super(context);
+    public KubernetesJobWrapper(
+            final ApplicationContext applicationContext, final Job originalJob) {
+        super(applicationContext);
         this.originalJob = originalJob;
     }
 
     @Override
-    protected Collection<V1Container> containers(final KubernetesJobRunContext context) {
-        final var currentPodContainer = getCurrentPodContainer(context);
+    protected Collection<V1Container> containers(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var currentPodContainer = getCurrentPodContainer(kubernetesJobRunContext);
 
         final var args =
                 new ArrayList<>(
@@ -32,8 +34,9 @@ public class KubernetesJobWrapper extends KubernetesJob {
                                 "--job",
                                 originalJob.getClass().getName(),
                                 "--run",
-                                String.valueOf(context.jobRunContext().jobRun().id())));
-        if (context.jobRunContext().arguments().forceRun()) {
+                                String.valueOf(
+                                        kubernetesJobRunContext.jobRunContext().jobRun().id())));
+        if (kubernetesJobRunContext.jobRunContext().arguments().forceRun()) {
             args.add("--force");
         }
 
@@ -48,19 +51,20 @@ public class KubernetesJobWrapper extends KubernetesJob {
                         .envFrom(currentPodContainer.getEnvFrom())
                         .volumeMounts(currentPodContainer.getVolumeMounts())
                         .imagePullPolicy(currentPodContainer.getImagePullPolicy())
-                        .resources(resources(context)));
+                        .resources(resources(kubernetesJobRunContext)));
     }
 
-    private static V1Container getCurrentPodContainer(final KubernetesJobRunContext context) {
-        final var currentPod = context.kubernetesContext().currentPod();
+    private static V1Container getCurrentPodContainer(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var currentPod = kubernetesJobRunContext.kubernetesContext().currentPod();
         final var currentPodSpec = requireNonNull(currentPod.getSpec());
 
         // Assume there is only one container
         if (currentPodSpec.getContainers().size() != 1) {
             throw new IllegalArgumentException(
                     "Expected current importer pod to have exactly one container. This is a"
-                            + " simplification of the current implementation. If needed, you can modify"
-                            + " this code to drop this restriction.");
+                        + " simplification of the current implementation. If needed, you can modify"
+                        + " this code to drop this restriction.");
         }
 
         return currentPodSpec.getContainers().get(0);

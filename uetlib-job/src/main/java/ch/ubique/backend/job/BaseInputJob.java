@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public abstract class BaseInputJob<T> implements Job {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;

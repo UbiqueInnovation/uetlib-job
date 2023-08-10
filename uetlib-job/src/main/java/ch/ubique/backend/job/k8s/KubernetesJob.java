@@ -24,17 +24,17 @@ import java.util.*;
 public abstract class KubernetesJob implements Job {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ApplicationContext context;
+    private final ApplicationContext applicationContext;
 
-    protected KubernetesJob(final ApplicationContext context) {
-        this.context = context;
+    protected KubernetesJob(final ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
     }
 
-    public static KubernetesJob forJob(final Job job, final ApplicationContext context) {
+    public static KubernetesJob forJob(final Job job, final ApplicationContext applicationContext) {
         if (job instanceof final KubernetesJob kubernetesJob) {
             return kubernetesJob;
         }
-        return new KubernetesJobWrapper(context, job);
+        return new KubernetesJobWrapper(applicationContext, job);
     }
 
     public ApiClient apiClient() throws IOException {
@@ -42,8 +42,9 @@ public abstract class KubernetesJob implements Job {
     }
 
     @Override
-    public final JobRunState run(final JobRunContext context) throws Exception {
-        final var jobRunnerKey = context.properties().get(JobPropertyDefinitions.RUNNER).value();
+    public final JobRunState run(final JobRunContext jobRunContext) throws Exception {
+        final var jobRunnerKey =
+                jobRunContext.properties().get(JobPropertyDefinitions.RUNNER).value();
         if (jobRunnerKey != JobRunnerKey.DEDICATED_K8S_JOB) {
             logger.error(
                     "The runner must be set to {} but is currently set to {}",
@@ -52,15 +53,18 @@ public abstract class KubernetesJob implements Job {
         }
 
         logger.error(
-                "This method should never be called. Please make sure this job is scheduled as dedicated k8s job using the specified docker image.");
+                "This method should never be called. Please make sure this job is scheduled as"
+                    + " dedicated k8s job using the specified docker image.");
         return JobRunState.ERROR;
     }
 
-    public final V1Job job(final KubernetesJobRunContext context) {
-        return new V1Job().metadata(jobMetadata(context)).spec(jobSpec(context));
+    public final V1Job job(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return new V1Job()
+                .metadata(jobMetadata(kubernetesJobRunContext))
+                .spec(jobSpec(kubernetesJobRunContext));
     }
 
-    protected V1ObjectMeta jobMetadata(final KubernetesJobRunContext context) {
+    protected V1ObjectMeta jobMetadata(final KubernetesJobRunContext kubernetesJobRunContext) {
         // Add annotations to make Prometheus scrape our job
         final var annotations =
                 Map.ofEntries(
@@ -69,66 +73,74 @@ public abstract class KubernetesJob implements Job {
                         Map.entry("prometheus.io/scrape", "true"));
 
         return new V1ObjectMeta()
-                .namespace(namespace(context))
-                .name(jobName(context))
+                .namespace(namespace(kubernetesJobRunContext))
+                .name(jobName(kubernetesJobRunContext))
                 .annotations(annotations);
     }
 
-    protected V1JobSpec jobSpec(final KubernetesJobRunContext context) {
+    protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var ttl =
-                context.jobRunContext()
+                kubernetesJobRunContext
+                        .jobRunContext()
                         .properties()
                         .get(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED)
                         .value();
 
         return new V1JobSpec()
                 .ttlSecondsAfterFinished((int) ttl.toSeconds())
-                .template(new V1PodTemplateSpec().spec(podSpec(context)));
+                .template(new V1PodTemplateSpec().spec(podSpec(kubernetesJobRunContext)));
     }
 
-    private static String namespace(final KubernetesJobRunContext context) {
-        return context.kubernetesContext().currentNamespace();
+    private static String namespace(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return kubernetesJobRunContext.kubernetesContext().currentNamespace();
     }
 
-    protected String jobName(final KubernetesJobRunContext context) {
-        return this.context.getEnvironment().getProperty("spring.application.name")
+    protected String jobName(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return this.applicationContext.getEnvironment().getProperty("spring.application.name")
                 + "-"
-                + context.jobRunContext().job().name().toLowerCase()
+                + kubernetesJobRunContext.jobRunContext().job().name().toLowerCase()
                 + "-run-"
-                + context.jobRunContext().jobRun().id();
+                + kubernetesJobRunContext.jobRunContext().jobRun().id();
     }
 
-    protected V1PodSpec podSpec(final KubernetesJobRunContext context) {
+    protected V1PodSpec podSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var podSpec =
                 new V1PodSpec()
-                        .imagePullSecrets(imagePullSecrets(context))
-                        .volumes(volumes(context))
-                        .nodeSelector(nodeSelector(context))
+                        .imagePullSecrets(imagePullSecrets(kubernetesJobRunContext))
+                        .volumes(volumes(kubernetesJobRunContext))
+                        .nodeSelector(nodeSelector(kubernetesJobRunContext))
                         .restartPolicy("Never");
 
-        containers(context).forEach(podSpec::addContainersItem);
-        toleration(context).ifPresent(podSpec::addTolerationsItem);
+        containers(kubernetesJobRunContext).forEach(podSpec::addContainersItem);
+        toleration(kubernetesJobRunContext).ifPresent(podSpec::addTolerationsItem);
 
         return podSpec;
     }
 
-    protected List<V1LocalObjectReference> imagePullSecrets(final KubernetesJobRunContext context) {
-        return requireNonNull(context.kubernetesContext().currentPod().getSpec())
+    protected List<V1LocalObjectReference> imagePullSecrets(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod().getSpec())
                 .getImagePullSecrets();
     }
 
-    protected List<V1Volume> volumes(final KubernetesJobRunContext context) {
-        return requireNonNull(context.kubernetesContext().currentPod().getSpec()).getVolumes();
+    protected List<V1Volume> volumes(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod().getSpec())
+                .getVolumes();
     }
 
-    protected Map<String, String> nodeSelector(final KubernetesJobRunContext context) {
-        return requireNonNull(context.kubernetesContext().currentPod().getSpec()).getNodeSelector();
+    protected Map<String, String> nodeSelector(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod().getSpec())
+                .getNodeSelector();
     }
 
-    protected abstract Collection<V1Container> containers(final KubernetesJobRunContext context);
+    protected abstract Collection<V1Container> containers(
+            final KubernetesJobRunContext kubernetesJobRunContext);
 
-    protected Optional<V1Toleration> toleration(final KubernetesJobRunContext context) {
-        return context.jobRunContext()
+    protected Optional<V1Toleration> toleration(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return kubernetesJobRunContext
+                .jobRunContext()
                 .properties()
                 .get(JobPropertyDefinitions.K8S_SKU)
                 .valueMaybe()
@@ -141,17 +153,20 @@ public abstract class KubernetesJob implements Job {
                                         .effect("NoSchedule"));
     }
 
-    protected V1ResourceRequirements resources(final KubernetesJobRunContext context) {
+    protected V1ResourceRequirements resources(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
         final var cpuRequests =
                 Quantity.fromString(
-                        context.jobRunContext()
+                        kubernetesJobRunContext
+                                .jobRunContext()
                                 .properties()
                                 .get(JobPropertyDefinitions.K8S_REQUESTS_CPU)
                                 .value());
 
         final var memoryRequests =
                 Quantity.fromString(
-                        context.jobRunContext()
+                        kubernetesJobRunContext
+                                .jobRunContext()
                                 .properties()
                                 .get(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
                                 .value());
