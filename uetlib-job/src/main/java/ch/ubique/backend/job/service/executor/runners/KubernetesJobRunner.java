@@ -13,7 +13,6 @@ import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.util.Config;
 import io.kubernetes.client.util.Namespaces;
 
 import org.apache.commons.lang3.StringUtils;
@@ -67,7 +66,8 @@ public class KubernetesJobRunner implements JobRunner {
 
     @Override
     public boolean submit(final Job job, final JobRunContext context) {
-        final var client = tryToGetKubernetesApiClient();
+        final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
+        final var client = tryToGetKubernetesApiClient(kubernetesJob);
         if (client == null) {
             return false;
         }
@@ -78,7 +78,7 @@ public class KubernetesJobRunner implements JobRunner {
             final var k8sContext =
                     new KubernetesJobRunContext(
                             context, new KubernetesContext(client, namespace, currentPod));
-            final var jobDefinition = KubernetesJob.forJob(job, applicationContext).job(k8sContext);
+            final var jobDefinition = kubernetesJob.job(k8sContext);
 
             submitJobToKubernetes(client, jobDefinition);
             return true;
@@ -89,10 +89,10 @@ public class KubernetesJobRunner implements JobRunner {
         }
     }
 
-    private ApiClient tryToGetKubernetesApiClient() {
+    private ApiClient tryToGetKubernetesApiClient(final KubernetesJob kubernetesJob) {
         try {
             logger.info("Connecting to Kubernetes API");
-            return Config.defaultClient();
+            return kubernetesJob.apiClient();
         } catch (final IOException e) {
             logger.error("Could not connect to k8s", e);
             return null;
