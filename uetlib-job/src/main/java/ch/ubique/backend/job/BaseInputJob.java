@@ -29,9 +29,11 @@ public abstract class BaseInputJob<T> implements Job {
     private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;
 
-    protected BaseInputJob(@NotNull final ApplicationContext context) {
-        jobRunStorage = context.getBean(JobRunStorage.class);
-        jobDataService = context.getBean(JobDataService.class);
+    private JobRunContext jobRunContext;
+
+    protected BaseInputJob(@NotNull final ApplicationContext applicationContext) {
+        jobRunStorage = applicationContext.getBean(JobRunStorage.class);
+        jobDataService = applicationContext.getBean(JobDataService.class);
     }
 
     /**
@@ -68,22 +70,36 @@ public abstract class BaseInputJob<T> implements Job {
         return true;
     }
 
+    /**
+     * Access to job run context during execution of the job. USe for example to access the forceRun
+     * flag in {@link #processInputs}.
+     */
+    protected JobRunContext jobRunContext() {
+        if (jobRunContext == null) {
+            throw new IllegalStateException(
+                    "This method can only be called during execution of the BaseInputJob::run"
+                        + " method");
+        }
+        return jobRunContext;
+    }
+
     @Override
-    public final JobRunState run(final JobRunContext context) throws Exception {
+    public final JobRunState run(final JobRunContext jobRunContext) throws Exception {
+        this.jobRunContext = jobRunContext;
 
         var allowSkipping = true;
 
-        if (context.arguments().forceRun()) {
+        if (jobRunContext.arguments().forceRun()) {
             logger.info("Force run.");
             allowSkipping = false;
         }
 
-        if (isJobVersionDifferent(context.job())) {
+        if (isJobVersionDifferent(jobRunContext.job())) {
             logger.info("The job version differs from the job version of the previous run.");
             allowSkipping = false;
         }
 
-        final var maybeLatestSuccessfulRun = latestSuccessfulRun(context.job());
+        final var maybeLatestSuccessfulRun = latestSuccessfulRun(jobRunContext.job());
         if (maybeLatestSuccessfulRun.isEmpty()) {
             logger.info("No successful runs so far.");
             allowSkipping = false;
@@ -107,15 +123,19 @@ public abstract class BaseInputJob<T> implements Job {
 
         // Check for changes
         final var data = dataMaybe.get();
-        if (allowSkipping && areInputsEqual(data.inputFiles(), context.job())) {
+        if (allowSkipping && areInputsEqual(data.inputFiles(), jobRunContext.job())) {
             logger.info("The inputs did not change. Stopping job run.");
             return JobRunState.SKIPPED;
         }
 
-        saveRunInputsToDatabase(data.inputFiles(), context.jobRun());
-        uploadInputFiles(data.inputFiles(), context.jobRun());
+        saveRunInputsToDatabase(data.inputFiles(), jobRunContext.jobRun());
+        uploadInputFiles(data.inputFiles(), jobRunContext.jobRun());
 
-        return processInputs(data.data());
+        final var jobRunState = processInputs(data.data());
+
+        this.jobRunContext = null;
+
+        return jobRunState;
     }
 
     private Optional<DataAndInput<T>> tryLoadingInputs() {
