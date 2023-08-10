@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -19,7 +20,26 @@ public record RunnerGroup(
         @Positive int threadPoolSize,
         @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY) Collection<Class<? extends Job>> allowedJobs) {
 
+    private static final Collection<RunnerGroup> INSTANCES = new HashSet<>();
+
+    public RunnerGroup {
+        check(this);
+    }
+
     public RunnerGroup(@NotBlank final String identifier, @Positive final int threadPoolSize) {
         this(identifier, threadPoolSize, Set.of());
+    }
+
+    private static synchronized void check(final RunnerGroup runnerGroup) {
+        if (INSTANCES.stream()
+                .anyMatch(existing -> sameIdentifierButNotEqual(runnerGroup, existing))) {
+            throw new IllegalArgumentException(
+                    "There is already a different RunnerGroup with the same identifier.");
+        }
+        INSTANCES.add(runnerGroup);
+    }
+
+    private static boolean sameIdentifierButNotEqual(final RunnerGroup a, final RunnerGroup b) {
+        return b.identifier().equals(a.identifier()) && !b.equals(a);
     }
 }

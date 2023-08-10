@@ -42,11 +42,14 @@ public final class HealthCheckJob implements Job {
         return JobTriggersConfig.fixed(new FixedRateTrigger(Duration.ofMinutes(10)));
     }
 
+    public static RunnerGroup runnerGroup() {
+        return new RunnerGroup("health-check", 1, Set.of(HealthCheckJob.class));
+    }
+
     @Override
     public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
-                JobPropertyDefinitions.RUNNER_GROUP.createProperty(
-                        new RunnerGroup("health-check", 1, Set.of(HealthCheckJob.class))),
+                JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(1)),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(0),
