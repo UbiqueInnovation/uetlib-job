@@ -23,7 +23,7 @@ import java.util.*;
 
 public abstract class KubernetesJob implements Job {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
     private final ApplicationContext applicationContext;
 
     protected KubernetesJob(final ApplicationContext applicationContext) {
