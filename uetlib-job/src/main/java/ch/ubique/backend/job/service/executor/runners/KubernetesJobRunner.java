@@ -1,33 +1,25 @@
 package ch.ubique.backend.job.service.executor.runners;
 
 import ch.ubique.backend.job.Job;
+import ch.ubique.backend.job.k8s.KubernetesJob;
 import ch.ubique.backend.job.model.JobRunContext;
-import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.k8s.KubernetesContext;
+import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
-import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Container;
-import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1Job;
-import io.kubernetes.client.openapi.models.V1JobSpec;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodSpec;
-import io.kubernetes.client.openapi.models.V1PodTemplateSpec;
-import io.kubernetes.client.openapi.models.V1ResourceRequirements;
-import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.util.Config;
 import io.kubernetes.client.util.Namespaces;
 
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -38,13 +30,13 @@ public class KubernetesJobRunner implements JobRunner {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final Environment environment;
+    private final ApplicationContext applicationContext;
 
     private final String namespace;
     private final String currentPodName;
 
-    public KubernetesJobRunner(final Environment environment) {
-        this.environment = environment;
+    public KubernetesJobRunner(final ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
         namespace = getCurrentKubernetesNamespace();
         currentPodName = System.getenv("HOSTNAME");
     }
@@ -75,29 +67,20 @@ public class KubernetesJobRunner implements JobRunner {
 
     @Override
     public boolean submit(final Job job, final JobRunContext context) {
-        final ApiClient client;
-        try {
-            logger.info("Connecting to Kubernetes API");
-            client = Config.defaultClient();
-        } catch (final IOException e) {
-            logger.error("Could not connect to k8s", e);
+        final var client = tryToGetKubernetesApiClient();
+        if (client == null) {
             return false;
         }
-        final var coreApi = new CoreV1Api(client);
-        final var batchApi = new BatchV1Api(client);
 
         try {
-            // Get current pod
-            logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
-            final var currentPod = coreApi.readNamespacedPod(currentPodName, namespace, null);
+            final var currentPod = getCurrentPod(client);
 
-            // Create job
-            final var jobName = jobName(job, context);
-            final var kubernetesJob =
-                    createKubernetesJob(job, context, namespace, jobName, currentPod);
-            batchApi.createNamespacedJob(namespace, kubernetesJob, null, null, null, null);
+            final var k8sContext =
+                    new KubernetesJobRunContext(
+                            context, new KubernetesContext(client, namespace, currentPod));
+            final var jobDefinition = KubernetesJob.forJob(job, applicationContext).job(k8sContext);
 
-            logger.info("Successfully created kubernetes job {}", jobName);
+            submitJobToKubernetes(client, jobDefinition);
             return true;
 
         } catch (final ApiException e) {
@@ -106,108 +89,14 @@ public class KubernetesJobRunner implements JobRunner {
         }
     }
 
-    private V1Job createKubernetesJob(
-            final Job job,
-            final JobRunContext context,
-            final String namespace,
-            final String jobName,
-            final V1Pod currentPod) {
-
-        // Assume there is only one container
-        final var currentPodSpec = Objects.requireNonNull(currentPod.getSpec());
-        if (currentPodSpec.getContainers().size() != 1) {
-            throw new IllegalArgumentException(
-                    "Expected current importer pod to have exactly one container. This is a"
-                            + " simplification of the current implementation. If needed, you can modify"
-                            + " this code to drop this restriction.");
+    private ApiClient tryToGetKubernetesApiClient() {
+        try {
+            logger.info("Connecting to Kubernetes API");
+            return Config.defaultClient();
+        } catch (final IOException e) {
+            logger.error("Could not connect to k8s", e);
+            return null;
         }
-        final var currentPodContainer = currentPodSpec.getContainers().get(0);
-
-        final var args =
-                new ArrayList<>(
-                        List.of(
-                                "--",
-                                "--job",
-                                job.getClass().getName(),
-                                "--run",
-                                String.valueOf(context.jobRun().id())));
-        if (context.arguments().forceRun()) {
-            args.add("--force");
-        }
-
-        final var cpuRequests =
-                Quantity.fromString(
-                        context.properties().get(JobPropertyDefinitions.K8S_REQUESTS_CPU).value());
-        final var memoryRequests =
-                Quantity.fromString(
-                        context.properties()
-                                .get(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
-                                .value());
-
-        final var requests =
-                Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));
-        final var limits = Map.ofEntries(Map.entry("memory", memoryRequests));
-
-        final var container =
-                new V1Container()
-                        .name("job-image")
-                        .image(currentPodContainer.getImage())
-                        .args(args)
-                        .env(currentPodContainer.getEnv())
-                        .addEnvItem(
-                                new V1EnvVar().name("JAVA_OPTS").value("-XX:MaxRAMPercentage=95.0"))
-                        .envFrom(currentPodContainer.getEnvFrom())
-                        .volumeMounts(currentPodContainer.getVolumeMounts())
-                        .imagePullPolicy(currentPodContainer.getImagePullPolicy())
-                        .resources(new V1ResourceRequirements().requests(requests).limits(limits));
-
-        final var podSpec =
-                new V1PodSpec()
-                        .addContainersItem(container)
-                        .imagePullSecrets(currentPodSpec.getImagePullSecrets())
-                        .volumes(currentPodSpec.getVolumes())
-                        .nodeSelector(currentPodSpec.getNodeSelector())
-                        .restartPolicy("Never");
-
-        context.properties()
-                .get(JobPropertyDefinitions.K8S_SKU)
-                .valueMaybe()
-                .ifPresent(
-                        value ->
-                                podSpec.addTolerationsItem(
-                                        new V1Toleration()
-                                                .key("sku")
-                                                .operator("Equal")
-                                                .value(value)
-                                                .effect("NoSchedule")));
-
-        // Add annotations to make Prometheus scrape our job
-        final var annotations =
-                Map.ofEntries(
-                        Map.entry("prometheus.io/path", "/actuator/prometheus"),
-                        Map.entry("prometheus.io/port", "8085"),
-                        Map.entry("prometheus.io/scrape", "true"));
-
-        final var metadata =
-                new V1ObjectMeta().namespace(namespace).name(jobName).annotations(annotations);
-        final var ttl =
-                context.properties().get(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED).value();
-
-        final var jobSpec =
-                new V1JobSpec()
-                        .ttlSecondsAfterFinished((int) ttl.toSeconds())
-                        .template(new V1PodTemplateSpec().spec(podSpec));
-
-        return new V1Job().metadata(metadata).spec(jobSpec);
-    }
-
-    @NotNull
-    private String jobName(final Job job, final JobRunContext context) {
-        return environment.getProperty("spring.application.name")
-                + "-"
-                + job.getClass().getSimpleName().toLowerCase()
-                + "-run-"
-                + context.jobRun().id();
     }
 
     private static String getCurrentKubernetesNamespace() {
@@ -216,5 +105,22 @@ public class KubernetesJobRunner implements JobRunner {
         } catch (final IOException e) {
             return System.getenv("K8S_NAMESPACE");
         }
+    }
+
+    private V1Pod getCurrentPod(final ApiClient client) throws ApiException {
+        logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
+        final var coreApi = new CoreV1Api(client);
+        return coreApi.readNamespacedPod(currentPodName, namespace, null);
+    }
+
+    private void submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
+            throws ApiException {
+        final var batchApi = new BatchV1Api(client);
+        final var createdJob =
+                batchApi.createNamespacedJob(namespace, jobDefinition, null, null, null, null);
+
+        logger.info(
+                "Successfully created kubernetes job {}",
+                Objects.requireNonNull(createdJob.getMetadata()).getName());
     }
 }
