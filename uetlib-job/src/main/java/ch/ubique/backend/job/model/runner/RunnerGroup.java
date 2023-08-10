@@ -22,7 +22,16 @@ public record RunnerGroup(
 
     private static final Collection<RunnerGroup> INSTANCES = new HashSet<>();
 
-    public RunnerGroup {
+    @SuppressWarnings("java:S6207") // A canonical constructor is nor possible since,
+    // it calls check() before fields are initialized
+    public RunnerGroup(
+            @NotBlank final String identifier,
+            @Positive final int threadPoolSize,
+            @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY)
+                    final Collection<Class<? extends Job>> allowedJobs) {
+        this.identifier = identifier;
+        this.threadPoolSize = threadPoolSize;
+        this.allowedJobs = allowedJobs;
         check(this);
     }
 
