@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
+import ch.ubique.backend.job.service.executor.runners.CurrentJobRunner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,7 @@ public class JobApplication {
 
         if (jobToStartArgs != null) {
             logger.info("Running job now. args = {}", jobToStartArgs);
-            runJobNow(applicationClass, jobToStartArgs);
+            runJobNow(applicationClass, jobToStartArgs, args);
         } else {
             logger.info("Starting Spring application now.");
             SpringApplication.run(applicationClass, args);
@@ -39,10 +40,14 @@ public class JobApplication {
     }
 
     private static void runJobNow(
-            final Class<?> applicationClass, final JobApplicationJobToStartArgs jobToStartArgs) {
+            final Class<?> applicationClass,
+            final JobApplicationJobToStartArgs jobToStartArgs,
+            final String[] args) {
 
         final var context =
-                new SpringApplicationBuilder(applicationClass).web(WebApplicationType.NONE).run();
+                new SpringApplicationBuilder(applicationClass)
+                        .web(WebApplicationType.NONE)
+                        .run(args);
 
         final var jobClassName = jobToStartArgs.jobClassName();
 
@@ -54,6 +59,9 @@ public class JobApplication {
                             new JobRunArguments(jobToStartArgs.forceRun()),
                             jobToStartArgs.jobRunId(),
                             JobRunnerKey.CURRENT);
+
+            logger.info("Waiting for job to finish.");
+            context.getBean(CurrentJobRunner.class).shutdownAndWaitForJobsToComplete();
 
             logger.info("Completed job, going to shut down");
         } catch (final ClassNotFoundException e) {
