@@ -118,4 +118,17 @@ public final class CurrentJobRunner implements JobRunner {
         }
         return true;
     }
+
+    public void shutdownAndWaitForJobsToComplete() {
+        for (final var executorService : executorServices.values()) {
+            executorService.shutdown();
+            try {
+                //noinspection ResultOfMethodCallIgnored
+                executorService.awaitTermination(365, TimeUnit.DAYS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        }
+    }
 }
