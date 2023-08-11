@@ -12,7 +12,7 @@ CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
 INSERT INTO t_job_trigger (fk_job_id, type, data)
 SELECT pk_job_id, 'CRON', concat('{"cronExpression":"', cron_expression, '"}')
 FROM t_job
-WHERE coalesce(trim(cron_expression), '') = '';
+WHERE coalesce(trim(cron_expression), '') != '';
 
 ALTER TABLE t_job
     DROP COLUMN cron_expression;
