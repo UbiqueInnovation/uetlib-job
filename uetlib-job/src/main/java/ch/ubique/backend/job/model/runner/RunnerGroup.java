@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,9 +17,9 @@ import java.util.Set;
 public record RunnerGroup(
         @NotBlank String identifier,
         @Positive int threadPoolSize,
-        @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY) Collection<Class<? extends Job>> allowedJobs) {
+        @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY) Set<Class<? extends Job>> allowedJobs) {
 
-    private static final Collection<RunnerGroup> INSTANCES = new HashSet<>();
+    private static final Set<RunnerGroup> INSTANCES = new HashSet<>();
 
     @SuppressWarnings("java:S6207") // A canonical constructor is nor possible since,
     // it calls check() before fields are initialized
@@ -28,7 +27,7 @@ public record RunnerGroup(
             @NotBlank final String identifier,
             @Positive final int threadPoolSize,
             @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY)
-                    final Collection<Class<? extends Job>> allowedJobs) {
+                    final Set<Class<? extends Job>> allowedJobs) {
         this.identifier = identifier;
         this.threadPoolSize = threadPoolSize;
         this.allowedJobs = allowedJobs;
