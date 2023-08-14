@@ -19,12 +19,14 @@ import jakarta.validation.constraints.NotNull;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class JobService {
@@ -33,34 +35,46 @@ public class JobService {
     private final JobDataService jobDataService;
     private final JobCreator jobCreator;
     private final ClassLoaderService classLoaderService;
+    private final BuildProperties buildProperties;
 
     public JobService(
             final JobDataService jobDataService,
             final JobCreator jobCreator,
-            final ClassLoaderService classLoaderService) {
+            final ClassLoaderService classLoaderService,
+            final BuildProperties buildProperties) {
         this.jobDataService = jobDataService;
         this.jobCreator = jobCreator;
         this.classLoaderService = classLoaderService;
+        this.buildProperties = buildProperties;
 
         registerAllJobs();
         jobDataService.setBusyRunsToUnfinished();
     }
 
     private void registerAllJobs() {
-        for (final var reflections :
-                Set.of(new Reflections(), new Reflections("ch.ubique.backend"))) {
-            for (final var cls : reflections.getTypesAnnotatedWith(RegisteredJob.class)) {
-                try {
-                    final var jobClass = cls.asSubclass(Job.class);
-                    jobDataService.registerJob(jobClass);
-                    logger.info("Registered {}.", jobClass);
-                } catch (final ClassCastException e) {
-                    throw new ClassCastException(
-                            "Class annotated with "
-                                    + RegisteredJob.class
-                                    + " must implement "
-                                    + Job.class);
-                }
+        final var classes =
+                Stream.of(
+                                new Reflections(),
+                                new Reflections(buildProperties.getGroup()),
+                                new Reflections("ch.ubique.backend"))
+                        .flatMap(
+                                reflections ->
+                                        reflections
+                                                .getTypesAnnotatedWith(RegisteredJob.class)
+                                                .stream())
+                        .collect(Collectors.toSet());
+        logger.info("Found {} annotated with {}.", classes, RegisteredJob.class);
+        for (final var cls : classes) {
+            try {
+                final var jobClass = cls.asSubclass(Job.class);
+                jobDataService.registerJob(jobClass);
+                logger.info("Registered {}.", jobClass);
+            } catch (final ClassCastException e) {
+                throw new ClassCastException(
+                        "Class annotated with "
+                                + RegisteredJob.class
+                                + " must implement "
+                                + Job.class);
             }
         }
 
