@@ -21,7 +21,7 @@ public record RunnerGroup(
 
     private static final Set<RunnerGroup> INSTANCES = new HashSet<>();
 
-    @SuppressWarnings("java:S6207") // A canonical constructor is nor possible since,
+    @SuppressWarnings("java:S6207") // A canonical constructor is not possible since,
     // it calls check() before fields are initialized
     public RunnerGroup(
             @NotBlank final String identifier,
