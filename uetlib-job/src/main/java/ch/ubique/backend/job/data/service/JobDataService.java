@@ -231,11 +231,9 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public List<JobRun> findCleanableRuns(
             final int jobId, final int daysToKeep, final int chunkSize) {
-        // JPA will throw an error when attempting to return JobRun from the select statement below
-        // --> need to cast
         return jobRunRepository
                 .findAllByJobIdAndFinishedAt(jobId, daysToKeep, chunkSize)
-                .map(JobRun.class::cast)
+                .map(JobRunEntity::toJobRun)
                 .toList();
     }
 
