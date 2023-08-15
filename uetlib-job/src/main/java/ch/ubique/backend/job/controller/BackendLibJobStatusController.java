@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,7 @@ import java.util.Collection;
 import java.util.Map;
 
 @RestController
+@Profile("!job-run")
 @RequestMapping("/v1/status")
 @CrossOrigin(
         value = {

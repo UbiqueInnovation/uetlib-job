@@ -7,9 +7,11 @@ import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 @Service
+@Profile("!job-run")
 public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
 
     private final JobDataService jobDataService;

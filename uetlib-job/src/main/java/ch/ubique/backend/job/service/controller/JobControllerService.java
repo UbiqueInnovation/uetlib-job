@@ -21,6 +21,7 @@ import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@Profile("!job-run")
 public class JobControllerService {
     private static final int PAGE_SIZE = 30;
     private final JobService jobService;

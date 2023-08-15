@@ -3,10 +3,12 @@ package ch.ubique.backend.job.controller;
 import ch.ubique.backend.job.model.client.InfoResponse;
 import ch.ubique.backend.job.service.controller.InfoService;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Profile("!job-run")
 @RequestMapping("/v1/info")
 @CrossOrigin({
     "https://status.systems.ubique.ch",

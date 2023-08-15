@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.triggers.CronTrigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
+@Profile("!job-run")
 public class CronTriggerService implements TriggerService<CronTrigger> {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ZoneId defaultZoneId;
