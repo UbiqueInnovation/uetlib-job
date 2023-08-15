@@ -6,12 +6,16 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.core.JobCreator;
+
+import com.pivovarit.function.ThrowingPredicate;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -20,10 +24,11 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,14 +46,17 @@ public class JobService {
             final JobDataService jobDataService,
             final JobCreator jobCreator,
             final ClassLoaderService classLoaderService,
-            final BuildProperties buildProperties) {
+            final BuildProperties buildProperties,
+            final Environment environment) {
         this.jobDataService = jobDataService;
         this.jobCreator = jobCreator;
         this.classLoaderService = classLoaderService;
         this.buildProperties = buildProperties;
 
-        registerAllJobs();
-        jobDataService.setBusyRunsToUnfinished();
+        if (environment.matchesProfiles("!job-run")) {
+            registerAllJobs();
+            setAbortedRunsToUnfinished();
+        }
     }
 
     private void registerAllJobs() {
@@ -87,6 +95,26 @@ public class JobService {
                 jobDataService.delete(job);
             }
         }
+    }
+
+    private void setAbortedRunsToUnfinished() {
+        final var now = Instant.now();
+        jobDataService.findJobRunsWithoutFinishedTimestamp().stream()
+                .filter(ThrowingPredicate.unchecked(this::usesCurrentRunner))
+                .map(
+                        jobRun ->
+                                jobRun.modify()
+                                        .finishedAt(now)
+                                        .state(JobRunState.UNFINISHED)
+                                        .toJobRun())
+                .forEach(jobDataService::saveJobRun);
+    }
+
+    private boolean usesCurrentRunner(final JobRun jobRun) throws ClassNotFoundException {
+        return getProperties(instantiateJob(getJobClass(jobRun.jobId())))
+                        .get(JobPropertyDefinitions.RUNNER)
+                        .value()
+                == JobRunnerKey.CURRENT;
     }
 
     public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {

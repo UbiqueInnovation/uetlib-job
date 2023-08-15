@@ -11,7 +11,6 @@ import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 
@@ -20,7 +19,6 @@ import com.pivovarit.function.ThrowingFunction;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -44,9 +42,6 @@ public class JobDataService {
 
     @PersistenceContext private EntityManager entityManager;
 
-    @Value("${job.startup.setBusyRunsToUnfinished:${job.startup.cleanUpBusyRuns:true}}")
-    private boolean setBusyRunsToUnfinished;
-
     public JobDataService(
             final JobRepository jobRepository,
             final JobTriggerRepository jobTriggerRepository,
@@ -60,34 +55,6 @@ public class JobDataService {
         this.jobRunRepository = jobRunRepository;
         this.jobRunInputRepository = jobRunInputRepository;
         this.loggingEventRepository = loggingEventRepository;
-    }
-
-    @Transactional
-    public void setBusyRunsToUnfinished() {
-        if (!setBusyRunsToUnfinished) {
-            return;
-        }
-
-        final var now = Instant.now();
-        jobRunRepository.saveAllAndFlush(
-                jobRunRepository.findAllByStateAndFinishedAtIsNull(JobRunState.BUSY).stream()
-                        .filter(
-                                // Only for busy jobs with Runner = CURRENT
-                                jobRun ->
-                                        JobRunnerKey.CURRENT
-                                                == getProperty(
-                                                                jobRun.toJobRun().jobId(),
-                                                                JobPropertyDefinitions.RUNNER)
-                                                        .value())
-                        .map(
-                                jobRun ->
-                                        saveJobRun(
-                                                jobRun.toJobRun()
-                                                        .modify()
-                                                        .finishedAt(now)
-                                                        .state(JobRunState.UNFINISHED)
-                                                        .toJobRun()))
-                        .toList());
     }
 
     @Transactional(readOnly = true)
