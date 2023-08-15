@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Constructor;
@@ -71,9 +74,11 @@ public final class JobCreator {
         if (valueAnnotations.length > 0) {
             // in case there is a value specified, get bean by value (no fallback)
             final var value = valueAnnotations[0].value();
-            return ((AnnotationConfigServletWebServerApplicationContext) applicationContext)
-                    .getBeanFactory()
-                    .resolveEmbeddedValue(value);
+            if (applicationContext instanceof final AbstractApplicationContext c)
+                return c.getBeanFactory()
+                        .getTypeConverter()
+                        .convertIfNecessary(
+                                c.getBeanFactory().resolveEmbeddedValue(value), p.getType());
         }
 
         final var qualifierAnnotations = p.getDeclaredAnnotationsByType(Qualifier.class);
