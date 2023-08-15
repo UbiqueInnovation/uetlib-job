@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.model.triggers.FixedRateTrigger;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
+@Profile("!job-run")
 public class FixedRateTriggerService implements TriggerService<FixedRateTrigger> {
 
     private final TaskScheduler taskScheduler;

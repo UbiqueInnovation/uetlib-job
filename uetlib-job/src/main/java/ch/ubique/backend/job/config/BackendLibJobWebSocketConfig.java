@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableWebSocket
 @EnableScheduling
+@Profile("!job-run")
 public class BackendLibJobWebSocketConfig implements WebSocketConfigurer {
 
     private final BackendLibJobWebSocketHandler webSocketHandler;

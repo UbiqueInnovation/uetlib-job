@@ -9,11 +9,13 @@ import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
 @Service
+@Profile("!job-run")
 public class JobErrorStateCheck implements StatusCheck {
 
     private final JobDataService jobDataService;

@@ -5,9 +5,11 @@ import ch.ubique.backend.job.model.client.*;
 import de.westemeyer.version.service.ArtifactVersionCollector;
 
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 @Service
+@Profile("!job-run")
 public class InfoService {
 
     private final BuildProperties buildProperties;

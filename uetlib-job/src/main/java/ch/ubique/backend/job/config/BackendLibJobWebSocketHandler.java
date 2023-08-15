@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -27,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 @Component
+@Profile("!job-run")
 public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger =

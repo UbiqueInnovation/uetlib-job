@@ -46,6 +46,7 @@ public class JobApplication {
 
         final var context =
                 new SpringApplicationBuilder(applicationClass)
+                        .profiles("job-run")
                         .web(WebApplicationType.NONE)
                         .run(args);
 

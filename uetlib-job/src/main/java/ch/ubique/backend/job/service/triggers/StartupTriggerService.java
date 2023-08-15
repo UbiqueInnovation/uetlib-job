@@ -2,9 +2,11 @@ package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.model.triggers.RunOnStartupTrigger;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 @Service
+@Profile("!job-run")
 public class StartupTriggerService implements TriggerService<RunOnStartupTrigger> {
 
     @Override
