@@ -8,6 +8,8 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +28,7 @@ public final class JobCreator {
     public JobCreator(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
-    
+
     public <T extends Job> T createNewJobInstance(final Class<T> jobClass) {
         final var parameters = getConstructor(jobClass).getParameters();
         final var jobConstructorParameters =
@@ -65,6 +67,15 @@ public final class JobCreator {
 
     @NotNull
     private Object getBeanForParameter(final Parameter p) {
+        final var valueAnnotations = p.getDeclaredAnnotationsByType(Value.class);
+        if (valueAnnotations.length > 0) {
+            // in case there is a value specified, get bean by value (no fallback)
+            final var value = valueAnnotations[0].value();
+            return ((AnnotationConfigServletWebServerApplicationContext) applicationContext)
+                    .getBeanFactory()
+                    .resolveEmbeddedValue(value);
+        }
+
         final var qualifierAnnotations = p.getDeclaredAnnotationsByType(Qualifier.class);
         if (qualifierAnnotations.length > 0) {
             // in case there is a qualifier specified, get bean by qualifier (no fallback)
