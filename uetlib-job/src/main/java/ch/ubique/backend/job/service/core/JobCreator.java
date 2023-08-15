@@ -9,11 +9,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.BeanFactoryAnnotationUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
-import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Constructor;
@@ -79,6 +76,9 @@ public final class JobCreator {
                         .getTypeConverter()
                         .convertIfNecessary(
                                 c.getBeanFactory().resolveEmbeddedValue(value), p.getType());
+            throw new IllegalStateException(
+                    "ApplicationContext is not an AbstractApplicationContext but has unexpected type "
+                            + applicationContext.getClass());
         }
 
         final var qualifierAnnotations = p.getDeclaredAnnotationsByType(Qualifier.class);
