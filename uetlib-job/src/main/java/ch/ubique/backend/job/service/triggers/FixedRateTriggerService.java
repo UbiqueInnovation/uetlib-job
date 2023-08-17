@@ -7,7 +7,9 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -25,7 +27,7 @@ public class FixedRateTriggerService implements TriggerService<FixedRateTrigger>
     }
 
     @Override
-    public void onStartup(
+    public void addTrigger(
             final int triggerId,
             final FixedRateTrigger triggerDefinition,
             final Runnable runnable) {
@@ -35,15 +37,6 @@ public class FixedRateTriggerService implements TriggerService<FixedRateTrigger>
         final var period = triggerDefinition.period();
         scheduledJobs.put(
                 triggerId, taskScheduler.scheduleAtFixedRate(runnable, startTime, period));
-    }
-
-    @Override
-    public void addTrigger(
-            final int triggerId,
-            final FixedRateTrigger triggerDefinition,
-            final Runnable runnable) {
-        scheduledJobs.put(
-                triggerId, taskScheduler.scheduleAtFixedRate(runnable, triggerDefinition.period()));
     }
 
     @Override

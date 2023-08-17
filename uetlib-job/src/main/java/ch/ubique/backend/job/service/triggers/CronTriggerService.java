@@ -37,12 +37,6 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
     }
 
     @Override
-    public void onStartup(
-            final int triggerId, final CronTrigger triggerDefinition, final Runnable runnable) {
-        scheduleCronTrigger(triggerId, triggerDefinition, runnable);
-    }
-
-    @Override
     public void addTrigger(
             final int triggerId, final CronTrigger triggerDefinition, final Runnable runnable) {
         scheduleCronTrigger(triggerId, triggerDefinition, runnable);

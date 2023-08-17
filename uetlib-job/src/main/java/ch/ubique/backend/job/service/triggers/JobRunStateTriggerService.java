@@ -99,14 +99,6 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     }
 
     @Override
-    public void onStartup(
-            final int triggerId,
-            final JobRunStateTrigger triggerDefinition,
-            final Runnable runnable) {
-        addTrigger(triggerId, triggerDefinition, runnable);
-    }
-
-    @Override
     public void addTrigger(
             final int triggerId,
             final JobRunStateTrigger triggerDefinition,
