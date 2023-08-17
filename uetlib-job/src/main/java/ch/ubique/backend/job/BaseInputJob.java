@@ -6,17 +6,21 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
-import ch.ubique.backend.job.utils.DefaultRetryListener;
+
+import com.pivovarit.function.exception.WrappedException;
+
+import io.kubernetes.client.openapi.ApiException;
 
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
@@ -47,12 +51,32 @@ public abstract class BaseInputJob<T> implements Job {
     }
 
     /**
-     * This method should be used to fetch data from all needed input sources.
+     * This method should be used to fetch data from all needed input sources. Includes retries with
+     * exponential backoff:
+     *
+     * <p>min delay 2 seconds, max delay 5 minutes with random delays -> should result in ~7 retries
      *
      * @return the data you want to pass to the {@link BaseInputJob#processInputs} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
+    @Retryable(
+            retryFor = ApiException.class,
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true))
     protected abstract DataAndInput<T> loadInputs() throws Exception;
+
+    /**
+     * This method is called as recovery with the thrown exception if {@link #loadInputs()} still
+     * throws an exception after maxAttempts and backoff have run out.
+     *
+     * <p>The return type and all arguments after the Exception must match with the method to
+     * recover from.
+     */
+    @Recover
+    protected DataAndInput<T> loadInputsRecovery(final Exception e) {
+        logger.warn("Loading data failed even after retry and backoff:", e);
+        return null;
+    }
 
     /**
      * This method is called once the data is loaded and can be used to consume the input data.
@@ -78,7 +102,7 @@ public abstract class BaseInputJob<T> implements Job {
         if (jobRunContext == null) {
             throw new IllegalStateException(
                     "This method can only be called during execution of the BaseInputJob::run"
-                        + " method");
+                            + " method");
         }
         return jobRunContext;
     }
@@ -139,28 +163,12 @@ public abstract class BaseInputJob<T> implements Job {
     }
 
     private Optional<DataAndInput<T>> tryLoadingInputs() {
-
-        final var retryTemplate =
-                RetryTemplate.builder()
-                        .maxAttempts(10)
-                        .exponentialBackoff(
-                                Duration.ofSeconds(2).toMillis(),
-                                2,
-                                Duration.ofMinutes(5).toMillis())
-                        .withListener(new DefaultRetryListener(logger))
-                        .build();
-
         try {
-            return retryTemplate.execute(
-                    retryContext -> {
-                        logger.info("Trying to load data.");
-                        final var inputs = loadInputs();
-                        logger.info("Successfully loaded data.");
-                        return Optional.of(inputs);
-                    });
+            return Optional.ofNullable(loadInputs());
         } catch (final Exception e) {
-            logger.warn("Loading data failed", e);
-            return Optional.empty();
+            logger.error(
+                    "should not land here, loadInputsRecovery should have caught the error and recovered from the exception in loadInputs()");
+            throw new WrappedException(e);
         }
     }
 

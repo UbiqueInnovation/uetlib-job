@@ -65,7 +65,7 @@
             </exclusions>
         </dependency>
 
-        <!-- RetryTemplate, convenient way for retrying -->
+        <!-- RetryTemplate and @Retryable, convenient way for retrying -->
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
