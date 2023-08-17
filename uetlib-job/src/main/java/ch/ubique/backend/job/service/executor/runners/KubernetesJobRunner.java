@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Profile;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -40,6 +42,14 @@ public class KubernetesJobRunner implements JobRunner {
         this.applicationContext = applicationContext;
         namespace = getCurrentKubernetesNamespace();
         currentPodName = System.getenv("HOSTNAME");
+    }
+
+    private static String getCurrentKubernetesNamespace() {
+        try {
+            return Namespaces.getPodNamespace();
+        } catch (final IOException e) {
+            return System.getenv("K8S_NAMESPACE");
+        }
     }
 
     @Override
@@ -101,20 +111,21 @@ public class KubernetesJobRunner implements JobRunner {
         }
     }
 
-    private static String getCurrentKubernetesNamespace() {
-        try {
-            return Namespaces.getPodNamespace();
-        } catch (final IOException e) {
-            return System.getenv("K8S_NAMESPACE");
-        }
-    }
-
+    @Retryable(
+            retryFor = ApiException.class,
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true))
     private V1Pod getCurrentPod(final ApiClient client) throws ApiException {
         logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
         final var coreApi = new CoreV1Api(client);
         return coreApi.readNamespacedPod(currentPodName, namespace, null);
     }
 
+    // min delay 2 seconds, max delay 5 minutes with random delays -> should result in ~7 retries
+    @Retryable(
+            retryFor = ApiException.class,
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true))
     private void submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
             throws ApiException {
         final var batchApi = new BatchV1Api(client);
