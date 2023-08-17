@@ -7,7 +7,10 @@ import org.springframework.core.GenericTypeResolver;
 
 public interface TriggerService<T extends TriggerDefinition> {
 
-    void onStartup(final int triggerId, final T triggerDefinition, final Runnable runnable);
+    default void onStartup(
+            final int triggerId, final T triggerDefinition, final Runnable runnable) {
+        addTrigger(triggerId, triggerDefinition, runnable);
+    }
 
     void addTrigger(final int triggerId, final T triggerDefinition, final Runnable runnable);
 
