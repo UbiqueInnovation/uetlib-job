@@ -1,6 +1,10 @@
 package ch.ubique.backend.job.model.triggers;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public enum TriggerType {
     CRON(CronTrigger.class),
@@ -8,21 +12,25 @@ public enum TriggerType {
     FIXED_RATE(FixedRateTrigger.class),
     JOB_RUN_STATE(JobRunStateTrigger.class);
 
+    private static final Map<Class<? extends TriggerDefinition>, TriggerType>
+            TRIGGER_TYPE_BY_DEFINITION_CLASS =
+                    Arrays.stream(TriggerType.values())
+                            .collect(
+                                    Collectors.toUnmodifiableMap(
+                                            TriggerType::defintionClass, Function.identity()));
+
     private final Class<? extends TriggerDefinition> defintionClass;
 
     TriggerType(final Class<? extends TriggerDefinition> defintionClass) {
         this.defintionClass = defintionClass;
     }
 
-    public Class<? extends TriggerDefinition> defintionClass() {
-        return defintionClass;
-    }
-
     public static TriggerType getTypeForClass(
             final Class<? extends TriggerDefinition> defintionClass) {
-        return Arrays.stream(TriggerType.values())
-                .filter(type -> type.defintionClass.equals(defintionClass))
-                .findFirst()
-                .orElseThrow();
+        return Objects.requireNonNull(TRIGGER_TYPE_BY_DEFINITION_CLASS.get(defintionClass));
+    }
+
+    public Class<? extends TriggerDefinition> defintionClass() {
+        return defintionClass;
     }
 }
