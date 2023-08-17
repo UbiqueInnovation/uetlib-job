@@ -115,7 +115,8 @@ public class KubernetesJobRunner implements JobRunner {
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
-            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true))
+            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
+            listeners = "defaultRetryListener")
     private V1Pod getCurrentPod(final ApiClient client) throws ApiException {
         logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
         final var coreApi = new CoreV1Api(client);
@@ -126,7 +127,8 @@ public class KubernetesJobRunner implements JobRunner {
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
-            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true))
+            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
+            listeners = "defaultRetryListener")
     private void submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
             throws ApiException {
         final var batchApi = new BatchV1Api(client);
