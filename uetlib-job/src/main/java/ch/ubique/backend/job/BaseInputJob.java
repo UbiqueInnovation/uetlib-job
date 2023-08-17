@@ -62,7 +62,8 @@ public abstract class BaseInputJob<T> implements Job {
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
-            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true))
+            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
+            listeners = "defaultRetryListener")
     protected abstract DataAndInput<T> loadInputs() throws Exception;
 
     /**
