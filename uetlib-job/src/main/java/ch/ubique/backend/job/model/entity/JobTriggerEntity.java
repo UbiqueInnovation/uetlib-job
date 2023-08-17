@@ -1,22 +1,17 @@
 package ch.ubique.backend.job.model.entity;
 
-import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.persistence.*;
 
-import java.io.IOException;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Table(name = "t_job_trigger")
 @Entity
 public class JobTriggerEntity {
-
-    private static final ObjectMapper objectMapper = ObjectMapperUtils.objectMapper();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,8 +25,10 @@ public class JobTriggerEntity {
     @Enumerated(EnumType.STRING)
     private TriggerType type;
 
-    @Column(name = "data", nullable = false)
-    private String data;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Convert(converter = TriggerDefinitionToStringConverter.class)
+    @Column(name = "trigger_definition", nullable = false)
+    private TriggerDefinition triggerDefinition;
 
     public JobTriggerEntity() {}
 
@@ -48,18 +45,10 @@ public class JobTriggerEntity {
         this.id = id;
         this.jobId = jobId;
         this.type = triggerDefinition.type();
-        try {
-            this.data = objectMapper.writeValueAsString(triggerDefinition);
-        } catch (final JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        this.triggerDefinition = triggerDefinition;
     }
 
     public Trigger toTrigger() {
-        try {
-            return new Trigger(id, jobId, objectMapper.readValue(data, type.defintionClass()));
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
-        }
+        return new Trigger(id, jobId, triggerDefinition);
     }
 }
