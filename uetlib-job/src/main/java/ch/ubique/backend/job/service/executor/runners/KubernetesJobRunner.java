@@ -111,6 +111,7 @@ public class KubernetesJobRunner implements JobRunner {
         }
     }
 
+    // min delay 2 seconds, max delay 5 minutes with random delays -> should result in ~7 retries
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
