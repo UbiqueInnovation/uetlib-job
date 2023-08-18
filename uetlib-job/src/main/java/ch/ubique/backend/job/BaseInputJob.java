@@ -60,7 +60,7 @@ public abstract class BaseInputJob<T> implements Job {
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
     @Retryable(
-            retryFor = ApiException.class,
+            retryFor = Exception.class,
             maxAttempts = 10,
             backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
             listeners = "defaultRetryListener")
