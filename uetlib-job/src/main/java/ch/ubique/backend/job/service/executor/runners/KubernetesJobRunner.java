@@ -111,7 +111,7 @@ public class KubernetesJobRunner implements JobRunner {
         }
     }
 
-    // min delay 2 seconds, max delay 5 minutes with random delays -> should result in ~7 retries
+    // min delay 2 seconds, max delay 5 minutes with random delays
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
@@ -123,7 +123,7 @@ public class KubernetesJobRunner implements JobRunner {
         return coreApi.readNamespacedPod(currentPodName, namespace, null);
     }
 
-    // min delay 2 seconds, max delay 5 minutes with random delays -> should result in ~7 retries
+    // min delay 2 seconds, max delay 5 minutes with random delays
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,

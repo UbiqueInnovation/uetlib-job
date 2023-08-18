@@ -54,7 +54,7 @@ public abstract class BaseInputJob<T> implements Job {
      * This method should be used to fetch data from all needed input sources. Includes retries with
      * exponential backoff:
      *
-     * <p>min delay 2 seconds, max delay 5 minutes with random delays -> should result in ~7 retries
+     * <p>min delay 2 seconds, max delay 5 minutes with random delays
      *
      * @return the data you want to pass to the {@link BaseInputJob#processInputs} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
