@@ -10,6 +10,7 @@ public enum TriggerType {
     CRON(CronTrigger.class),
     STARTUP(RunOnStartupTrigger.class),
     FIXED_RATE(FixedRateTrigger.class),
+    FILE(FileTrigger.class),
     JOB_RUN_STATE(JobRunStateTrigger.class);
 
     private static final Map<Class<? extends TriggerDefinition>, TriggerType>

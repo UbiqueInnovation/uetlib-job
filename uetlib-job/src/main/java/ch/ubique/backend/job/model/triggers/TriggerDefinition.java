@@ -19,8 +19,11 @@ import jakarta.validation.constraints.NotNull;
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface TriggerDefinition
-        permits CronTrigger, FixedRateTrigger, JobRunStateTrigger, RunOnStartupTrigger {
-
+        permits CronTrigger,
+                FileTrigger,
+                FixedRateTrigger,
+                JobRunStateTrigger,
+                RunOnStartupTrigger {
     @NotNull
     @JsonProperty
     default TriggerType type() {
