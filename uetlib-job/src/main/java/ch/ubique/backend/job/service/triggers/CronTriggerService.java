@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.service.triggers;
 
-import static java.util.Optional.ofNullable;
-
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 
 import org.slf4j.Logger;
@@ -13,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
@@ -61,7 +60,8 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
                         runnable,
                         new org.springframework.scheduling.support.CronTrigger(
                                 cronDefinition.cronExpression(),
-                                ofNullable(cronDefinition.timeZone()).orElse(defaultZoneId)));
+                                Objects.requireNonNullElse(
+                                        cronDefinition.timeZone(), defaultZoneId)));
         scheduledCronJobs.put(triggerId, scheduledFuture);
         logger.info("Scheduled cron trigger {} with definition {}", triggerId, cronDefinition);
     }

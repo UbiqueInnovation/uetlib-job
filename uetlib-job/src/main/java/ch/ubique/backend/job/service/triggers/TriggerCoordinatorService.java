@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -124,11 +125,9 @@ public class TriggerCoordinatorService {
             final T triggerDefinition) {
         final var type = triggerDefinition.type();
         final var triggerService = (TriggerService<T>) triggerServices.get(type);
-        return Optional.ofNullable(triggerService)
-                .orElseThrow(
-                        () ->
-                                new NoSuchElementException(
-                                        "No " + TriggerService.class + " for " + type + " found."));
+        return Objects.requireNonNull(
+                triggerService,
+                () -> MessageFormat.format("No {0} for {1} found.", TriggerService.class, type));
     }
 
     private Runnable runnable(final Class<? extends Job> jobClass) {

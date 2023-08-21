@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.service.executor;
 
-import static java.util.Optional.ofNullable;
-
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
@@ -21,6 +19,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -106,7 +105,7 @@ public class JobExecutorService {
         return new JobRunContext(
                 new JobClassAndId(jobService.getId(job), job.getClass().getCanonicalName()),
                 jobService.getOrCreateJobRun(job, runId),
-                ofNullable(arguments).orElse(JobRunArguments.DEFAULT),
+                Objects.requireNonNullElse(arguments, JobRunArguments.DEFAULT),
                 jobService.getProperties(job));
     }
 
@@ -115,7 +114,8 @@ public class JobExecutorService {
             final JobRunContext context, @Nullable final JobRunnerKey jobRunnerKey) {
 
         final var selectedRunnerKey =
-                ofNullable(jobRunnerKey).orElseGet(() -> getRunnerKeyFromJobProperties(context));
+                Objects.requireNonNullElseGet(
+                        jobRunnerKey, () -> getRunnerKeyFromJobProperties(context));
 
         if (!jobRunners.containsKey(selectedRunnerKey)) {
             throw new NoSuchElementException(
