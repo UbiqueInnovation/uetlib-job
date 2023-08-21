@@ -59,8 +59,8 @@ public final class JobCreator {
                                 new NoSuchElementException(
                                         MessageFormat.format(
                                                 "Either declare a single, default, public"
-                                                        + " constructor or annotate one with annotation"
-                                                        + " ''@{0}'' for job ''{1}''",
+                                                    + " constructor or annotate one with annotation"
+                                                    + " ''@{0}'' for job ''{1}''",
                                                 JobAutowireConstructor.class.getCanonicalName(),
                                                 jobClass.getCanonicalName())));
     }
@@ -77,7 +77,8 @@ public final class JobCreator {
                         .convertIfNecessary(
                                 c.getBeanFactory().resolveEmbeddedValue(value), p.getType());
             throw new IllegalStateException(
-                    "ApplicationContext is not an AbstractApplicationContext but has unexpected type "
+                    "ApplicationContext is not an AbstractApplicationContext but has unexpected"
+                        + " type "
                             + applicationContext.getClass());
         }
 
