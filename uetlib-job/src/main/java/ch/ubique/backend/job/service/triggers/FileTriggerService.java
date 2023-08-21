@@ -3,7 +3,6 @@ package ch.ubique.backend.job.service.triggers;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +83,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
         return changeEvent == trigger.changeEvent()
                 && path.equals(Path.of(trigger.folder()))
-                && file.toString().matches(trigger.fileRegex());
+                && trigger.fileRegex().matcher(file.toString()).matches();
     }
 
     private static FileChangeEvent getChangeEvent(final WatchEvent.Kind<?> kind) {
@@ -107,7 +106,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     public void addTrigger(
             final int triggerId, final FileTrigger triggerDefinition, final Runnable runnable) {
         watchPath(Path.of(triggerDefinition.folder()));
-        registeredTriggers.put(triggerId, new ImmutablePair<>(triggerDefinition, runnable));
+        registeredTriggers.put(triggerId, Pair.of(triggerDefinition, runnable));
     }
 
     private void watchPath(final Path path) {
