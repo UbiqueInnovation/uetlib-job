@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.regex.Pattern;
 
 class FileTriggerServiceTest {
 
@@ -21,9 +22,13 @@ class FileTriggerServiceTest {
         final var tempDir = Files.createTempDirectory(null);
 
         final var anyFileCreated =
-                new FileTrigger(tempDir.toString(), ".*", FileChangeEvent.ENTRY_CREATED);
+                new FileTrigger(
+                        tempDir.toString(), Pattern.compile(".*"), FileChangeEvent.ENTRY_CREATED);
         final var testFileDeleted =
-                new FileTrigger(tempDir.toString(), "test.txt", FileChangeEvent.ENTRY_DELETED);
+                new FileTrigger(
+                        tempDir.toString(),
+                        Pattern.compile("test.txt"),
+                        FileChangeEvent.ENTRY_DELETED);
 
         try (final var fileTriggerService = new FileTriggerService()) {
 
