@@ -9,8 +9,6 @@ import ch.ubique.backend.job.storage.JobRunStorage;
 
 import com.pivovarit.function.exception.WrappedException;
 
-import io.kubernetes.client.openapi.ApiException;
-
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -168,7 +166,8 @@ public abstract class BaseInputJob<T> implements Job {
             return Optional.ofNullable(loadInputs());
         } catch (final Exception e) {
             logger.error(
-                    "should not land here, loadInputsRecovery should have caught the error and recovered from the exception in loadInputs()");
+                    "should not land here, loadInputsRecovery should have caught the error and"
+                        + " recovered from the exception in loadInputs()");
             throw new WrappedException(e);
         }
     }

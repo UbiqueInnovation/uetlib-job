@@ -61,7 +61,8 @@ public class KubernetesJobRunner implements JobRunner {
     public boolean isAvailable() {
         if (StringUtils.isBlank(namespace)) {
             logger.warn(
-                    "Could not get kubernetes namespace. If you are running the job on your local machine, this is the expected behaviour.");
+                    "Could not get kubernetes namespace. If you are running the job on your local"
+                        + " machine, this is the expected behaviour.");
             return false;
         }
 

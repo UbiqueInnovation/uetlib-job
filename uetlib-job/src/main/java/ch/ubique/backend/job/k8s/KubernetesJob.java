@@ -37,6 +37,10 @@ public abstract class KubernetesJob implements Job {
         return new KubernetesJobWrapper(applicationContext, job);
     }
 
+    private static String namespace(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return kubernetesJobRunContext.kubernetesContext().currentNamespace();
+    }
+
     public ApiClient apiClient() throws IOException {
         return Config.defaultClient();
     }
@@ -54,7 +58,7 @@ public abstract class KubernetesJob implements Job {
 
         logger.error(
                 "This method should never be called. Please make sure this job is scheduled as"
-                    + " dedicated k8s job using the specified docker image.");
+                        + " dedicated k8s job using the specified docker image.");
         return JobRunState.ERROR;
     }
 
@@ -89,10 +93,6 @@ public abstract class KubernetesJob implements Job {
         return new V1JobSpec()
                 .ttlSecondsAfterFinished((int) ttl.toSeconds())
                 .template(new V1PodTemplateSpec().spec(podSpec(kubernetesJobRunContext)));
-    }
-
-    private static String namespace(final KubernetesJobRunContext kubernetesJobRunContext) {
-        return kubernetesJobRunContext.kubernetesContext().currentNamespace();
     }
 
     protected String jobName(final KubernetesJobRunContext kubernetesJobRunContext) {

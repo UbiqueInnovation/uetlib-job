@@ -41,9 +41,9 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<RunnerGroup> RUNNER_GROUP =
             new GenericPropertyDefinition<>(
                     "RUNNER_GROUP",
-                    "Jobs with the same runner group share the same executor service. "
-                            + "Jobs with different groups use different executors and may run in parallel. "
-                            + "Only applicable for RUNNER == CURRENT",
+                    "Jobs with the same runner group share the same executor service. Jobs with"
+                        + " different groups use different executors and may run in parallel. Only"
+                        + " applicable for RUNNER == CURRENT",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     new RunnerGroup("default", 1),

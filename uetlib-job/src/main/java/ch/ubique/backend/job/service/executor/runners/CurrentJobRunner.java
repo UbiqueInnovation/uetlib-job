@@ -32,6 +32,10 @@ public final class CurrentJobRunner implements JobRunner {
         executorServices = new ConcurrentHashMap<>();
     }
 
+    private static RunnerGroup runnerGroup(final JobRunContext context) {
+        return context.properties().get(RUNNER_GROUP).value();
+    }
+
     @Override
     public JobRunnerKey key() {
         return JobRunnerKey.CURRENT;
@@ -47,10 +51,6 @@ public final class CurrentJobRunner implements JobRunner {
         final var executorService = getExecutorService(runnerGroup);
         executorService.submit(() -> run(job, context));
         return true;
-    }
-
-    private static RunnerGroup runnerGroup(final JobRunContext context) {
-        return context.properties().get(RUNNER_GROUP).value();
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
@@ -111,7 +111,8 @@ public final class CurrentJobRunner implements JobRunner {
         if (!runnerGroup.allowedJobs().isEmpty()
                 && !runnerGroup.allowedJobs().contains(job.getClass())) {
             logger.error(
-                    "The runner group only allows the following job classes: {} but a job of the following class was provided:  {}",
+                    "The runner group only allows the following job classes: {} but a job of the"
+                        + " following class was provided:  {}",
                     runnerGroup.allowedJobs(),
                     job.getClass());
             return false;

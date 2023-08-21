@@ -16,7 +16,6 @@ public class TriggerDefinitionToStringConverter
 
     private final ObjectMapper objectMapper = ObjectMapperUtils.objectMapper();
 
-
     @Override
     public String convertToDatabaseColumn(final TriggerDefinition attribute) {
         try {
