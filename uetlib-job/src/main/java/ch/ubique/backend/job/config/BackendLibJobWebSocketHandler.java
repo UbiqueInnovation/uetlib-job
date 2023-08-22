@@ -22,7 +22,6 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -50,7 +49,7 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         encoder = new PatternLayoutEncoder();
         encoder.setPattern(
                 "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint}"
-                    + " %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
+                        + " %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
         encoder.setCharset(StandardCharsets.UTF_8);
         encoder.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
         encoder.start();
@@ -80,13 +79,9 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
                     final var session = pair.getLeft();
                     final var jobRunId = pair.getMiddle();
                     final var counter = pair.getRight();
-                    getLogLines(jobRunId)
-                            .flatMap(
-                                    lines ->
-                                            lines.skip(counter.get())
-                                                    .limit(PAGE_SIZE)
-                                                    .peek(line -> counter.incrementAndGet())
-                                                    .reduce((acc, line) -> acc + "\n" + line))
+                    getLogLines(jobRunId, counter.get())
+                            .peek(line -> counter.incrementAndGet())
+                            .reduce((acc, line) -> acc + "\n" + line)
                             .map(TextMessage::new)
                             .ifPresent(
                                     message -> {
@@ -103,16 +98,15 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
                 });
     }
 
-    @NotNull
-    private Optional<Stream<String>> getLogLines(final Integer jobRunId) {
+    private Stream<String> getLogLines(final Integer jobRunId, final long skipLines) {
 
         final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         loggerContext.getLogger("ROOT").getAppender("console");
 
-        return Optional.of(
-                jobDataService.findLogsForJobRun(jobRunId).stream()
-                        .map(encoder::encode)
-                        .map(bytes -> new String(bytes, StandardCharsets.UTF_8)));
+        return jobDataService
+                .findLogsForJobRun(jobRunId, skipLines, BackendLibJobWebSocketHandler.PAGE_SIZE)
+                .map(encoder::encode)
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8));
     }
 
     record Message(int jobRunId) {}

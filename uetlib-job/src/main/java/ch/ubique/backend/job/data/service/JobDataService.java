@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class JobDataService {
@@ -154,10 +155,12 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public List<LoggingEvent> findLogsForJobRun(final int jobRunId) {
-        return loggingEventRepository.findByJobRunId(String.valueOf(jobRunId)).stream()
-                .map(LoggingEventEntity::toLoggingEvent)
-                .toList();
+    public Stream<LoggingEvent> findLogsForJobRun(
+            final int jobRunId, final long skipLines, final int pageSize) {
+        return loggingEventRepository
+                .findByJobRunId(String.valueOf(jobRunId), skipLines, pageSize)
+                .stream()
+                .map(LoggingEventEntity::toLoggingEvent);
     }
 
     @Transactional(readOnly = true)
