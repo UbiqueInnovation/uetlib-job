@@ -32,7 +32,7 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger =
             LoggerFactory.getLogger(BackendLibJobWebSocketHandler.class);
-    private static final int PAGE_SIZE = 50000;
+    private static final int PAGE_SIZE = 5000;
 
     private final ObjectMapper objectMapper;
     private final JobDataService jobDataService;
