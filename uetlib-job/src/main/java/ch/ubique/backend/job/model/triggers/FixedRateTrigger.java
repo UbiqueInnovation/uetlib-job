@@ -4,4 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.time.Duration;
 
-public record FixedRateTrigger(@NotBlank Duration period) implements TriggerDefinition {}
+public record FixedRateTrigger(@NotBlank Duration period, Duration initialDelay)
+        implements TriggerDefinition {
+    public FixedRateTrigger(@NotBlank final Duration period) {
+        this(period, null);
+    }
+}
