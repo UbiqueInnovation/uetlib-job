@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
@@ -28,15 +29,12 @@ public class FixedRateTriggerService implements TriggerService<FixedRateTrigger>
             final int triggerId,
             final FixedRateTrigger triggerDefinition,
             final Runnable runnable) {
+        final var now = Instant.now();
+        final var startTime =
+                Optional.ofNullable(triggerDefinition.initialDelay()).map(now::plus).orElse(now);
+        final var period = triggerDefinition.period();
         scheduledJobs.put(
-                triggerId,
-                taskScheduler.scheduleAtFixedRate(
-                        runnable,
-                        triggerDefinition.initialDelay() != null
-                                ? Instant.now()
-                                        .plus(triggerDefinition.initialDelay()) // use if specified
-                                : Instant.now(), // Spring implementation: Default if not specified
-                        triggerDefinition.period()));
+                triggerId, taskScheduler.scheduleAtFixedRate(runnable, startTime, period));
     }
 
     @Override
