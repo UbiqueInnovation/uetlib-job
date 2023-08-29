@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,8 +42,6 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final LoggingEventRepository loggingEventRepository;
-    @PersistenceContext private EntityManager entityManager;
-
     @PersistenceContext private EntityManager entityManager;
 
     public JobDataService(
@@ -207,7 +206,10 @@ public class JobDataService {
         final var finishedBefore =
                 jobRunRepository
                         .findFirstByStateAndAndJobIdOrderByFinishedAtDesc(JobRunState.DONE, jobId)
-                        .map(jobRun -> jobRun.getFinishedAt().minus(daysToKeep, ChronoUnit.DAYS))
+                        .map(
+                                jobRun ->
+                                        Objects.requireNonNull(jobRun.finishedAt())
+                                                .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.MIN);
         // JPA will throw an error when attempting to return JobRun from the select statement below
         // --> need to cast
