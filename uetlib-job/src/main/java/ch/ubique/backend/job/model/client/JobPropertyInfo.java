@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public record JobPropertyInfo(
         @NotBlank String key,
@@ -47,6 +48,6 @@ public record JobPropertyInfo(
                 defaultValue,
                 definition.nullable(),
                 definition.description(),
-                Objects.requireNonNullElse(value, defaultValue));
+                Optional.ofNullable(value).orElse(defaultValue));
     }
 }
