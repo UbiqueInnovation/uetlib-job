@@ -2,6 +2,8 @@ package ch.ubique.backend.job.service.controller;
 
 import ch.ubique.backend.job.model.client.*;
 
+import com.github.zafarkhaja.semver.Version;
+
 import de.westemeyer.version.service.ArtifactVersionCollector;
 
 import org.springframework.boot.info.BuildProperties;
@@ -19,8 +21,26 @@ public class InfoService {
     }
 
     public InfoResponse getInfo() {
-        final var backendLibArtifact =
-                ArtifactVersionCollector.findArtifact("ch.ubique", "backend-jvm-lib-job");
-        return new InfoResponse(buildProperties.getVersion(), backendLibArtifact.getVersion());
+        final var mavenVersion = Version.valueOf(buildProperties.getVersion());
+        final var backendLibVersion =
+                Version.valueOf(
+                        ArtifactVersionCollector.findArtifact("ch.ubique", "backend-jvm-lib-job")
+                                .getVersion());
+        final var swisstopoBackendSharedVersion =
+                Version.valueOf(
+                        ArtifactVersionCollector.findArtifact(
+                                        "ch.admin.swisstopo.shared",
+                                        "swisstopo-backend-shared-service")
+                                .getVersion());
+        final var sacBackendSharedVersion =
+                Version.valueOf(
+                        ArtifactVersionCollector.findArtifact(
+                                        "ch.sac.shared", "sac-backend-shared-service")
+                                .getVersion());
+        return new InfoResponse(
+                mavenVersion,
+                backendLibVersion,
+                swisstopoBackendSharedVersion,
+                sacBackendSharedVersion);
     }
 }
