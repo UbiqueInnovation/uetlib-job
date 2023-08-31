@@ -2,8 +2,8 @@ package ch.ubique.backend.job.controller;
 
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
-import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
+import ch.ubique.backend.job.model.client.triggers.JobTriggers;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
 import org.springframework.context.annotation.Profile;
@@ -59,23 +59,31 @@ public class BackendLibJobStatusController {
         return jobControllerService.findJobRun(jobRunId);
     }
 
-    @PostMapping("/job/{id}/update")
-    public JobInfo updateJob(@PathVariable final int id, @RequestParam final String cronExpression)
+    @GetMapping("/job/{idOrClassName}/properties")
+    public Collection<JobPropertyInfo> getProperties(@PathVariable final String idOrClassName)
             throws ClassNotFoundException {
-        return jobControllerService.updateCronExpression(id, cronExpression);
+        return jobControllerService.getJobProperties(idOrClassName);
     }
 
-    @GetMapping("/job/{id}/properties")
-    public Collection<JobPropertyInfo> getProperties(@PathVariable final int id)
-            throws ClassNotFoundException {
-        return jobControllerService.getJobProperties(id);
-    }
-
-    @PostMapping("/job/{id}/properties")
+    @PostMapping("/job/{idOrClassName}/properties")
     public Collection<JobPropertyInfo> updateProperties(
-            @PathVariable final int id, @RequestBody final Map<String, String> updatedValues)
+            @PathVariable final String idOrClassName,
+            @RequestBody final Map<String, String> updatedValues)
             throws ClassNotFoundException {
-        return jobControllerService.updateJobProperties(id, updatedValues);
+        return jobControllerService.updateJobProperties(idOrClassName, updatedValues);
+    }
+
+    @GetMapping("/job/{idOrClassName}/triggers")
+    public JobTriggers getTriggers(@PathVariable final String idOrClassName)
+            throws ClassNotFoundException {
+        return jobControllerService.getJobTriggers(idOrClassName);
+    }
+
+    @PostMapping("/job/{idOrClassName}/triggers")
+    public JobTriggers updateTriggers(
+            @PathVariable final String idOrClassName, @RequestBody final JobTriggers updatedValues)
+            throws ClassNotFoundException {
+        return jobControllerService.updateJobTriggers(idOrClassName, updatedValues);
     }
 
     @PostMapping("/job/{idOrClassName}/start")
@@ -83,11 +91,7 @@ public class BackendLibJobStatusController {
             @PathVariable final String idOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        try {
-            jobControllerService.startJob(Integer.parseInt(idOrClassName), forceRun);
-        } catch (final NumberFormatException ignored) {
-            jobControllerService.startJob(idOrClassName, forceRun);
-        }
+        jobControllerService.startJob(idOrClassName, forceRun);
     }
 
     @PostMapping("/job/start_all")
