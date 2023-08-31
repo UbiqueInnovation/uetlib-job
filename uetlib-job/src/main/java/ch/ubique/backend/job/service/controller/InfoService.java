@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -33,12 +34,14 @@ public class InfoService {
                                 final var groupId = pair.getLeft();
                                 final var artifactId = pair.getRight();
                                 final var version =
-                                        Version.valueOf(
-                                                ArtifactVersionCollector.findArtifact(
-                                                                groupId, artifactId)
-                                                        .getVersion());
-                                return new Artifact(groupId, artifactId, version);
+                                        ArtifactVersionCollector.findArtifact(groupId, artifactId)
+                                                .getVersion();
+                                if (version == null) {
+                                    return null;
+                                }
+                                return new Artifact(groupId, artifactId, Version.valueOf(version));
                             })
+                    .filter(Objects::nonNull)
                     .sorted(
                             Comparator.comparing(Artifact::groupId)
                                     .thenComparing(Artifact::artifactId))
@@ -52,11 +55,6 @@ public class InfoService {
 
     public InfoResponse getInfo() {
         final var mavenVersion = Version.valueOf(buildProperties.getVersion());
-        final var backendLibVersion =
-                ARTIFACTS.stream()
-                        .filter(artifact -> "backend-jvm-lib-job".equals(artifact.artifactId()))
-                        .map(Artifact::version)
-                        .collect(MoreCollectors.onlyElement());
-        return new InfoResponse(mavenVersion, backendLibVersion, ARTIFACTS);
+        return new InfoResponse(mavenVersion, ARTIFACTS);
     }
 }

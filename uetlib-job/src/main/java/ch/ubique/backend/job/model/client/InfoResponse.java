@@ -8,10 +8,6 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.Collection;
 
-/**
- * @param backendLibVersion deprecated, use {@link #artifacts}
- */
 public record InfoResponse(
         @NotBlank Version projectVersion,
-        @NotBlank Version backendLibVersion,
         @NotNull Collection<Artifact> artifacts) {}
