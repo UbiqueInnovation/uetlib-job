@@ -1,13 +1,17 @@
 package ch.ubique.backend.job.model.client;
 
-import ch.ubique.backend.core.validator.NullOrNotBlank;
 
 import com.github.zafarkhaja.semver.Version;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
+import java.util.Collection;
+
+/**
+ * @param backendLibVersion deprecated, use {@link #artifacts}
+ */
 public record InfoResponse(
         @NotBlank Version projectVersion,
         @NotBlank Version backendLibVersion,
-        @NullOrNotBlank Version swisstopoBackendSharedVersion,
-        @NullOrNotBlank Version sacBackendSharedVersion) {}
+        @NotNull Collection<Artifact> artifacts) {}
