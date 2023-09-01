@@ -3,7 +3,6 @@ package ch.ubique.backend.job.service.controller;
 import ch.ubique.backend.job.model.client.*;
 
 import com.github.zafarkhaja.semver.Version;
-import com.google.common.collect.MoreCollectors;
 
 import de.westemeyer.version.service.ArtifactVersionCollector;
 
@@ -12,10 +11,7 @@ import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @Profile("!job-run")
@@ -33,13 +29,17 @@ public class InfoService {
                             pair -> {
                                 final var groupId = pair.getLeft();
                                 final var artifactId = pair.getRight();
-                                final var version =
-                                        ArtifactVersionCollector.findArtifact(groupId, artifactId)
-                                                .getVersion();
-                                if (version == null) {
-                                    return null;
-                                }
-                                return new Artifact(groupId, artifactId, Version.valueOf(version));
+                                return Optional.ofNullable(
+                                                ArtifactVersionCollector.findArtifact(
+                                                        groupId, artifactId))
+                                        .map(
+                                                artifact ->
+                                                        new Artifact(
+                                                                groupId,
+                                                                artifactId,
+                                                                Version.valueOf(
+                                                                        artifact.getVersion())))
+                                        .orElse(null);
                             })
                     .filter(Objects::nonNull)
                     .sorted(
