@@ -63,7 +63,7 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
         logger.info("Scheduled cron trigger {} with definition {}", triggerId, cronDefinition);
     }
 
-    public ZoneId getDefaultZoneId() {
+    public @NotNull ZoneId getDefaultZoneId() {
         return defaultZoneId;
     }
 }
