@@ -24,6 +24,10 @@ public final class HealthCheckJob implements Job {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    public static RunnerGroup runnerGroup() {
+        return new RunnerGroup("health-check", 1, Set.of(HealthCheckJob.class));
+    }
+
     /**
      * @return We use the following semantic:
      *     <p>{@link JobRunState#ERROR} if an unfixable error was encountered
@@ -38,15 +42,13 @@ public final class HealthCheckJob implements Job {
     }
 
     @Override
+    @NotNull
     public JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new FixedRateTrigger(Duration.ofMinutes(10)));
     }
 
-    public static RunnerGroup runnerGroup() {
-        return new RunnerGroup("health-check", 1, Set.of(HealthCheckJob.class));
-    }
-
     @Override
+    @NotNull
     public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),
