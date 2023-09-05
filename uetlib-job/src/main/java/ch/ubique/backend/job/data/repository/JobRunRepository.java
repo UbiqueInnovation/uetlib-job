@@ -42,7 +42,7 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     Optional<JobRunEntity> findById(int id);
 
-    Optional<JobRun> findFirstByStateAndAndJobIdOrderByFinishedAtDesc(
+    Optional<JobRun> findFirstByStateAndFinishedAtIsNotNullAndJobIdOrderByFinishedAtDesc(
             JobRunState jobRunState, int jobId);
 
     Page<JobRunEntity> findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
