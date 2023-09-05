@@ -205,7 +205,8 @@ public class JobDataService {
             final int jobId, final int daysToKeep, final int chunkSize) {
         final var finishedBefore =
                 jobRunRepository
-                        .findFirstByStateAndAndJobIdOrderByFinishedAtDesc(JobRunState.DONE, jobId)
+                        .findFirstByStateAndFinishedAtIsNotNullAndJobIdOrderByFinishedAtDesc(
+                                JobRunState.DONE, jobId)
                         .map(
                                 jobRun ->
                                         Objects.requireNonNull(jobRun.finishedAt())
