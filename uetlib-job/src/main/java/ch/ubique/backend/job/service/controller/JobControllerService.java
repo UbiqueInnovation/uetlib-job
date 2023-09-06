@@ -8,7 +8,7 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
-import ch.ubique.backend.job.model.client.JobInfosContainer.JobInfo;
+import ch.ubique.backend.job.model.client.JobInfo;
 import ch.ubique.backend.job.model.client.info.*;
 import ch.ubique.backend.job.model.client.triggers.JobTrigger;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
@@ -22,6 +22,7 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -57,14 +58,29 @@ public class JobControllerService {
         this.triggerCoordinatorService = triggerCoordinatorService;
     }
 
-    public JobInfosContainer findJobs() throws ClassNotFoundException {
+    private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
+        final var list = new ArrayList<JobProperty<?>>(properties.values().size());
+        for (final var entry : properties.entrySet()) {
+            list.add(
+                    JobPropertyDefinitions.get(entry.getKey())
+                            .createPropertyFromString(entry.getValue()));
+        }
+        return list;
+    }
+
+    public JobInfosContainer findAllJobs() throws ClassNotFoundException {
         final var jobs = jobDataService.findJobs();
         final var latestRuns = findLatestJobRuns(jobs);
+        return new JobInfosContainer(findJobs(), latestRuns);
+    }
+
+    public List<JobInfo> findJobs() throws ClassNotFoundException {
+        final var jobs = jobDataService.findJobs();
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var job : jobs) {
             jobInfos.add(jobInfo(jobService.instantiateJob(jobService.getJobClass(job.id()))));
         }
-        return new JobInfosContainer(jobInfos, latestRuns);
+        return jobInfos;
     }
 
     public Map<Integer, JobRunInfo> findLatestJobRuns(final List<JobClassAndId> jobs) {
@@ -80,16 +96,14 @@ public class JobControllerService {
     }
 
     public JobRunInfosContainer findJobRuns(
-            final int page, final Integer jobId, final JobRunState state) {
-        final var jobNames =
-                jobDataService.findJobs().stream()
-                        .collect(
-                                Collectors.toUnmodifiableMap(
-                                        JobClassAndId::id, JobClassAndId::name));
+            final int page, final Integer jobId, final JobRunState state) throws ClassNotFoundException {
+        final var jobs = findJobs().stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
+        final var jobNames = jobs.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().name()));
         final var jobRunsPage = jobDataService.findJobRuns(page, PAGE_SIZE, jobId, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
+                jobs,
                 jobNames,
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
@@ -206,16 +220,6 @@ public class JobControllerService {
                 triggerCoordinatorService.getTriggers(job).stream().map(JobTrigger::new).toList());
     }
 
-    private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
-        final var list = new ArrayList<JobProperty<?>>(properties.values().size());
-        for (final var entry : properties.entrySet()) {
-            list.add(
-                    JobPropertyDefinitions.get(entry.getKey())
-                            .createPropertyFromString(entry.getValue()));
-        }
-        return list;
-    }
-
     public JobSystemInfoResponse getInfo() {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
@@ -225,6 +229,23 @@ public class JobControllerService {
 
     private List<JobSystemSchedulerGroupInfo> getGroups() {
         return List.of();
+    }
+
+    /**
+     * @deprecated since v1.5, use {@link #updateJobTriggers}
+     */
+    @Deprecated(since = "1.5", forRemoval = true)
+    public JobInfo updateCronExpression(final int jobId, final String cronExpression)
+            throws ClassNotFoundException {
+        final var jobClass = jobService.getJobClass(jobId);
+        final var job = jobService.instantiateJob(jobClass);
+        getCronTriggers(job).forEach(triggerCoordinatorService::deleteTrigger);
+        if (StringUtils.isNotBlank(cronExpression)
+            && CronExpression.isValidExpression(cronExpression)) {
+            triggerCoordinatorService.createTrigger(jobClass, new CronTrigger(cronExpression));
+        }
+
+        return jobInfo(job);
     }
 
     private Job getJobInstance(final String idOrClassName) throws ClassNotFoundException {
