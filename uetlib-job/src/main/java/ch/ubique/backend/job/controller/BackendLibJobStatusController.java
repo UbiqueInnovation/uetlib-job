@@ -38,14 +38,15 @@ public class BackendLibJobStatusController {
 
     @GetMapping("/jobs")
     public JobInfosContainer jobs() throws ClassNotFoundException {
-        return jobControllerService.findJobs();
+        return jobControllerService.findAllJobs();
     }
 
     @GetMapping("/runs")
     public JobRunInfosContainer jobRuns(
             @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
             @RequestParam(value = "jobId", required = false) final Integer jobId,
-            @RequestParam(value = "state", required = false) final JobRunState state) {
+            @RequestParam(value = "state", required = false) final JobRunState state)
+            throws ClassNotFoundException {
         return jobControllerService.findJobRuns(page, jobId, state);
     }
 
@@ -57,6 +58,16 @@ public class BackendLibJobStatusController {
     @GetMapping("/run/{jobRunId}")
     public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
         return jobControllerService.findJobRun(jobRunId);
+    }
+
+    /**
+     * @deprecated since v1.5, use {@link #updateTriggers}
+     */
+    @Deprecated(since = "1.5", forRemoval = true)
+    @PostMapping("/job/{id}/update")
+    public JobInfo updateJob(@PathVariable final int id, @RequestParam final String cronExpression)
+            throws ClassNotFoundException {
+        return jobControllerService.updateCronExpression(id, cronExpression);
     }
 
     @GetMapping("/job/{idOrClassName}/properties")
