@@ -37,17 +37,21 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/jobs")
-    public JobInfosContainer jobs() throws ClassNotFoundException {
-        return jobControllerService.findAllJobs();
+    public JobInfosContainer jobs(
+            @RequestParam(required = false) final Integer page,
+            @RequestParam(required = false, defaultValue = "25") final int perPage)
+            throws ClassNotFoundException {
+        return jobControllerService.findJobs(page, perPage);
     }
 
     @GetMapping("/runs")
     public JobRunInfosContainer jobRuns(
-            @RequestParam(value = "page", required = false, defaultValue = "0") final int page,
-            @RequestParam(value = "jobId", required = false) final Integer jobId,
-            @RequestParam(value = "state", required = false) final JobRunState state)
+            @RequestParam(required = false, defaultValue = "0") final int page,
+            @RequestParam(required = false, defaultValue = "25") final int perPage,
+            @RequestParam(required = false) final Integer jobId,
+            @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
-        return jobControllerService.findJobRuns(page, jobId, state);
+        return jobControllerService.findJobRuns(page, perPage, jobId, state);
     }
 
     @GetMapping("/info")

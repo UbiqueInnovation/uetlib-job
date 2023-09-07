@@ -2,6 +2,8 @@ package ch.ubique.backend.job.data.repository;
 
 import ch.ubique.backend.job.model.entity.JobEntity;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,4 +18,6 @@ public interface JobRepository extends JpaRepository<JobEntity, Integer> {
     Optional<JobEntity> findByCanonicalClassName(String canonicalClassName);
 
     List<JobEntity> findAllByOrderById();
+
+    Page<JobEntity> findAllByOrderById(Pageable pageable);
 }

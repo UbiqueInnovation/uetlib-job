@@ -22,6 +22,8 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
+import jakarta.validation.constraints.NotNull;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
@@ -35,7 +37,6 @@ import java.util.stream.Stream;
 @Service
 @Profile("!job-run")
 public class JobControllerService {
-    private static final int PAGE_SIZE = 30;
     private final JobService jobService;
 
     private final JobExecutorService jobExecutorService;
@@ -68,19 +69,32 @@ public class JobControllerService {
         return list;
     }
 
-    public JobInfosContainer findAllJobs() throws ClassNotFoundException {
-        final var jobs = jobDataService.findJobs();
-        final var latestRuns = findLatestJobRuns(jobs);
-        return new JobInfosContainer(findJobs(), latestRuns);
-    }
-
-    public List<JobInfo> findJobs() throws ClassNotFoundException {
-        final var jobs = jobDataService.findJobs();
+    @NotNull
+    private ArrayList<JobInfo> jobInfos(List<JobClassAndId> jobs) throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var job : jobs) {
             jobInfos.add(jobInfo(jobService.instantiateJob(jobService.getJobClass(job.id()))));
         }
         return jobInfos;
+    }
+
+    public List<JobInfo> findJobs() throws ClassNotFoundException {
+        final var jobs = jobDataService.findJobs();
+        return jobInfos(jobs);
+    }
+
+    public JobInfosContainer findJobs(final int page, final int perPage)
+            throws ClassNotFoundException {
+        final var jobsPage = jobDataService.findJobsPage(page, perPage);
+        final var jobs = jobsPage.toList();
+        final var latestRuns = findLatestJobRuns(jobs);
+        final var jobInfos = jobInfos(jobs);
+        return new JobInfosContainer(
+                jobInfos,
+                latestRuns,
+                jobsPage.isFirst(),
+                jobsPage.isLast(),
+                jobsPage.getTotalPages());
     }
 
     public Map<Integer, JobRunInfo> findLatestJobRuns(final List<JobClassAndId> jobs) {
@@ -96,10 +110,16 @@ public class JobControllerService {
     }
 
     public JobRunInfosContainer findJobRuns(
-            final int page, final Integer jobId, final JobRunState state) throws ClassNotFoundException {
-        final var jobs = findJobs().stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
-        final var jobNames = jobs.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().name()));
-        final var jobRunsPage = jobDataService.findJobRuns(page, PAGE_SIZE, jobId, state);
+            final int page, final int perPage, final Integer jobId, final JobRunState state) 
+            throws ClassNotFoundException {
+        final var jobs =
+                findJobs().stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
+        final var jobNames =
+                jobs.entrySet().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Map.Entry::getKey, entry -> entry.getValue().name()));
+        final var jobRunsPage = jobDataService.findJobRuns(page, perPage, jobId, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
@@ -241,7 +261,7 @@ public class JobControllerService {
         final var job = jobService.instantiateJob(jobClass);
         getCronTriggers(job).forEach(triggerCoordinatorService::deleteTrigger);
         if (StringUtils.isNotBlank(cronExpression)
-            && CronExpression.isValidExpression(cronExpression)) {
+                && CronExpression.isValidExpression(cronExpression)) {
             triggerCoordinatorService.createTrigger(jobClass, new CronTrigger(cronExpression));
         }
 
