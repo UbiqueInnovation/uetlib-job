@@ -108,16 +108,17 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private boolean check(final Job job, final RunnerGroup runnerGroup) {
-        if (!runnerGroup.allowedJobs().isEmpty()
-                && !runnerGroup.allowedJobs().contains(job.getClass())) {
-            logger.error(
-                    "The runner group only allows the following job classes: {} but a job of the"
-                        + " following class was provided:  {}",
-                    runnerGroup.allowedJobs(),
-                    job.getClass());
-            return false;
+        if (runnerGroup.allowedJobs().isEmpty()
+            || runnerGroup.allowedJobs().contains(job.getClass())) {
+            return true;
         }
-        return true;
+        
+        logger.error(
+                "The runner group only allows the following job classes: {} but a job of the"
+                    + " following class was provided:  {}",
+                runnerGroup.allowedJobs(),
+                job.getClass());
+        return false;
     }
 
     public void shutdownAndWaitForJobsToComplete() {
