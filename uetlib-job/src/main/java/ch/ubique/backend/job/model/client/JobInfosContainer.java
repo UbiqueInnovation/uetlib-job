@@ -9,4 +9,8 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobInfosContainer(
-        @NotNull List<JobInfo> jobs, @NotNull Map<Integer, JobRunInfo> latestRuns) {}
+        @NotNull List<JobInfo> jobs,
+        @NotNull Map<Integer, JobRunInfo> latestRuns,
+        @NotNull boolean first,
+        @NotNull boolean last,
+        @NotNull int totalPages) {}

@@ -21,6 +21,7 @@ import jakarta.persistence.PersistenceContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final LoggingEventRepository loggingEventRepository;
+
     @PersistenceContext private EntityManager entityManager;
 
     public JobDataService(
@@ -91,6 +93,17 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public List<JobClassAndId> findJobs() {
         return jobRepository.findAllByOrderById().stream().map(JobEntity::toRecord).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<JobClassAndId> findJobsPage(final Integer page, final int pageSize) {
+        final var pageRequest =
+                Optional.ofNullable(page)
+                        .map(p -> (Pageable) PageRequest.of(p, pageSize))
+                        // pre v1.5 does not send page and pageSize parameter, need to fall back to
+                        // unpaged
+                        .orElse(Pageable.unpaged());
+        return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 
     @Transactional(readOnly = true)
