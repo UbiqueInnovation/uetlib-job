@@ -212,8 +212,6 @@ public class JobDataService {
                                         Objects.requireNonNull(jobRun.finishedAt())
                                                 .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.MIN);
-        // JPA will throw an error when attempting to return JobRun from the select statement below
-        // --> need to cast
         return jobRunRepository
                 .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
                         jobId, finishedBefore, PageRequest.of(0, chunkSize))
