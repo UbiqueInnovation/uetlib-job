@@ -78,12 +78,14 @@ public class JobDataService {
                 .map(JobRunEntity::toJobRun);
     }
 
+    @Transactional(readOnly = true)
     public Optional<JobRun> findLatestJobRunByState(final int jobId, final JobRunState state) {
         return jobRunRepository
                 .findFirstByJobIdAndStateOrderByStartedAtDesc(jobId, state)
                 .map(JobRunEntity::toJobRun);
     }
 
+    @Transactional(readOnly = true)
     public Optional<JobRun> findLatestJobRunByStates(final int jobId, final JobRunState... states) {
         return jobRunRepository
                 .findFirstByJobIdAndStateInOrderByStartedAtDesc(jobId, List.of(states))
@@ -258,6 +260,7 @@ public class JobDataService {
                 .toList();
     }
 
+    @Transactional
     public JobRun createJobRun(final int jobId, final int jobVersion) {
         return jobRunRepository
                 .save(
@@ -266,18 +269,22 @@ public class JobDataService {
                 .toJobRun();
     }
 
+    @Transactional
     public void saveTrigger(final Trigger trigger) {
         jobTriggerRepository.save(new JobTriggerEntity(trigger)).toTrigger();
     }
 
+    @Transactional
     public void deleteTriggerForJob(final int jobId) {
         jobTriggerRepository.deleteByJobId(jobId);
     }
 
+    @Transactional
     public void delete(final Trigger trigger) {
         jobTriggerRepository.delete(new JobTriggerEntity(trigger));
     }
 
+    @Transactional
     public Collection<Trigger> insertTriggers(
             final int jobId, final Collection<TriggerDefinition> triggerDefinitions) {
         final var entities =
@@ -287,17 +294,20 @@ public class JobDataService {
                 .toList();
     }
 
+    @Transactional
     public Trigger insertTrigger(final int jobId, final TriggerDefinition triggerDefinition) {
         final var entity = new JobTriggerEntity(jobId, triggerDefinition);
         return jobTriggerRepository.save(entity).toTrigger();
     }
 
+    @Transactional(readOnly = true)
     public Collection<JobRun> findJobRunsWithoutFinishedTimestamp() {
         return jobRunRepository.findAllByFinishedAtIsNull().stream()
                 .map(JobRunEntity::toJobRun)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public Collection<JobRun> findJobRunsFinishedAfter(final Instant instant) {
         return jobRunRepository.findAllByFinishedAtIsNotNullAndFinishedAtAfter(instant).stream()
                 .map(JobRunEntity::toJobRun)
