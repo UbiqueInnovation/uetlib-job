@@ -224,7 +224,7 @@ public class JobDataService {
                                 jobRun ->
                                         Objects.requireNonNull(jobRun.finishedAt())
                                                 .minus(daysToKeep, ChronoUnit.DAYS))
-                        .orElse(Instant.MIN);
+                        .orElse(Instant.EPOCH);
         return jobRunRepository
                 .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
                         jobId, finishedBefore, PageRequest.of(0, chunkSize))
