@@ -23,8 +23,7 @@ public class StartupTriggerService implements TriggerService<RunOnStartupTrigger
             final int triggerId,
             final RunOnStartupTrigger triggerDefinition,
             final Runnable runnable) {
-        throw new UnsupportedOperationException(
-                "Can not add " + RunOnStartupTrigger.class + " after startup.");
+        // Nothing to do here
     }
 
     @Override

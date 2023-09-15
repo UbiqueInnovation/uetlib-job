@@ -6,14 +6,18 @@ import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
+import jakarta.validation.Valid;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 import java.util.Map;
 
 @RestController
+@Validated
 @Profile("!job-run")
 @RequestMapping("/v1/status")
 @CrossOrigin(
@@ -64,16 +68,6 @@ public class BackendLibJobStatusController {
         return jobControllerService.findJobRun(jobRunId);
     }
 
-    /**
-     * @deprecated since v1.5, use {@link #updateTriggers}
-     */
-    @Deprecated(since = "1.5", forRemoval = true)
-    @PostMapping("/job/{id}/update")
-    public JobInfo updateJob(@PathVariable final int id, @RequestParam final String cronExpression)
-            throws ClassNotFoundException {
-        return jobControllerService.updateCronExpression(id, cronExpression);
-    }
-
     @GetMapping("/job/{idOrClassName}/properties")
     public Collection<JobPropertyInfo> getProperties(@PathVariable final String idOrClassName)
             throws ClassNotFoundException {
@@ -96,7 +90,8 @@ public class BackendLibJobStatusController {
 
     @PostMapping("/job/{idOrClassName}/triggers")
     public JobTriggers updateTriggers(
-            @PathVariable final String idOrClassName, @RequestBody final JobTriggers updatedValues)
+            @PathVariable final String idOrClassName,
+            @RequestBody @Valid final JobTriggers updatedValues)
             throws ClassNotFoundException {
         return jobControllerService.updateJobTriggers(idOrClassName, updatedValues);
     }

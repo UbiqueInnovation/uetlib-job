@@ -24,7 +24,6 @@ import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import jakarta.validation.constraints.NotNull;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -70,7 +69,7 @@ public class JobControllerService {
     }
 
     @NotNull
-    private ArrayList<JobInfo> jobInfos(List<JobClassAndId> jobs) throws ClassNotFoundException {
+    private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs) throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var job : jobs) {
             jobInfos.add(jobInfo(jobService.instantiateJob(jobService.getJobClass(job.id()))));
@@ -110,7 +109,7 @@ public class JobControllerService {
     }
 
     public JobRunInfosContainer findJobRuns(
-            final int page, final int perPage, final Integer jobId, final JobRunState state) 
+            final int page, final int perPage, final Integer jobId, final JobRunState state)
             throws ClassNotFoundException {
         final var jobs =
                 findJobs().stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
@@ -219,19 +218,30 @@ public class JobControllerService {
     public JobTriggers updateJobTriggers(final String idOrClassName, final JobTriggers triggers)
             throws ClassNotFoundException {
         final var job = getJobInstance(idOrClassName);
+
+        // Delete triggers that are currently existing, but not present anymore
+        final var existing = getJobTriggers(job);
+        existing.triggers().stream()
+                .filter(trigger -> !triggers.triggers().contains(trigger))
+                .map(trigger -> toTrigger(trigger, job))
+                .forEach(triggerCoordinatorService::deleteTrigger);
+
+        // Create or update triggers
         for (final var trigger : triggers.triggers()) {
             if (trigger.id() == null) {
                 triggerCoordinatorService.createTrigger(job.getClass(), trigger.definition());
             } else {
-                triggerCoordinatorService.updateTrigger(
-                        job.getClass(),
-                        new Trigger(
-                                trigger.id(),
-                                jobService.getJobId(job.getClass()),
-                                trigger.definition()));
+                triggerCoordinatorService.updateTrigger(job.getClass(), toTrigger(trigger, job));
             }
         }
         return getJobTriggers(job);
+    }
+
+    private Trigger toTrigger(final JobTrigger trigger, final Job job) {
+        return new Trigger(
+                Objects.requireNonNull(trigger.id()),
+                jobService.getJobId(job.getClass()),
+                trigger.definition());
     }
 
     private JobTriggers getJobTriggers(final Job job) {
@@ -249,23 +259,6 @@ public class JobControllerService {
 
     private List<JobSystemSchedulerGroupInfo> getGroups() {
         return List.of();
-    }
-
-    /**
-     * @deprecated since v1.5, use {@link #updateJobTriggers}
-     */
-    @Deprecated(since = "1.5", forRemoval = true)
-    public JobInfo updateCronExpression(final int jobId, final String cronExpression)
-            throws ClassNotFoundException {
-        final var jobClass = jobService.getJobClass(jobId);
-        final var job = jobService.instantiateJob(jobClass);
-        getCronTriggers(job).forEach(triggerCoordinatorService::deleteTrigger);
-        if (StringUtils.isNotBlank(cronExpression)
-                && CronExpression.isValidExpression(cronExpression)) {
-            triggerCoordinatorService.createTrigger(jobClass, new CronTrigger(cronExpression));
-        }
-
-        return jobInfo(job);
     }
 
     private Job getJobInstance(final String idOrClassName) throws ClassNotFoundException {
