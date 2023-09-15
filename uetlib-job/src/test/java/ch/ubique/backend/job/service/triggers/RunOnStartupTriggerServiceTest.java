@@ -21,9 +21,7 @@ class RunOnStartupTriggerServiceTest {
 
     @Test
     void addTrigger() {
-        assertThrows(
-                UnsupportedOperationException.class,
-                () -> triggerService.addTrigger(0, null, null));
+        assertDoesNotThrow(() -> triggerService.addTrigger(0, null, null));
     }
 
     @Test
