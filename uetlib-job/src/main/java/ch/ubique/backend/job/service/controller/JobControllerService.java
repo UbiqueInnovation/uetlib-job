@@ -69,7 +69,8 @@ public class JobControllerService {
     }
 
     @NotNull
-    private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs) throws ClassNotFoundException {
+    private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs)
+            throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var job : jobs) {
             jobInfos.add(jobInfo(jobService.instantiateJob(jobService.getJobClass(job.id()))));
@@ -109,12 +110,17 @@ public class JobControllerService {
     }
 
     public JobRunInfosContainer findJobRuns(
-            final int page, final int perPage, final Integer jobId, final JobRunState state)
+            final int page,
+            final int perPage,
+            final Integer jobId,
+            final JobRunState state,
+            final Collection<String> excludeJobNames)
             throws ClassNotFoundException {
         final var jobs =
                 findJobs().stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
         final var jobNames =
                 jobs.entrySet().stream()
+                        .filter(entry -> !excludeJobNames.contains(entry.getValue().name()))
                         .collect(
                                 Collectors.toMap(
                                         Map.Entry::getKey, entry -> entry.getValue().name()));
@@ -127,6 +133,12 @@ public class JobControllerService {
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
                 jobRunsPage.getTotalPages());
+    }
+
+    public JobRunInfosContainer findJobRunsExcludingHealthcheck(
+            final int page, final int perPage, final Integer jobId, final JobRunState state)
+            throws ClassNotFoundException {
+        return findJobRuns(page, perPage, jobId, state, List.of("HealthCheckJob"));
     }
 
     public void startJob(final String idOrClassName, final boolean forceRun)
