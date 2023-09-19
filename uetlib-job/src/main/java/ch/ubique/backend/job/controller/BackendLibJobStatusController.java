@@ -13,7 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 @RestController
@@ -55,7 +57,18 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false) final Integer jobId,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
-        return jobControllerService.findJobRuns(page, perPage, jobId, state);
+        return jobControllerService.findJobRuns(
+                page, perPage, jobId, state, Collections.emptyList());
+    }
+
+    @GetMapping("/runs/exclude-healthcheck")
+    public JobRunInfosContainer jobRunsExcludingHealthCheck(
+            @RequestParam(required = false, defaultValue = "0") final int page,
+            @RequestParam(required = false, defaultValue = "25") final int perPage,
+            @RequestParam(required = false) final Integer jobId,
+            @RequestParam(required = false) final JobRunState state)
+            throws ClassNotFoundException {
+        return jobControllerService.findJobRunsExcludingHealthcheck(page, perPage, jobId, state);
     }
 
     @GetMapping("/info")
