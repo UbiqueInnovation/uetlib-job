@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -111,11 +112,15 @@ public class JobControllerService {
     }
 
     /**
-     * Search for the job runs of specified jobs. For filtering, there are three parameters:
+     * Search for the job runs of specified jobs. For filtering, there are four parameters:
      *
      * <ol>
      *   <li>{@code jobIds}: If not {@code null}, only job runs of the specified jobIds are
-     *       returned. {@code excludeJobNamesOrIds} is ignored in this case.
+     *       returned. {@code excludeJobNamesOrIds} is ignored in this case. If this is {@code
+     *       null}, fall back to:
+     *   <li>{@code includeJobNamesOrIds}: If {@code jobIds} is {@code null}, only job runs of jobs
+     *       with names in {@code includeJobNamesOrIds} are returned. If it is an empty list, fall
+     *       back to:
      *   <li>{@code excludeJobNamesOrIds}: If {@code jobIds} is {@code null}, only job runs of jobs
      *       with names not in {@code excludeJobNamesOrIds} are returned.
      * </ol>
@@ -132,7 +137,7 @@ public class JobControllerService {
      * @param state
      * @param excludeJobNamesOrIds This parameter is essentially ignored for the DB query if {@code
      *     jobIds} is not {@code null}.
-     * @return
+     * @return The job runs matching the specified criteria.
      * @throws ClassNotFoundException
      */
     public JobRunInfosContainer findJobRuns(
@@ -140,6 +145,7 @@ public class JobControllerService {
             final int perPage,
             @Nullable final Collection<Integer> jobIds,
             final JobRunState state,
+            @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
         final var jobs =
@@ -150,25 +156,25 @@ public class JobControllerService {
                         .collect(
                                 Collectors.toMap(
                                         Map.Entry::getKey, entry -> entry.getValue().name()));
+        final var useInclude = jobIds == null && !includeJobNamesOrIds.isEmpty();
+        final var useExclude = jobIds == null && !useInclude;
         final var excludeJobIds =
-                excludeJobNamesOrIds.stream()
-                        .map(
-                                n -> {
-                                    try {
-                                        return Integer.parseInt(n);
-                                    } catch (final NumberFormatException ignored) {
-                                        return null;
-                                    }
-                                })
-                        .filter(Objects::nonNull)
-                        .toList();
+                !useExclude ? Collections.emptyList() : getJobIds(excludeJobNamesOrIds);
+        final var includeJobIds =
+                !useInclude ? Collections.emptyList() : getJobIds(includeJobNamesOrIds);
+
+        final Predicate<Map.Entry<Integer, String>> includeJob =
+                entry ->
+                        (useInclude
+                                ? (includeJobNamesOrIds.contains(entry.getValue())
+                                        || includeJobIds.contains(entry.getKey()))
+                                : !excludeJobNamesOrIds.contains(entry.getValue())
+                                        && !excludeJobIds.contains(entry.getKey()));
+
         final var requestedJobIds =
                 jobIds == null
                         ? jobNames.entrySet().stream()
-                                .filter(
-                                        entry ->
-                                                !excludeJobNamesOrIds.contains(entry.getValue())
-                                                        && !excludeJobIds.contains(entry.getKey()))
+                                .filter(includeJob)
                                 .map(Map.Entry::getKey)
                                 .toList()
                         : jobIds;
@@ -183,10 +189,32 @@ public class JobControllerService {
                 jobRunsPage.getTotalPages());
     }
 
+    private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {
+        return jobNamesOrIds.stream()
+                .map(
+                        n -> {
+                            try {
+                                return Integer.parseInt(n);
+                            } catch (final NumberFormatException ignored) {
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    public JobRunInfosContainer findJobRunsIncluding(
+            final int page, final int perPage, final String idOrClassName, final JobRunState state)
+            throws ClassNotFoundException {
+        return findJobRuns(
+                page, perPage, null, state, List.of(idOrClassName), Collections.emptyList());
+    }
+
     public JobRunInfosContainer findJobRunsExcluding(
             final int page, final int perPage, final String idOrClassName, final JobRunState state)
             throws ClassNotFoundException {
-        return findJobRuns(page, perPage, null, state, List.of(idOrClassName));
+        return findJobRuns(
+                page, perPage, null, state, Collections.emptyList(), List.of(idOrClassName));
     }
 
     public void startJob(final String idOrClassName, final boolean forceRun)

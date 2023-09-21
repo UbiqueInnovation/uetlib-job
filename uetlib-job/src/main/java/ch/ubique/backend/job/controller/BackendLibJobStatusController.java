@@ -61,11 +61,22 @@ public class BackendLibJobStatusController {
                 perPage,
                 jobId == null ? null : Collections.singleton(jobId),
                 state,
+                Collections.emptyList(),
                 Collections.emptyList());
     }
 
+    @GetMapping("/runs/include/{idOrClassName}")
+    public JobRunInfosContainer jobRunsIncluding(
+            @RequestParam(required = false, defaultValue = "0") final int page,
+            @RequestParam(required = false, defaultValue = "25") final int perPage,
+            @PathVariable final String idOrClassName,
+            @RequestParam(required = false) final JobRunState state)
+            throws ClassNotFoundException {
+        return jobControllerService.findJobRunsIncluding(page, perPage, idOrClassName, state);
+    }
+
     @GetMapping("/runs/exclude/{idOrClassName}")
-    public JobRunInfosContainer jobRunsExcludingHealthCheck(
+    public JobRunInfosContainer jobRunsExcluding(
             @RequestParam(required = false, defaultValue = "0") final int page,
             @RequestParam(required = false, defaultValue = "25") final int perPage,
             @PathVariable final String idOrClassName,
