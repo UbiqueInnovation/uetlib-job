@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.entity.JobRunEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -31,10 +32,15 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
     Optional<JobRunEntity> findFirstByJobIdAndStateInOrderByStartedAtDesc(
             int jobId, final Collection<JobRunState> states);
 
-    Page<JobRunEntity> findAllByJobIdAndStateOrderByStartedAtDesc(
-            int jobId, JobRunState state, Pageable pageable);
+    @Query(
+            "SELECT jre FROM JobRunEntity jre WHERE jre.jobId IN :jobIds AND jre.state = :state ORDER BY jre.startedAt DESC")
+    Page<JobRunEntity> findAllByJobIdsAndStateOrderByStartedAtDesc(
+            Collection<Integer> jobIds, JobRunState state, Pageable pageable);
 
-    Page<JobRunEntity> findAllByJobIdOrderByStartedAtDesc(int jobId, Pageable pageable);
+    @Query(
+            "SELECT jre FROM JobRunEntity jre WHERE jre.jobId IN :jobIds ORDER BY jre.startedAt DESC")
+    Page<JobRunEntity> findAllByJobIdsOrderByStartedAtDesc(
+            Collection<Integer> jobId, Pageable pageable);
 
     Page<JobRunEntity> findAllByStateOrderByStartedAtDesc(JobRunState state, Pageable pageable);
 

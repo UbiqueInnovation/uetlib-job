@@ -16,6 +16,7 @@ import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 
 import com.pivovarit.function.ThrowingFunction;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -110,16 +111,19 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Page<JobRun> findJobRuns(
-            final int page, final int pageSize, final Integer jobId, final JobRunState state) {
+            final int page,
+            final int pageSize,
+            @Nullable final Collection<Integer> jobIds,
+            final JobRunState state) {
         final var pageRequest = PageRequest.of(page, pageSize);
-        if (jobId != null) {
+        if (jobIds == null || !jobIds.isEmpty()) {
             if (state != null) {
                 return jobRunRepository
-                        .findAllByJobIdAndStateOrderByStartedAtDesc(jobId, state, pageRequest)
+                        .findAllByJobIdsAndStateOrderByStartedAtDesc(jobIds, state, pageRequest)
                         .map(JobRunEntity::toJobRun);
             }
             return jobRunRepository
-                    .findAllByJobIdOrderByStartedAtDesc(jobId, pageRequest)
+                    .findAllByJobIdsOrderByStartedAtDesc(jobIds, pageRequest)
                     .map(JobRunEntity::toJobRun);
         }
         if (state != null) {
