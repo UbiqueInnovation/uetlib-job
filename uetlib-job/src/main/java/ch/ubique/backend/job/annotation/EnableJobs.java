@@ -1,0 +1,44 @@
+package ch.ubique.backend.job.annotation;
+
+import ch.ubique.backend.job.Job;
+
+import java.lang.annotation.*;
+
+/**
+ * Place this annotation on any class in a package that matches (or is prefixed by) your maven
+ * artifact group id. This annotation is only discovered in a package below the group id.
+ *
+ * <p>The package 'ch.ubique.backend' is always included.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+@Documented
+public @interface EnableJobs {
+    /**
+     * Base packages to scan for annotated components.
+     *
+     * <p>Use {@link #basePackageClasses()} for a type-safe alternative to String-based package
+     * names.
+     *
+     * @return the array of 'basePackages'.
+     */
+    String[] basePackages() default {};
+
+    /**
+     * Type-safe alternative to {@link #basePackages()} for specifying the packages to scan for
+     * annotated components. The package of each class specified will be scanned.
+     *
+     * <p>Consider creating a special no-op marker class or interface in each package that serves no
+     * purpose other than being referenced by this attribute.
+     *
+     * @return the array of 'basePackageClasses'.
+     */
+    Class<?>[] basePackageClasses() default {};
+
+    /**
+     * List of classes annotated with @RegisteredJob. If not empty, disables classpath scanning.
+     *
+     * @return array of {@link Job} classes
+     */
+    Class<?>[] jobs() default {};
+}
