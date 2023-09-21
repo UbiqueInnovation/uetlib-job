@@ -4,6 +4,7 @@ import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
+import ch.ubique.backend.job.annotation.EnableAnnotationUtils;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
@@ -22,7 +23,6 @@ import com.pivovarit.function.ThrowingPredicate;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
-import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class JobService {
@@ -64,17 +63,9 @@ public class JobService {
 
     private void registerAllJobs() {
         final var classes =
-                Stream.of(
-                                new Reflections(),
-                                new Reflections(buildProperties.getGroup()),
-                                new Reflections("ch.ubique.backend"))
-                        .flatMap(
-                                reflections ->
-                                        reflections
-                                                .getTypesAnnotatedWith(RegisteredJob.class)
-                                                .stream())
-                        .collect(Collectors.toSet());
+                EnableAnnotationUtils.findAllRegisteredJobClasses(buildProperties.getGroup());
         logger.info("Found {} annotated with {}.", classes, RegisteredJob.class);
+
         for (final var cls : classes) {
             try {
                 final var jobClass = cls.asSubclass(Job.class);
