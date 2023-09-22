@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.annotation;
 
 import ch.ubique.backend.job.Job;
+import ch.ubique.backend.job.RegisteredJob;
 
 import java.lang.annotation.*;
 
@@ -36,7 +37,8 @@ public @interface EnableJobs {
     Class<?>[] basePackageClasses() default {};
 
     /**
-     * List of classes annotated with @RegisteredJob. If not empty, disables classpath scanning.
+     * List of classes annotated with @{@link RegisteredJob}. If not empty, disables classpath
+     * scanning.
      *
      * @return array of {@link Job} classes
      */
