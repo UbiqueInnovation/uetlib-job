@@ -4,7 +4,7 @@ import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
-import ch.ubique.backend.job.annotation.EnableAnnotationUtils;
+import ch.ubique.backend.job.annotation.EnableJobs;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
@@ -15,6 +15,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.core.JobCreator;
+import ch.ubique.backend.storage.annotations.EnableAnnotationUtils;
 
 import com.pivovarit.function.ThrowingPredicate;
 
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -58,12 +60,23 @@ public class JobService {
         }
     }
 
-    private void registerAllJobs() {
-        final var classes =
-                EnableAnnotationUtils.findAllRegisteredJobClasses(buildProperties.getGroup());
-        logger.info("Found {} annotated with {}.", classes, RegisteredJob.class);
+    private static Set<Class<?>> findAllRegisteredJobClasses(final String buildPropertiesGroup) {
+        final var enableJobsClass =
+                EnableAnnotationUtils.findEnableClass(buildPropertiesGroup, EnableJobs.class);
+        final var enableJobsAnnotation = enableJobsClass.getAnnotation(EnableJobs.class);
+        return EnableAnnotationUtils.findAllClassesBy(
+                enableJobsAnnotation.jobs(),
+                enableJobsAnnotation.basePackages(),
+                enableJobsAnnotation.basePackageClasses(),
+                enableJobsClass.getPackageName(),
+                RegisteredJob.class);
+    }
 
-        for (final var cls : classes) {
+    private void registerAllJobs() {
+        final var jobClasses = findAllRegisteredJobClasses(buildProperties.getGroup());
+        logger.info("Found {} annotated with {}.", jobClasses, RegisteredJob.class);
+
+        for (final var cls : jobClasses) {
             try {
                 final var jobClass = cls.asSubclass(Job.class);
                 jobDataService.registerJob(jobClass);
