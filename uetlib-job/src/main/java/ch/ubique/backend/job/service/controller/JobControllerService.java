@@ -22,7 +22,6 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.context.annotation.Profile;
@@ -68,6 +67,14 @@ public class JobControllerService {
                             .createPropertyFromString(entry.getValue()));
         }
         return list;
+    }
+
+    private static Optional<Integer> getJobIdFromString(final String jobNameOrId) {
+        try {
+            return Optional.of(Integer.parseInt(jobNameOrId));
+        } catch (final NumberFormatException ignored) {
+            return Optional.empty();
+        }
     }
 
     @NotNull
@@ -132,8 +139,6 @@ public class JobControllerService {
      *
      * @param page
      * @param perPage
-     * @param jobIds May specify a number of jobIds to filter for. If {@code null}, {@code
-     *     excludeJobNamesOrIds} is used for filtering.
      * @param state
      * @param excludeJobNamesOrIds This parameter is essentially ignored for the DB query if {@code
      *     jobIds} is not {@code null}.
@@ -143,7 +148,6 @@ public class JobControllerService {
     public JobRunInfosContainer findJobRuns(
             final int page,
             final int perPage,
-            @Nullable final Collection<Integer> jobIds,
             final JobRunState state,
             @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds)
@@ -156,8 +160,8 @@ public class JobControllerService {
                         .collect(
                                 Collectors.toMap(
                                         Map.Entry::getKey, entry -> entry.getValue().name()));
-        final var useInclude = jobIds == null && !includeJobNamesOrIds.isEmpty();
-        final var useExclude = jobIds == null && !useInclude;
+        final var useInclude = !includeJobNamesOrIds.isEmpty();
+        final var useExclude = !useInclude;
         final var excludeJobIds =
                 !useExclude ? Collections.emptyList() : getJobIds(excludeJobNamesOrIds);
         final var includeJobIds =
@@ -172,12 +176,7 @@ public class JobControllerService {
                                         && !excludeJobIds.contains(entry.getKey()));
 
         final var requestedJobIds =
-                jobIds == null
-                        ? jobNames.entrySet().stream()
-                                .filter(includeJob)
-                                .map(Map.Entry::getKey)
-                                .toList()
-                        : jobIds;
+                jobNames.entrySet().stream().filter(includeJob).map(Map.Entry::getKey).toList();
         final var jobRunsPage = jobDataService.findJobRuns(page, perPage, requestedJobIds, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
@@ -191,30 +190,9 @@ public class JobControllerService {
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {
         return jobNamesOrIds.stream()
-                .map(
-                        n -> {
-                            try {
-                                return Integer.parseInt(n);
-                            } catch (final NumberFormatException ignored) {
-                                return null;
-                            }
-                        })
-                .filter(Objects::nonNull)
+                .map(JobControllerService::getJobIdFromString)
+                .flatMap(Optional::stream)
                 .toList();
-    }
-
-    public JobRunInfosContainer findJobRunsIncluding(
-            final int page, final int perPage, final String idOrClassName, final JobRunState state)
-            throws ClassNotFoundException {
-        return findJobRuns(
-                page, perPage, null, state, List.of(idOrClassName), Collections.emptyList());
-    }
-
-    public JobRunInfosContainer findJobRunsExcluding(
-            final int page, final int perPage, final String idOrClassName, final JobRunState state)
-            throws ClassNotFoundException {
-        return findJobRuns(
-                page, perPage, null, state, Collections.emptyList(), List.of(idOrClassName));
     }
 
     public void startJob(final String idOrClassName, final boolean forceRun)

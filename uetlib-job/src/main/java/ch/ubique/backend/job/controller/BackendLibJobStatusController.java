@@ -53,36 +53,22 @@ public class BackendLibJobStatusController {
     public JobRunInfosContainer jobRuns(
             @RequestParam(required = false, defaultValue = "0") final int page,
             @RequestParam(required = false, defaultValue = "25") final int perPage,
-            @RequestParam(required = false) final Integer jobId,
+            @Deprecated(since = "1.5", forRemoval = true) @RequestParam(required = false)
+                    final Integer jobId,
+            @RequestParam(required = false) final String jobIdOrClassName,
+            @RequestParam(required = false) final Collection<String> includeJobs,
+            @RequestParam(required = false) final Collection<String> excludeJobs,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
+        final var jobIdParam = jobId != null ? String.valueOf(jobId) : jobIdOrClassName;
+        final var includeJobsList =
+                includeJobs == null ? Collections.singleton(jobIdParam) : includeJobs;
         return jobControllerService.findJobRuns(
                 page,
                 perPage,
-                jobId == null ? null : Collections.singleton(jobId),
                 state,
-                Collections.emptyList(),
-                Collections.emptyList());
-    }
-
-    @GetMapping("/runs/include/{idOrClassName}")
-    public JobRunInfosContainer jobRunsIncluding(
-            @RequestParam(required = false, defaultValue = "0") final int page,
-            @RequestParam(required = false, defaultValue = "25") final int perPage,
-            @PathVariable final String idOrClassName,
-            @RequestParam(required = false) final JobRunState state)
-            throws ClassNotFoundException {
-        return jobControllerService.findJobRunsIncluding(page, perPage, idOrClassName, state);
-    }
-
-    @GetMapping("/runs/exclude/{idOrClassName}")
-    public JobRunInfosContainer jobRunsExcluding(
-            @RequestParam(required = false, defaultValue = "0") final int page,
-            @RequestParam(required = false, defaultValue = "25") final int perPage,
-            @PathVariable final String idOrClassName,
-            @RequestParam(required = false) final JobRunState state)
-            throws ClassNotFoundException {
-        return jobControllerService.findJobRunsExcluding(page, perPage, idOrClassName, state);
+                includeJobs == null ? includeJobsList : includeJobs,
+                excludeJobs == null ? Collections.emptyList() : excludeJobs);
     }
 
     @GetMapping("/info")
