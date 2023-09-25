@@ -152,14 +152,6 @@ public class JobControllerService {
             @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
-        final var jobs =
-                findJobs().stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
-
-        final var jobNames =
-                jobs.entrySet().stream()
-                        .collect(
-                                Collectors.toMap(
-                                        Map.Entry::getKey, entry -> entry.getValue().name()));
         final var useInclude = !includeJobNamesOrIds.isEmpty();
         final var useExclude = !useInclude;
         final var excludeJobIds =
@@ -167,16 +159,25 @@ public class JobControllerService {
         final var includeJobIds =
                 !useInclude ? Collections.emptyList() : getJobIds(includeJobNamesOrIds);
 
-        final Predicate<Map.Entry<Integer, String>> includeJob =
+        final Predicate<JobInfo> includeJob =
                 entry ->
                         (useInclude
-                                ? (includeJobNamesOrIds.contains(entry.getValue())
-                                        || includeJobIds.contains(entry.getKey()))
-                                : !excludeJobNamesOrIds.contains(entry.getValue())
-                                        && !excludeJobIds.contains(entry.getKey()));
+                                ? (includeJobNamesOrIds.contains(entry.name())
+                                        || includeJobIds.contains(entry.id()))
+                                : !excludeJobNamesOrIds.contains(entry.name())
+                                        && !excludeJobIds.contains(entry.id()));
+        final var jobs =
+                findJobs().stream()
+                        .filter(includeJob)
+                        .collect(Collectors.toMap(JobInfo::id, Function.identity()));
 
-        final var requestedJobIds =
-                jobNames.entrySet().stream().filter(includeJob).map(Map.Entry::getKey).toList();
+        final var jobNames =
+                jobs.entrySet().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Map.Entry::getKey, entry -> entry.getValue().name()));
+
+        final var requestedJobIds = jobNames.keySet().stream().toList();
         final var jobRunsPage = jobDataService.findJobRuns(page, perPage, requestedJobIds, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(

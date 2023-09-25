@@ -32,14 +32,10 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
     Optional<JobRunEntity> findFirstByJobIdAndStateInOrderByStartedAtDesc(
             int jobId, final Collection<JobRunState> states);
 
-    @Query(
-            "SELECT jre FROM JobRunEntity jre WHERE jre.jobId IN :jobIds AND jre.state = :state ORDER BY jre.startedAt DESC")
-    Page<JobRunEntity> findAllByJobIdsAndStateOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByJobIdInAndStateOrderByStartedAtDesc(
             Collection<Integer> jobIds, JobRunState state, Pageable pageable);
 
-    @Query(
-            "SELECT jre FROM JobRunEntity jre WHERE jre.jobId IN :jobIds ORDER BY jre.startedAt DESC")
-    Page<JobRunEntity> findAllByJobIdsOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByJobIdInOrderByStartedAtDesc(
             Collection<Integer> jobId, Pageable pageable);
 
     Page<JobRunEntity> findAllByStateOrderByStartedAtDesc(JobRunState state, Pageable pageable);
