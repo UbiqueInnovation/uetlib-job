@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.controller;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.core.utils.StringUtils;
 import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -67,14 +68,6 @@ public class JobControllerService {
                             .createPropertyFromString(entry.getValue()));
         }
         return list;
-    }
-
-    private static Optional<Integer> getJobIdFromString(final String jobNameOrId) {
-        try {
-            return Optional.of(Integer.parseInt(jobNameOrId));
-        } catch (final NumberFormatException ignored) {
-            return Optional.empty();
-        }
     }
 
     @NotNull
@@ -191,7 +184,7 @@ public class JobControllerService {
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {
         return jobNamesOrIds.stream()
-                .map(JobControllerService::getJobIdFromString)
+                .map(StringUtils::tryParseInt)
                 .flatMap(Optional::stream)
                 .toList();
     }
