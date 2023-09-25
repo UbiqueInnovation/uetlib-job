@@ -64,7 +64,7 @@ public class BackendLibJobStatusController {
                 page,
                 perPage,
                 state,
-                includeJobs == null ? includeJobsList : includeJobs,
+                includeJobsList,
                 Objects.requireNonNullElse(excludeJobs, List.of()));
     }
 
