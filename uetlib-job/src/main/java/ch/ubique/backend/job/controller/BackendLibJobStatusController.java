@@ -13,9 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @Validated
@@ -55,12 +53,11 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false, defaultValue = "25") final int perPage,
             @Deprecated(since = "1.5", forRemoval = true) @RequestParam(required = false)
                     final Integer jobId,
-            @RequestParam(required = false) final String jobIdOrClassName,
             @RequestParam(required = false) final Collection<String> includeJobs,
             @RequestParam(required = false) final Collection<String> excludeJobs,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
-        final var jobIdParam = jobId != null ? String.valueOf(jobId) : jobIdOrClassName;
+        final var jobIdParam = jobId != null ? String.valueOf(jobId) : null;
         final var includeJobsList =
                 includeJobs == null ? Collections.singleton(jobIdParam) : includeJobs;
         return jobControllerService.findJobRuns(
@@ -68,7 +65,7 @@ public class BackendLibJobStatusController {
                 perPage,
                 state,
                 includeJobs == null ? includeJobsList : includeJobs,
-                excludeJobs == null ? Collections.emptyList() : excludeJobs);
+                Objects.requireNonNullElse(excludeJobs, List.of()));
     }
 
     @GetMapping("/info")
