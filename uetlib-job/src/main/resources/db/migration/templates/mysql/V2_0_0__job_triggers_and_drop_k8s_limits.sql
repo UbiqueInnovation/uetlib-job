@@ -1,9 +1,9 @@
 CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER auto_increment NOT NULL PRIMARY KEY,
-    fk_job_id          INTEGER NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               VARCHAR NOT NULL,
-    trigger_definition JSON    NOT NULL
+    fk_job_id          INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    type               TEXT                   NOT NULL,
+    trigger_definition JSON                   NOT NULL
 );
 
 CREATE INDEX idx_type ON t_job_trigger (type);
@@ -19,4 +19,4 @@ ALTER TABLE t_job
 
 DELETE
 FROM t_job_properties
-WHERE key IN ('K8S_LIMITS_CPU', 'K8S_LIMITS_MEMORY');
+WHERE `key` IN ('K8S_LIMITS_CPU', 'K8S_LIMITS_MEMORY');
