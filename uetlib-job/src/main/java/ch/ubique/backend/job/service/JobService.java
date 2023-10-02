@@ -5,6 +5,7 @@ import static java.util.Optional.ofNullable;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
@@ -15,6 +16,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.core.JobCreator;
 
+import com.pivovarit.function.ThrowingFunction;
 import com.pivovarit.function.ThrowingPredicate;
 
 import jakarta.annotation.Nullable;
@@ -28,6 +30,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -157,6 +160,10 @@ public class JobService {
         return jobCreator.createNewJobInstance(jobClass);
     }
 
+    public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
+        return instantiateJob(getJobClass(jobClassAndId.id()));
+    }
+
     public int getJobId(final Class<? extends Job> jobClass) {
         return jobDataService
                 .findJobByCanonicalClassName(jobClass.getCanonicalName())
@@ -188,5 +195,11 @@ public class JobService {
 
     public void updateJobRun(@NotNull final JobRun jobRun) {
         jobDataService.saveJobRun(jobRun);
+    }
+
+    public Collection<Job> getAllJobs() {
+        return jobDataService.findJobs().stream()
+                .map(ThrowingFunction.unchecked(this::instantiateJob))
+                .toList();
     }
 }
