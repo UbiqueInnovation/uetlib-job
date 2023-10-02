@@ -199,7 +199,8 @@ public class JobService {
 
     public Collection<Job> getAllJobs() {
         return jobDataService.findJobs().stream()
-                .map(ThrowingFunction.unchecked(this::instantiateJob))
+                .map(ThrowingFunction.lifted(this::instantiateJob))
+                .flatMap(Optional::stream)
                 .toList();
     }
 }
