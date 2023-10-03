@@ -17,15 +17,13 @@ public class DefaultRetryListener implements RetryListener {
             final RetryContext context,
             final RetryCallback<T, E> callback,
             final Throwable throwable) {
-        logger.warn("Got error while trying on retry {}: ", context.getRetryCount(), throwable);
+        logger.warn("Got error while trying on retry #{}: ", context.getRetryCount(), throwable);
     }
 
     @Override
     public <T, E extends Throwable> boolean open(
             final RetryContext context, final RetryCallback<T, E> callback) {
-        // Version 2.0.0 of spring-retry does not have a default implementation, which causes an
-        // error in client projects, where spring-retry < 2.0.1 is used.
-        // Please do not remove this method.
+        logger.info("First time retrying after throwing:", context.getLastThrowable());
         return true;
     }
 
@@ -34,16 +32,15 @@ public class DefaultRetryListener implements RetryListener {
             final RetryContext context,
             final RetryCallback<T, E> callback,
             final Throwable throwable) {
-        // Version 2.0.0 of spring-retry does not have a default implementation, which causes an
-        // error in client projects, where spring-retry < 2.0.1 is used.
-        // Please do not remove this method.
+        logger.info(
+                "Last time retrying after throwing after retries {}:",
+                context.getRetryCount(),
+                context.getLastThrowable());
     }
 
     @Override
     public <T, E extends Throwable> void onSuccess(
             final RetryContext context, final RetryCallback<T, E> callback, final T result) {
-        // Version 2.0.0 of spring-retry does not have a default implementation, which causes an
-        // error in client projects, where spring-retry < 2.0.1 is used.
-        // Please do not remove this method.
+        logger.info("Successful on retry #{}:", context.getRetryCount());
     }
 }
