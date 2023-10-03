@@ -62,7 +62,7 @@ public class KubernetesJobRunner implements JobRunner {
         if (StringUtils.isBlank(namespace)) {
             logger.warn(
                     "Could not get kubernetes namespace. If you are running the job on your local"
-                        + " machine, this is the expected behaviour.");
+                            + " machine, this is the expected behaviour.");
             return false;
         }
 
@@ -116,7 +116,7 @@ public class KubernetesJobRunner implements JobRunner {
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
-            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
+            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
     private V1Pod getCurrentPod(final ApiClient client) throws ApiException {
         logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
@@ -128,7 +128,7 @@ public class KubernetesJobRunner implements JobRunner {
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
-            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
+            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
     private void submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
             throws ApiException {
