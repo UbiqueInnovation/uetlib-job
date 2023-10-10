@@ -25,13 +25,13 @@ import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -71,24 +71,6 @@ public class JobControllerService {
     }
 
     @NotNull
-    private static Predicate<JobInfo> includeJobInContainer(
-            final Collection<String> includeJobNamesOrIds,
-            final Collection<String> excludeJobNamesOrIds,
-            final boolean useInclude,
-            final boolean useExclude,
-            final List<?> includeJobIds,
-            final List<?> excludeJobIds) {
-        return entry -> {
-            if (!(useInclude || useExclude)) return true;
-            return useInclude
-                    ? (includeJobNamesOrIds.contains(entry.name())
-                            || includeJobIds.contains(entry.id()))
-                    : !excludeJobNamesOrIds.contains(entry.name())
-                            && !excludeJobIds.contains(entry.id());
-        };
-    }
-
-    @NotNull
     private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs)
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
@@ -98,8 +80,23 @@ public class JobControllerService {
         return jobInfos;
     }
 
-    public List<JobInfo> findJobs() throws ClassNotFoundException {
-        final var jobs = jobDataService.findJobs();
+    public List<JobInfo> findJobs(
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds)
+            throws ClassNotFoundException {
+        final List<JobClassAndId> jobs;
+        if (CollectionUtils.isNotEmpty(includeJobNamesOrIds)) {
+            // include jobs if includeJobNamesOrIds not empty
+            final var includeJobIds = getJobIds(includeJobNamesOrIds);
+            jobs = jobDataService.findJobsInclude(includeJobIds);
+        } else if (CollectionUtils.isNotEmpty(excludeJobNamesOrIds)) {
+            // exclude jobs if excludeJobNamesOrIds not empty
+            final var excludeJobIds = getJobIds(excludeJobNamesOrIds);
+            jobs = jobDataService.findJobsExclude(excludeJobIds);
+        } else {
+            // default include all
+            jobs = jobDataService.findJobs();
+        }
         return jobInfos(jobs);
     }
 
@@ -148,13 +145,9 @@ public class JobControllerService {
      *       returned.
      * </ul>
      *
-     * @param page
-     * @param perPage
-     * @param state
      * @param excludeJobNamesOrIds This parameter is essentially ignored for the DB query if {@code
      *     jobIds} is not {@code null}.
      * @return The job runs matching the specified criteria.
-     * @throws ClassNotFoundException
      */
     public JobRunInfosContainer findJobRuns(
             final int page,
@@ -163,38 +156,19 @@ public class JobControllerService {
             @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
-        final var useInclude = !includeJobNamesOrIds.isEmpty();
-        final var useExclude = !useInclude && !excludeJobNamesOrIds.isEmpty();
-        final var excludeJobIds =
-                !useExclude ? Collections.emptyList() : getJobIds(excludeJobNamesOrIds);
-        final var includeJobIds =
-                !useInclude ? Collections.emptyList() : getJobIds(includeJobNamesOrIds);
 
-        final var includeJob =
-                includeJobInContainer(
-                        includeJobNamesOrIds,
-                        excludeJobNamesOrIds,
-                        useInclude,
-                        useExclude,
-                        includeJobIds,
-                        excludeJobIds);
-        final var jobs =
-                findJobs().stream()
-                        .filter(includeJob)
-                        .collect(Collectors.toMap(JobInfo::id, Function.identity()));
+        final var jobs = findJobs(includeJobNamesOrIds, excludeJobNamesOrIds);
 
-        final var jobNames =
-                jobs.entrySet().stream()
-                        .collect(
-                                Collectors.toMap(
-                                        Map.Entry::getKey, entry -> entry.getValue().name()));
+        final var jobsById =
+                jobs.stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
+        final var jobNames = jobs.stream().collect(Collectors.toMap(JobInfo::id, JobInfo::name));
 
         final var requestedJobIds = jobNames.keySet().stream().toList();
         final var jobRunsPage = jobDataService.findJobRuns(page, perPage, requestedJobIds, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
-                jobs,
+                jobsById,
                 jobNames,
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
