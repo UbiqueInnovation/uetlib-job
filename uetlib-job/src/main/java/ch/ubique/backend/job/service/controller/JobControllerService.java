@@ -71,6 +71,24 @@ public class JobControllerService {
     }
 
     @NotNull
+    private static Predicate<JobInfo> includeJobInContainer(
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds,
+            final boolean useInclude,
+            final boolean useExclude,
+            final List<?> includeJobIds,
+            final List<?> excludeJobIds) {
+        return entry -> {
+            if (!(useInclude || useExclude)) return true;
+            return useInclude
+                    ? (includeJobNamesOrIds.contains(entry.name())
+                            || includeJobIds.contains(entry.id()))
+                    : !excludeJobNamesOrIds.contains(entry.name())
+                            && !excludeJobIds.contains(entry.id());
+        };
+    }
+
+    @NotNull
     private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs)
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
@@ -146,19 +164,20 @@ public class JobControllerService {
             @NotNull final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
         final var useInclude = !includeJobNamesOrIds.isEmpty();
-        final var useExclude = !useInclude;
+        final var useExclude = !useInclude && !excludeJobNamesOrIds.isEmpty();
         final var excludeJobIds =
                 !useExclude ? Collections.emptyList() : getJobIds(excludeJobNamesOrIds);
         final var includeJobIds =
                 !useInclude ? Collections.emptyList() : getJobIds(includeJobNamesOrIds);
 
-        final Predicate<JobInfo> includeJob =
-                entry ->
-                        (useInclude
-                                ? (includeJobNamesOrIds.contains(entry.name())
-                                        || includeJobIds.contains(entry.id()))
-                                : !excludeJobNamesOrIds.contains(entry.name())
-                                        && !excludeJobIds.contains(entry.id()));
+        final var includeJob =
+                includeJobInContainer(
+                        includeJobNamesOrIds,
+                        excludeJobNamesOrIds,
+                        useInclude,
+                        useExclude,
+                        includeJobIds,
+                        excludeJobIds);
         final var jobs =
                 findJobs().stream()
                         .filter(includeJob)
