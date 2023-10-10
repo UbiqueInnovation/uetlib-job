@@ -99,6 +99,20 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public List<JobClassAndId> findJobsInclude(List<Integer> includeJobIds) {
+        return jobRepository.findAllByIdInOrderById(includeJobIds).stream()
+                .map(JobEntity::toRecord)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<JobClassAndId> findJobsExclude(List<Integer> excludeJobIds) {
+        return jobRepository.findAllByIdNotInOrderById(excludeJobIds).stream()
+                .map(JobEntity::toRecord)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Page<JobClassAndId> findJobsPage(final Integer page, final int pageSize) {
         final var pageRequest =
                 Optional.ofNullable(page)

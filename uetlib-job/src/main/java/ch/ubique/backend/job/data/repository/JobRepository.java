@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,10 @@ public interface JobRepository extends JpaRepository<JobEntity, Integer> {
     Optional<JobEntity> findByCanonicalClassName(String canonicalClassName);
 
     List<JobEntity> findAllByOrderById();
+
+    List<JobEntity> findAllByIdInOrderById(Collection<Integer> id);
+
+    List<JobEntity> findAllByIdNotInOrderById(Collection<Integer> id);
 
     Page<JobEntity> findAllByOrderById(Pageable pageable);
 }
