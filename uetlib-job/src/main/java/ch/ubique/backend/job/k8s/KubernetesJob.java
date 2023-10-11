@@ -24,7 +24,7 @@ import java.util.*;
 public abstract class KubernetesJob implements Job {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    private final ApplicationContext applicationContext;
+    protected final ApplicationContext applicationContext;
 
     protected KubernetesJob(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
@@ -96,7 +96,7 @@ public abstract class KubernetesJob implements Job {
     }
 
     protected String jobName(final KubernetesJobRunContext kubernetesJobRunContext) {
-        return this.applicationContext.getEnvironment().getProperty("spring.application.name")
+        return applicationContext.getEnvironment().getProperty("spring.application.name")
                 + "-"
                 + kubernetesJobRunContext.jobRunContext().job().name().toLowerCase()
                 + "-run-"

@@ -5,6 +5,9 @@ import static java.util.Objects.requireNonNull;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 
@@ -40,6 +43,15 @@ public class KubernetesJobWrapper extends KubernetesJob {
             args.add("--force");
         }
 
+        final var additionalData =
+                kubernetesJobRunContext.jobRunContext().arguments().additionalData();
+        if (additionalData != null) {
+            args.add("--additionalData");
+            args.add(serializeObject(additionalData));
+            args.add("--additionalDataClass");
+            args.add(additionalData.getClass().getCanonicalName());
+        }
+
         return Set.of(
                 new V1Container()
                         .name("job-image")
@@ -63,10 +75,18 @@ public class KubernetesJobWrapper extends KubernetesJob {
         if (currentPodSpec.getContainers().size() != 1) {
             throw new IllegalArgumentException(
                     "Expected current importer pod to have exactly one container. This is a"
-                        + " simplification of the current implementation. If needed, you can modify"
-                        + " this code to drop this restriction.");
+                            + " simplification of the current implementation. If needed, you can modify"
+                            + " this code to drop this restriction.");
         }
 
         return currentPodSpec.getContainers().get(0);
+    }
+
+    private String serializeObject(final Object object) {
+        try {
+            return applicationContext.getBean(ObjectMapper.class).writeValueAsString(object);
+        } catch (final JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
