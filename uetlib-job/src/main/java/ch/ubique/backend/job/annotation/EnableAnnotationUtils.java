@@ -6,6 +6,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.reflections.Reflections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
@@ -14,6 +16,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class EnableAnnotationUtils {
+    private static final Logger logger = LoggerFactory.getLogger(EnableAnnotationUtils.class);
+
     private EnableAnnotationUtils() {}
 
     private static Set<Class<?>> findAllClassesBy(
@@ -49,11 +53,16 @@ public final class EnableAnnotationUtils {
     }
 
     public static Set<Class<?>> findAllRegisteredJobClasses(final String buildPropertiesGroup) {
+        logger.info("Scanning for EnableJobs-annotated class in {}.", buildPropertiesGroup);
         final var enableJobsClass =
                 CollectionUtils.extractSingleton(
                         new Reflections(buildPropertiesGroup)
                                 .getTypesAnnotatedWith(EnableJobs.class));
         final var enableJobsAnnotation = enableJobsClass.getAnnotation(EnableJobs.class);
+        logger.info(
+                "Scanning for RegisteredJob classes in {} with EnableJobs class {}.",
+                buildPropertiesGroup,
+                enableJobsClass);
         return findAllClassesBy(
                 enableJobsAnnotation.jobs(),
                 enableJobsAnnotation.basePackages(),
