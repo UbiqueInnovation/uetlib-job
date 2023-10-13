@@ -6,8 +6,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.reflections.Reflections;
+import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
@@ -53,16 +55,31 @@ public final class EnableAnnotationUtils {
     }
 
     public static Set<Class<?>> findAllRegisteredJobClasses(final String buildPropertiesGroup) {
-        logger.info("Scanning for EnableJobs-annotated class in {}.", buildPropertiesGroup);
-        final var enableJobsClass =
-                CollectionUtils.extractSingleton(
-                        new Reflections(buildPropertiesGroup)
-                                .getTypesAnnotatedWith(EnableJobs.class));
+        logger.debug("Scanning for EnableJobs-annotated class in {}", buildPropertiesGroup);
+        final var reflections =
+                new Reflections(new ConfigurationBuilder().forPackage(buildPropertiesGroup));
+        logger.debug(
+                "Found the following Spring Boot applications: {}",
+                reflections.getTypesAnnotatedWith(SpringBootApplication.class));
+        final var reflectionResult = reflections.getTypesAnnotatedWith(EnableJobs.class);
+
+        if (CollectionUtils.isEmpty(reflectionResult)) {
+            logger.error("No EnableJobs-annotated class found in {}", buildPropertiesGroup);
+        } else if (reflectionResult.size() > 1 && logger.isErrorEnabled()) {
+            logger.error(
+                    "Multiple EnableJobs-annotated classes found in {} ({}), only one is allowed.",
+                    buildPropertiesGroup,
+                    reflectionResult.stream()
+                            .map(Class::getCanonicalName)
+                            .collect(Collectors.joining(", ")));
+        }
+
+        final var enableJobsClass = CollectionUtils.extractSingleton(reflectionResult);
         final var enableJobsAnnotation = enableJobsClass.getAnnotation(EnableJobs.class);
         logger.info(
-                "Scanning for RegisteredJob classes in {} with EnableJobs class {}.",
+                "Scanning for RegisteredJob classes in {} with EnableJobs class {}",
                 buildPropertiesGroup,
-                enableJobsClass);
+                enableJobsClass.getCanonicalName());
         return findAllClassesBy(
                 enableJobsAnnotation.jobs(),
                 enableJobsAnnotation.basePackages(),
