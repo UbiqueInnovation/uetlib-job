@@ -1,7 +1,8 @@
 package ch.ubique.backend.job.service.controller;
 
+import static java.util.function.Function.identity;
+
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.core.utils.StringUtils;
 import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -23,6 +24,8 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
+import com.pivovarit.function.ThrowingFunction;
+
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -31,7 +34,6 @@ import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,6 +82,10 @@ public class JobControllerService {
         return jobInfos;
     }
 
+    public Collection<JobInfo> findAllJobs() throws ClassNotFoundException {
+        return findJobs(Set.of(), Set.of());
+    }
+
     public List<JobInfo> findJobs(
             final Collection<String> includeJobNamesOrIds,
             final Collection<String> excludeJobNamesOrIds)
@@ -123,7 +129,7 @@ public class JobControllerService {
                                         .map(JobRunInfo::from)
                                         .orElse(null))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toMap(JobRunInfo::jobId, Function.identity()));
+                .collect(Collectors.toMap(JobRunInfo::jobId, identity()));
     }
 
     /**
@@ -157,14 +163,12 @@ public class JobControllerService {
             @NotNull final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
 
-        final var jobs = findJobs(includeJobNamesOrIds, excludeJobNamesOrIds);
+        final var allJobs = findAllJobs();
+        final var jobsById = allJobs.stream().collect(Collectors.toMap(JobInfo::id, identity()));
+        final var jobNames = allJobs.stream().collect(Collectors.toMap(JobInfo::id, JobInfo::name));
 
-        final var jobsById =
-                jobs.stream().collect(Collectors.toMap(JobInfo::id, Function.identity()));
-        final var jobNames = jobs.stream().collect(Collectors.toMap(JobInfo::id, JobInfo::name));
-
-        final var requestedJobIds = jobNames.keySet().stream().toList();
-        final var jobRunsPage = jobDataService.findJobRuns(page, perPage, requestedJobIds, state);
+        final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
+        final var jobRunsPage = jobDataService.findJobRuns(page, perPage, selectedJobIds, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
@@ -175,9 +179,18 @@ public class JobControllerService {
                 jobRunsPage.getTotalPages());
     }
 
+    private List<Integer> getJobIds(
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds)
+            throws ClassNotFoundException {
+        return findJobs(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
+                .map(JobInfo::id)
+                .toList();
+    }
+
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {
         return jobNamesOrIds.stream()
-                .map(StringUtils::tryParseInt)
+                .map(ThrowingFunction.lifted(this::getJobId))
                 .flatMap(Optional::stream)
                 .toList();
     }
@@ -324,6 +337,14 @@ public class JobControllerService {
             return jobService.getJobClass(Integer.parseInt(idOrClassName));
         } catch (final NumberFormatException ignored) {
             return jobService.getJobClass(idOrClassName);
+        }
+    }
+
+    private int getJobId(final String idOrClassName) throws ClassNotFoundException {
+        try {
+            return Integer.parseInt(idOrClassName);
+        } catch (final NumberFormatException ignored) {
+            return jobService.getJobId(jobService.getJobClass(idOrClassName));
         }
     }
 }
