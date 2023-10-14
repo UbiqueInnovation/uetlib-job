@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.commands;
 
 import org.apache.commons.cli.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +17,9 @@ public class JobApplicationArgsParser {
     final Option jobRunIdOption;
     final Option forceRunOption;
 
+    final Option additionalDataClass;
+    final Option additionalData;
+
     public JobApplicationArgsParser() {
         options = new Options();
         help = new Option("h", "help", false, "print this message");
@@ -26,6 +30,13 @@ public class JobApplicationArgsParser {
                         "r", "run", true, "Job run id. Needed, if there already exists a job run.");
         forceRunOption =
                 new Option("f", "force", false, "Runs the job with the force option enabled.");
+        additionalData = new Option("a", "additionalData", true, "JSON serialized string value.");
+        additionalDataClass =
+                new Option(
+                        "c",
+                        "additionalDataClass",
+                        true,
+                        "Fully qualified name of the class to be used for deserializing the additional data.");
         options.addOption(help);
         options.addOption(jobClassOption);
         options.addOption(jobRunIdOption);
@@ -63,6 +74,8 @@ public class JobApplicationArgsParser {
                 Optional.ofNullable(command.getOptionValue(jobRunIdOption))
                         .map(Integer::parseInt)
                         .orElse(null),
-                command.hasOption(forceRunOption));
+                command.hasOption(forceRunOption),
+                StringUtils.defaultIfBlank(command.getOptionValue(additionalData), null),
+                StringUtils.defaultIfBlank(command.getOptionValue(additionalDataClass), null));
     }
 }

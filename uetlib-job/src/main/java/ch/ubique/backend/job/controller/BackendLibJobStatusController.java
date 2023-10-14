@@ -57,14 +57,13 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false) final Collection<String> excludeJobs,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
-        final var jobIdParam = jobId != null ? String.valueOf(jobId) : null;
-        final var includeJobsList =
-                includeJobs == null ? Collections.singleton(jobIdParam) : includeJobs;
+        final var jobIdParam = Optional.ofNullable(jobId).map(String::valueOf).orElse(null);
+        final var includeJobsList = jobIdParam != null ? List.of(jobIdParam) : includeJobs;
         return jobControllerService.findJobRuns(
                 page,
                 perPage,
                 state,
-                includeJobsList,
+                Objects.requireNonNullElse(includeJobsList, List.of()),
                 Objects.requireNonNullElse(excludeJobs, List.of()));
     }
 

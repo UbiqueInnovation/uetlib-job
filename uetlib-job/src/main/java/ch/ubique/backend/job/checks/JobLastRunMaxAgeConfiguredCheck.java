@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.checks;
 
-import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.JobClassAndId;
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
@@ -14,18 +14,19 @@ import org.springframework.stereotype.Service;
 @Profile("!job-run")
 public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
 
-    private final JobDataService jobDataService;
+    private final JobService jobService;
 
-    public JobLastRunMaxAgeConfiguredCheck(final JobDataService jobDataService) {
-        this.jobDataService = jobDataService;
+    public JobLastRunMaxAgeConfiguredCheck(final JobService jobService) {
+        this.jobService = jobService;
     }
 
     @Override
     public CheckStatus check() {
         final var jobsWithMissingMaxAge =
-                jobDataService.findJobs().stream()
+                jobService.getAllJobs().stream()
                         .filter(this::isMaxAgeMissing)
-                        .map(JobClassAndId::canonicalClassName)
+                        .map(Job::getClass)
+                        .map(Class::getCanonicalName)
                         .toList();
 
         if (!jobsWithMissingMaxAge.isEmpty()) {
@@ -37,9 +38,10 @@ public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
         return CheckStatus.CHECK_PASSED;
     }
 
-    private boolean isMaxAgeMissing(final JobClassAndId job) {
-        return !jobDataService
-                .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
+    private boolean isMaxAgeMissing(final Job job) {
+        return !jobService
+                .getProperties(job)
+                .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE)
                 .isValuePresent();
     }
 }
