@@ -2,7 +2,7 @@ CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     fk_job_id          INTEGER NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               VARCHAR NOT NULL,
+    type               TEXT    NOT NULL,
     trigger_definition JSONB   NOT NULL
 );
 

@@ -60,7 +60,7 @@ public abstract class BaseInputJob<T> implements Job {
     @Retryable(
             retryFor = Exception.class,
             maxAttempts = 10,
-            backoff = @Backoff(delay = 2000L, maxDelay = 300_000, multiplier = 2.0, random = true),
+            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
     protected abstract DataAndInput<T> loadInputs() throws Exception;
 

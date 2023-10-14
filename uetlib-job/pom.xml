@@ -76,13 +76,6 @@
             <version>2.3.4</version>
         </dependency>
 
-        <!-- Used to read maven artifact versions, i.e. the version of the backend lib used -->
-        <dependency>
-            <groupId>de.westemeyer</groupId>
-            <artifactId>artifact-version-service</artifactId>
-            <version>1.1.0</version>
-        </dependency>
-
         <!-- Additional utils for parsing and serializing time ranges -->
         <dependency>
             <groupId>net.time4j</groupId>
@@ -111,21 +104,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Used to read maven artifact versions, i.e. the version of the backend lib used -->
-            <plugin>
-                <groupId>de.westemeyer</groupId>
-                <artifactId>artifact-version-maven-plugin</artifactId>
-                <version>1.1.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate-service</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
         </plugins>
     </build>
 </project>
