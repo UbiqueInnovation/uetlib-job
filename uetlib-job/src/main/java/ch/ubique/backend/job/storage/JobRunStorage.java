@@ -1,15 +1,14 @@
 package ch.ubique.backend.job.storage;
 
-import ch.ubique.backend.storage.annotations.DeleteMapping;
-import ch.ubique.backend.storage.annotations.OutputMapping;
-import ch.ubique.backend.storage.annotations.Storage;
-import ch.ubique.backend.storage.annotations.StorageObject;
+import ch.ubique.backend.storage.annotations.*;
 
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.io.IOException;
 
-@Storage(clientQualifier = "jobRunStorageClient", generateDocumentation = false)
+@Storage(
+        clientQualifier = "jobRunStorageClient",
+        codeGenerationType = CodeGenerationType.IMPLEMENTATION)
 public interface JobRunStorage {
 
     @OutputMapping(path = "{jobName}/{runId}/{fileName}.gz")
