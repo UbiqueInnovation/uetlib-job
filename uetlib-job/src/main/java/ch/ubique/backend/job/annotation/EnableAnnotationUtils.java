@@ -9,7 +9,6 @@ import org.reflections.Reflections;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
@@ -58,20 +57,19 @@ public final class EnableAnnotationUtils {
         logger.debug("Scanning for EnableJobs-annotated class in {}", buildPropertiesGroup);
         final var reflections =
                 new Reflections(new ConfigurationBuilder().forPackage(buildPropertiesGroup));
-        logger.debug(
-                "Found the following Spring Boot applications: {}",
-                reflections.getTypesAnnotatedWith(SpringBootApplication.class));
         final var reflectionResult = reflections.getTypesAnnotatedWith(EnableJobs.class);
 
         if (CollectionUtils.isEmpty(reflectionResult)) {
-            logger.error("No EnableJobs-annotated class found in {}", buildPropertiesGroup);
-        } else if (reflectionResult.size() > 1 && logger.isErrorEnabled()) {
-            logger.error(
-                    "Multiple EnableJobs-annotated classes found in {} ({}), only one is allowed.",
-                    buildPropertiesGroup,
-                    reflectionResult.stream()
-                            .map(Class::getCanonicalName)
-                            .collect(Collectors.joining(", ")));
+            throw new IllegalArgumentException(
+                    "No EnableJobs-annotated class found in %s".formatted(buildPropertiesGroup));
+        } else if (reflectionResult.size() > 1) {
+            throw new IllegalArgumentException(
+                    "Multiple EnableJobs-annotated classes found in %s %s, only one is allowed."
+                            .formatted(
+                                    buildPropertiesGroup,
+                                    reflectionResult.stream()
+                                            .map(Class::getCanonicalName)
+                                            .collect(Collectors.joining(", "))));
         }
 
         final var enableJobsClass = CollectionUtils.extractSingleton(reflectionResult);
