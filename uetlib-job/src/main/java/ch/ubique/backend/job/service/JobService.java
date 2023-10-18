@@ -27,8 +27,10 @@ import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ClassUtils;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -64,10 +66,16 @@ public class JobService {
     }
 
     private static Set<Class<?>> findAllRegisteredJobClasses(final String buildPropertiesGroup) {
+        final var mergedAnnotationsSearch =
+                MergedAnnotations.search(MergedAnnotations.SearchStrategy.TYPE_HIERARCHY)
+                        .withEnclosingClasses(
+                                clazz ->
+                                        !ClassUtils.isInnerClass(clazz)
+                                                && !ClassUtils.isStaticClass(clazz));
         final var enableJobsClass =
-                ch.ubique.backend.storage.annotations.EnableAnnotationUtils.findEnableClass(
-                        buildPropertiesGroup, EnableJobs.class);
-        final var enableJobsAnnotation = enableJobsClass.getAnnotation(EnableJobs.class);
+                EnableAnnotationUtils.findEnableClass(buildPropertiesGroup, EnableJobs.class);
+        final var enableJobsAnnotation =
+                mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
         return EnableAnnotationUtils.findAllClassesBy(
                 enableJobsAnnotation.jobs(),
                 enableJobsAnnotation.basePackages(),
