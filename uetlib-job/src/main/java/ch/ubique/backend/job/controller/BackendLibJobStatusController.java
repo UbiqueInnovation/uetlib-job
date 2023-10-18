@@ -51,20 +51,13 @@ public class BackendLibJobStatusController {
     public JobRunInfosContainer jobRuns(
             @RequestParam(required = false, defaultValue = "0") final int page,
             @RequestParam(required = false, defaultValue = "25") final int perPage,
-            @Deprecated(since = "1.5", forRemoval = true) @RequestParam(required = false)
-                    final Integer jobId,
-            @RequestParam(required = false) final Collection<String> includeJobs,
-            @RequestParam(required = false) final Collection<String> excludeJobs,
+            @RequestParam(required = false, defaultValue = "[]")
+                    final Collection<String> includeJobs,
+            @RequestParam(required = false, defaultValue = "[]")
+                    final Collection<String> excludeJobs,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
-        final var jobIdParam = Optional.ofNullable(jobId).map(String::valueOf).orElse(null);
-        final var includeJobsList = jobIdParam != null ? List.of(jobIdParam) : includeJobs;
-        return jobControllerService.findJobRuns(
-                page,
-                perPage,
-                state,
-                Objects.requireNonNullElse(includeJobsList, List.of()),
-                Objects.requireNonNullElse(excludeJobs, List.of()));
+        return jobControllerService.findJobRuns(page, perPage, state, includeJobs, excludeJobs);
     }
 
     @GetMapping("/info")

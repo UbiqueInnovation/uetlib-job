@@ -163,17 +163,14 @@ public class JobControllerService {
             @NotNull final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
 
-        final var allJobs = findAllJobs();
-        final var jobsById = allJobs.stream().collect(Collectors.toMap(JobInfo::id, identity()));
-        final var jobNames = allJobs.stream().collect(Collectors.toMap(JobInfo::id, JobInfo::name));
-
+        final var jobsById =
+                findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
         final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var jobRunsPage = jobDataService.findJobRuns(page, perPage, selectedJobIds, state);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
                 jobsById,
-                jobNames,
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
                 jobRunsPage.getTotalPages());
