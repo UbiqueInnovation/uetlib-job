@@ -2,6 +2,7 @@ package ch.ubique.backend.job.annotation;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
+import org.springframework.core.annotation.AliasFor;
 
 import java.lang.annotation.*;
 
@@ -15,14 +16,21 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Documented
 public @interface EnableJobs {
+    /** Alias for {@link #basePackages} */
+    @AliasFor("basePackages")
+    String[] value() default {};
+
     /**
-     * Base packages to scan for annotated components.
+     * Alias for {@link #value}
+     *
+     * <p>Base packages to scan for annotated components.
      *
      * <p>Use {@link #basePackageClasses()} for a type-safe alternative to String-based package
      * names.
      *
      * @return the array of 'basePackages'.
      */
+    @AliasFor("value")
     String[] basePackages() default {};
 
     /**
