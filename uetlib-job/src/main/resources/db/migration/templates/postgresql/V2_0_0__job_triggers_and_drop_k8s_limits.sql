@@ -10,7 +10,7 @@ CREATE INDEX idx_type ON t_job_trigger (type);
 CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
 
 INSERT INTO t_job_trigger (fk_job_id, type, trigger_definition)
-SELECT pk_job_id, 'CRON', concat('{"type":"CRON", "cronExpression":"', cron_expression, '"}')
+SELECT pk_job_id, 'CRON', concat('{"type":"CRON", "cronExpression":"', cron_expression, '"}')::jsonb
 FROM t_job
 WHERE coalesce(trim(cron_expression), '') != '';
 
