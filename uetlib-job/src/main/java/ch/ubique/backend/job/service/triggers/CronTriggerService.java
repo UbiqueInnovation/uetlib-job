@@ -20,7 +20,9 @@ import java.util.concurrent.ScheduledFuture;
 @Service
 @Profile("!job-run")
 public class CronTriggerService implements TriggerService<CronTrigger> {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private static final Logger logger = LoggerFactory.getLogger(CronTriggerService.class);
+
     @NotNull private final ZoneId defaultZoneId;
 
     private final TaskScheduler taskScheduler;

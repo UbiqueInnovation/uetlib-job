@@ -26,7 +26,8 @@ import java.util.stream.Collectors;
 @Service
 public class JobExecutorService {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(JobExecutorService.class);
+
     private final JobService jobService;
 
     private final Map<JobRunnerKey, JobRunner> jobRunners;

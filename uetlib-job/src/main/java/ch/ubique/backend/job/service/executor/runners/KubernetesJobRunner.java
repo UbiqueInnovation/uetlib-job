@@ -31,7 +31,7 @@ import java.util.*;
 @Profile("!job-run")
 public class KubernetesJobRunner implements JobRunner {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(KubernetesJobRunner.class);
 
     private final ApplicationContext applicationContext;
 

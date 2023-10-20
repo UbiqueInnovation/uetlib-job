@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 @Profile("!job-run")
 public class JobRunStateTriggerService implements TriggerService<JobRunStateTrigger> {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(JobRunStateTriggerService.class);
+
     private final Map<Integer, JobRunStateTrigger> registeredTriggers;
     private final Map<Integer, Runnable> triggerCallbacks;
     private final JobDataService jobDataService;
