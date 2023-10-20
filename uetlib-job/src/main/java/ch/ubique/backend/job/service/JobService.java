@@ -24,6 +24,7 @@ import com.pivovarit.function.ThrowingPredicate;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
@@ -41,7 +42,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class JobService {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
     private final JobDataService jobDataService;
     private final JobCreator jobCreator;
@@ -66,16 +68,36 @@ public class JobService {
     }
 
     private static Set<Class<?>> findAllRegisteredJobClasses(final String buildPropertiesGroup) {
+        logger.debug("Scanning for EnableJobs-annotated class in package {}", buildPropertiesGroup);
         final var mergedAnnotationsSearch =
                 MergedAnnotations.search(MergedAnnotations.SearchStrategy.TYPE_HIERARCHY)
                         .withEnclosingClasses(
                                 clazz ->
                                         !ClassUtils.isInnerClass(clazz)
-                                                && !ClassUtils.isStaticClass(clazz));
-        final var enableJobsClass =
-                EnableAnnotationUtils.findEnableClass(buildPropertiesGroup, EnableJobs.class);
+                                        && !ClassUtils.isStaticClass(clazz));
+        final var enableJobsClasses =
+                EnableAnnotationUtils.findEnableClasses(buildPropertiesGroup, EnableJobs.class);
+
+        if (CollectionUtils.isEmpty(enableJobsClasses)) {
+            throw new IllegalArgumentException(
+                    "No EnableJobs-annotated class found in %s".formatted(buildPropertiesGroup));
+        } else if (enableJobsClasses.size() > 1) {
+            throw new IllegalArgumentException(
+                    "Multiple EnableJobs-annotated classes found in %s %s, only one is allowed."
+                            .formatted(
+                                    buildPropertiesGroup,
+                                    enableJobsClasses.stream()
+                                            .map(Class::getCanonicalName)
+                                            .collect(Collectors.joining(", "))));
+        }
+
+        final var enableJobsClass = CollectionUtils.extractSingleton(enableJobsClasses);
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
+        logger.info(
+                "Scanning for RegisteredJob classes in {} with EnableJobs class {}",
+                buildPropertiesGroup,
+                enableJobsClass.getCanonicalName());
         return EnableAnnotationUtils.findAllClassesBy(
                 enableJobsAnnotation.jobs(),
                 enableJobsAnnotation.basePackages(),
