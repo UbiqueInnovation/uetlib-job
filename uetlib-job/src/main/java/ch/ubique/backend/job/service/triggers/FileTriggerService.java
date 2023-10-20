@@ -22,7 +22,8 @@ import java.util.concurrent.TimeUnit;
 @Profile("!job-run")
 public class FileTriggerService implements TriggerService<FileTrigger>, AutoCloseable {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(FileTriggerService.class);
+
     private final WatchService watchService;
     private final ExecutorService executorService;
     private final Map<Integer, Pair<FileTrigger, Runnable>> registeredTriggers;
@@ -34,6 +35,22 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         executorService.execute(this::watch);
         registeredTriggers = new ConcurrentHashMap<>();
         watchedPaths = new ConcurrentHashMap<>();
+    }
+
+    private static FileChangeEvent getChangeEvent(final WatchEvent.Kind<?> kind) {
+        if (kind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
+            return FileChangeEvent.ENTRY_CREATED;
+        }
+        if (kind.equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
+            return FileChangeEvent.ENTRY_MODIFIED;
+        }
+        if (kind.equals(StandardWatchEventKinds.ENTRY_DELETE)) {
+            return FileChangeEvent.ENTRY_DELETED;
+        }
+        if (kind.equals(StandardWatchEventKinds.OVERFLOW)) {
+            return FileChangeEvent.OVERFLOW;
+        }
+        throw new IllegalArgumentException("Got unknown event kind " + kind);
     }
 
     private void watch() {
@@ -84,22 +101,6 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         return changeEvent == trigger.changeEvent()
                 && path.equals(Path.of(trigger.folder()))
                 && trigger.fileRegex().matcher(file.toString()).matches();
-    }
-
-    private static FileChangeEvent getChangeEvent(final WatchEvent.Kind<?> kind) {
-        if (kind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-            return FileChangeEvent.ENTRY_CREATED;
-        }
-        if (kind.equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
-            return FileChangeEvent.ENTRY_MODIFIED;
-        }
-        if (kind.equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-            return FileChangeEvent.ENTRY_DELETED;
-        }
-        if (kind.equals(StandardWatchEventKinds.OVERFLOW)) {
-            return FileChangeEvent.OVERFLOW;
-        }
-        throw new IllegalArgumentException("Got unknown event kind " + kind);
     }
 
     @Override

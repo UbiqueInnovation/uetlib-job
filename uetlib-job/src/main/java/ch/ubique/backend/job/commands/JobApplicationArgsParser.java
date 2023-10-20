@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class JobApplicationArgsParser {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(JobApplicationArgsParser.class);
 
     final Options options;
     final Option help;

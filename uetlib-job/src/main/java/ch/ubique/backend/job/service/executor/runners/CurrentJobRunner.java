@@ -21,7 +21,7 @@ import java.util.concurrent.*;
 @Service
 public final class CurrentJobRunner implements JobRunner {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(CurrentJobRunner.class);
 
     private final Map<RunnerGroup, ExecutorService> executorServices;
 

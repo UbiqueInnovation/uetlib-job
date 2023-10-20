@@ -22,7 +22,7 @@ import java.util.Set;
 @RegisteredJob
 public final class HealthCheckJob implements Job {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(HealthCheckJob.class);
 
     public static RunnerGroup runnerGroup() {
         return new RunnerGroup("health-check", 1, Set.of(HealthCheckJob.class));

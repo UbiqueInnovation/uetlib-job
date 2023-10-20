@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 @Service
 @Profile("!job-run")
 public class TriggerCoordinatorService {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
 
     private final JobDataService jobDataService;
 

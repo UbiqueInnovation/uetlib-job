@@ -24,7 +24,8 @@ import java.time.Duration;
 @RegisteredJob
 public class CleanupJob implements Job {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(CleanupJob.class);
+
     private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;
 
