@@ -15,7 +15,6 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
-import ch.ubique.backend.job.service.core.JobCreator;
 
 import com.pivovarit.function.ThrowingFunction;
 import com.pivovarit.function.ThrowingPredicate;
@@ -26,6 +25,7 @@ import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
@@ -40,18 +40,18 @@ public class JobService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final JobDataService jobDataService;
-    private final JobCreator jobCreator;
+    private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
     private final BuildProperties buildProperties;
 
     public JobService(
             final JobDataService jobDataService,
-            final JobCreator jobCreator,
+            final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
             final BuildProperties buildProperties,
             final Environment environment) {
         this.jobDataService = jobDataService;
-        this.jobCreator = jobCreator;
+        this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
         this.buildProperties = buildProperties;
 
@@ -148,7 +148,7 @@ public class JobService {
     }
 
     public Job instantiateJob(final Class<? extends Job> jobClass) {
-        return jobCreator.createNewJobInstance(jobClass);
+        return applicationContext.getAutowireCapableBeanFactory().createBean(jobClass);
     }
 
     public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
