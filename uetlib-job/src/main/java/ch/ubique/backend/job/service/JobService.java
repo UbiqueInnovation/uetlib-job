@@ -75,23 +75,9 @@ public class JobService {
                                 clazz ->
                                         !ClassUtils.isInnerClass(clazz)
                                         && !ClassUtils.isStaticClass(clazz));
-        final var enableJobsClasses =
-                EnableAnnotationUtils.findEnableClasses(buildPropertiesGroup, EnableJobs.class);
+        final var enableJobsClass =
+                EnableAnnotationUtils.findSingletonEnableClass(buildPropertiesGroup, EnableJobs.class);
 
-        if (CollectionUtils.isEmpty(enableJobsClasses)) {
-            throw new IllegalArgumentException(
-                    "No EnableJobs-annotated class found in %s".formatted(buildPropertiesGroup));
-        } else if (enableJobsClasses.size() > 1) {
-            throw new IllegalArgumentException(
-                    "Multiple EnableJobs-annotated classes found in %s %s, only one is allowed."
-                            .formatted(
-                                    buildPropertiesGroup,
-                                    enableJobsClasses.stream()
-                                            .map(Class::getCanonicalName)
-                                            .collect(Collectors.joining(", "))));
-        }
-
-        final var enableJobsClass = CollectionUtils.extractSingleton(enableJobsClasses);
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
         logger.info(
