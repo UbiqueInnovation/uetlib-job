@@ -69,7 +69,7 @@ public class JobService {
         for (final var cls : classes) {
             try {
                 final var jobClass = cls.asSubclass(Job.class);
-                jobDataService.registerJob(jobClass);
+                jobDataService.findOrInsertJob(jobClass);
                 logger.info("Registered {}.", jobClass);
             } catch (final ClassCastException e) {
                 throw new ClassCastException(
@@ -156,17 +156,11 @@ public class JobService {
     }
 
     public int getJobId(final Class<? extends Job> jobClass) {
-        return jobDataService
-                .findJobByCanonicalClassName(jobClass.getCanonicalName())
-                .orElseThrow()
-                .id();
+        return jobDataService.findOrInsertJob(jobClass).id();
     }
 
     public int getId(final Job job) {
-        return jobDataService
-                .findJobByCanonicalClassName(job.getClass().getCanonicalName())
-                .orElseThrow()
-                .id();
+        return getJobId(job.getClass());
     }
 
     public Class<? extends Job> getJobClass(final int jobId) throws ClassNotFoundException {
