@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
@@ -148,7 +149,10 @@ public class JobService {
     }
 
     public Job instantiateJob(final Class<? extends Job> jobClass) {
-        return applicationContext.getAutowireCapableBeanFactory().createBean(jobClass);
+        return (Job)
+                applicationContext
+                        .getAutowireCapableBeanFactory()
+                        .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
     }
 
     public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
