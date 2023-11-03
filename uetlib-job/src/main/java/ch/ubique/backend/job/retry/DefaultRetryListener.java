@@ -23,9 +23,7 @@ public class DefaultRetryListener implements RetryListener {
     @Override
     public <T, E extends Throwable> boolean open(
             final RetryContext context, final RetryCallback<T, E> callback) {
-        if (context.getLastThrowable() != null) {
-            logger.info("First time retrying after throwing:", context.getLastThrowable());
-        }
+        logger.debug("Starting to run {} with retries enabled now.", callback);
         return true;
     }
 
@@ -34,12 +32,7 @@ public class DefaultRetryListener implements RetryListener {
             final RetryContext context,
             final RetryCallback<T, E> callback,
             final Throwable throwable) {
-        if (context.getRetryCount() > 0 || context.getLastThrowable() != null) {
-            logger.info(
-                    "Last time retrying after throwing after retries {}:",
-                    context.getRetryCount(),
-                    context.getLastThrowable());
-        }
+        logger.debug("Done with retrying for {}", callback);
     }
 
     @Override
