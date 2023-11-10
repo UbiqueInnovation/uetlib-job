@@ -52,7 +52,7 @@ public class JobApplication {
 
         final var context =
                 new SpringApplicationBuilder(applicationClass)
-                        .profiles("job-run")
+                        .profiles("job-run", "no-security")
                         .web(WebApplicationType.NONE)
                         .run(args);
 

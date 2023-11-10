@@ -15,7 +15,6 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
-import ch.ubique.backend.job.service.core.JobCreator;
 import ch.ubique.backend.storage.annotations.EnableAnnotationUtils;
 
 import com.pivovarit.function.ThrowingFunction;
@@ -24,10 +23,11 @@ import com.pivovarit.function.ThrowingPredicate;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -46,18 +46,18 @@ public class JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
     private final JobDataService jobDataService;
-    private final JobCreator jobCreator;
+    private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
     private final BuildProperties buildProperties;
 
     public JobService(
             final JobDataService jobDataService,
-            final JobCreator jobCreator,
+            final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
             final BuildProperties buildProperties,
             final Environment environment) {
         this.jobDataService = jobDataService;
-        this.jobCreator = jobCreator;
+        this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
         this.buildProperties = buildProperties;
 
@@ -99,7 +99,7 @@ public class JobService {
         for (final var cls : jobClasses) {
             try {
                 final var jobClass = cls.asSubclass(Job.class);
-                jobDataService.registerJob(jobClass);
+                jobDataService.findOrInsertJob(jobClass);
                 logger.info("Registered {}.", jobClass);
             } catch (final ClassCastException e) {
                 throw new ClassCastException(
@@ -178,7 +178,10 @@ public class JobService {
     }
 
     public Job instantiateJob(final Class<? extends Job> jobClass) {
-        return jobCreator.createNewJobInstance(jobClass);
+        return (Job)
+                applicationContext
+                        .getAutowireCapableBeanFactory()
+                        .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
     }
 
     public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
@@ -186,17 +189,11 @@ public class JobService {
     }
 
     public int getJobId(final Class<? extends Job> jobClass) {
-        return jobDataService
-                .findJobByCanonicalClassName(jobClass.getCanonicalName())
-                .orElseThrow()
-                .id();
+        return jobDataService.findOrInsertJob(jobClass).id();
     }
 
     public int getId(final Job job) {
-        return jobDataService
-                .findJobByCanonicalClassName(job.getClass().getCanonicalName())
-                .orElseThrow()
-                .id();
+        return getJobId(job.getClass());
     }
 
     public Class<? extends Job> getJobClass(final int jobId) throws ClassNotFoundException {
