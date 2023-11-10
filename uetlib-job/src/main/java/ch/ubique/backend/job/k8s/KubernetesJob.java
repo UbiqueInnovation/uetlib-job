@@ -156,20 +156,27 @@ public abstract class KubernetesJob implements Job {
     protected V1ResourceRequirements resources(
             final KubernetesJobRunContext kubernetesJobRunContext) {
         final var cpuRequests =
-                Quantity.fromString(
-                        kubernetesJobRunContext
-                                .jobRunContext()
-                                .properties()
-                                .get(JobPropertyDefinitions.K8S_REQUESTS_CPU)
-                                .value());
-
+                kubernetesJobRunContext
+                        .jobRunContext()
+                        .properties()
+                        .get(JobPropertyDefinitions.K8S_REQUESTS_CPU)
+                        .valueMaybe()
+                        .map(Quantity::fromString)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "must specify K8S_REQUESTS_CPU for a dedicated KubernetesJob"));
         final var memoryRequests =
-                Quantity.fromString(
-                        kubernetesJobRunContext
-                                .jobRunContext()
-                                .properties()
-                                .get(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
-                                .value());
+                kubernetesJobRunContext
+                        .jobRunContext()
+                        .properties()
+                        .get(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
+                        .valueMaybe()
+                        .map(Quantity::fromString)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "must specify K8S_REQUESTS_MEMORY for a dedicated KubernetesJob"));
 
         final var requests =
                 Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));

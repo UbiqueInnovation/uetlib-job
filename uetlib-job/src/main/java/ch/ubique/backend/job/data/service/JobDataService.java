@@ -151,11 +151,16 @@ public class JobDataService {
     }
 
     @Transactional
-    public void registerJob(final Class<? extends Job> jobClass) {
-        final var canonicalClassName = jobClass.getCanonicalName();
-        if (findJobByCanonicalClassName(canonicalClassName).isEmpty()) {
-            jobRepository.save(new JobEntity(canonicalClassName));
-        }
+    public JobClassAndId findOrInsertJob(final Class<? extends Job> jobClass) {
+        return jobRepository
+                .findByCanonicalClassName(jobClass.getCanonicalName())
+                .map(JobEntity::toRecord)
+                .orElseGet(() -> saveJob(jobClass));
+    }
+
+    @Transactional
+    public JobClassAndId saveJob(final Class<? extends Job> jobClass) {
+        return jobRepository.save(new JobEntity(jobClass.getCanonicalName())).toRecord();
     }
 
     @Transactional
