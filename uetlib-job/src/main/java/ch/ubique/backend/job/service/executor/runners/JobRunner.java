@@ -8,9 +8,5 @@ public interface JobRunner {
 
     JobRunnerKey key();
 
-    default boolean isAvailable() {
-        return true;
-    }
-
     boolean submit(Job job, JobRunContext context);
 }

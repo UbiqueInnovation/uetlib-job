@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.k8s;
 
-import static java.util.Objects.requireNonNull;
-
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
@@ -14,6 +12,7 @@ import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.Config;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -119,19 +118,33 @@ public abstract class KubernetesJob implements Job {
 
     protected List<V1LocalObjectReference> imagePullSecrets(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        return requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod().getSpec())
-                .getImagePullSecrets();
+        return getCurrentPodSpec(kubernetesJobRunContext)
+                .map(V1PodSpec::getImagePullSecrets)
+                .orElse(fallBackImagePullSecret());
+    }
+
+    private List<V1LocalObjectReference> fallBackImagePullSecret() {
+        logger.info("Could not get image pull secret from current pod. Using fallback.");
+        final var envKey = "K8S_IMAGE_PULL_SECRET";
+        final var envImagePullSecret = System.getenv(envKey);
+        if (StringUtils.isBlank(envImagePullSecret)) {
+            logger.warn("Environment variable {} not set. No pull secret will be used.", envKey);
+            return List.of();
+        }
+        return List.of(new V1LocalObjectReference().name(envImagePullSecret));
     }
 
     protected List<V1Volume> volumes(final KubernetesJobRunContext kubernetesJobRunContext) {
-        return requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod().getSpec())
-                .getVolumes();
+        return getCurrentPodSpec(kubernetesJobRunContext)
+                .map(V1PodSpec::getVolumes)
+                .orElse(List.of());
     }
 
     protected Map<String, String> nodeSelector(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        return requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod().getSpec())
-                .getNodeSelector();
+        return getCurrentPodSpec(kubernetesJobRunContext)
+                .map(V1PodSpec::getNodeSelector)
+                .orElse(Map.of());
     }
 
     protected abstract Collection<V1Container> containers(
@@ -182,5 +195,11 @@ public abstract class KubernetesJob implements Job {
                 Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));
         final var limits = Map.ofEntries(Map.entry("memory", memoryRequests));
         return new V1ResourceRequirements().requests(requests).limits(limits);
+    }
+
+    private static Optional<V1PodSpec> getCurrentPodSpec(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod())
+                .map(V1Pod::getSpec);
     }
 }
