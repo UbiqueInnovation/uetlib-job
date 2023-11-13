@@ -82,10 +82,6 @@ public class JobExecutorService {
     private boolean tryToSchedule(
             final JobRunner runner, final Job job, final JobRunContext context) {
         try {
-            if (!runner.isAvailable()) {
-                logger.error("The requested runner {} is not available.", runner);
-                return false;
-            }
             logger.info(
                     "Scheduling job {} with context {} using runner {}",
                     job,
