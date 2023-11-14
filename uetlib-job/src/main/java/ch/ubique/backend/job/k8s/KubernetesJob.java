@@ -125,7 +125,7 @@ public abstract class KubernetesJob implements Job {
 
     private List<V1LocalObjectReference> fallBackImagePullSecret() {
         logger.info("Could not get image pull secret from current pod. Using fallback.");
-        final var envKey = "K8S_IMAGE_PULL_SECRET";
+        final var envKey = KubernetesEnvironmentVariables.K8S_IMAGE_PULL_SECRET.name();
         final var envImagePullSecret = System.getenv(envKey);
         if (StringUtils.isBlank(envImagePullSecret)) {
             logger.warn("Environment variable {} not set. No pull secret will be used.", envKey);

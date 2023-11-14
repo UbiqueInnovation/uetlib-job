@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.executor.runners;
 
 import ch.ubique.backend.job.Job;
+import ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables;
 import ch.ubique.backend.job.k8s.KubernetesJob;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.k8s.KubernetesContext;
@@ -41,18 +42,21 @@ public class KubernetesJobRunner implements JobRunner {
     public KubernetesJobRunner(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         namespace = getCurrentKubernetesNamespace();
-        currentPodName = System.getenv("HOSTNAME");
+        currentPodName = System.getenv(KubernetesEnvironmentVariables.K8S_POD_NAME.name());
     }
 
     private static String getCurrentKubernetesNamespace() {
         try {
             return Namespaces.getPodNamespace();
         } catch (final IOException e) {
-            final var namespaceFromEnv = System.getenv("K8S_NAMESPACE");
+            final var namespaceFromEnv =
+                    System.getenv(KubernetesEnvironmentVariables.K8S_NAMESPACE.name());
             if (StringUtils.isNotBlank(namespaceFromEnv)) {
                 return namespaceFromEnv;
             }
-            logger.warn("K8S_NAMESPACE environment variable not set. Using default namespace");
+            logger.warn(
+                    "{} environment variable not set. Using default namespace",
+                    KubernetesEnvironmentVariables.K8S_NAMESPACE);
             return "default";
         }
     }
