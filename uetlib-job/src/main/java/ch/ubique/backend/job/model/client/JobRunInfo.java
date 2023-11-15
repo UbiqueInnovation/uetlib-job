@@ -15,18 +15,16 @@ import java.time.Instant;
 public record JobRunInfo(
         @NotNull int id,
         @NotNull int jobId,
-        @NotBlank String jobName,
         @NotNull int jobVersion,
         @NotNull JobRunState state,
         @NotNull Instant startedAt,
         Instant finishedAt,
         @NotNull String duration) {
 
-    public static JobRunInfo from(final JobRun jobRun, final String jobName) {
+    public static JobRunInfo from(final JobRun jobRun) {
         return new JobRunInfo(
                 jobRun.id(),
                 jobRun.jobId(),
-                jobName,
                 jobRun.jobVersion(),
                 jobRun.state(),
                 jobRun.startedAt(),
