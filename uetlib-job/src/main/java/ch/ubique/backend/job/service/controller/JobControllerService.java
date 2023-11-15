@@ -76,9 +76,8 @@ public class JobControllerService {
     private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs)
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
-        for (final var job : jobs) {
-            final var jobClass = jobService.getJobClass(job.id());
-            final var jobInfo = jobInfo(jobService.instantiateJob(jobClass));
+        for (final var jobClassAndId : jobs) {
+            final var jobInfo = jobInfo(jobClassAndId);
             jobInfos.add(jobInfo);
         }
         return jobInfos;
@@ -125,13 +124,11 @@ public class JobControllerService {
     public Map<Integer, JobRunInfo> findLatestJobRuns(final List<JobClassAndId> jobs) {
         return jobs.stream()
                 .map(
-                        job -> {
-                            final var jobName = job.getClass().getSimpleName();
-                            return jobDataService
-                                    .findLatestJobRun(job.id())
-                                    .map(jobRun -> JobRunInfo.from(jobRun, jobName))
-                                    .orElse(null);
-                        })
+                        job ->
+                                jobDataService
+                                        .findLatestJobRun(job.id())
+                                        .map(JobRunInfo::from)
+                                        .orElse(null))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(JobRunInfo::jobId, identity()));
     }
@@ -172,14 +169,7 @@ public class JobControllerService {
 
         final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var jobRunsPage = jobDataService.findJobRuns(page, perPage, selectedJobIds, state);
-        final var jobRuns =
-                jobRunsPage.stream()
-                        .map(
-                                jobRun -> {
-                                    final var jobName = jobsById.get(jobRun.jobId()).name();
-                                    return JobRunInfo.from(jobRun, jobName);
-                                })
-                        .toList();
+        final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
                 jobsById,
@@ -217,18 +207,21 @@ public class JobControllerService {
         }
     }
 
-    public JobRunInfoContainer findJobRun(final int jobRunId) {
+    public JobRunInfoContainer findJobRun(final int jobRunId) throws ClassNotFoundException {
         final var jobRun =
                 jobDataService
                         .findJobRunById(jobRunId)
                         .orElseThrow(
                                 ResourceNotFoundException.supplierWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
-        final var jobName = jobById(jobRun.jobId()).name();
-        return JobRunInfoContainer.from(jobRun, jobName);
+        final var jobInfo = jobInfo(jobById(jobRun.jobId()));
+        return JobRunInfoContainer.from(jobRun, jobInfo);
     }
 
-    public JobInfo jobInfo(final Job job) {
+    public JobInfo jobInfo(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
+        final var jobClass = jobService.getJobClass(jobClassAndId.id());
+        final var job = jobService.instantiateJob(jobClass);
+
         final var cronExpression =
                 getCronTriggers(job)
                         .findAny()

@@ -64,7 +64,8 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping("/run/{jobRunId}")
-    public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
+    public JobRunInfoContainer jobRun(@PathVariable final int jobRunId)
+            throws ClassNotFoundException {
         return jobControllerService.findJobRun(jobRunId);
     }
 

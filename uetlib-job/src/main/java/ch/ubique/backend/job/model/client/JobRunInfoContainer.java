@@ -7,13 +7,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * @param jobRun
- * @param jobName deprecated, use {@link #jobRun().jobName()}
+ * @param jobRun JobRunInfo
+ * @param job JobInfo
+ * @param jobName deprecated, use {@link #job().jobName()}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record JobRunInfoContainer(@NotNull JobRunInfo jobRun, @NotNull String jobName) {
+public record JobRunInfoContainer(
+        @NotNull JobRunInfo jobRun, @NotNull JobInfo job, @NotNull String jobName) {
 
-    public static JobRunInfoContainer from(final JobRun jobRun, final String jobName) {
-        return new JobRunInfoContainer(JobRunInfo.from(jobRun, jobName), jobName);
+    public static JobRunInfoContainer from(final JobRun jobRun, final JobInfo jobInfo) {
+        return new JobRunInfoContainer(JobRunInfo.from(jobRun), jobInfo, jobInfo.name());
     }
 }
