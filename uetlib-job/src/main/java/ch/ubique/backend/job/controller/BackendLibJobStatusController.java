@@ -51,10 +51,8 @@ public class BackendLibJobStatusController {
     public JobRunInfosContainer jobRuns(
             @RequestParam(required = false, defaultValue = "0") final int page,
             @RequestParam(required = false, defaultValue = "25") final int perPage,
-            @RequestParam(required = false, defaultValue = "[]")
-                    final Collection<String> includeJobs,
-            @RequestParam(required = false, defaultValue = "[]")
-                    final Collection<String> excludeJobs,
+            @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
+            @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
         return jobControllerService.findJobRuns(page, perPage, state, includeJobs, excludeJobs);
