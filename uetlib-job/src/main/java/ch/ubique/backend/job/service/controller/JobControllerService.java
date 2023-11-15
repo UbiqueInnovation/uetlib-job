@@ -77,7 +77,9 @@ public class JobControllerService {
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var job : jobs) {
-            jobInfos.add(jobInfo(jobService.instantiateJob(jobService.getJobClass(job.id()))));
+            final var jobClass = jobService.getJobClass(job.id());
+            final var jobInfo = jobInfo(jobService.instantiateJob(jobClass));
+            jobInfos.add(jobInfo);
         }
         return jobInfos;
     }
@@ -123,11 +125,13 @@ public class JobControllerService {
     public Map<Integer, JobRunInfo> findLatestJobRuns(final List<JobClassAndId> jobs) {
         return jobs.stream()
                 .map(
-                        job ->
-                                jobDataService
-                                        .findLatestJobRun(job.id())
-                                        .map(JobRunInfo::from)
-                                        .orElse(null))
+                        job -> {
+                            final var jobName = job.getClass().getSimpleName();
+                            return jobDataService
+                                    .findLatestJobRun(job.id())
+                                    .map(jobRun -> JobRunInfo.from(jobRun, jobName))
+                                    .orElse(null);
+                        })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(JobRunInfo::jobId, identity()));
     }
@@ -165,9 +169,17 @@ public class JobControllerService {
 
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
+
         final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var jobRunsPage = jobDataService.findJobRuns(page, perPage, selectedJobIds, state);
-        final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
+        final var jobRuns =
+                jobRunsPage.stream()
+                        .map(
+                                jobRun -> {
+                                    final var jobName = jobsById.get(jobRun.jobId()).name();
+                                    return JobRunInfo.from(jobRun, jobName);
+                                })
+                        .toList();
         return new JobRunInfosContainer(
                 jobRuns,
                 jobsById,
