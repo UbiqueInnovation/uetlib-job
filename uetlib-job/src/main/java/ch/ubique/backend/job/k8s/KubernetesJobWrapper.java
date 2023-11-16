@@ -68,7 +68,8 @@ public class KubernetesJobWrapper extends KubernetesJob {
 
     private static V1Container getCurrentPodContainer(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        final var currentPod = kubernetesJobRunContext.kubernetesContext().currentPod();
+        final var currentPod =
+                requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod());
         final var currentPodSpec = requireNonNull(currentPod.getSpec());
 
         // Assume there is only one container
