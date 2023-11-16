@@ -42,7 +42,7 @@ public class KubernetesJobRunner implements JobRunner {
     public KubernetesJobRunner(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         namespace = getCurrentKubernetesNamespace();
-        currentPodName = System.getenv(KubernetesEnvironmentVariables.K8S_POD_NAME.name());
+        currentPodName = getCurrentPodName();
     }
 
     private static String getCurrentKubernetesNamespace() {
@@ -59,6 +59,26 @@ public class KubernetesJobRunner implements JobRunner {
                     KubernetesEnvironmentVariables.K8S_NAMESPACE);
             return "default";
         }
+    }
+
+    private static String getCurrentPodName() {
+        final var podNameFromEnvVar =
+                System.getenv(KubernetesEnvironmentVariables.K8S_POD_NAME.name());
+        if (StringUtils.isNotBlank(podNameFromEnvVar)) {
+            logger.info(
+                    "Used pod name set by environment variable {}",
+                    KubernetesEnvironmentVariables.K8S_POD_NAME);
+            return podNameFromEnvVar;
+        }
+
+        final var hostname = System.getenv("HOSTNAME");
+        if (StringUtils.isNotBlank(hostname)) {
+            logger.info("Assuming hostname {} is the name of the current pod", hostname);
+            return hostname;
+        }
+
+        logger.warn("Unable to find current pod name.");
+        return null;
     }
 
     @Override
