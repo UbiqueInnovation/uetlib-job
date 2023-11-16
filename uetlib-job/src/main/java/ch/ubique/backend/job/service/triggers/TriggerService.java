@@ -1,18 +1,26 @@
 package ch.ubique.backend.job.service.triggers;
 
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import org.springframework.core.GenericTypeResolver;
 
+import java.util.function.Consumer;
+
 public interface TriggerService<T extends TriggerDefinition> {
 
     default void onStartup(
-            final int triggerId, final T triggerDefinition, final Runnable runnable) {
-        addTrigger(triggerId, triggerDefinition, runnable);
+            final int triggerId,
+            final T triggerDefinition,
+            final Consumer<JobRunArguments> consumer) {
+        addTrigger(triggerId, triggerDefinition, consumer);
     }
 
-    void addTrigger(final int triggerId, final T triggerDefinition, final Runnable runnable);
+    void addTrigger(
+            final int triggerId,
+            final T triggerDefinition,
+            final Consumer<JobRunArguments> consumer);
 
     void removeTrigger(final int triggerId);
 

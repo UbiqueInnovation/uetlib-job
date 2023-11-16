@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.service.triggers;
 
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")
@@ -40,7 +42,10 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
 
     @Override
     public void addTrigger(
-            final int triggerId, final CronTrigger triggerDefinition, final Runnable runnable) {
+            final int triggerId,
+            final CronTrigger triggerDefinition,
+            final Consumer<JobRunArguments> consumer) {
+        final Runnable runnable = () -> consumer.accept(new JobRunArguments());
         scheduleCronTrigger(triggerId, triggerDefinition, runnable);
     }
 

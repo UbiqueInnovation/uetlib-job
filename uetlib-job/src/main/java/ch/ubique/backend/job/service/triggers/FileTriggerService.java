@@ -1,9 +1,12 @@
 package ch.ubique.backend.job.service.triggers;
 
+import ch.ubique.backend.job.model.FileTriggerContext;
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
 
-import org.apache.commons.lang3.tuple.Pair;
+import jakarta.validation.constraints.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -17,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")
@@ -26,7 +30,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     private final WatchService watchService;
     private final ExecutorService executorService;
-    private final Map<Integer, Pair<FileTrigger, Runnable>> registeredTriggers;
+    private final Map<Integer, RegisteredFileTrigger> registeredTriggers;
     private final Map<WatchKey, Path> watchedPaths;
 
     public FileTriggerService() throws IOException {
@@ -89,8 +93,16 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         for (final var event : key.pollEvents()) {
             logger.info("Got event {}", event);
             registeredTriggers.values().stream()
-                    .filter(trigger -> matches(trigger.getKey(), path, event))
-                    .forEach(trigger -> trigger.getValue().run());
+                    .filter(
+                            triggerRunnablePair ->
+                                    matches(triggerRunnablePair.fileTrigger(), path, event))
+                    .forEach(
+                            triggerRunnablePair -> {
+                                final var jobRunArguments =
+                                        new JobRunArguments(
+                                                false, new FileTriggerContext(path, event), null);
+                                triggerRunnablePair.consumer().accept(jobRunArguments);
+                            });
         }
     }
 
@@ -105,14 +117,24 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     @Override
     public void addTrigger(
-            final int triggerId, final FileTrigger triggerDefinition, final Runnable runnable) {
+            final int triggerId,
+            final FileTrigger triggerDefinition,
+            final Consumer<JobRunArguments> consumer) {
         watchPath(Path.of(triggerDefinition.folder()));
-        registeredTriggers.put(triggerId, Pair.of(triggerDefinition, runnable));
+        registeredTriggers.put(triggerId, new RegisteredFileTrigger(triggerDefinition, consumer));
     }
 
     private void watchPath(final Path path) {
         if (watchedPaths.containsValue(path)) {
             return;
+        }
+
+        if (!path.toFile().exists()) {
+            final var dirsCreated = path.toFile().mkdirs();
+            if (!dirsCreated) {
+                throw new IllegalStateException(
+                        "Could not create directories for watched path " + path);
+            }
         }
 
         try {
@@ -138,9 +160,16 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     public void close() {
         executorService.shutdown();
         try {
-            executorService.awaitTermination(5, TimeUnit.SECONDS);
+            final var successfulTermination = executorService.awaitTermination(5, TimeUnit.SECONDS);
+            if (!successfulTermination) {
+                logger.info(
+                        "executorService failed to terminate successfully before timeout elapsed");
+            }
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
+
+    private record RegisteredFileTrigger(
+            @NotNull FileTrigger fileTrigger, @NotNull Consumer<JobRunArguments> consumer) {}
 }

@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.backend.job.service.JobService;
@@ -18,6 +19,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,7 +30,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     private static final Logger logger = LoggerFactory.getLogger(JobRunStateTriggerService.class);
 
     private final Map<Integer, JobRunStateTrigger> registeredTriggers;
-    private final Map<Integer, Runnable> triggerCallbacks;
+    private final Map<Integer, Consumer<JobRunArguments>> triggerCallbacks;
     private final JobDataService jobDataService;
     private final JobService jobService;
     private Collection<JobRun> activeJobRuns;
@@ -93,9 +95,9 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                         })
                 .forEach(
                         entry -> {
-                            final var callback = triggerCallbacks.get(entry.getKey());
+                            final var consumer = triggerCallbacks.get(entry.getKey());
                             logger.info("Calling callback for {}.", entry.getValue());
-                            callback.run();
+                            consumer.accept(new JobRunArguments());
                         });
     }
 
@@ -103,9 +105,9 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     public void addTrigger(
             final int triggerId,
             final JobRunStateTrigger triggerDefinition,
-            final Runnable runnable) {
+            final Consumer<JobRunArguments> consumer) {
         registeredTriggers.put(triggerId, triggerDefinition);
-        triggerCallbacks.put(triggerId, runnable);
+        triggerCallbacks.put(triggerId, consumer);
     }
 
     @Override

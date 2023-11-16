@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -132,10 +134,10 @@ public class TriggerCoordinatorService {
                 () -> MessageFormat.format("No {0} for {1} found.", TriggerService.class, type));
     }
 
-    private Runnable runnable(final Class<? extends Job> jobClass) {
-        return () -> {
+    private Consumer<JobRunArguments> runnable(final Class<? extends Job> jobClass) {
+        return jobRunArguments -> {
             logger.info("Submitting job {}", jobClass);
-            jobExecutorService.submit(jobClass);
+            jobExecutorService.submit(jobClass, jobRunArguments);
         };
     }
 }

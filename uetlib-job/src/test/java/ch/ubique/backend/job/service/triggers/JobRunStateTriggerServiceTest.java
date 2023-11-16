@@ -61,12 +61,12 @@ class JobRunStateTriggerServiceTest {
         triggerService.addTrigger(
                 1,
                 new JobRunStateTrigger(CleanupJob.class, JobRunState.DONE),
-                doneRunCount::incrementAndGet);
+                jobRunArguments -> doneRunCount.incrementAndGet());
 
         triggerService.addTrigger(
                 2,
                 new JobRunStateTrigger(CleanupJob.class, JobRunState.SCHEDULED),
-                scheduledRunCount::incrementAndGet);
+                jobRunArguments -> scheduledRunCount.incrementAndGet());
 
         final var jobRun = new JobRun(1, 1, 1, Instant.now(), null, JobRunState.SCHEDULED);
         doReturn(Set.of(jobRun)).when(jobDataService).findJobRunsWithoutFinishedTimestamp();
