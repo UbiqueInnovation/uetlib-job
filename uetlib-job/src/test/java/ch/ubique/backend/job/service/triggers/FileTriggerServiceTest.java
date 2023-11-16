@@ -32,8 +32,10 @@ class FileTriggerServiceTest {
 
         try (final var fileTriggerService = new FileTriggerService()) {
 
-            fileTriggerService.addTrigger(0, anyFileCreated, () -> triggered.add(anyFileCreated));
-            fileTriggerService.addTrigger(1, testFileDeleted, () -> triggered.add(testFileDeleted));
+            fileTriggerService.addTrigger(
+                    0, anyFileCreated, jobRunArguments -> triggered.add(anyFileCreated));
+            fileTriggerService.addTrigger(
+                    1, testFileDeleted, jobRunArguments -> triggered.add(testFileDeleted));
 
             final var test = Files.createFile(tempDir.resolve("test.txt"));
             final var foo = Files.createFile(tempDir.resolve("foo.txt"));

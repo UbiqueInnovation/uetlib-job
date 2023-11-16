@@ -1,9 +1,12 @@
 package ch.ubique.backend.job.service.triggers;
 
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.RunOnStartupTrigger;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")
@@ -13,16 +16,16 @@ public class StartupTriggerService implements TriggerService<RunOnStartupTrigger
     public void onStartup(
             final int triggerId,
             final RunOnStartupTrigger triggerDefinition,
-            final Runnable runnable) {
+            final Consumer<JobRunArguments> consumer) {
         // Just run it
-        runnable.run();
+        consumer.accept(new JobRunArguments());
     }
 
     @Override
     public void addTrigger(
             final int triggerId,
             final RunOnStartupTrigger triggerDefinition,
-            final Runnable runnable) {
+            final Consumer<JobRunArguments> consumer) {
         // Nothing to do here
     }
 
