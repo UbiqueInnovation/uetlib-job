@@ -72,7 +72,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     private void checkForMatchingTriggerDefinitions(final WatchKey key) {
         final var watchedPath = watchedPaths.get(key);
-        logger.info("Watched watchedPath: {}", watchedPath);
+        logger.info("Watched path: {}", watchedPath);
 
         for (final var event : key.pollEvents()) {
             logger.info("Got eventContext {}", event);
