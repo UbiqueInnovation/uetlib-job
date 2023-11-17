@@ -41,22 +41,6 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         watchedPaths = new ConcurrentHashMap<>();
     }
 
-    private static FileChangeEvent getChangeEvent(final WatchEvent.Kind<?> kind) {
-        if (kind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-            return FileChangeEvent.ENTRY_CREATED;
-        }
-        if (kind.equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
-            return FileChangeEvent.ENTRY_MODIFIED;
-        }
-        if (kind.equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-            return FileChangeEvent.ENTRY_DELETED;
-        }
-        if (kind.equals(StandardWatchEventKinds.OVERFLOW)) {
-            return FileChangeEvent.OVERFLOW;
-        }
-        throw new IllegalArgumentException("Got unknown event kind " + kind);
-    }
-
     private void watch() {
         logger.info("Starting to watch for file events.");
 
@@ -87,32 +71,41 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     }
 
     private void checkForMatchingTriggerDefinitions(final WatchKey key) {
-        final var path = watchedPaths.get(key);
-        logger.info("Watched path: {}", path);
+        final var watchedPath = watchedPaths.get(key);
+        logger.info("Watched watchedPath: {}", watchedPath);
 
         for (final var event : key.pollEvents()) {
-            logger.info("Got event {}", event);
+            logger.info("Got eventContext {}", event);
             registeredTriggers.values().stream()
                     .filter(
                             triggerRunnablePair ->
-                                    matches(triggerRunnablePair.fileTrigger(), path, event))
+                                    matches(triggerRunnablePair.fileTrigger(), watchedPath, event))
                     .forEach(
                             triggerRunnablePair -> {
+                                final var fileTriggerContext =
+                                        FileTriggerContext.from(watchedPath, event);
                                 final var jobRunArguments =
-                                        new JobRunArguments(
-                                                false, new FileTriggerContext(path, event), null);
+                                        new JobRunArguments(false, fileTriggerContext, null);
                                 triggerRunnablePair.consumer().accept(jobRunArguments);
                             });
         }
     }
 
-    private boolean matches(final FileTrigger trigger, final Path path, final WatchEvent<?> event) {
-        final var file = (Path) event.context();
-        final var changeEvent = getChangeEvent(event.kind());
+    private boolean matches(
+            final FileTrigger trigger, final Path watchedPath, final WatchEvent<?> event) {
+        final var changeEvent = FileChangeEvent.fromWatchEventKind(event.kind());
+        if (changeEvent != trigger.changeEvent()
+                || !watchedPath.equals(Path.of(trigger.folder()))) {
+            // event or watchPath does not match
+            return false;
+        }
 
-        return changeEvent == trigger.changeEvent()
-                && path.equals(Path.of(trigger.folder()))
-                && trigger.fileRegex().matcher(file.toString()).matches();
+        if (!(event.context() instanceof final Path eventContextPath)) {
+            // not a path (can happen for eventKind OVERFLOW) so surely that does not match
+            return false;
+        }
+
+        return trigger.fileRegex().matcher(eventContextPath.toString()).matches();
     }
 
     @Override
@@ -124,28 +117,28 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         registeredTriggers.put(triggerId, new RegisteredFileTrigger(triggerDefinition, consumer));
     }
 
-    private void watchPath(final Path path) {
-        if (watchedPaths.containsValue(path)) {
+    private void watchPath(final Path pathToWatch) {
+        if (watchedPaths.containsValue(pathToWatch)) {
             return;
         }
 
-        if (!path.toFile().exists()) {
-            final var dirsCreated = path.toFile().mkdirs();
+        if (!pathToWatch.toFile().exists()) {
+            final var dirsCreated = pathToWatch.toFile().mkdirs();
             if (!dirsCreated) {
                 throw new IllegalStateException(
-                        "Could not create directories for watched path " + path);
+                        "Could not create directories for watched path " + pathToWatch);
             }
         }
 
         try {
-            final var key =
-                    path.register(
+            final var watchKey =
+                    pathToWatch.register(
                             watchService,
                             StandardWatchEventKinds.ENTRY_CREATE,
                             StandardWatchEventKinds.ENTRY_MODIFY,
                             StandardWatchEventKinds.ENTRY_DELETE);
 
-            watchedPaths.put(key, path);
+            watchedPaths.put(watchKey, pathToWatch);
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
