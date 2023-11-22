@@ -10,7 +10,7 @@ import org.testcontainers.utility.DockerImageName;
 public class PostgresqlTestContainerConfig {
     @Bean
     @ServiceConnection
-    PostgreSQLContainer<?> mariaDBContainer() {
+    PostgreSQLContainer<?> postgresDBContainer() {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"))
                 .withReuse(true);
     }
