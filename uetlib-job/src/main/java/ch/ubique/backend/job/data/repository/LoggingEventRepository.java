@@ -35,7 +35,7 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
                             where event_id in
                                   (select event_id
                                    from logging_event_property
-                                   where mapped_key = 'jobRunId' and mapped_value = cast(:jobRunId as varchar))""",
+                                   where mapped_key = 'jobRunId' and mapped_value = cast(:jobRunId as char(1024)))""",
             nativeQuery = true)
     void deleteLogsForJobRunId(final int jobRunId);
 }
