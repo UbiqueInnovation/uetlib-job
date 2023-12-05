@@ -42,8 +42,8 @@ public final class JobPropertyDefinitions {
             new GenericPropertyDefinition<>(
                     "RUNNER_GROUP",
                     "Jobs with the same runner group share the same executor service. Jobs with"
-                        + " different groups use different executors and may run in parallel. Only"
-                        + " applicable for RUNNER == CURRENT",
+                            + " different groups use different executors and may run in parallel. Only"
+                            + " applicable for RUNNER == CURRENT",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     new RunnerGroup("default", 1),
@@ -99,6 +99,15 @@ public final class JobPropertyDefinitions {
                     false,
                     1000,
                     null);
+    public static final JobPropertyDefinition<Boolean> DISABLE_MANUAL_EXECUTION =
+            new GenericPropertyDefinition<>(
+                    "DISABLE_MANUAL_EXECUTION",
+                    "If set to true, the job cannot be executed manually from the status interface.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    false,
+                    null,
+                    Boolean.class);
 
     // ------------------------------------
     // Helpers to get fields declared above
