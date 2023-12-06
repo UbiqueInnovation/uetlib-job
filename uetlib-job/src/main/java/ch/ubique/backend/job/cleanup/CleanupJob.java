@@ -9,6 +9,7 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 import ch.ubique.backend.job.storage.JobRunStorage;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Set;
 
 @RegisteredJob
 public class CleanupJob implements Job {
@@ -40,10 +42,15 @@ public class CleanupJob implements Job {
         return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
     }
 
+    public static RunnerGroup runnerGroup() {
+        return new RunnerGroup("cleanup", 1, Set.of(CleanupJob.class));
+    }
+
     @NotNull
     @Override
     public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
+                JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(
