@@ -59,7 +59,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
                         .args(args)
                         .env(currentPodContainer.getEnv())
                         .addEnvItem(
-                                new V1EnvVar().name("JAVA_OPTS").value("-XX:MaxRAMPercentage=95.0"))
+                                new V1EnvVar().name("ADDITIONAL_JAVA_OPTS").value("-XX:MaxRAMPercentage=95.0"))
                         .envFrom(currentPodContainer.getEnvFrom())
                         .volumeMounts(currentPodContainer.getVolumeMounts())
                         .imagePullPolicy(currentPodContainer.getImagePullPolicy())
