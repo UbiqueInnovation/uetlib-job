@@ -57,14 +57,6 @@ public class JobExecutorService {
         logger.info("{} submitted to executor.", jobClass);
 
         final var job = jobService.instantiateJob(jobClass);
-        if (jobService
-                .getProperties(job)
-                .get(JobPropertyDefinitions.DISABLE_MANUAL_EXECUTION)
-                .valueMaybe()
-                .orElse(false)) {
-            logger.warn("Job {} is not allowed to be executed manually.", job);
-            return;
-        }
         final var context = createContext(job, arguments, runId);
         final var runner = getJobRunner(context, jobRunnerKey);
 
