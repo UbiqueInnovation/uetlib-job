@@ -100,14 +100,11 @@ public final class JobPropertyDefinitions {
                     1000,
                     null);
     public static final JobPropertyDefinition<Boolean> DISABLE_MANUAL_EXECUTION =
-            new GenericPropertyDefinition<>(
+            new BooleanPropertyDefinition(
                     "DISABLE_MANUAL_EXECUTION",
                     "If set to true, the job cannot be executed manually from the status interface.",
                     JobPropertyDefinitionGroup.RUNNER,
-                    false,
-                    false,
-                    null,
-                    Boolean.class);
+                    false);
 
     // ------------------------------------
     // Helpers to get fields declared above
