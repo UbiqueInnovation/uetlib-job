@@ -102,7 +102,7 @@ public class BackendLibJobStatusController {
             @PathVariable final String idOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        jobControllerService.startJob(idOrClassName, forceRun);
+        jobControllerService.startJobManual(idOrClassName, forceRun);
     }
 
     @PostMapping("/job/start_all")

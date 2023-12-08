@@ -199,6 +199,10 @@ public class JobControllerService {
         jobExecutorService.submit(getJobClass(idOrClassName), new JobRunArguments(forceRun));
     }
 
+    public void startJobManual(final String idOrClassName, final boolean forceRun) throws ClassNotFoundException {
+        jobExecutorService.submitManual(getJobClass(idOrClassName), new JobRunArguments(forceRun));
+    }
+
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
 
         final var jobs = jobDataService.findJobs();
