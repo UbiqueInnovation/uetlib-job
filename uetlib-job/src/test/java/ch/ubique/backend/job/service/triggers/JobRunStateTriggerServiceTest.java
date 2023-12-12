@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import ch.ubique.backend.job.cleanup.CleanupJob;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.backend.job.service.JobService;
@@ -68,7 +69,9 @@ class JobRunStateTriggerServiceTest {
                 new JobRunStateTrigger(CleanupJob.class, JobRunState.SCHEDULED),
                 jobRunArguments -> scheduledRunCount.incrementAndGet());
 
-        final var jobRun = new JobRun(1, 1, 1, Instant.now(), null, JobRunState.SCHEDULED);
+        final var jobRun =
+                new JobRun(
+                        1, 1, 1, Instant.now(), null, JobRunState.SCHEDULED, new JobRunArguments());
         doReturn(Set.of(jobRun)).when(jobDataService).findJobRunsWithoutFinishedTimestamp();
 
         triggerService.checkJobRuns();
