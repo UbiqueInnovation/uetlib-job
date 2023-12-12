@@ -8,6 +8,7 @@ import ch.ubique.backend.job.annotation.EnableJobs;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
@@ -74,9 +75,10 @@ public class JobService {
                         .withEnclosingClasses(
                                 clazz ->
                                         !ClassUtils.isInnerClass(clazz)
-                                        && !ClassUtils.isStaticClass(clazz));
+                                                && !ClassUtils.isStaticClass(clazz));
         final var enableJobsClass =
-                EnableAnnotationUtils.findSingletonEnableClass(buildPropertiesGroup, EnableJobs.class);
+                EnableAnnotationUtils.findSingletonEnableClass(
+                        buildPropertiesGroup, EnableJobs.class);
 
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
@@ -200,15 +202,23 @@ public class JobService {
         return getJobClass(jobDataService.findJobById(jobId).orElseThrow().canonicalClassName());
     }
 
-    public JobRun createNewJobRun(@NotNull final Job job) {
+    public JobRun createNewJobRun(
+            @NotNull final Job job, @NotNull final JobRunArguments arguments) {
         final var jobId = getJobId(job.getClass());
-        return jobDataService.createJobRun(jobId, job.version());
+        return jobDataService.createJobRun(jobId, job.version(), arguments);
     }
 
-    public JobRun getOrCreateJobRun(@NotNull final Job job, @Nullable final Integer runId) {
+    public JobRun getOrCreateJobRun(
+            @NotNull final Job job,
+            @Nullable final Integer runId,
+            @NotNull final JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
-                .orElseGet(() -> createNewJobRun(job));
+                .orElseGet(() -> createNewJobRun(job, arguments));
+    }
+
+    public JobRun getJobRun(@NotNull final int runId) {
+        return jobDataService.findJobRunById(runId).orElseThrow();
     }
 
     public void updateJobRun(@NotNull final JobRun jobRun) {

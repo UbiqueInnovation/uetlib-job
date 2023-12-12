@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model.properties;
 
+import ch.ubique.backend.job.model.properties.enums.JobReplayMode;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
@@ -99,12 +100,12 @@ public final class JobPropertyDefinitions {
                     false,
                     1000,
                     null);
-    public static final JobPropertyDefinition<Boolean> DISABLE_MANUAL_EXECUTION =
-            new BooleanPropertyDefinition(
+    public static final EnumPropertyDefinition<JobReplayMode> DISABLE_MANUAL_EXECUTION =
+            new EnumPropertyDefinition<>(
                     "DISABLE_MANUAL_EXECUTION",
-                    "If set to true, the job cannot be executed manually from the status interface.",
+                    "Whether the job can be executed manually from the interface, or replayed with context.",
                     JobPropertyDefinitionGroup.RUNNER,
-                    false);
+                    JobReplayMode.NONE);
 
     // ------------------------------------
     // Helpers to get fields declared above

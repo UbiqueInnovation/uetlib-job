@@ -3,10 +3,7 @@ package ch.ubique.backend.job.data.service;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
-import ch.ubique.backend.job.model.JobClassAndId;
-import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.model.JobRunInput;
-import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
@@ -284,11 +281,17 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobRun createJobRun(final int jobId, final int jobVersion) {
+    public JobRun createJobRun(
+            final int jobId, final int jobVersion, final JobRunArguments arguments) {
         return jobRunRepository
                 .save(
                         new JobRunEntity(
-                                jobId, jobVersion, JobRunState.SCHEDULED, Instant.now(), null))
+                                jobId,
+                                jobVersion,
+                                JobRunState.SCHEDULED,
+                                Instant.now(),
+                                null,
+                                arguments))
                 .toJobRun();
     }
 

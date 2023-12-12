@@ -47,6 +47,7 @@ public class JobRunEntity {
         state = jobRun.state();
         startedAt = jobRun.startedAt();
         finishedAt = jobRun.finishedAt();
+        jobRunArguments = jobRun.jobRunArguments();
     }
 
     public JobRunEntity(
@@ -54,15 +55,17 @@ public class JobRunEntity {
             final int jobVersion,
             final JobRunState state,
             final Instant startedAt,
-            final Instant finishedAt) {
+            final Instant finishedAt,
+            final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.jobVersion = jobVersion;
         this.state = state;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
+        this.jobRunArguments = jobRunArguments;
     }
 
     public JobRun toJobRun() {
-        return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state);
+        return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state, jobRunArguments);
     }
 }

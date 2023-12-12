@@ -89,20 +89,6 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         }
     }
 
-    private void replayFile(final FileTriggerContext fileTriggerContext) {
-        final var jobRunArguments = new JobRunArguments(false, fileTriggerContext, null);
-        registeredTriggers.values().stream()
-                .filter(
-                        triggerRunnablePair ->
-                                matchesAssumeEvent(
-                                        triggerRunnablePair.fileTrigger(),
-                                        fileTriggerContext.watchedPath(),
-                                        fileTriggerContext.eventContext()))
-                .forEach(
-                        triggerRunnablePair ->
-                                triggerRunnablePair.consumer().accept(jobRunArguments));
-    }
-
     private boolean matches(
             final FileTrigger trigger, final Path watchedPath, final WatchEvent<?> event) {
         final var changeEvent = FileChangeEvent.fromWatchEventKind(event.kind());
