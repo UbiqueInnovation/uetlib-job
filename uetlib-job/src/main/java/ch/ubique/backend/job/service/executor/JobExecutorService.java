@@ -53,7 +53,9 @@ public class JobExecutorService {
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
+
         logger.info("{} submitted to executor.", jobClass);
+
         final var job = jobService.instantiateJob(jobClass);
         final var context = createContext(job, arguments, runId);
         final var runner = getJobRunner(context, jobRunnerKey);
