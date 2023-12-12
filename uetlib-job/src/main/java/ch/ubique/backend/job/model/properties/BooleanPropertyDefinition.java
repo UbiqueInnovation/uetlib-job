@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.BooleanUtils;
 
+import java.util.Objects;
 import java.util.Set;
 
 public final class BooleanPropertyDefinition extends JobPropertyDefinition<Boolean> {
@@ -23,6 +24,6 @@ public final class BooleanPropertyDefinition extends JobPropertyDefinition<Boole
 
     @Override
     public String encode(final Boolean value) {
-        return BooleanUtils.toStringTrueFalse(value);
+        return String.valueOf(Objects.requireNonNull(value));
     }
 }
