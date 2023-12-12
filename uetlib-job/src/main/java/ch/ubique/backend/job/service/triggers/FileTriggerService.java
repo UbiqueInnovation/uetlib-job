@@ -4,9 +4,7 @@ import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
-
 import jakarta.validation.constraints.NotNull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -91,6 +89,20 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         }
     }
 
+    private void replayFile(final FileTriggerContext fileTriggerContext) {
+        final var jobRunArguments = new JobRunArguments(false, fileTriggerContext, null);
+        registeredTriggers.values().stream()
+                .filter(
+                        triggerRunnablePair ->
+                                matchesAssumeEvent(
+                                        triggerRunnablePair.fileTrigger(),
+                                        fileTriggerContext.watchedPath(),
+                                        fileTriggerContext.eventContext()))
+                .forEach(
+                        triggerRunnablePair ->
+                                triggerRunnablePair.consumer().accept(jobRunArguments));
+    }
+
     private boolean matches(
             final FileTrigger trigger, final Path watchedPath, final WatchEvent<?> event) {
         final var changeEvent = FileChangeEvent.fromWatchEventKind(event.kind());
@@ -101,6 +113,16 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         }
 
         if (!(event.context() instanceof final Path eventContextPath)) {
+            // not a path (can happen for eventKind OVERFLOW) so surely that does not match
+            return false;
+        }
+
+        return trigger.fileRegex().matcher(eventContextPath.toString()).matches();
+    }
+
+    private boolean matchesAssumeEvent(
+            final FileTrigger trigger, final Path watchedPath, final Object eventContext) {
+        if (!(eventContext instanceof final Path eventContextPath)) {
             // not a path (can happen for eventKind OVERFLOW) so surely that does not match
             return false;
         }
