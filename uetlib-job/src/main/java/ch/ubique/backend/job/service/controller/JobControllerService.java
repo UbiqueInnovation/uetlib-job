@@ -206,8 +206,7 @@ public class JobControllerService {
                 jobService
                         .getProperties(jobService.instantiateJob(jobClass))
                         .get(JobPropertyDefinitions.DISABLE_MANUAL_EXECUTION)
-                        .valueMaybe()
-                        .orElse(false);
+                        .value();
         if (manualExecutionDisallowed) {
             throw new IllegalArgumentException(
                     String.format("Job %s does not allow manual execution", jobClass));
