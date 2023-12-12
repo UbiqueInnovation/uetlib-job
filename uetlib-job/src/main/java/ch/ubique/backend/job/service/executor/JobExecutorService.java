@@ -57,7 +57,7 @@ public class JobExecutorService {
         logger.info("{} submitted to executor.", jobClass);
 
         final var job = jobService.instantiateJob(jobClass);
-        final var context = createContext(job, arguments, runId);
+        final var context = createContext(job, runId, arguments);
         final var runner = getJobRunner(context, jobRunnerKey);
 
         MDC.put("jobRunId", String.valueOf(context.jobRun().id()));
@@ -97,13 +97,14 @@ public class JobExecutorService {
     @NotNull
     private JobRunContext createContext(
             @NotNull final Job job,
-            @Nullable final JobRunArguments arguments,
-            @Nullable final Integer runId) {
-        Add JobRUnArguments to DB
+            @Nullable final Integer runId,
+            @Nullable final JobRunArguments nullableArguments) {
+        final var arguments =
+                Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
         return new JobRunContext(
                 new JobClassAndId(jobService.getId(job), job.getClass().getCanonicalName()),
-                jobService.getOrCreateJobRun(job, runId),
-                Objects.requireNonNullElse(arguments, JobRunArguments.DEFAULT),
+                jobService.getOrCreateJobRun(job, runId, arguments),
+                arguments,
                 jobService.getProperties(job));
     }
 

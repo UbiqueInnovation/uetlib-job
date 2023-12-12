@@ -13,7 +13,8 @@ public record JobRun(
         int jobVersion,
         @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
-        @NotNull JobRunState state) {
+        @NotNull JobRunState state,
+        @Nullable JobRunArguments jobRunArguments) {
 
     public Duration runDuration() {
         final var end = Objects.requireNonNullElse(finishedAt(), Instant.now());
@@ -35,6 +36,7 @@ public record JobRun(
         private Instant startedAt;
         private Instant finishedAt;
         private JobRunState state;
+        private JobRunArguments jobRunArguments;
 
         private ModifiableJobRun(final JobRun jobRun) {
             this.id = jobRun.id;
@@ -43,6 +45,7 @@ public record JobRun(
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
             this.state = Objects.requireNonNull(jobRun.state);
+            this.jobRunArguments = Objects.requireNonNull(jobRun.jobRunArguments);
         }
 
         public ModifiableJobRun id(final int id) {
@@ -75,8 +78,13 @@ public record JobRun(
             return this;
         }
 
+        public ModifiableJobRun jobRunArguments(@Nullable final JobRunArguments jobRunArguments) {
+            this.jobRunArguments = Objects.requireNonNull(jobRunArguments);
+            return this;
+        }
+
         public JobRun toJobRun() {
-            return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state);
+            return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state, jobRunArguments);
         }
     }
 }
