@@ -194,20 +194,36 @@ public class JobControllerService {
                 .toList();
     }
 
-    public void startJob(final String idOrClassName, final boolean forceRun)
-            throws ClassNotFoundException {
-        jobExecutorService.submit(getJobClass(idOrClassName), new JobRunArguments(forceRun));
-    }
-
-    public void startJobManual(final String idOrClassName, final boolean forceRun) throws ClassNotFoundException {
-        jobExecutorService.submitManual(getJobClass(idOrClassName), new JobRunArguments(forceRun));
+    /**
+     * @throws ClassNotFoundException If the job class could not be found for the given id or class
+     * @throws IllegalArgumentException If the job does not allow manual execution
+     */
+    public void startJobManual(final String idOrClassName, final boolean forceRun)
+            throws ClassNotFoundException, IllegalArgumentException {
+        final var jobClass = getJobClass(idOrClassName);
+        // Allowed manual execution?
+        final boolean manualExecutionDisallowed =
+                jobService
+                        .getProperties(jobService.instantiateJob(jobClass))
+                        .get(JobPropertyDefinitions.DISABLE_MANUAL_EXECUTION)
+                        .valueMaybe()
+                        .orElse(false);
+        if (manualExecutionDisallowed) {
+            throw new IllegalArgumentException(
+                    String.format("Job %s does not allow manual execution", jobClass));
+        }
+        jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
     }
 
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
 
         final var jobs = jobDataService.findJobs();
         for (final var job : jobs) {
-            startJob(job.canonicalClassName(), forceRun);
+            try {
+                startJobManual(job.canonicalClassName(), forceRun);
+            } catch (final IllegalArgumentException e) {
+                // Ignore jobs that do not allow manual execution
+            }
         }
     }
 

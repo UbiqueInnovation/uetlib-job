@@ -48,38 +48,13 @@ public class JobExecutorService {
         submit(jobClass, arguments, null, null);
     }
 
-    public void submitManual(
-            @NotNull final Class<? extends Job> jobClass,
-            @Nullable final JobRunArguments arguments) {
-        submit(jobClass, arguments, null, null, true);
-    }
-
     public void submit(
             @NotNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
-        submit(jobClass, arguments, runId, jobRunnerKey, false);
-    }
-
-    public void submit(
-            @NotNull final Class<? extends Job> jobClass,
-            @Nullable final JobRunArguments arguments,
-            @Nullable final Integer runId,
-            @Nullable final JobRunnerKey jobRunnerKey,
-            @NotNull final boolean manualExecution) {
         logger.info("{} submitted to executor.", jobClass);
         final var job = jobService.instantiateJob(jobClass);
-
-        if (manualExecution
-                && jobService
-                        .getProperties(job)
-                        .get(JobPropertyDefinitions.DISABLE_MANUAL_EXECUTION)
-                        .valueMaybe()
-                        .orElse(false)) {
-            logger.warn("Job {} is not allowed to be executed manually.", job);
-            return;
-        }
         final var context = createContext(job, arguments, runId);
         final var runner = getJobRunner(context, jobRunnerKey);
 

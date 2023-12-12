@@ -3,7 +3,8 @@ package ch.ubique.backend.job.model.properties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.util.Optional;
+import org.apache.commons.lang3.BooleanUtils;
+
 import java.util.Set;
 
 public final class BooleanPropertyDefinition extends JobPropertyDefinition<Boolean> {
@@ -11,17 +12,17 @@ public final class BooleanPropertyDefinition extends JobPropertyDefinition<Boole
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final Boolean defaultValue) {
+            @NotNull final boolean defaultValue) {
         super(key, description, group, false, defaultValue, Set.of(true, false));
     }
 
     @Override
     public Boolean decode(final String value) {
-        return Optional.ofNullable(value).map(Boolean::parseBoolean).orElse(null);
+        return BooleanUtils.toBoolean(value);
     }
 
     @Override
     public String encode(final Boolean value) {
-        return Optional.ofNullable(value).map(String::valueOf).orElse(null);
+        return BooleanUtils.toStringTrueFalse(value);
     }
 }
