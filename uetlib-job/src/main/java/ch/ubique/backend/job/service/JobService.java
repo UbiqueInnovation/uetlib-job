@@ -108,10 +108,16 @@ public class JobService {
             }
         }
 
-        // Try if all database entries still have a job associated with them. Remove them if not
+        // Check if all database entries still have a job associated with them. Remove them if not
         for (final var job : jobDataService.findJobs()) {
             try {
-                getJobClass(job.canonicalClassName());
+                final var jobClass = getJobClass(job.canonicalClassName());
+                if (!jobClasses.contains(jobClass)) {
+                    // The class exists, but was not discovered by findAllRegisteredJobClasses()
+                    // This could e.g. be the case if @EnableJobs does not include this job
+                    logger.warn("{} is not part of the job classes. Removing database entry.", job);
+                    jobDataService.delete(job);
+                }
             } catch (final ClassNotFoundException e) {
                 logger.warn("Could not find class for {}. Removing database entry.", job);
                 jobDataService.delete(job);
