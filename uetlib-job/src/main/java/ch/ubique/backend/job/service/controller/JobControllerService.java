@@ -210,7 +210,7 @@ public class JobControllerService {
         final var manualExecutionAllowed =
                 jobService
                                 .getProperties(jobService.instantiateJob(jobClass))
-                                .get(JobPropertyDefinitions.DISABLE_MANUAL_EXECUTION)
+                                .get(JobPropertyDefinitions.JOB_REPLAY_MODE)
                                 .value()
                         == JobReplayMode.MANUAL;
         if (!manualExecutionAllowed) {
@@ -226,7 +226,7 @@ public class JobControllerService {
         final var replayExecutionAllowed =
                 jobService
                                 .getProperties(jobService.instantiateJob(jobClass))
-                                .get(JobPropertyDefinitions.DISABLE_MANUAL_EXECUTION)
+                                .get(JobPropertyDefinitions.JOB_REPLAY_MODE)
                                 .value()
                         == JobReplayMode.REPLAY;
         if (!replayExecutionAllowed) {

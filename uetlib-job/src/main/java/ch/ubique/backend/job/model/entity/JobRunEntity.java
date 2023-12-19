@@ -3,9 +3,12 @@ package ch.ubique.backend.job.model.entity;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.converters.JobRunArgumentsConverter;
+import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 
 import jakarta.persistence.*;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -34,8 +37,10 @@ public class JobRunEntity {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
-    @Column(name = "job_run_arguments")
-    @Convert(converter = JobRunArgumentsConverter.class)
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Convert(converter = JobRunArgumentsToStringConverter.class)
+    @Column(name = "job_run_arguments", nullable = false)
     private JobRunArguments jobRunArguments;
 
     public JobRunEntity() {}
