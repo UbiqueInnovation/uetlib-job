@@ -16,13 +16,13 @@ public enum TriggerContextType {
 
     public static TriggerContextType getTypeForClass(
             final Class<? extends TriggerContext> contextClass) {
-        return switch (contextClass
-                .getCanonicalName()) { // TODO: Java 21 Switch Pattern Matching without throw
-            case "ch.ubique.backend.job.model.EmptyTriggerContext" -> TriggerContextType.EMPTY;
-            case "ch.ubique.backend.job.model.FileTriggerContext" -> TriggerContextType.FILE;
-            default -> throw new IllegalArgumentException(
-                    "Unknown trigger context type: " + contextClass.getCanonicalName());
-        };
+        if (contextClass == EmptyTriggerContext.class) {
+            return EMPTY;
+        } else if (contextClass == FileTriggerContext.class) {
+            return FILE;
+        }
+        throw new IllegalArgumentException(
+                "Unknown trigger context class: " + contextClass.getName());
     }
 
     public Class<? extends TriggerContext> contextClass() {
