@@ -1,1 +1,0 @@
-INSERT INTO t_job_run () VALUES ()
