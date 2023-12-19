@@ -22,12 +22,12 @@ import com.pivovarit.function.ThrowingFunction;
 import com.pivovarit.function.ThrowingPredicate;
 
 import jakarta.annotation.Nullable;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.env.Environment;
@@ -49,27 +49,28 @@ public class JobService {
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
-    private final BuildProperties buildProperties;
+    private final Environment environment;
 
     public JobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
-            final BuildProperties buildProperties,
             final Environment environment) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
-        this.buildProperties = buildProperties;
+        this.environment = environment;
+    }
 
+    @PostConstruct
+    void postConstruct() {
         if (environment.matchesProfiles("!job-run")) {
             registerAllJobs();
             setAbortedRunsToUnfinished();
         }
     }
 
-    private static Set<Class<?>> findAllRegisteredJobClasses(final String buildPropertiesGroup) {
-        logger.debug("Scanning for EnableJobs-annotated class in package {}", buildPropertiesGroup);
+    private Set<Class<?>> findAllRegisteredJobClasses() {
         final var mergedAnnotationsSearch =
                 MergedAnnotations.search(MergedAnnotations.SearchStrategy.TYPE_HIERARCHY)
                         .withEnclosingClasses(
@@ -78,14 +79,10 @@ public class JobService {
                                                 && !ClassUtils.isStaticClass(clazz));
         final var enableJobsClass =
                 EnableAnnotationUtils.findSingletonEnableClass(
-                        buildPropertiesGroup, EnableJobs.class);
+                        applicationContext, EnableJobs.class);
 
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
-        logger.info(
-                "Scanning for RegisteredJob classes in {} with EnableJobs class {}",
-                buildPropertiesGroup,
-                enableJobsClass.getCanonicalName());
         return EnableAnnotationUtils.findAllClassesBy(
                 enableJobsAnnotation.jobs(),
                 enableJobsAnnotation.basePackages(),
@@ -95,7 +92,7 @@ public class JobService {
     }
 
     private void registerAllJobs() {
-        final var jobClasses = findAllRegisteredJobClasses(buildProperties.getGroup());
+        final var jobClasses = findAllRegisteredJobClasses();
         logger.info("Found {} annotated with {}.", jobClasses, RegisteredJob.class);
 
         for (final var cls : jobClasses) {
@@ -112,10 +109,16 @@ public class JobService {
             }
         }
 
-        // Try if all database entries still have a job associated with them. Remove them if not
+        // Check if all database entries still have a job associated with them. Remove them if not
         for (final var job : jobDataService.findJobs()) {
             try {
-                getJobClass(job.canonicalClassName());
+                final var jobClass = getJobClass(job.canonicalClassName());
+                if (!jobClasses.contains(jobClass)) {
+                    // The class exists, but was not discovered by findAllRegisteredJobClasses()
+                    // This could e.g. be the case if @EnableJobs does not include this job
+                    logger.warn("{} is not part of the job classes. Removing database entry.", job);
+                    jobDataService.delete(job);
+                }
             } catch (final ClassNotFoundException e) {
                 logger.warn("Could not find class for {}. Removing database entry.", job);
                 jobDataService.delete(job);
