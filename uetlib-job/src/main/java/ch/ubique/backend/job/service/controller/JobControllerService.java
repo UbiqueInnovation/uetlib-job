@@ -175,7 +175,20 @@ public class JobControllerService {
             @Nullable final LocalDateTime from,
             @Nullable final LocalDateTime to)
             throws ClassNotFoundException {
+        return findJobRuns(
+                page, perPage, state, includeJobNamesOrIds, excludeJobNamesOrIds, from, to, true);
+    }
 
+    public JobRunInfosContainer findJobRuns(
+            final int page,
+            final int perPage,
+            final JobRunState state,
+            @NotNull final Collection<String> includeJobNamesOrIds,
+            @NotNull final Collection<String> excludeJobNamesOrIds,
+            @Nullable final LocalDateTime from,
+            @Nullable final LocalDateTime to,
+            final boolean useCriteria)
+            throws ClassNotFoundException {
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
 
@@ -185,7 +198,11 @@ public class JobControllerService {
         final var fromToRange =
                 fromInstant.flatMap(fromI -> toInstant.map(toI -> new ImmutablePair<>(fromI, toI)));
         final var jobRunsPage =
-                jobDataService.findJobRuns(page, perPage, selectedJobIds, state, fromToRange);
+                useCriteria
+                        ? jobDataService.findJobRunsUsingCriteriaBuilder(
+                                page, perPage, selectedJobIds, state, fromToRange)
+                        : jobDataService.findJobRuns(
+                                page, perPage, selectedJobIds, state, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
@@ -193,26 +210,6 @@ public class JobControllerService {
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
                 jobRunsPage.getTotalPages());
-    }
-
-    public JobRunInfosContainer findJobRunsCriteria(
-            final int page,
-            final int perPage,
-            final JobRunState state,
-            final Collection<String> includeJobNamesOrIds,
-            final Collection<String> excludeJobNamesOrIds,
-            final LocalDateTime from,
-            final LocalDateTime to)
-            throws ClassNotFoundException {
-        final var jobsById =
-                findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
-        final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
-        final var fromInstant = Optional.ofNullable(from).map(t -> t.toInstant(ZoneOffset.UTC));
-        final var toInstant = Optional.ofNullable(to).map(t -> t.toInstant(ZoneOffset.UTC));
-        final var fromToRange =
-                fromInstant.flatMap(fromI -> toInstant.map(toI -> new ImmutablePair<>(fromI, toI)));
-        return jobDataService.findJobRunsUsingCriteriaBuilder(
-                page, perPage, jobsById, selectedJobIds, state, fromToRange);
     }
 
     private List<Integer> getJobIds(
