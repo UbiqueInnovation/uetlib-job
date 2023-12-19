@@ -16,7 +16,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -121,71 +120,15 @@ public class JobDataService {
         return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 
-    public JobRunInfosContainer findJobRunsUsingCriteriaBuilder(
-            final int page,
-            final int pageSize,
-            final Map<Integer, JobInfo> jobsById,
-            @NotNull final Collection<Integer> jobIds,
-            final JobRunState state,
-            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
-        final var totalResults = totalResults(jobIds, state, dateTimeRange);
-        final var jobRuns =
-                findJobRunsResultUsingCriteriaBuilder(page, pageSize, jobIds, state, dateTimeRange);
-        final var isFirst = page == 0;
-        final var isLast = jobRuns.size() < pageSize || (long) page * pageSize >= totalResults;
-        return new JobRunInfosContainer(
-                jobRuns.stream().map(JobRunInfo::from).toList(),
-                jobsById,
-                isFirst,
-                isLast,
-                (int) Math.ceil((double) totalResults / pageSize));
-    }
-
-    private Collection<JobRun> findJobRunsResultUsingCriteriaBuilder(
-            final int page,
-            final int pageSize,
-            @NotNull final Collection<Integer> jobIds,
-            final JobRunState state,
-            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
-        final var pageRequest = PageRequest.of(page, pageSize);
-        final var criteriaBuilder = entityManager.getCriteriaBuilder();
-        final var query = criteriaBuilder.createQuery(JobRunEntity.class);
-        final var root = query.from(JobRunEntity.class);
-        query.select(root);
-        final var queryBuild =
-                createCriteriaQuery(jobIds, state, dateTimeRange, query, root, criteriaBuilder);
-
-        return entityManager
-                .createQuery(queryBuild)
-                .setFirstResult(pageRequest.getPageNumber() * pageRequest.getPageSize())
-                .setMaxResults(pageRequest.getPageSize())
-                .getResultList()
-                .stream()
-                .map(JobRunEntity::toJobRun)
-                .toList();
-    }
-
-    private long totalResults(
-            final Collection<Integer> jobIds,
-            final JobRunState state,
-            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
-        final var criteriaBuilder = entityManager.getCriteriaBuilder();
-        final var query = criteriaBuilder.createQuery(Long.class);
-        final var root = query.from(JobRunEntity.class);
-        query.select(criteriaBuilder.count(root));
-        final var queryBuild =
-                createCriteriaQuery(jobIds, state, dateTimeRange, query, root, criteriaBuilder);
-        return entityManager.createQuery(queryBuild).getSingleResult();
-    }
-
     @NotNull
-    private <T> CriteriaQuery<T> createCriteriaQuery(
+    private CriteriaQuery<JobRunEntity> createCriteriaQuery(
             final Collection<Integer> jobIds,
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> dateTimeRange,
-            final CriteriaQuery<T> queryBuild,
-            final Root<JobRunEntity> jobRunRoot,
             final CriteriaBuilder criteriaBuilder) {
+        final var queryBuild = criteriaBuilder.createQuery(JobRunEntity.class);
+        final var jobRunRoot = queryBuild.from(JobRunEntity.class);
+        queryBuild.select(jobRunRoot);
         if (!jobIds.isEmpty()) {
             queryBuild.where(jobRunRoot.get("id").in(jobIds));
         }
@@ -200,6 +143,19 @@ public class JobDataService {
         }
         queryBuild.orderBy(criteriaBuilder.desc(jobRunRoot.get("startedAt")));
         return queryBuild;
+    }
+
+    public Page<JobRun> findJobRunsUsingCriteriaBuilder(
+            final int page,
+            final int perPage,
+            final List<Integer> selectedJobIds,
+            final JobRunState state,
+            final Optional<ImmutablePair<Instant, Instant>> fromToRange) {
+        final var request = PageRequest.of(page, perPage);
+        final var query =
+                createCriteriaQuery(
+                        selectedJobIds, state, fromToRange, entityManager.getCriteriaBuilder());
+        return jobRunRepository.findAll(query, request).map(JobRunEntity::toJobRun);
     }
 
     @Transactional(readOnly = true)
