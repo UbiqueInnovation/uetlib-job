@@ -1,7 +1,9 @@
 package ch.ubique.backend.job.data.service.runs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
@@ -13,9 +15,17 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
-@Sql("classpath:sql/postgresql/InsertJobs.sql")
+@Sql("classpath:sql/postgresql/InsertJobRuns.sql")
 class JobRunFilterTest {
     private JobControllerService jobControllerService;
+    private JobDataService jobDataService;
+
+    @Test
+    void assertJobId1Existing() {
+        assertTrue(
+                jobDataService.findJobs().stream()
+                        .anyMatch(job -> job.id() == 1));
+    }
 
     @Test
     void testWithoutParams() throws ClassNotFoundException {
