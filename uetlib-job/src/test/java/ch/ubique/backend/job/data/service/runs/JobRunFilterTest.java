@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.data.service.runs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.backend.job.config.BaseTestConfig;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
@@ -51,10 +51,10 @@ class JobRunFilterTest extends JobDataServiceTest {
     void testWithState() throws ClassNotFoundException {
         final var jobRunsOld =
                 jobControllerService.findJobRuns(
-                        0, 5, JobRunState.DONE, List.of(), List.of(), null, null, false);
+                        0, 5, JobRunState.BUSY, List.of(), List.of(), null, null, false);
         final var jobRunsNew =
                 jobControllerService.findJobRuns(
-                        0, 5, JobRunState.DONE, List.of(), List.of(), null, null, true);
+                        0, 5, JobRunState.BUSY, List.of(), List.of(), null, null, true);
 
         assertEquals(jobRunsOld, jobRunsNew);
     }
@@ -80,6 +80,8 @@ class JobRunFilterTest extends JobDataServiceTest {
                 jobControllerService.findJobRuns(
                         0, 5, null, List.of(), List.of(String.valueOf(1)), null, null, true);
 
+        assertNotNull(jobDataService.findLatestJobRun(2));
+        assertNotEquals(0, jobRunsOld.jobRuns().size());
         assertEquals(jobRunsOld, jobRunsNew);
     }
 

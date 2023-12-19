@@ -22,6 +22,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,7 +121,7 @@ public class JobDataService {
         return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 
-    private Predicate[] getPredicate(
+    private Predicate getPredicate(
             final Collection<Integer> jobIds,
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> dateTimeRange,
@@ -139,7 +140,7 @@ public class JobDataService {
                     criteriaBuilder.between(
                             root.get("startedAt"), range.getLeft(), range.getRight()));
         }
-        return predicates.toArray(Predicate[]::new);
+        return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
 
     public Page<JobRun> findJobRunsUsingCriteriaBuilder(
@@ -151,14 +152,9 @@ public class JobDataService {
         final var request = PageRequest.of(page, perPage);
         return jobRunRepository
                 .findAll(
-                        (root, q, criteriaBuilder) ->
-                                criteriaBuilder.and(
-                                        getPredicate(
-                                                selectedJobIds,
-                                                state,
-                                                fromToRange,
-                                                root,
-                                                criteriaBuilder)),
+                        (root, query, criteriaBuilder) ->
+                                getPredicate(
+                                        selectedJobIds, state, fromToRange, root, criteriaBuilder),
                         request)
                 .map(JobRunEntity::toJobRun);
     }
