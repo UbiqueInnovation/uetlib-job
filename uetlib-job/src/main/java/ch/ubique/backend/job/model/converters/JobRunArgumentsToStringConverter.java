@@ -28,6 +28,9 @@ public class JobRunArgumentsToStringConverter
 
     @Override
     public JobRunArguments convertToEntityAttribute(final String dbData) {
+        if (dbData == null) {
+            return null;
+        }
         try {
             return objectMapper.readValue(dbData, JobRunArguments.class);
         } catch (final IOException e) {

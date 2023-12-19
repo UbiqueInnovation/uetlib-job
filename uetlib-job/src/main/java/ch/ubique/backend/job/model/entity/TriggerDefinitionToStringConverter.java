@@ -27,6 +27,9 @@ public class TriggerDefinitionToStringConverter
 
     @Override
     public TriggerDefinition convertToEntityAttribute(final String dbData) {
+        if (dbData == null) {
+            return null;
+        }
         try {
             return objectMapper.readValue(dbData, TriggerDefinition.class);
         } catch (final JsonProcessingException e) {
