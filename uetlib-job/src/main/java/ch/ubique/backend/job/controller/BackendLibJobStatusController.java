@@ -111,4 +111,12 @@ public class BackendLibJobStatusController {
             throws ClassNotFoundException {
         jobControllerService.startAllJobs(forceRun);
     }
+
+    @PostMapping("/job/{jobIdOrClassName}/replay_run/{jobRunId}")
+    public void replayRun(
+            @PathVariable final String jobIdOrClassName,
+            @PathVariable final int jobRunId)
+            throws ClassNotFoundException {
+        jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
+    }
 }
