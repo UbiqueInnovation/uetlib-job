@@ -203,9 +203,9 @@ public class JobControllerService {
      * @throws ClassNotFoundException If the job class could not be found for the given id or class
      * @throws IllegalArgumentException If the job does not allow manual execution
      */
-    public void startJobManual(final String idOrClassName, final boolean forceRun)
+    public void startJobManual(final String jobIdOrClassName, final boolean forceRun)
             throws ClassNotFoundException, IllegalArgumentException {
-        final var jobClass = getJobClass(idOrClassName);
+        final var jobClass = getJobClass(jobIdOrClassName);
         // Allowed manual execution?
         final var manualExecutionAllowed =
                 jobService
@@ -294,11 +294,11 @@ public class JobControllerService {
                                 "No Job with id {0} found", jobId));
     }
 
-    public Collection<JobPropertyInfo> getJobProperties(final String idOrClassName)
+    public Collection<JobPropertyInfo> getJobProperties(final String jobIdOrClassName)
             throws ClassNotFoundException {
         final var properties =
                 jobService
-                        .getProperties(jobService.instantiateJob(getJobClass(idOrClassName)))
+                        .getProperties(jobService.instantiateJob(getJobClass(jobIdOrClassName)))
                         .values()
                         .stream()
                         .collect(Collectors.toMap(JobProperty::key, JobPropertyInfo::from));
@@ -311,22 +311,22 @@ public class JobControllerService {
     }
 
     public Collection<JobPropertyInfo> updateJobProperties(
-            final String idOrClassName, final Map<String, String> updatedValues)
+            final String jobIdOrClassName, final Map<String, String> updatedValues)
             throws ClassNotFoundException {
         jobDataService.saveProperties(
-                jobService.getJobId(getJobClass(idOrClassName)),
+                jobService.getJobId(getJobClass(jobIdOrClassName)),
                 getPropertiesFromMap(updatedValues));
-        return getJobProperties(idOrClassName);
+        return getJobProperties(jobIdOrClassName);
     }
 
-    public JobTriggers getJobTriggers(final String idOrClassName) throws ClassNotFoundException {
-        final var job = getJobInstance(idOrClassName);
+    public JobTriggers getJobTriggers(final String jobIdOrClassName) throws ClassNotFoundException {
+        final var job = getJobInstance(jobIdOrClassName);
         return getJobTriggers(job);
     }
 
-    public JobTriggers updateJobTriggers(final String idOrClassName, final JobTriggers triggers)
+    public JobTriggers updateJobTriggers(final String jobIdOrClassName, final JobTriggers triggers)
             throws ClassNotFoundException {
-        final var job = getJobInstance(idOrClassName);
+        final var job = getJobInstance(jobIdOrClassName);
 
         // Delete triggers that are currently existing, but not present anymore
         final var existing = getJobTriggers(job);
@@ -370,24 +370,24 @@ public class JobControllerService {
         return List.of();
     }
 
-    private Job getJobInstance(final String idOrClassName) throws ClassNotFoundException {
-        return jobService.instantiateJob(getJobClass(idOrClassName));
+    private Job getJobInstance(final String jobIdOrClassName) throws ClassNotFoundException {
+        return jobService.instantiateJob(getJobClass(jobIdOrClassName));
     }
 
-    private Class<? extends Job> getJobClass(final String idOrClassName)
+    private Class<? extends Job> getJobClass(final String jobIdOrClassName)
             throws ClassNotFoundException {
         try {
-            return jobService.getJobClass(Integer.parseInt(idOrClassName));
+            return jobService.getJobClass(Integer.parseInt(jobIdOrClassName));
         } catch (final NumberFormatException ignored) {
-            return jobService.getJobClass(idOrClassName);
+            return jobService.getJobClass(jobIdOrClassName);
         }
     }
 
-    private int getJobId(final String idOrClassName) throws ClassNotFoundException {
+    private int getJobId(final String jobIdOrClassName) throws ClassNotFoundException {
         try {
-            return Integer.parseInt(idOrClassName);
+            return Integer.parseInt(jobIdOrClassName);
         } catch (final NumberFormatException ignored) {
-            return jobService.getJobId(jobService.getJobClass(idOrClassName));
+            return jobService.getJobId(jobService.getJobClass(jobIdOrClassName));
         }
     }
 }

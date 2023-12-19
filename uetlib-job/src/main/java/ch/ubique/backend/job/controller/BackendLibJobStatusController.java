@@ -69,40 +69,40 @@ public class BackendLibJobStatusController {
         return jobControllerService.findJobRun(jobRunId);
     }
 
-    @GetMapping("/job/{idOrClassName}/properties")
-    public Collection<JobPropertyInfo> getProperties(@PathVariable final String idOrClassName)
+    @GetMapping("/job/{jobIdOrClassName}/properties")
+    public Collection<JobPropertyInfo> getProperties(@PathVariable final String jobIdOrClassName)
             throws ClassNotFoundException {
-        return jobControllerService.getJobProperties(idOrClassName);
+        return jobControllerService.getJobProperties(jobIdOrClassName);
     }
 
-    @PostMapping("/job/{idOrClassName}/properties")
+    @PostMapping("/job/{jobIdOrClassName}/properties")
     public Collection<JobPropertyInfo> updateProperties(
-            @PathVariable final String idOrClassName,
+            @PathVariable final String jobIdOrClassName,
             @RequestBody final Map<String, String> updatedValues)
             throws ClassNotFoundException {
-        return jobControllerService.updateJobProperties(idOrClassName, updatedValues);
+        return jobControllerService.updateJobProperties(jobIdOrClassName, updatedValues);
     }
 
-    @GetMapping("/job/{idOrClassName}/triggers")
-    public JobTriggers getTriggers(@PathVariable final String idOrClassName)
+    @GetMapping("/job/{jobIdOrClassName}/triggers")
+    public JobTriggers getTriggers(@PathVariable final String jobIdOrClassName)
             throws ClassNotFoundException {
-        return jobControllerService.getJobTriggers(idOrClassName);
+        return jobControllerService.getJobTriggers(jobIdOrClassName);
     }
 
-    @PostMapping("/job/{idOrClassName}/triggers")
+    @PostMapping("/job/{jobIdOrClassName}/triggers")
     public JobTriggers updateTriggers(
-            @PathVariable final String idOrClassName,
+            @PathVariable final String jobIdOrClassName,
             @RequestBody @Valid final JobTriggers updatedValues)
             throws ClassNotFoundException {
-        return jobControllerService.updateJobTriggers(idOrClassName, updatedValues);
+        return jobControllerService.updateJobTriggers(jobIdOrClassName, updatedValues);
     }
 
-    @PostMapping("/job/{idOrClassName}/start")
+    @PostMapping("/job/{jobIdOrClassName}/start")
     public void startJob(
-            @PathVariable final String idOrClassName,
+            @PathVariable final String jobIdOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        jobControllerService.startJobManual(idOrClassName, forceRun);
+        jobControllerService.startJobManual(jobIdOrClassName, forceRun);
     }
 
     @PostMapping("/job/start_all")
