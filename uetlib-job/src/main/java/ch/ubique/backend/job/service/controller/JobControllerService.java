@@ -28,14 +28,18 @@ import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import com.pivovarit.function.ThrowingFunction;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -167,14 +171,21 @@ public class JobControllerService {
             final int perPage,
             final JobRunState state,
             @NotNull final Collection<String> includeJobNamesOrIds,
-            @NotNull final Collection<String> excludeJobNamesOrIds)
+            @NotNull final Collection<String> excludeJobNamesOrIds,
+            @Nullable final LocalDateTime from,
+            @Nullable final LocalDateTime to)
             throws ClassNotFoundException {
 
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
 
         final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
-        final var jobRunsPage = jobDataService.findJobRuns(page, perPage, selectedJobIds, state);
+        final var fromInstant = Optional.ofNullable(from).map(t -> t.toInstant(ZoneOffset.UTC));
+        final var toInstant = Optional.ofNullable(to).map(t -> t.toInstant(ZoneOffset.UTC));
+        final var fromToRange =
+                fromInstant.flatMap(fromI -> toInstant.map(toI -> new ImmutablePair<>(fromI, toI)));
+        final var jobRunsPage =
+                jobDataService.findJobRuns(page, perPage, selectedJobIds, state, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
@@ -182,6 +193,26 @@ public class JobControllerService {
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
                 jobRunsPage.getTotalPages());
+    }
+
+    public JobRunInfosContainer findJobRunsCriteria(
+            final int page,
+            final int perPage,
+            final JobRunState state,
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds,
+            final LocalDateTime from,
+            final LocalDateTime to)
+            throws ClassNotFoundException {
+        final var jobsById =
+                findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
+        final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
+        final var fromInstant = Optional.ofNullable(from).map(t -> t.toInstant(ZoneOffset.UTC));
+        final var toInstant = Optional.ofNullable(to).map(t -> t.toInstant(ZoneOffset.UTC));
+        final var fromToRange =
+                fromInstant.flatMap(fromI -> toInstant.map(toI -> new ImmutablePair<>(fromI, toI)));
+        return jobDataService.findJobRunsUsingCriteriaBuilder(
+                page, perPage, jobsById, selectedJobIds, state, fromToRange);
     }
 
     private List<Integer> getJobIds(

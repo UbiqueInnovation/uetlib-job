@@ -6,18 +6,20 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
-import ch.ubique.backend.job.model.properties.JobProperty;
-import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
-import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.triggers.Trigger;
-import ch.ubique.backend.job.model.triggers.TriggerDefinition;
+import ch.ubique.backend.job.model.client.*;
+import ch.ubique.backend.job.model.properties.*;
+import ch.ubique.backend.job.model.triggers.*;
 
 import com.pivovarit.function.ThrowingFunction;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -122,30 +121,146 @@ public class JobDataService {
         return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 
+    public JobRunInfosContainer findJobRunsUsingCriteriaBuilder(
+            final int page,
+            final int pageSize,
+            final Map<Integer, JobInfo> jobsById,
+            @NotNull final Collection<Integer> jobIds,
+            final JobRunState state,
+            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
+        final var totalResults = totalResults(jobIds, state, dateTimeRange);
+        final var jobRuns =
+                findJobRunsResultUsingCriteriaBuilder(page, pageSize, jobIds, state, dateTimeRange);
+        final var isFirst = page == 0;
+        final var isLast = jobRuns.size() < pageSize || (long) page * pageSize >= totalResults;
+        return new JobRunInfosContainer(
+                jobRuns.stream().map(JobRunInfo::from).toList(),
+                jobsById,
+                isFirst,
+                isLast,
+                (int) Math.ceil((double) totalResults / pageSize));
+    }
+
+    private Collection<JobRun> findJobRunsResultUsingCriteriaBuilder(
+            final int page,
+            final int pageSize,
+            @NotNull final Collection<Integer> jobIds,
+            final JobRunState state,
+            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
+        final var pageRequest = PageRequest.of(page, pageSize);
+        final var criteriaBuilder = entityManager.getCriteriaBuilder();
+        final var query = criteriaBuilder.createQuery(JobRunEntity.class);
+        final var root = query.from(JobRunEntity.class);
+        query.select(root);
+        final var queryBuild =
+                createCriteriaQuery(jobIds, state, dateTimeRange, query, root, criteriaBuilder);
+
+        return entityManager
+                .createQuery(queryBuild)
+                .setFirstResult(pageRequest.getPageNumber() * pageRequest.getPageSize())
+                .setMaxResults(pageRequest.getPageSize())
+                .getResultList()
+                .stream()
+                .map(JobRunEntity::toJobRun)
+                .toList();
+    }
+
+    private long totalResults(
+            final Collection<Integer> jobIds,
+            final JobRunState state,
+            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
+        final var criteriaBuilder = entityManager.getCriteriaBuilder();
+        final var query = criteriaBuilder.createQuery(Long.class);
+        final var root = query.from(JobRunEntity.class);
+        query.select(criteriaBuilder.count(root));
+        final var queryBuild =
+                createCriteriaQuery(jobIds, state, dateTimeRange, query, root, criteriaBuilder);
+        return entityManager.createQuery(queryBuild).getSingleResult();
+    }
+
+    @NotNull
+    private <T> CriteriaQuery<T> createCriteriaQuery(
+            final Collection<Integer> jobIds,
+            final JobRunState state,
+            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange,
+            final CriteriaQuery<T> queryBuild,
+            final Root<JobRunEntity> jobRunRoot,
+            final CriteriaBuilder criteriaBuilder) {
+        if (!jobIds.isEmpty()) {
+            queryBuild.where(jobRunRoot.get("id").in(jobIds));
+        }
+        if (state != null) {
+            queryBuild.where(criteriaBuilder.equal(jobRunRoot.get("state"), state));
+        }
+        if (dateTimeRange.isPresent()) {
+            final var range = dateTimeRange.get();
+            queryBuild.where(
+                    criteriaBuilder.between(
+                            jobRunRoot.get("startedAt"), range.getLeft(), range.getRight()));
+        }
+        queryBuild.orderBy(criteriaBuilder.desc(jobRunRoot.get("startedAt")));
+        return queryBuild;
+    }
+
     @Transactional(readOnly = true)
     public Page<JobRun> findJobRuns(
             final int page,
             final int pageSize,
             @NotNull final Collection<Integer> jobIds,
-            final JobRunState state) {
+            final JobRunState state,
+            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange) {
         final var pageRequest = PageRequest.of(page, pageSize);
-        if (jobIds == null || !jobIds.isEmpty()) {
+        if (!jobIds.isEmpty()) {
             if (state != null) {
-                return jobRunRepository
-                        .findAllByJobIdInAndStateOrderByStartedAtDesc(jobIds, state, pageRequest)
+                return dateTimeRange
+                        .map(
+                                range ->
+                                        jobRunRepository
+                                                .findAllByJobIdInAndStateWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                                        jobIds,
+                                                        state,
+                                                        range.getLeft(),
+                                                        range.getRight(),
+                                                        pageRequest))
+                        .orElse(
+                                jobRunRepository.findAllByJobIdInAndStateOrderByStartedAtDesc(
+                                        jobIds, state, pageRequest))
                         .map(JobRunEntity::toJobRun);
             }
-            return jobRunRepository
-                    .findAllByJobIdInOrderByStartedAtDesc(jobIds, pageRequest)
+            return dateTimeRange
+                    .map(
+                            range ->
+                                    jobRunRepository
+                                            .findAllByJobIdInWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                                    jobIds,
+                                                    range.getLeft(),
+                                                    range.getRight(),
+                                                    pageRequest))
+                    .orElse(
+                            jobRunRepository.findAllByJobIdInOrderByStartedAtDesc(
+                                    jobIds, pageRequest))
                     .map(JobRunEntity::toJobRun);
         }
         if (state != null) {
-            return jobRunRepository
-                    .findAllByStateOrderByStartedAtDesc(state, pageRequest)
+            return dateTimeRange
+                    .map(
+                            range ->
+                                    jobRunRepository
+                                            .findAllByStateWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                                    state,
+                                                    range.getLeft(),
+                                                    range.getRight(),
+                                                    pageRequest))
+                    .orElse(jobRunRepository.findAllByStateOrderByStartedAtDesc(state, pageRequest))
                     .map(JobRunEntity::toJobRun);
         }
-        return jobRunRepository
-                .findAllByOrderByStartedAtDesc(pageRequest)
+        return dateTimeRange
+                .map(
+                        range ->
+                                jobRunRepository
+                                        .findAllByWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                                range.getLeft(), range.getRight(), pageRequest))
+                .orElse(jobRunRepository.findAllByOrderByStartedAtDesc(pageRequest))
                 .map(JobRunEntity::toJobRun);
     }
 
