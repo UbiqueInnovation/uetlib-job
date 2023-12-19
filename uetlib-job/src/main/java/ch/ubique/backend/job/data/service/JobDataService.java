@@ -6,7 +6,6 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
-import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.triggers.*;
 
@@ -15,7 +14,8 @@ import com.pivovarit.function.ThrowingFunction;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -120,29 +120,26 @@ public class JobDataService {
         return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 
-    @NotNull
-    private CriteriaQuery<JobRunEntity> createCriteriaQuery(
+    private Predicate[] getPredicate(
             final Collection<Integer> jobIds,
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> dateTimeRange,
+            final Root<JobRunEntity> root,
             final CriteriaBuilder criteriaBuilder) {
-        final var queryBuild = criteriaBuilder.createQuery(JobRunEntity.class);
-        final var jobRunRoot = queryBuild.from(JobRunEntity.class);
-        queryBuild.select(jobRunRoot);
+        final var predicates = new ArrayList<Predicate>();
         if (!jobIds.isEmpty()) {
-            queryBuild.where(jobRunRoot.get("id").in(jobIds));
+            predicates.add(root.get("id").in(jobIds));
         }
         if (state != null) {
-            queryBuild.where(criteriaBuilder.equal(jobRunRoot.get("state"), state));
+            predicates.add(criteriaBuilder.equal(root.get("state"), state));
         }
         if (dateTimeRange.isPresent()) {
             final var range = dateTimeRange.get();
-            queryBuild.where(
+            predicates.add(
                     criteriaBuilder.between(
-                            jobRunRoot.get("startedAt"), range.getLeft(), range.getRight()));
+                            root.get("startedAt"), range.getLeft(), range.getRight()));
         }
-        queryBuild.orderBy(criteriaBuilder.desc(jobRunRoot.get("startedAt")));
-        return queryBuild;
+        return predicates.toArray(Predicate[]::new);
     }
 
     public Page<JobRun> findJobRunsUsingCriteriaBuilder(
@@ -152,10 +149,18 @@ public class JobDataService {
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> fromToRange) {
         final var request = PageRequest.of(page, perPage);
-        final var query =
-                createCriteriaQuery(
-                        selectedJobIds, state, fromToRange, entityManager.getCriteriaBuilder());
-        return jobRunRepository.findAll(query, request).map(JobRunEntity::toJobRun);
+        return jobRunRepository
+                .findAll(
+                        (root, q, criteriaBuilder) ->
+                                criteriaBuilder.and(
+                                        getPredicate(
+                                                selectedJobIds,
+                                                state,
+                                                fromToRange,
+                                                root,
+                                                criteriaBuilder)),
+                        request)
+                .map(JobRunEntity::toJobRun);
     }
 
     @Transactional(readOnly = true)
@@ -172,7 +177,7 @@ public class JobDataService {
                         .map(
                                 range ->
                                         jobRunRepository
-                                                .findAllByJobIdInAndStateWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                                .findAllByJobIdInAndStateAndStartedAtBetweenOrderByStartedAtDesc(
                                                         jobIds,
                                                         state,
                                                         range.getLeft(),
@@ -187,7 +192,7 @@ public class JobDataService {
                     .map(
                             range ->
                                     jobRunRepository
-                                            .findAllByJobIdInWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                            .findAllByJobIdInAndStartedAtBetweenOrderByStartedAtDesc(
                                                     jobIds,
                                                     range.getLeft(),
                                                     range.getRight(),
@@ -202,7 +207,7 @@ public class JobDataService {
                     .map(
                             range ->
                                     jobRunRepository
-                                            .findAllByStateWhereStartedAtIsBetweenOrderByStartedAtDesc(
+                                            .findAllByStateAndStartedAtBetweenOrderByStartedAtDesc(
                                                     state,
                                                     range.getLeft(),
                                                     range.getRight(),
@@ -213,9 +218,8 @@ public class JobDataService {
         return dateTimeRange
                 .map(
                         range ->
-                                jobRunRepository
-                                        .findAllByWhereStartedAtIsBetweenOrderByStartedAtDesc(
-                                                range.getLeft(), range.getRight(), pageRequest))
+                                jobRunRepository.findAllByStartedAtBetweenOrderByStartedAtDesc(
+                                        range.getLeft(), range.getRight(), pageRequest))
                 .orElse(jobRunRepository.findAllByOrderByStartedAtDesc(pageRequest))
                 .map(JobRunEntity::toJobRun);
     }

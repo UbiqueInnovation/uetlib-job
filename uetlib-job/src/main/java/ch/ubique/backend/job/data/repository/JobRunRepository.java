@@ -8,6 +8,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,7 +20,7 @@ import java.util.Optional;
 @Repository
 public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
-    Page<JobRunEntity> findAll(CriteriaQuery<JobRunEntity> query, Pageable pageable);
+    Page<JobRunEntity> findAll(Specification<JobRunEntity> query, Pageable pageable);
 
     Collection<JobRunEntity> findAllByFinishedAtIsNull();
 
@@ -38,7 +39,7 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
     Page<JobRunEntity> findAllByJobIdInAndStateOrderByStartedAtDesc(
             Collection<Integer> jobIds, JobRunState state, Pageable pageable);
 
-    Page<JobRunEntity> findAllByJobIdInAndStateWhereStartedAtIsBetweenOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByJobIdInAndStateAndStartedAtBetweenOrderByStartedAtDesc(
             Collection<Integer> jobIds,
             JobRunState state,
             Instant from,
@@ -48,17 +49,17 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
     Page<JobRunEntity> findAllByJobIdInOrderByStartedAtDesc(
             Collection<Integer> jobId, Pageable pageable);
 
-    Page<JobRunEntity> findAllByJobIdInWhereStartedAtIsBetweenOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByJobIdInAndStartedAtBetweenOrderByStartedAtDesc(
             Collection<Integer> jobId, Instant from, Instant to, Pageable pageable);
 
     Page<JobRunEntity> findAllByStateOrderByStartedAtDesc(JobRunState state, Pageable pageable);
 
-    Page<JobRunEntity> findAllByStateWhereStartedAtIsBetweenOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByStateAndStartedAtBetweenOrderByStartedAtDesc(
             JobRunState state, Instant from, Instant to, Pageable pageable);
 
     Page<JobRunEntity> findAllByOrderByStartedAtDesc(Pageable pageable);
 
-    Page<JobRunEntity> findAllByWhereStartedAtIsBetweenOrderByStartedAtDesc(
+    Page<JobRunEntity> findAllByStartedAtBetweenOrderByStartedAtDesc(
             Instant from, Instant to, Pageable pageable);
 
     Optional<JobRunEntity> findById(int id);
