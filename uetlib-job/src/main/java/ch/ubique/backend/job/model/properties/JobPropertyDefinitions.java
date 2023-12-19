@@ -100,9 +100,9 @@ public final class JobPropertyDefinitions {
                     false,
                     1000,
                     null);
-    public static final EnumPropertyDefinition<JobReplayMode> DISABLE_MANUAL_EXECUTION =
+    public static final EnumPropertyDefinition<JobReplayMode> JOB_REPLAY_MODE =
             new EnumPropertyDefinition<>(
-                    "DISABLE_MANUAL_EXECUTION",
+                    "JOB_REPLAY_MODE",
                     "Whether the job can be executed manually from the interface, or replayed with context.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobReplayMode.NONE);

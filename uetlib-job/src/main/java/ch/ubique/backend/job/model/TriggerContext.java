@@ -7,5 +7,7 @@ public sealed interface TriggerContext permits EmptyTriggerContext, FileTriggerC
      *
      * @return the type of the trigger context
      */
-    String type();
+    default String type() {
+        return getClass().getCanonicalName();
+    }
 }

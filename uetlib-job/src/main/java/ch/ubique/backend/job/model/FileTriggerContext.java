@@ -36,9 +36,4 @@ public record FileTriggerContext(
                 fileName,
                 event.context());
     }
-
-    @Override
-    public String type() {
-        return getClass().getCanonicalName();
-    }
 }
