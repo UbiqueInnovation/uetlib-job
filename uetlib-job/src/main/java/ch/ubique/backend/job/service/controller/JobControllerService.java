@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -220,9 +221,16 @@ public class JobControllerService {
         jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
     }
 
-    public void replayJobRun(final int jobRunId) throws ClassNotFoundException {
+    public void replayJobRun(final String jobIdOrClassName, final int jobRunId)
+            throws ClassNotFoundException {
         final var jobRun = jobService.getJobRun(jobRunId);
         final var jobClass = jobService.getJobClass(jobRun.jobId());
+        if (!jobClass.equals(getJobClass(jobIdOrClassName))) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format(
+                            "job class ''{0}'' of job run ''{1}'' does not match given jobIdOrClassName ''{2}''",
+                            jobClass, jobRunId, jobIdOrClassName));
+        }
         final var replayExecutionAllowed =
                 jobService
                                 .getProperties(jobService.instantiateJob(jobClass))
