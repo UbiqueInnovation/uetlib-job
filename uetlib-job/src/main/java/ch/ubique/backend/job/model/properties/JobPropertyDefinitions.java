@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.model.properties;
 
-import ch.ubique.backend.job.model.properties.enums.JobReplayMode;
+import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
@@ -100,12 +100,12 @@ public final class JobPropertyDefinitions {
                     false,
                     1000,
                     null);
-    public static final EnumPropertyDefinition<JobReplayMode> JOB_REPLAY_MODE =
+    public static final EnumPropertyDefinition<JobManualTriggerMode> JOB_MANUAL_TRIGGER_MODE =
             new EnumPropertyDefinition<>(
-                    "JOB_REPLAY_MODE",
+                    "JOB_MANUAL_TRIGGER_MODE",
                     "Whether the job can be executed manually from the interface, or replayed with context.",
                     JobPropertyDefinitionGroup.RUNNER,
-                    JobReplayMode.NONE);
+                    JobManualTriggerMode.NEW_RUN_ALLOWED);
 
     // ------------------------------------
     // Helpers to get fields declared above

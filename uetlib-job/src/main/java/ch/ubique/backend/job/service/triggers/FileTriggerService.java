@@ -108,16 +108,6 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         return trigger.fileRegex().matcher(eventContextPath.toString()).matches();
     }
 
-    private boolean matchesAssumeEvent(
-            final FileTrigger trigger, final Path watchedPath, final Object eventContext) {
-        if (!(eventContext instanceof final Path eventContextPath)) {
-            // not a path (can happen for eventKind OVERFLOW) so surely that does not match
-            return false;
-        }
-
-        return trigger.fileRegex().matcher(eventContextPath.toString()).matches();
-    }
-
     @Override
     public void addTrigger(
             final int triggerId,
