@@ -1,1 +1,1 @@
-ALTER TABLE t_job_run ADD COLUMN job_run_arguments JSON DEFAULT NULL;
+ALTER TABLE t_job_run ADD COLUMN job_run_arguments JSONB DEFAULT NULL;
