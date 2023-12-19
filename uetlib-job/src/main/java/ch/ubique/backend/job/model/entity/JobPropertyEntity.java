@@ -3,11 +3,7 @@ package ch.ubique.backend.job.model.entity;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -19,6 +15,10 @@ public class JobPropertyEntity {
     @Id
     @Column(name = "fk_job_id", nullable = false)
     private int jobId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "fk_job_id", nullable = false, updatable = false, insertable = false)
+    private JobEntity job;
 
     @Id
     @Column(name = "key", nullable = false)
