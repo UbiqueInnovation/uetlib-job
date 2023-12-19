@@ -16,13 +16,13 @@ import ch.ubique.backend.job.model.client.triggers.JobTrigger;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.properties.enums.JobReplayMode;
+import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
-import ch.ubique.backend.job.service.executor.JobReplayService;
+import ch.ubique.backend.job.service.executor.JobManualTriggerService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
@@ -50,7 +50,7 @@ public class JobControllerService {
 
     private final TriggerCoordinatorService triggerCoordinatorService;
     private final JobDataService jobDataService;
-    private final JobReplayService jobReplayService;
+    private final JobManualTriggerService jobManualTriggerService;
 
     public JobControllerService(
             final JobDataService jobDataService,
@@ -58,13 +58,13 @@ public class JobControllerService {
             final JobExecutorService jobExecutorService,
             final CronTriggerService cronTriggerService,
             final TriggerCoordinatorService triggerCoordinatorService,
-            final JobReplayService jobReplayService) {
+            final JobManualTriggerService jobManualTriggerService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
         this.cronTriggerService = cronTriggerService;
         this.triggerCoordinatorService = triggerCoordinatorService;
-        this.jobReplayService = jobReplayService;
+        this.jobManualTriggerService = jobManualTriggerService;
     }
 
     private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
@@ -210,9 +210,9 @@ public class JobControllerService {
         final var manualExecutionAllowed =
                 jobService
                                 .getProperties(jobService.instantiateJob(jobClass))
-                                .get(JobPropertyDefinitions.JOB_REPLAY_MODE)
+                                .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
                                 .value()
-                        == JobReplayMode.MANUAL;
+                        == JobManualTriggerMode.NEW_RUN_ALLOWED;
         if (!manualExecutionAllowed) {
             throw new IllegalArgumentException(
                     String.format("Job %s does not allow manual execution", jobClass));
@@ -221,19 +221,19 @@ public class JobControllerService {
     }
 
     public void replayJobRun(final int jobRunId) throws ClassNotFoundException {
-        final var jobRun = jobDataService.findJobRunById(jobRunId).orElseThrow();
+        final var jobRun = jobService.getJobRun(jobRunId);
         final var jobClass = jobService.getJobClass(jobRun.jobId());
         final var replayExecutionAllowed =
                 jobService
                                 .getProperties(jobService.instantiateJob(jobClass))
-                                .get(JobPropertyDefinitions.JOB_REPLAY_MODE)
+                                .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
                                 .value()
-                        == JobReplayMode.REPLAY;
+                        == JobManualTriggerMode.REPLAY_RUN_ALLOWED;
         if (!replayExecutionAllowed) {
             throw new IllegalArgumentException(
                     String.format("Job %s does not allow replay execution", jobClass));
         }
-        jobReplayService.submit(jobRun);
+        jobManualTriggerService.replayJobRun(jobRunId);
     }
 
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
