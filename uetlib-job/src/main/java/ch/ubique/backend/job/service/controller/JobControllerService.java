@@ -192,6 +192,12 @@ public class JobControllerService {
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
 
+        final var selectedJobIdList =
+                new JobIdList(
+                        findJobs(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
+                                .map(JobInfo::id)
+                                .toList(),
+                        CollectionUtils.isNotEmpty(includeJobNamesOrIds));
         final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var fromInstant = Optional.ofNullable(from).map(t -> t.toInstant(ZoneOffset.UTC));
         final var toInstant = Optional.ofNullable(to).map(t -> t.toInstant(ZoneOffset.UTC));
@@ -200,7 +206,7 @@ public class JobControllerService {
         final var jobRunsPage =
                 useCriteria
                         ? jobDataService.findJobRunsUsingCriteriaBuilder(
-                                page, perPage, selectedJobIds, state, fromToRange)
+                                page, perPage, selectedJobIdList, state, fromToRange)
                         : jobDataService.findJobRuns(
                                 page, perPage, selectedJobIds, state, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();

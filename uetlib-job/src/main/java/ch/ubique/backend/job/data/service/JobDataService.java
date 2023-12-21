@@ -22,7 +22,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,14 +121,18 @@ public class JobDataService {
     }
 
     private Predicate getPredicate(
-            final Collection<Integer> jobIds,
+            final JobIdList jobIds,
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> dateTimeRange,
             final Root<JobRunEntity> root,
             final CriteriaBuilder criteriaBuilder) {
         final var predicates = new ArrayList<Predicate>();
         if (!jobIds.isEmpty()) {
-            predicates.add(root.get("id").in(jobIds));
+            if (jobIds.include()) {
+                predicates.add(root.get("id").in(jobIds.ids()));
+            } else {
+                predicates.add(criteriaBuilder.not(root.get("id").in(jobIds.ids())));
+            }
         }
         if (state != null) {
             predicates.add(criteriaBuilder.equal(root.get("state"), state));
@@ -146,15 +149,17 @@ public class JobDataService {
     public Page<JobRun> findJobRunsUsingCriteriaBuilder(
             final int page,
             final int perPage,
-            final List<Integer> selectedJobIds,
+            final JobIdList includeJobIds,
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> fromToRange) {
         final var request = PageRequest.of(page, perPage);
         return jobRunRepository
                 .findAll(
-                        (root, query, criteriaBuilder) ->
-                                getPredicate(
-                                        selectedJobIds, state, fromToRange, root, criteriaBuilder),
+                        (root, query, criteriaBuilder) -> {
+                            query.orderBy(criteriaBuilder.desc(root.get("startedAt")));
+                            return getPredicate(
+                                    includeJobIds, state, fromToRange, root, criteriaBuilder);
+                        },
                         request)
                 .map(JobRunEntity::toJobRun);
     }
