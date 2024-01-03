@@ -13,7 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 @RestController
@@ -54,8 +56,8 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false, defaultValue = "25") final int perPage,
             @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
             @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
-            @RequestParam(required = false) final LocalDateTime from,
-            @RequestParam(required = false) final LocalDateTime to,
+            @RequestParam(required = false) final Instant from,
+            @RequestParam(required = false) final Instant to,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
         return jobControllerService.findJobRuns(page, perPage, state, includeJobs, excludeJobs, from, to);
