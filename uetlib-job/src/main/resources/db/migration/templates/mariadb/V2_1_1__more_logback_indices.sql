@@ -1,0 +1,1 @@
+-- MariaDB does not support partial indices
