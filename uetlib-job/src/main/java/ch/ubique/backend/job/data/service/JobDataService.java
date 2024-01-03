@@ -64,6 +64,7 @@ public class JobDataService {
         return jobRepository.findById(id).map(JobEntity::toRecord);
     }
 
+    @SuppressWarnings("unused") // used in swisstopo-backend::LastLayerUpdateService
     @Transactional(readOnly = true)
     public Optional<JobClassAndId> findJobByCanonicalClassName(final String clazz) {
         return jobRepository.findByCanonicalClassName(clazz).map(JobEntity::toRecord);
@@ -148,6 +149,7 @@ public class JobDataService {
     }
 
     @Transactional
+    @SuppressWarnings("java:S6809")
     public JobClassAndId findOrInsertJob(final Class<? extends Job> jobClass) {
         return jobRepository
                 .findByCanonicalClassName(jobClass.getCanonicalName())
