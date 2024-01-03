@@ -5,13 +5,13 @@ import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.triggers.*;
 
 import com.pivovarit.function.ThrowingFunction;
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -19,7 +19,6 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
-import jakarta.validation.constraints.Null;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
