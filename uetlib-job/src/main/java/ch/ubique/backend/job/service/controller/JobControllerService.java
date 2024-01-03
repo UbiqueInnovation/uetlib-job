@@ -41,9 +41,12 @@ import org.springframework.stereotype.Service;
 import java.text.MessageFormat;
 =======
 import java.time.Instant;
+<<<<<<< HEAD
 >>>>>>> d78f601e (Criteria Builder is default search for Job Runs)
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+=======
+>>>>>>> 7b4fb8f2 (Cleanup JobRun Search code)
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -176,8 +179,8 @@ public class JobControllerService {
             final JobRunState state,
             @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds,
-            @Nullable final LocalDateTime from,
-            @Nullable final LocalDateTime to)
+            @Nullable final Instant from,
+            @Nullable final Instant to)
             throws ClassNotFoundException {
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
@@ -197,39 +200,24 @@ public class JobControllerService {
                 jobRunsPage.getTotalPages());
     }
 
-    private JobIdList getJobIdIncludeList(
+    private List<Integer> getJobIdIncludeList(
             final Collection<String> includeJobNamesOrIds,
             final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
         final var includeJobIds = CollectionUtils.isNotEmpty(includeJobNamesOrIds);
         final var excludeJobIds = CollectionUtils.isNotEmpty(excludeJobNamesOrIds);
         if (includeJobIds) {
-            return new JobIdList(
-                    findJobs(includeJobNamesOrIds, List.of()).stream().map(JobInfo::id).toList(),
-                    true);
+            return findJobs(includeJobNamesOrIds, List.of()).stream().map(JobInfo::id).toList();
         }
         if (excludeJobIds) {
-            return new JobIdList(
-                    findJobs(List.of(), excludeJobNamesOrIds).stream().map(JobInfo::id).toList(),
-                    true);
+            return findJobs(List.of(), excludeJobNamesOrIds).stream().map(JobInfo::id).toList();
         }
-        return new JobIdList(List.of(), false);
+        return List.of();
     }
 
     private Optional<ImmutablePair<Instant, Instant>> getFromToRangeOptional(
-            final LocalDateTime from, final LocalDateTime to) {
-        final var fromInstant = Optional.ofNullable(from).map(t -> t.toInstant(ZoneOffset.UTC));
-        final var toInstant = Optional.ofNullable(to).map(t -> t.toInstant(ZoneOffset.UTC));
-        return fromInstant.flatMap(fromI -> toInstant.map(toI -> new ImmutablePair<>(fromI, toI)));
-    }
-
-    private List<Integer> getJobIds(
-            final Collection<String> includeJobNamesOrIds,
-            final Collection<String> excludeJobNamesOrIds)
-            throws ClassNotFoundException {
-        return findJobs(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
-                .map(JobInfo::id)
-                .toList();
+            final Instant from, final Instant to) {
+        return Optional.ofNullable(from).flatMap(fromI -> Optional.ofNullable(to).map(toI -> new ImmutablePair<>(fromI, toI)));
     }
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {
