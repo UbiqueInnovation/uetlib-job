@@ -20,7 +20,7 @@ public class JobRunInputEntity implements JobRunInput {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "fk_job_run_id", nullable = false, updatable = false, insertable = false)
-    private JobRunEntity run;
+    private JobRunEntity jobRun;
 
     @Column(name = "input_name", nullable = false)
     private String name;
