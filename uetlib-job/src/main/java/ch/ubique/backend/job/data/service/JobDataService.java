@@ -11,6 +11,7 @@ import ch.ubique.backend.job.model.triggers.*;
 
 import com.pivovarit.function.ThrowingFunction;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -18,7 +19,10 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
+import jakarta.validation.constraints.Null;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +37,7 @@ import java.util.stream.Stream;
 
 @Service
 public class JobDataService {
+    private static final Logger logger = LoggerFactory.getLogger(JobDataService.class);
 
     private final JobRepository jobRepository;
     private final JobTriggerRepository jobTriggerRepository;
@@ -129,9 +134,9 @@ public class JobDataService {
         final var predicates = new ArrayList<Predicate>();
         if (!jobIds.isEmpty()) {
             if (jobIds.include()) {
-                predicates.add(root.get("id").in(jobIds.ids()));
+                predicates.add(root.get("jobId").in(jobIds.ids()));
             } else {
-                predicates.add(criteriaBuilder.not(root.get("id").in(jobIds.ids())));
+                predicates.add(criteriaBuilder.not(root.get("jobId").in(jobIds.ids())));
             }
         }
         if (state != null) {
@@ -149,7 +154,7 @@ public class JobDataService {
     public Page<JobRun> findJobRunsUsingCriteriaBuilder(
             final int page,
             final int perPage,
-            final JobIdList includeJobIds,
+            @NotNull final JobIdList includeJobIds,
             final JobRunState state,
             final Optional<ImmutablePair<Instant, Instant>> fromToRange) {
         final var request = PageRequest.of(page, perPage);

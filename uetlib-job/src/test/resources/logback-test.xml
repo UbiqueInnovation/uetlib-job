@@ -1,0 +1,23 @@
+<configuration>
+
+    <root level="TRACE">
+        <appender-ref ref="console"/>
+    </root>
+    <root level="DEBUG">
+        <appender-ref ref="console"/>
+    </root>
+    <root level="INFO">
+        <appender-ref ref="console"/>
+    </root>
+
+    <logger name="ch.ubique.backend" level="TRACE"/>
+    <logger name="org.hibernate.SQL" level="TRACE"/>
+    <logger name="org.hibernate.type" level="TRACE"/>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+</configuration>
