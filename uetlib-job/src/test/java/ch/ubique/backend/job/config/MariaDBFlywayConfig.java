@@ -13,7 +13,7 @@ public class MariaDBFlywayConfig {
         final var flyWay =
                 Flyway.configure()
                         .dataSource(dataSource)
-                        .locations("classpath:/db/migration/templates/mysql")
+                        .locations("classpath:/db/migration/templates/mariadb")
                         .load();
         flyWay.migrate();
         return flyWay;

@@ -2,7 +2,7 @@ CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER auto_increment NOT NULL PRIMARY KEY,
     fk_job_id          INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               TEXT                   NOT NULL,
+    type               VARCHAR(100)           NOT NULL, -- MySQL requires a limit on keys / indices
     trigger_definition JSON                   NOT NULL
 );
 
