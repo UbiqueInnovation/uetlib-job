@@ -192,12 +192,26 @@ public class JobControllerService {
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
 
-        final var selectedJobIdList =
-                new JobIdList(
-                        findJobs(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
-                                .map(JobInfo::id)
-                                .toList(),
-                        CollectionUtils.isNotEmpty(includeJobNamesOrIds));
+        final var includeJobIds = CollectionUtils.isNotEmpty(includeJobNamesOrIds);
+        final var excludeJobIds = CollectionUtils.isNotEmpty(excludeJobNamesOrIds);
+        final JobIdList criteriaUseSelectedJobIdList;
+        if (includeJobIds) {
+            criteriaUseSelectedJobIdList =
+                    new JobIdList(
+                            findJobs(includeJobNamesOrIds, List.of()).stream()
+                                    .map(JobInfo::id)
+                                    .toList(),
+                            true);
+        } else if (excludeJobIds) {
+            criteriaUseSelectedJobIdList =
+                    new JobIdList(
+                            findJobs(List.of(), excludeJobNamesOrIds).stream()
+                                    .map(JobInfo::id)
+                                    .toList(),
+                            true);
+        } else {
+            criteriaUseSelectedJobIdList = new JobIdList(List.of(), false);
+        }
         final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var fromInstant = Optional.ofNullable(from).map(t -> t.toInstant(ZoneOffset.UTC));
         final var toInstant = Optional.ofNullable(to).map(t -> t.toInstant(ZoneOffset.UTC));
@@ -206,7 +220,7 @@ public class JobControllerService {
         final var jobRunsPage =
                 useCriteria
                         ? jobDataService.findJobRunsUsingCriteriaBuilder(
-                                page, perPage, selectedJobIdList, state, fromToRange)
+                                page, perPage, criteriaUseSelectedJobIdList, state, fromToRange)
                         : jobDataService.findJobRuns(
                                 page, perPage, selectedJobIds, state, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
