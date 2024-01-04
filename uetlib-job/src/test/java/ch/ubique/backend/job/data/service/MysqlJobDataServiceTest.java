@@ -6,5 +6,10 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @EnableAutoConfiguration
-@SpringBootTest(classes = {MysqlDBTestContainerConfig.class, MysqlDBFlywayConfig.class, JobDataServiceConfig.class})
-public class MysqlDBJobDataServiceTest extends JobDataServiceTest {}
+@SpringBootTest(
+        classes = {
+            MysqlTestContainerConfig.class,
+            MysqlFlywayConfig.class,
+            JobDataServiceConfig.class
+        })
+public class MysqlJobDataServiceTest extends JobDataServiceTest {}
