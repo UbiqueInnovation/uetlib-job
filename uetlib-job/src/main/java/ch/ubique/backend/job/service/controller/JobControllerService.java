@@ -32,7 +32,7 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -215,9 +215,10 @@ public class JobControllerService {
         return List.of();
     }
 
-    private Optional<ImmutablePair<Instant, Instant>> getFromToRangeOptional(
+    private Optional<Pair<Instant, Instant>> getFromToRangeOptional(
             final Instant from, final Instant to) {
-        return Optional.ofNullable(from).flatMap(fromI -> Optional.ofNullable(to).map(toI -> new ImmutablePair<>(fromI, toI)));
+        return Optional.ofNullable(from)
+                .flatMap(fromI -> Optional.ofNullable(to).map(toI -> Pair.of(fromI, toI)));
     }
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {

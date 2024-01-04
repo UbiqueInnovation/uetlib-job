@@ -18,7 +18,7 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -126,7 +126,7 @@ public class JobDataService {
     private Predicate getPredicate(
             final List<Integer> jobIds,
             final JobRunState state,
-            final Optional<ImmutablePair<Instant, Instant>> dateTimeRange,
+            final Optional<Pair<Instant, Instant>> dateTimeRange,
             final Root<JobRunEntity> root,
             final CriteriaBuilder criteriaBuilder) {
         final var predicates = new ArrayList<Predicate>();
@@ -151,7 +151,7 @@ public class JobDataService {
             final int perPage,
             @NotNull final List<Integer> includeJobIds,
             final JobRunState state,
-            final Optional<ImmutablePair<Instant, Instant>> fromToRange) {
+            final Optional<Pair<Instant, Instant>> fromToRange) {
         final var request = PageRequest.of(page, perPage);
         return jobRunRepository
                 .findAll(
