@@ -7,10 +7,10 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @TestConfiguration
-public class MysqlDBTestContainerConfig {
+public class MysqlTestContainerConfig {
     @Bean
     @ServiceConnection
-    MySQLContainer<?> mysqlDBContainer() {
+    MySQLContainer<?> mysqlContainer() {
         return new MySQLContainer<>(DockerImageName.parse("mysql:8.0.32"))
                 .withConfigurationOverride("mysql_conf")
                 .withReuse(true);

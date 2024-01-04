@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.sql.DataSource;
 
 @Configuration
-public class MysqlDBFlywayConfig {
+public class MysqlFlywayConfig {
     @Bean
     public Flyway flyway(final DataSource dataSource) {
         final var flyWay =
