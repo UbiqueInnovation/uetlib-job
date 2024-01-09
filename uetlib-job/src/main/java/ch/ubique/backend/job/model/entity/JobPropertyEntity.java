@@ -8,35 +8,29 @@ import jakarta.persistence.*;
 import org.apache.commons.lang3.StringUtils;
 
 @Entity
-@IdClass(JobPropertyId.class)
 @Table(name = "t_job_properties")
 public class JobPropertyEntity {
 
-    @Id
-    @Column(name = "fk_job_id", nullable = false)
-    private int jobId;
+    @EmbeddedId private JobPropertyId id;
 
+    @MapsId("jobId")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_id", nullable = false, updatable = false, insertable = false)
+    @JoinColumn(name = "fk_job_id", nullable = false)
     private JobEntity job;
-
-    @Id
-    @Column(name = "key", nullable = false)
-    private String key;
 
     @Column(name = "value")
     private String value;
 
-    public static <T> JobPropertyEntity from(final int jobId, final JobProperty<T> property) {
+    public static <T> JobPropertyEntity from(final JobEntity job, final JobProperty<T> property) {
         final var entity = new JobPropertyEntity();
-        entity.jobId = jobId;
+        entity.id = JobPropertyId.of(job.getId(), property.key());
+        entity.job = job;
         entity.value = property.encodedValue();
-        entity.key = property.key();
         return entity;
     }
 
     public JobProperty<Object> toProperty() {
-        return JobPropertyDefinitions.get(key).createPropertyFromString(getValue());
+        return JobPropertyDefinitions.get(id.getKey()).createPropertyFromString(getValue());
     }
 
     public String getValue() {

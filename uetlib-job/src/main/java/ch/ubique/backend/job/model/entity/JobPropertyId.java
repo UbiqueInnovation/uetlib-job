@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import jakarta.persistence.Column;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -7,8 +9,18 @@ import java.io.Serializable;
 
 public class JobPropertyId implements Serializable {
 
+    @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
+
+    @Column(name = "key", nullable = false)
     private String key;
+
+    public static JobPropertyId of(final int jobId, final String key) {
+        final var id = new JobPropertyId();
+        id.jobId = jobId;
+        id.key = key;
+        return id;
+    }
 
     public Integer getJobId() {
         return jobId;

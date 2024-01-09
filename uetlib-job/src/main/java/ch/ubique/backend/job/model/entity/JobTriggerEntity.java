@@ -18,11 +18,8 @@ public class JobTriggerEntity {
     @Column(name = "pk_job_trigger_id", nullable = false)
     private Integer id;
 
-    @Column(name = "fk_job_id", nullable = false)
-    private Integer jobId;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_id", nullable = false, updatable = false, insertable = false)
+    @JoinColumn(name = "fk_job_id", nullable = false)
     private JobEntity job;
 
     @Column(name = "type", nullable = false)
@@ -36,23 +33,23 @@ public class JobTriggerEntity {
 
     public JobTriggerEntity() {}
 
-    public JobTriggerEntity(final int jobId, final TriggerDefinition triggerDefinition) {
-        this(null, jobId, triggerDefinition);
+    public JobTriggerEntity(final JobEntity job, final TriggerDefinition triggerDefinition) {
+        this(null, job, triggerDefinition);
     }
 
-    public JobTriggerEntity(final Trigger trigger) {
-        this(trigger.id(), trigger.jobId(), trigger.definition());
+    public JobTriggerEntity(final JobEntity job, final Trigger trigger) {
+        this(trigger.id(), job, trigger.definition());
     }
 
     private JobTriggerEntity(
-            final Integer id, final int jobId, final TriggerDefinition triggerDefinition) {
+            final Integer id, final JobEntity job, final TriggerDefinition triggerDefinition) {
         this.id = id;
-        this.jobId = jobId;
+        this.job = job;
         this.type = triggerDefinition.type();
         this.triggerDefinition = triggerDefinition;
     }
 
     public Trigger toTrigger() {
-        return new Trigger(id, jobId, triggerDefinition);
+        return new Trigger(id, job.getId(), triggerDefinition);
     }
 }

@@ -39,6 +39,10 @@ public class JobEntity {
         this.canonicalClassName = jobClassAndId.canonicalClassName();
     }
 
+    public Integer getId() {
+        return id;
+    }
+
     public JobClassAndId toRecord() {
         return new JobClassAndId(id, canonicalClassName);
     }
