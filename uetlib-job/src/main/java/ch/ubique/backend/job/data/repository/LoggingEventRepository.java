@@ -6,14 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Repository
 public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity, Long> {
 
-    @Transactional(readOnly = true)
     @Query(
             value =
                     """
@@ -25,8 +23,7 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
             nativeQuery = true)
     List<LoggingEventEntity> findByJobRunId(String id, long skipLines, int pageSize);
 
-    @Transactional
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             value =
                     """
