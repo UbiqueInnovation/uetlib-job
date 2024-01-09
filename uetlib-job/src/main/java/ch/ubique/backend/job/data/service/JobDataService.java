@@ -265,7 +265,7 @@ public class JobDataService {
 
     @Transactional
     public void deleteLogsForJobRunId(final int jobRunId) {
-        loggingEventRepository.deleteLogsForJobRunId(jobRunId);
+        loggingEventRepository.deleteLogsForJobRunId(String.valueOf(jobRunId));
     }
 
     @Transactional
