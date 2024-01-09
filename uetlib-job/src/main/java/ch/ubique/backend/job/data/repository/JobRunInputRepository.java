@@ -11,5 +11,5 @@ import java.util.List;
 @Repository
 public interface JobRunInputRepository extends JpaRepository<JobRunInputEntity, Integer> {
 
-    List<JobRunInput> findAllByRunId(final Integer runId);
+    List<JobRunInput> findAllByJobRunId(final Integer runId);
 }

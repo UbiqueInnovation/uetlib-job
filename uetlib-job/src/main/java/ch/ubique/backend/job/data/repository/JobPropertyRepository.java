@@ -15,9 +15,7 @@ public interface JobPropertyRepository extends JpaRepository<JobPropertyEntity, 
 
     List<JobPropertyEntity> findAllByJobId(final int jobId);
 
-    Optional<JobPropertyEntity> findByJobIdAndKey(final int jobId, final String key);
+    Optional<JobPropertyEntity> findByJobIdAndIdKey(final int jobId, final String key);
 
-    void deleteAllByJobId(final int jobId);
-
-    void deleteAllByKeyNotIn(final Collection<String> jobPropertyName);
+    void deleteAllByIdKeyNotIn(final Collection<String> jobPropertyName);
 }
