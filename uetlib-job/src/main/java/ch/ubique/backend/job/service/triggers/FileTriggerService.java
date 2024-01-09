@@ -7,6 +7,8 @@ import ch.ubique.backend.job.model.triggers.FileTrigger;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -75,7 +77,15 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         logger.info("Watched path: {}", watchedPath);
 
         for (final var event : key.pollEvents()) {
-            logger.info("Got eventContext {}", event);
+            if (logger.isInfoEnabled()) {
+                final var eventToString =
+                        new ToStringBuilder(event, ToStringStyle.SHORT_PREFIX_STYLE)
+                                .append("kind", event.kind())
+                                .append("count", event.count())
+                                .append("context", event.context())
+                                .toString();
+                logger.info("Got event: {}", eventToString);
+            }
             registeredTriggers.values().stream()
                     .filter(
                             triggerRunnablePair ->
