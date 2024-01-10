@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service.executor;
 
-import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.service.JobService;
 
 import org.springframework.stereotype.Service;
