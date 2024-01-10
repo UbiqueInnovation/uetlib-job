@@ -7,11 +7,7 @@ import org.springframework.context.annotation.Profile;
 import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
-<<<<<<< HEAD:backend-jvm-lib/backend-jvm-lib-job/src/test/java/ch/ubique/backend/job/config/MariaDBTestcontainerConfig.java
 @Profile("mariadb")
-=======
-@Profile("mysql")
->>>>>>> 98e48143 (Fix tests but all failing):backend-jvm-lib/backend-jvm-lib-job/src/test/java/ch/ubique/backend/job/config/MariaDBTestContainerConfig.java
 @TestConfiguration
 public class MariaDBTestcontainerConfig {
     @Bean
