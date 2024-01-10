@@ -1,9 +1,8 @@
 package ch.ubique.backend.job.config;
 
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.db.DBAppender;
 import ch.qos.logback.core.db.DataSourceConnectionSource;
-import ch.ubique.backend.job.logging.JobAppender;
+import ch.ubique.backend.job.logging.JobDBAppender;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +14,8 @@ import javax.sql.DataSource;
 public class BackendLibJobDBAppenderConfig {
 
     @Bean
-    public JobAppender jobAppender(final DataSource dataSource) {
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    public JobDBAppender jobAppender(final DataSource dataSource) {
         final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
         final var connectionSource = new DataSourceConnectionSource();
@@ -23,16 +23,14 @@ public class BackendLibJobDBAppenderConfig {
         connectionSource.setContext(loggerContext);
         connectionSource.start();
 
-        final var dbAppender = new DBAppender();
-        dbAppender.setName("jobs-db-appender");
-        dbAppender.setConnectionSource(connectionSource);
-
-        final var jobAppender = new JobAppender(dbAppender);
-        jobAppender.start();
+        final var jobDBAppender = new JobDBAppender();
+        jobDBAppender.setName("jobs-db-appender");
+        jobDBAppender.setConnectionSource(connectionSource);
+        jobDBAppender.start();
 
         final var logger = loggerContext.getLogger("ROOT");
-        logger.addAppender(jobAppender);
+        logger.addAppender(jobDBAppender);
 
-        return jobAppender;
+        return jobDBAppender;
     }
 }
