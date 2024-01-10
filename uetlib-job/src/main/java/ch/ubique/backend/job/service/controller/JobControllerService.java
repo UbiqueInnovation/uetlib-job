@@ -37,16 +37,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
-<<<<<<< HEAD
 import java.text.MessageFormat;
-=======
 import java.time.Instant;
-<<<<<<< HEAD
->>>>>>> d78f601e (Criteria Builder is default search for Job Runs)
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-=======
->>>>>>> 7b4fb8f2 (Cleanup JobRun Search code)
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
