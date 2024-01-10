@@ -27,7 +27,7 @@ public class BackendLibJobWebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(webSocketHandler, "/v1/live/logs").setAllowedOriginPatterns("*");
     }
 
-    @Scheduled(fixedRateString = "PT0.1S")
+    @Scheduled(fixedDelayString = "PT0.1S")
     public void sendLogs() {
         webSocketHandler.sendLog();
     }
