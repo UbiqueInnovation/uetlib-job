@@ -6,7 +6,6 @@ import ch.ubique.backend.job.model.JobRunState;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
