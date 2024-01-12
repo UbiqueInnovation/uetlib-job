@@ -117,11 +117,11 @@ public class JobService {
                     // The class exists, but was not discovered by findAllRegisteredJobClasses()
                     // This could e.g. be the case if @EnableJobs does not include this job
                     logger.warn("{} is not part of the job classes. Removing database entry.", job);
-                    jobDataService.deleteTrigger(job);
+                    jobDataService.delete(job);
                 }
             } catch (final ClassNotFoundException e) {
                 logger.warn("Could not find class for {}. Removing database entry.", job);
-                jobDataService.deleteTrigger(job);
+                jobDataService.delete(job);
             }
         }
     }
