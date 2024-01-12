@@ -70,7 +70,7 @@ public class TriggerCoordinatorService {
 
     public void deleteTrigger(final Trigger trigger) {
         removeTrigger(trigger);
-        jobDataService.deleteTrigger(trigger);
+        jobDataService.delete(trigger);
         logger.info("Deleted trigger {}", trigger);
     }
 
@@ -104,7 +104,7 @@ public class TriggerCoordinatorService {
                 return dbTriggers;
             } else {
                 // Fixed do not match db triggers -> Replace db triggers
-                jobDataService.deleteTriggersForJob(jobId);
+                jobDataService.deleteTriggerForJob(jobId);
                 return jobDataService.insertTriggers(jobId, job.triggersConfig().triggers());
             }
         }
