@@ -48,4 +48,6 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     Page<JobRunEntity> findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
             int jobId, Instant finishedBefore, Pageable pageable);
+
+    void deleteAllByJobId(int jobId);
 }
