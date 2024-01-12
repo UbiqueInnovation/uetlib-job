@@ -4,7 +4,12 @@ import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "t_job_run_input")
@@ -17,10 +22,6 @@ public class JobRunInputEntity implements JobRunInput {
 
     @Column(name = "fk_job_run_id", nullable = false)
     private Integer runId;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_run_id", nullable = false, updatable = false, insertable = false)
-    private JobRunEntity jobRun;
 
     @Column(name = "input_name", nullable = false)
     private String name;
