@@ -175,8 +175,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobRunEntity saveJobRun(final JobRun jobRun) {
-        return jobRunRepository.save(new JobRunEntity(jobRun));
+    public void saveJobRun(final JobRun jobRun) {
+        jobRunRepository.save(new JobRunEntity(jobRun));
     }
 
     @Transactional(readOnly = true)
@@ -186,7 +186,11 @@ public class JobDataService {
 
     @Transactional
     public void delete(final JobClassAndId job) {
-        jobRepository.delete(new JobEntity(job));
+        jobTriggerRepository.deleteAllByJobId(job.id());
+        jobPropertyRepository.deleteAllByJobId(job.id());
+        jobRunInputRepository.deleteAllByJobId(job.id());
+        jobRunRepository.deleteAllByJobId(job.id());
+        jobRepository.deleteById(job.id());
     }
 
     @Transactional
@@ -316,12 +320,12 @@ public class JobDataService {
 
     @Transactional
     public void deleteTriggerForJob(final int jobId) {
-        jobTriggerRepository.deleteByJobId(jobId);
+        jobTriggerRepository.deleteAllByJobId(jobId);
     }
 
     @Transactional
     public void delete(final Trigger trigger) {
-        jobTriggerRepository.delete(new JobTriggerEntity(trigger));
+        jobTriggerRepository.deleteById(trigger.id());
     }
 
     @Transactional
