@@ -21,10 +21,6 @@ public class JobTriggerEntity {
     @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_id", nullable = false, updatable = false, insertable = false)
-    private JobEntity job;
-
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.STRING)
     private TriggerType type;

@@ -2,10 +2,12 @@ package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.job.model.JobClassAndId;
 
-import jakarta.persistence.*;
-
-import java.util.ArrayList;
-import java.util.List;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Table(name = "t_job")
 @Entity
@@ -18,15 +20,6 @@ public class JobEntity {
 
     @Column(name = "clazz", nullable = false)
     private String canonicalClassName;
-
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobRunEntity> jobRuns = new ArrayList<>();
-
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobPropertyEntity> jobProperties = new ArrayList<>();
-
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobTriggerEntity> jobTriggers = new ArrayList<>();
 
     public JobEntity() {}
 
