@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
-import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
@@ -98,14 +97,14 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsInclude(final List<Integer> includeJobIds) {
+    public List<JobClassAndId> findJobsInclude(List<Integer> includeJobIds) {
         return jobRepository.findAllByIdInOrderById(includeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsExclude(final List<Integer> excludeJobIds) {
+    public List<JobClassAndId> findJobsExclude(List<Integer> excludeJobIds) {
         return jobRepository.findAllByIdNotInOrderById(excludeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
@@ -164,9 +163,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public void saveJobRun(final JobRun jobRun) {
-        final var job = jobRepository.getReferenceById(jobRun.jobId());
-        jobRunRepository.save(new JobRunEntity(jobRun, job));
+    public JobRunEntity saveJobRun(final JobRun jobRun) {
+        return jobRunRepository.save(new JobRunEntity(jobRun));
     }
 
     @Transactional(readOnly = true)
@@ -175,20 +173,23 @@ public class JobDataService {
     }
 
     @Transactional
-    public void deleteTrigger(final JobClassAndId job) {
+    public void delete(final JobClassAndId job) {
         jobRepository.delete(new JobEntity(job));
     }
 
     @Transactional
-    public void insertJobRunInput(final int jobId, final JobRun jobRun, final ByteFile input) {
-        final var job = jobRepository.getReferenceById(jobId);
-        final var jobRunInput = JobRunInputEntity.from(new JobRunEntity(jobRun, job), input);
-        jobRunInputRepository.save(jobRunInput);
+    public void insertJobRunInput(final JobRunInput jobRunInput) {
+        if (!(jobRunInput instanceof final JobRunInputEntity jobRunInputEntity)) {
+            throw new ClassCastException(
+                    "jobRun cannot be instance of class to JobRunInputEntity, but is of class"
+                            + jobRunInput.getClass());
+        }
+        jobRunInputRepository.save(jobRunInputEntity);
     }
 
     @Transactional(readOnly = true)
     public Collection<JobRunInput> findJobRunInputs(final int runId) {
-        return jobRunInputRepository.findAllByJobRunId(runId);
+        return jobRunInputRepository.findAllByRunId(runId);
     }
 
     @Transactional(readOnly = true)
@@ -210,20 +211,19 @@ public class JobDataService {
 
     @Transactional
     public void saveProperties(final int jobId, final Collection<JobProperty<?>> properties) {
-        final var job = jobRepository.getReferenceById(jobId);
 
         // Save all where value is set
         jobPropertyRepository.saveAll(
                 properties.stream()
                         .filter(JobProperty::isValuePresent)
-                        .map(property -> JobPropertyEntity.from(job, property))
+                        .map(property -> JobPropertyEntity.from(jobId, property))
                         .toList());
 
         // Delete all where value is unset
         jobPropertyRepository.deleteAll(
                 properties.stream()
                         .filter(property -> !property.isValuePresent())
-                        .map(property -> JobPropertyEntity.from(job, property))
+                        .map(property -> JobPropertyEntity.from(jobId, property))
                         .toList());
     }
 
@@ -231,7 +231,7 @@ public class JobDataService {
     public <T> JobProperty<T> getProperty(
             final Integer jobId, final JobPropertyDefinition<T> definition) {
         return jobPropertyRepository
-                .findByJobIdAndIdKey(jobId, definition.key())
+                .findByJobIdAndKey(jobId, definition.key())
                 .map(JobPropertyEntity::getValue)
                 .map(definition::createPropertyFromString)
                 .orElseGet(() -> definition.createProperty(null));
@@ -272,7 +272,7 @@ public class JobDataService {
     public void clearUnknownJobProperties() {
         final var jobPropertyNames =
                 JobPropertyDefinitions.values().stream().map(JobPropertyDefinition::key).toList();
-        jobPropertyRepository.deleteAllByIdKeyNotIn(jobPropertyNames);
+        jobPropertyRepository.deleteAllByKeyNotIn(jobPropertyNames);
     }
 
     @Transactional(readOnly = true)
@@ -285,11 +285,10 @@ public class JobDataService {
     @Transactional
     public JobRun createJobRun(
             final int jobId, final int jobVersion, final JobRunArguments arguments) {
-        final var job = jobRepository.getReferenceById(jobId);
         return jobRunRepository
                 .save(
                         new JobRunEntity(
-                                job,
+                                jobId,
                                 jobVersion,
                                 JobRunState.SCHEDULED,
                                 Instant.now(),
@@ -300,26 +299,24 @@ public class JobDataService {
 
     @Transactional
     public void saveTrigger(final Trigger trigger) {
-        final var job = jobRepository.getReferenceById(trigger.jobId());
-        jobTriggerRepository.save(new JobTriggerEntity(job, trigger));
+        jobTriggerRepository.save(new JobTriggerEntity(trigger)).toTrigger();
     }
 
     @Transactional
-    public void deleteTriggersForJob(final int jobId) {
+    public void deleteTriggerForJob(final int jobId) {
         jobTriggerRepository.deleteByJobId(jobId);
     }
 
     @Transactional
-    public void deleteTrigger(final Trigger trigger) {
-        jobTriggerRepository.deleteById((long) trigger.id());
+    public void delete(final Trigger trigger) {
+        jobTriggerRepository.delete(new JobTriggerEntity(trigger));
     }
 
     @Transactional
     public Collection<Trigger> insertTriggers(
             final int jobId, final Collection<TriggerDefinition> triggerDefinitions) {
-        final var job = jobRepository.getReferenceById(jobId);
         final var entities =
-                triggerDefinitions.stream().map(def -> new JobTriggerEntity(job, def)).toList();
+                triggerDefinitions.stream().map(def -> new JobTriggerEntity(jobId, def)).toList();
         return jobTriggerRepository.saveAll(entities).stream()
                 .map(JobTriggerEntity::toTrigger)
                 .toList();
@@ -327,8 +324,7 @@ public class JobDataService {
 
     @Transactional
     public Trigger insertTrigger(final int jobId, final TriggerDefinition triggerDefinition) {
-        final var job = jobRepository.getReferenceById(jobId);
-        final var entity = new JobTriggerEntity(job, triggerDefinition);
+        final var entity = new JobTriggerEntity(jobId, triggerDefinition);
         return jobTriggerRepository.save(entity).toTrigger();
     }
 

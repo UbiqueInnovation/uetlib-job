@@ -23,8 +23,11 @@ public class JobRunEntity {
     @Column(name = "pk_job_run_id", nullable = false)
     private Integer id;
 
+    @Column(name = "fk_job_id", nullable = false)
+    private Integer jobId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_id", nullable = false)
+    @JoinColumn(name = "fk_job_id", nullable = false, updatable = false, insertable = false)
     private JobEntity job;
 
     @Column(name = "job_version", nullable = false)
@@ -50,24 +53,24 @@ public class JobRunEntity {
 
     public JobRunEntity() {}
 
-    public JobRunEntity(final JobRun jobRun, final JobEntity job) {
-        this.id = jobRun.id();
-        this.job = job;
-        this.jobVersion = jobRun.jobVersion();
-        this.state = jobRun.state();
-        this.startedAt = jobRun.startedAt();
-        this.finishedAt = jobRun.finishedAt();
-        this.jobRunArguments = jobRun.jobRunArguments();
+    public JobRunEntity(final JobRun jobRun) {
+        id = jobRun.id();
+        jobId = jobRun.jobId();
+        jobVersion = jobRun.jobVersion();
+        state = jobRun.state();
+        startedAt = jobRun.startedAt();
+        finishedAt = jobRun.finishedAt();
+        jobRunArguments = jobRun.jobRunArguments();
     }
 
     public JobRunEntity(
-            final JobEntity job,
+            final int jobId,
             final int jobVersion,
             final JobRunState state,
             final Instant startedAt,
             final Instant finishedAt,
             final JobRunArguments jobRunArguments) {
-        this.job = job;
+        this.jobId = jobId;
         this.jobVersion = jobVersion;
         this.state = state;
         this.startedAt = startedAt;
@@ -76,7 +79,6 @@ public class JobRunEntity {
     }
 
     public JobRun toJobRun() {
-        return new JobRun(
-                id, job.getId(), jobVersion, startedAt, finishedAt, state, jobRunArguments);
+        return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state, jobRunArguments);
     }
 }
