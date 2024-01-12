@@ -8,9 +8,9 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 
 @Repository
-public interface JobTriggerRepository extends JpaRepository<JobTriggerEntity, Long> {
+public interface JobTriggerRepository extends JpaRepository<JobTriggerEntity, Integer> {
 
-    void deleteByJobId(final int jobId);
+    void deleteAllByJobId(int jobId);
 
-    Collection<JobTriggerEntity> findAllByJobId(final int jobId);
+    Collection<JobTriggerEntity> findAllByJobId(int jobId);
 }
