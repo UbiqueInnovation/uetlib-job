@@ -11,8 +11,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "t_job_run")
@@ -25,10 +23,6 @@ public class JobRunEntity {
 
     @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_id", nullable = false, updatable = false, insertable = false)
-    private JobEntity job;
 
     @Column(name = "job_version", nullable = false)
     private Integer jobVersion;
@@ -43,13 +37,11 @@ public class JobRunEntity {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = JobRunArgumentsToStringConverter.class)
     @Column(name = "job_run_arguments", nullable = false)
     private JobRunArguments jobRunArguments;
-
-    @OneToMany(mappedBy = "jobRun", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobRunInputEntity> jobRunInputs = new ArrayList<>();
 
     public JobRunEntity() {}
 
