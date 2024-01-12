@@ -167,7 +167,7 @@ public abstract class BaseInputJob<T> implements Job {
         } catch (final Exception e) {
             logger.error(
                     "should not land here, loadInputsRecovery should have caught the error and"
-                            + " recovered from the exception in loadInputs()");
+                        + " recovered from the exception in loadInputs()");
             throw new WrappedException(e);
         }
     }
@@ -175,7 +175,7 @@ public abstract class BaseInputJob<T> implements Job {
     private void saveRunInputsToDatabase(final Collection<ByteFile> inputs, final JobRun jobRun) {
         for (final var input : inputs) {
             logger.info("Saving input {} to database.", input.getFileName());
-            jobDataService.insertJobRunInput(jobRun.jobId(), jobRun, input);
+            jobDataService.insertJobRunInput(JobRunInputEntity.from(jobRun, input));
         }
     }
 

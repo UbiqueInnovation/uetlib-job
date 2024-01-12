@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
 import ch.ubique.backend.core.file.ByteFile;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 
 import jakarta.persistence.*;
@@ -14,8 +15,11 @@ public class JobRunInputEntity implements JobRunInput {
     @Column(name = "pk_job_run_input_id", nullable = false)
     private Integer id;
 
+    @Column(name = "fk_job_run_id", nullable = false)
+    private Integer runId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_job_run_id", nullable = false)
+    @JoinColumn(name = "fk_job_run_id", nullable = false, updatable = false, insertable = false)
     private JobRunEntity jobRun;
 
     @Column(name = "input_name", nullable = false)
@@ -24,9 +28,9 @@ public class JobRunInputEntity implements JobRunInput {
     @Column(name = "input_hash", nullable = false, length = 128)
     private String hash;
 
-    public static JobRunInputEntity from(final JobRunEntity jobRun, final ByteFile file) {
+    public static JobRunInputEntity from(final JobRun jobRun, final ByteFile file) {
         final var input = new JobRunInputEntity();
-        input.setJobRun(jobRun);
+        input.setRunId(jobRun.id());
         input.setName(file.getFileName());
         input.setHash(file.getFileHash());
         return input;
@@ -37,16 +41,19 @@ public class JobRunInputEntity implements JobRunInput {
         return id;
     }
 
+    @Override
     public void setId(final Integer id) {
         this.id = id;
     }
 
-    public JobRunEntity getJobRun() {
-        return jobRun;
+    @Override
+    public Integer getRunId() {
+        return runId;
     }
 
-    public void setJobRun(final JobRunEntity jobRun) {
-        this.jobRun = jobRun;
+    @Override
+    public void setRunId(final Integer runId) {
+        this.runId = runId;
     }
 
     @Override
@@ -54,6 +61,7 @@ public class JobRunInputEntity implements JobRunInput {
         return name;
     }
 
+    @Override
     public void setName(final String name) {
         this.name = name;
     }
@@ -63,6 +71,7 @@ public class JobRunInputEntity implements JobRunInput {
         return hash;
     }
 
+    @Override
     public void setHash(final String hash) {
         this.hash = hash;
     }
