@@ -45,7 +45,7 @@ public record JobRun(
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
             this.state = Objects.requireNonNull(jobRun.state);
-            this.jobRunArguments = Objects.requireNonNull(jobRun.jobRunArguments);
+            this.jobRunArguments = jobRun.jobRunArguments;
         }
 
         public ModifiableJobRun id(final int id) {
