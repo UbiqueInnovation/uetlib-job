@@ -326,7 +326,7 @@ public class JobDataService {
         return jobTriggerRepository.save(entity).toTrigger();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Collection<JobRun> findJobRunsWithoutFinishedTimestamp() {
         return jobRunRepository.findAllByFinishedAtIsNull().stream()
                 .map(JobRunEntity::toJobRun)
