@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
+import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
@@ -97,14 +98,14 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsInclude(List<Integer> includeJobIds) {
+    public List<JobClassAndId> findJobsInclude(final List<Integer> includeJobIds) {
         return jobRepository.findAllByIdInOrderById(includeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsExclude(List<Integer> excludeJobIds) {
+    public List<JobClassAndId> findJobsExclude(final List<Integer> excludeJobIds) {
         return jobRepository.findAllByIdNotInOrderById(excludeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
@@ -182,13 +183,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public void insertJobRunInput(final JobRunInput jobRunInput) {
-        if (!(jobRunInput instanceof final JobRunInputEntity jobRunInputEntity)) {
-            throw new ClassCastException(
-                    "jobRun cannot be instance of class to JobRunInputEntity, but is of class"
-                            + jobRunInput.getClass());
-        }
-        jobRunInputRepository.save(jobRunInputEntity);
+    public void insertJobRunInput(final JobRun jobRun, final ByteFile input) {
+        jobRunInputRepository.save(JobRunInputEntity.from(jobRun, input));
     }
 
     @Transactional(readOnly = true)

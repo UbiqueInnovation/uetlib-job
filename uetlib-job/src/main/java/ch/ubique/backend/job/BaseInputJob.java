@@ -175,7 +175,7 @@ public abstract class BaseInputJob<T> implements Job {
     private void saveRunInputsToDatabase(final Collection<ByteFile> inputs, final JobRun jobRun) {
         for (final var input : inputs) {
             logger.info("Saving input {} to database.", input.getFileName());
-            jobDataService.insertJobRunInput(JobRunInputEntity.from(jobRun, input));
+            jobDataService.insertJobRunInput(jobRun, input);
         }
     }
 
