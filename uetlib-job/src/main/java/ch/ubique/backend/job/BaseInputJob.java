@@ -4,6 +4,7 @@ import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
 import com.pivovarit.function.exception.WrappedException;
