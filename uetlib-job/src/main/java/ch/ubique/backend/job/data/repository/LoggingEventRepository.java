@@ -15,25 +15,15 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
     @Query(
             value =
                     """
-                            select le.*
-                            from logging_event le
-                                join logging_event_property lep on le.event_id = lep.event_id
-                            where lep.mapped_key = 'jobRunId' and lep.mapped_value = :jobRunId
-                            order by le.timestmp
+                            select *
+                            from logging_event
+                            where job_run_id = :jobRunId
+                            order by timestmp
                             limit :pageSize offset :skipLines""",
             nativeQuery = true)
-    List<LoggingEventEntity> findByJobRunId(String jobRunId, long skipLines, int pageSize);
+    List<LoggingEventEntity> findByJobRunId(int jobRunId, long skipLines, int pageSize);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(
-            value =
-                    """
-                            delete
-                            from logging_event
-                            where event_id in
-                                  (select event_id
-                                   from logging_event_property
-                                   where mapped_key = 'jobRunId' and mapped_value = :jobRunId)""",
-            nativeQuery = true)
-    void deleteLogsForJobRunId(String jobRunId);
+    @Query(value = "delete from logging_event where job_run_id = :jobRunId", nativeQuery = true)
+    void deleteLogsForJobRunId(int jobRunId);
 }

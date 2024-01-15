@@ -199,9 +199,7 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Stream<LoggingEvent> findLogsForJobRun(
             final int jobRunId, final long skipLines, final int pageSize) {
-        return loggingEventRepository
-                .findByJobRunId(String.valueOf(jobRunId), skipLines, pageSize)
-                .stream()
+        return loggingEventRepository.findByJobRunId(jobRunId, skipLines, pageSize).stream()
                 .map(LoggingEventEntity::toLoggingEvent);
     }
 
@@ -269,7 +267,7 @@ public class JobDataService {
 
     @Transactional
     public void deleteLogsForJobRunId(final int jobRunId) {
-        loggingEventRepository.deleteLogsForJobRunId(String.valueOf(jobRunId));
+        loggingEventRepository.deleteLogsForJobRunId(jobRunId);
     }
 
     @Transactional
