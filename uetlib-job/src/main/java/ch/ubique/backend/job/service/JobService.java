@@ -220,7 +220,7 @@ public class JobService {
                 .orElseGet(() -> createNewJobRun(job, arguments));
     }
 
-    public JobRun getJobRun(@NotNull final int runId) {
+    public JobRun getJobRun(final int runId) {
         return jobDataService.findJobRunById(runId).orElseThrow();
     }
 
