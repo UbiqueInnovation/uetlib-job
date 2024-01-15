@@ -8,6 +8,7 @@ import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.pivovarit.function.exception.WrappedException;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 
@@ -87,7 +88,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
         try {
             return applicationContext.getBean(ObjectMapper.class).writeValueAsString(object);
         } catch (final JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new WrappedException(e);
         }
     }
 }

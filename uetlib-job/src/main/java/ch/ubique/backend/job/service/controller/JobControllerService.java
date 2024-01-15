@@ -28,14 +28,17 @@ import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import com.pivovarit.function.ThrowingFunction;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -167,14 +170,19 @@ public class JobControllerService {
             final int perPage,
             final JobRunState state,
             @NotNull final Collection<String> includeJobNamesOrIds,
-            @NotNull final Collection<String> excludeJobNamesOrIds)
+            @NotNull final Collection<String> excludeJobNamesOrIds,
+            @Nullable final Instant from,
+            @Nullable final Instant to)
             throws ClassNotFoundException {
-
         final var jobsById =
                 findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
 
-        final var selectedJobIds = getJobIds(includeJobNamesOrIds, excludeJobNamesOrIds);
-        final var jobRunsPage = jobDataService.findJobRuns(page, perPage, selectedJobIds, state);
+        final var selectedJobIdList =
+                getJobIdIncludeList(includeJobNamesOrIds, excludeJobNamesOrIds);
+        final var fromToRange = getFromToRangeOptional(from, to);
+        final var jobRunsPage =
+                jobDataService.findJobRunsUsingCriteriaBuilder(
+                        page, perPage, selectedJobIdList, state, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
@@ -184,13 +192,25 @@ public class JobControllerService {
                 jobRunsPage.getTotalPages());
     }
 
-    private List<Integer> getJobIds(
+    private List<Integer> getJobIdIncludeList(
             final Collection<String> includeJobNamesOrIds,
             final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
-        return findJobs(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
-                .map(JobInfo::id)
-                .toList();
+        final var includeJobIds = CollectionUtils.isNotEmpty(includeJobNamesOrIds);
+        final var excludeJobIds = CollectionUtils.isNotEmpty(excludeJobNamesOrIds);
+        if (includeJobIds) {
+            return findJobs(includeJobNamesOrIds, List.of()).stream().map(JobInfo::id).toList();
+        }
+        if (excludeJobIds) {
+            return findJobs(List.of(), excludeJobNamesOrIds).stream().map(JobInfo::id).toList();
+        }
+        return List.of();
+    }
+
+    private Optional<Pair<Instant, Instant>> getFromToRangeOptional(
+            final Instant from, final Instant to) {
+        return Optional.ofNullable(from)
+                .flatMap(fromI -> Optional.ofNullable(to).map(toI -> Pair.of(fromI, toI)));
     }
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {

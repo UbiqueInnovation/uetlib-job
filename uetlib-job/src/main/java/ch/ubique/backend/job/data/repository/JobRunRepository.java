@@ -7,21 +7,20 @@ import ch.ubique.backend.job.model.entity.JobRunEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
+public interface JobRunRepository
+        extends JpaRepository<JobRunEntity, Integer>, JpaSpecificationExecutor<JobRunEntity> {
 
     Collection<JobRunEntity> findAllByFinishedAtIsNull();
 
     Collection<JobRunEntity> findAllByFinishedAtIsNotNullAndFinishedAtAfter(Instant instant);
-
-    List<JobRunEntity> findAllByStateAndFinishedAtIsNull(final JobRunState state);
 
     Optional<JobRunEntity> findFirstByJobIdOrderByStartedAtDesc(int jobId);
 
@@ -30,16 +29,6 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     Optional<JobRunEntity> findFirstByJobIdAndStateInOrderByStartedAtDesc(
             int jobId, final Collection<JobRunState> states);
-
-    Page<JobRunEntity> findAllByJobIdInAndStateOrderByStartedAtDesc(
-            Collection<Integer> jobIds, JobRunState state, Pageable pageable);
-
-    Page<JobRunEntity> findAllByJobIdInOrderByStartedAtDesc(
-            Collection<Integer> jobId, Pageable pageable);
-
-    Page<JobRunEntity> findAllByStateOrderByStartedAtDesc(JobRunState state, Pageable pageable);
-
-    Page<JobRunEntity> findAllByOrderByStartedAtDesc(Pageable pageable);
 
     Optional<JobRunEntity> findById(int id);
 

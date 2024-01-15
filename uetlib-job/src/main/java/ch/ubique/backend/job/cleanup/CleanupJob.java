@@ -36,14 +36,14 @@ public class CleanupJob implements Job {
         this.jobDataService = jobDataService;
     }
 
+    public static RunnerGroup runnerGroup() {
+        return new RunnerGroup("cleanup", 1, Set.of(CleanupJob.class));
+    }
+
     @NotNull
     @Override
     public JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
-    }
-
-    public static RunnerGroup runnerGroup() {
-        return new RunnerGroup("cleanup", 1, Set.of(CleanupJob.class));
     }
 
     @NotNull
@@ -90,6 +90,9 @@ public class CleanupJob implements Job {
 
             final var cleanableRuns =
                     jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
+
+            logger.info("Cleaning {} runs for job {}", cleanableRuns.size(), job);
+
             try {
                 for (final var run : cleanableRuns) {
                     cleanInputFiles(job, run);
@@ -103,8 +106,7 @@ public class CleanupJob implements Job {
             // Delete job runs - cascades to delete job run input files, too
             jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
 
-            logger.info(
-                    "Cleaned runs for job [job: {}; num_deletions: {}]", job, cleanableRuns.size());
+            logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
         }
 
         return JobRunState.DONE;

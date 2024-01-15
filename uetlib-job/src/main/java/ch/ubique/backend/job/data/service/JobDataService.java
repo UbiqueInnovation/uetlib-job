@@ -6,18 +6,19 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
-import ch.ubique.backend.job.model.properties.JobProperty;
-import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
-import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
-import ch.ubique.backend.job.model.triggers.Trigger;
-import ch.ubique.backend.job.model.triggers.TriggerDefinition;
+import ch.ubique.backend.job.model.properties.*;
+import ch.ubique.backend.job.model.triggers.*;
 
 import com.pivovarit.function.ThrowingFunction;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -98,14 +96,14 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsInclude(final List<Integer> includeJobIds) {
+    public List<JobClassAndId> findJobsInclude(List<Integer> includeJobIds) {
         return jobRepository.findAllByIdInOrderById(includeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsExclude(final List<Integer> excludeJobIds) {
+    public List<JobClassAndId> findJobsExclude(List<Integer> excludeJobIds) {
         return jobRepository.findAllByIdNotInOrderById(excludeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
@@ -122,30 +120,44 @@ public class JobDataService {
         return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 
-    @Transactional(readOnly = true)
-    public Page<JobRun> findJobRuns(
-            final int page,
-            final int pageSize,
-            @NotNull final Collection<Integer> jobIds,
-            final JobRunState state) {
-        final var pageRequest = PageRequest.of(page, pageSize);
-        if (jobIds == null || !jobIds.isEmpty()) {
-            if (state != null) {
-                return jobRunRepository
-                        .findAllByJobIdInAndStateOrderByStartedAtDesc(jobIds, state, pageRequest)
-                        .map(JobRunEntity::toJobRun);
-            }
-            return jobRunRepository
-                    .findAllByJobIdInOrderByStartedAtDesc(jobIds, pageRequest)
-                    .map(JobRunEntity::toJobRun);
+    private Predicate getPredicate(
+            final List<Integer> jobIds,
+            final JobRunState state,
+            final Optional<Pair<Instant, Instant>> dateTimeRange,
+            final Root<JobRunEntity> root,
+            final CriteriaBuilder criteriaBuilder) {
+        final var predicates = new ArrayList<Predicate>();
+        if (!jobIds.isEmpty()) {
+            final var jobIdInConstraint = root.get("jobId").in(jobIds);
+            predicates.add(jobIdInConstraint);
         }
         if (state != null) {
-            return jobRunRepository
-                    .findAllByStateOrderByStartedAtDesc(state, pageRequest)
-                    .map(JobRunEntity::toJobRun);
+            predicates.add(criteriaBuilder.equal(root.get("state"), state));
         }
+        if (dateTimeRange.isPresent()) {
+            final var range = dateTimeRange.get();
+            predicates.add(
+                    criteriaBuilder.between(
+                            root.get("startedAt"), range.getLeft(), range.getRight()));
+        }
+        return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+    }
+
+    public Page<JobRun> findJobRunsUsingCriteriaBuilder(
+            final int page,
+            final int perPage,
+            @NotNull final List<Integer> includeJobIds,
+            final JobRunState state,
+            final Optional<Pair<Instant, Instant>> fromToRange) {
+        final var request = PageRequest.of(page, perPage);
         return jobRunRepository
-                .findAllByOrderByStartedAtDesc(pageRequest)
+                .findAll(
+                        (root, query, criteriaBuilder) -> {
+                            query.orderBy(criteriaBuilder.desc(root.get("startedAt")));
+                            return getPredicate(
+                                    includeJobIds, state, fromToRange, root, criteriaBuilder);
+                        },
+                        request)
                 .map(JobRunEntity::toJobRun);
     }
 
