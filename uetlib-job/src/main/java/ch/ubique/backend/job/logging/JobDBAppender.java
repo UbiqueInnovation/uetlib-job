@@ -11,8 +11,6 @@ import ch.qos.logback.core.db.DBAppenderBase;
 
 import com.pivovarit.function.exception.WrappedException;
 
-import org.apache.commons.lang3.math.NumberUtils;
-
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,8 +36,8 @@ public class JobDBAppender extends DBAppenderBase<ILoggingEvent> {
     static final int CALLER_CLASS_INDEX = 12;
     static final int CALLER_METHOD_INDEX = 13;
     static final int CALLER_LINE_INDEX = 14;
-    static final int EVENT_ID_INDEX = 15;
-    static final int JOB_RUN_ID_INDEX = 16;
+    static final int JOB_RUN_ID_INDEX = 15;
+    static final int EVENT_ID_INDEX = 16;
     static final StackTraceElement EMPTY_CALLER_DATA = CallerData.naInstance();
 
     static {
@@ -70,6 +68,16 @@ public class JobDBAppender extends DBAppenderBase<ILoggingEvent> {
         insertPropertiesSQL = JobSQLBuilder.buildInsertPropertiesSQL(dbNameResolver);
         insertSQL = JobSQLBuilder.buildInsertSQL(dbNameResolver);
         super.start();
+    }
+
+    @Override
+    public void append(final ILoggingEvent eventObject) {
+        final var jobRunId = eventObject.getMDCPropertyMap().get("jobRunId");
+        if (jobRunId == null) {
+            return;
+        }
+
+        super.append(eventObject);
     }
 
     @Override
@@ -110,8 +118,7 @@ public class JobDBAppender extends DBAppenderBase<ILoggingEvent> {
         stmt.setString(THREAD_NAME_INDEX, event.getThreadName());
         stmt.setShort(REFERENCE_FLAG_INDEX, DBHelper.computeReferenceMask(event));
         stmt.setObject(
-                JOB_RUN_ID_INDEX,
-                NumberUtils.createInteger(event.getMDCPropertyMap().get("jobRunId")));
+                JOB_RUN_ID_INDEX, Integer.parseInt(event.getMDCPropertyMap().get("jobRunId")));
     }
 
     void bindLoggingEventArgumentsWithPreparedStatement(

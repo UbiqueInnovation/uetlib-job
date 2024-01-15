@@ -63,8 +63,8 @@ public class LoggingEventEntity {
     @Column(name = "caller_line", nullable = false)
     private String callerLine;
 
-    @Column(name = "job_run_id")
-    private Integer jobRunId;
+    @Column(name = "job_run_id", nullable = false)
+    private int jobRunId;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "logging_event_exception", joinColumns = @JoinColumn(name = "event_id"))
