@@ -15,7 +15,6 @@ public class MysqlTestcontainerConfig {
     MySQLContainer<?> mysqlContainer() {
         //noinspection resource
         return new MySQLContainer<>(DockerImageName.parse("mysql:8.0.32"))
-                .withConfigurationOverride("mysql_conf")
-                .withReuse(true);
+                .withConfigurationOverride("mysql_conf");
     }
 }

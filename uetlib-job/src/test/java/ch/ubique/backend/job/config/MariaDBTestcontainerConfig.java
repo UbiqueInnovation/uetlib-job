@@ -15,7 +15,6 @@ public class MariaDBTestcontainerConfig {
     MariaDBContainer<?> mariaDBContainer() {
         //noinspection resource
         return new MariaDBContainer<>(DockerImageName.parse("mariadb:10.6.5"))
-                .withConfigurationOverride("mysql_conf")
-                .withReuse(true);
+                .withConfigurationOverride("mysql_conf");
     }
 }
