@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 class FileTriggerServiceTest {
 
     @Test
+    @SuppressWarnings("java:S2925")
     void test() throws IOException, InterruptedException {
         final var triggered = new HashBag<FileTrigger>();
         final var tempDir = Files.createTempDirectory(null);
