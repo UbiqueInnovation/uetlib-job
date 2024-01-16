@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.MergedAnnotations;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
@@ -40,7 +39,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
@@ -56,6 +54,12 @@ public class JobService {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
+    }
+
+    @Transactional
+    public void init() {
+        registerAllJobs();
+        setAbortedRunsToUnfinished();
     }
 
     private Set<Class<?>> findAllRegisteredJobClasses() {
@@ -79,8 +83,7 @@ public class JobService {
                 RegisteredJob.class);
     }
 
-    @Transactional
-    public void registerAllJobs() {
+    private void registerAllJobs() {
         final var jobClasses = findAllRegisteredJobClasses();
         logger.info("Found {} annotated with {}.", jobClasses, RegisteredJob.class);
 
@@ -115,8 +118,7 @@ public class JobService {
         }
     }
 
-    @Transactional
-    public void setAbortedRunsToUnfinished() {
+    private void setAbortedRunsToUnfinished() {
         final var now = Instant.now();
         jobDataService.findJobRunsWithoutFinishedTimestamp().stream()
                 .filter(ThrowingPredicate.unchecked(this::usesCurrentRunner))
