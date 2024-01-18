@@ -22,7 +22,6 @@ import com.pivovarit.function.ThrowingFunction;
 import com.pivovarit.function.ThrowingPredicate;
 
 import jakarta.annotation.Nullable;
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -30,8 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.MergedAnnotations;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
 import java.time.Instant;
@@ -41,7 +39,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
@@ -49,25 +46,20 @@ public class JobService {
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
-    private final Environment environment;
 
     public JobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService,
-            final Environment environment) {
+            final ClassLoaderService classLoaderService) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
-        this.environment = environment;
     }
 
-    @PostConstruct
-    void postConstruct() {
-        if (environment.matchesProfiles("!job-run")) {
-            registerAllJobs();
-            setAbortedRunsToUnfinished();
-        }
+    @Transactional
+    public void init() {
+        registerAllJobs();
+        setAbortedRunsToUnfinished();
     }
 
     private Set<Class<?>> findAllRegisteredJobClasses() {
