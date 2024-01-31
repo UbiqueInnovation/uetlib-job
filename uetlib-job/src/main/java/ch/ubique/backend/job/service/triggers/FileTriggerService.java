@@ -97,7 +97,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
                                                 registeredFileTrigger.fileTrigger(),
                                                 watchedPath,
                                                 event);
-                                if (fileMatcher == null || !fileMatcher.find()) {
+                                if (fileMatcher == null || !fileMatcher.matches()) {
                                     // no match
                                     return;
                                 }
