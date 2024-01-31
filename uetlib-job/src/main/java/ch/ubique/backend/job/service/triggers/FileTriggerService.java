@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
 
 @Service
 @Profile("!job-run")
@@ -86,36 +87,44 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
                                 .toString();
                 logger.info("Got event: {}", eventToString);
             }
-            registeredTriggers.values().stream()
-                    .filter(
-                            triggerRunnablePair ->
-                                    matches(triggerRunnablePair.fileTrigger(), watchedPath, event))
+            registeredTriggers
+                    .values()
                     .forEach(
-                            triggerRunnablePair -> {
+                            registeredFileTrigger -> {
+                                final var fileMatcher =
+                                        fileMatcher(
+                                                registeredFileTrigger.fileTrigger(),
+                                                watchedPath,
+                                                event);
+                                if (fileMatcher == null || !fileMatcher.find()) {
+                                    // no match
+                                    return;
+                                }
+
                                 final var fileTriggerContext =
-                                        FileTriggerContext.from(watchedPath, event);
+                                        FileTriggerContext.from(watchedPath, event, fileMatcher);
                                 final var jobRunArguments =
                                         new JobRunArguments(false, fileTriggerContext, null);
-                                triggerRunnablePair.consumer().accept(jobRunArguments);
+                                registeredFileTrigger.consumer().accept(jobRunArguments);
                             });
         }
     }
 
-    private boolean matches(
+    private Matcher fileMatcher(
             final FileTrigger trigger, final Path watchedPath, final WatchEvent<?> event) {
         final var changeEvent = FileChangeEvent.fromWatchEventKind(event.kind());
         if (changeEvent != trigger.changeEvent()
                 || !watchedPath.equals(Path.of(trigger.folder()))) {
             // event or watchPath does not match
-            return false;
+            return null;
         }
 
         if (!(event.context() instanceof final Path eventContextPath)) {
             // not a path (can happen for eventKind OVERFLOW) so surely that does not match
-            return false;
+            return null;
         }
 
-        return trigger.fileRegex().matcher(eventContextPath.toString()).matches();
+        return trigger.fileRegex().matcher(eventContextPath.toString());
     }
 
     @Override
