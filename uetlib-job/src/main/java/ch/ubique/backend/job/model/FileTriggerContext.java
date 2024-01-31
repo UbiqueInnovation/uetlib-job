@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
+import java.util.regex.Matcher;
 
 /**
  * @param watchedPath Path where the event was triggered
@@ -16,14 +17,19 @@ import java.nio.file.WatchEvent;
  *     FileChangeEvent#ENTRY_CREATED}, {@link FileChangeEvent#ENTRY_MODIFIED}, {@link
  *     FileChangeEvent#ENTRY_DELETED}\} or Object if {@link #fileChangeEvent()} is {@link
  *     FileChangeEvent#OVERFLOW}
+ * @param fileMatcher Matcher that was used to match the file. {@link Matcher#find()} was already
+ *     called on it
  */
 public record FileTriggerContext(
         @NotNull Path watchedPath,
         @NotNull FileChangeEvent fileChangeEvent,
         @Nullable Path fileName,
-        @NotNull Object eventContext)
+        @NotNull Object eventContext,
+        Matcher fileMatcher)
         implements TriggerContext {
-    public static FileTriggerContext from(final Path watchedPath, final WatchEvent<?> event) {
+
+    public static FileTriggerContext from(
+            final Path watchedPath, final WatchEvent<?> event, final Matcher fileMatcher) {
         final Path fileName;
         if (event.context() instanceof final Path eventContextPath) {
             fileName = eventContextPath;
@@ -34,6 +40,7 @@ public record FileTriggerContext(
                 watchedPath,
                 FileChangeEvent.fromWatchEventKind(event.kind()),
                 fileName,
-                event.context());
+                event.context(),
+                fileMatcher);
     }
 }
