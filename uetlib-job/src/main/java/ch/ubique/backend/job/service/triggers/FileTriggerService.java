@@ -4,6 +4,7 @@ import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
+import ch.ubique.backend.job.model.triggers.FileTriggerMatchResult;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -101,8 +102,11 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
                                     return;
                                 }
 
+                                final var fileTriggerMatchResult =
+                                        FileTriggerMatchResult.from(fileMatcher.toMatchResult());
                                 final var fileTriggerContext =
-                                        FileTriggerContext.from(watchedPath, event, fileMatcher);
+                                        FileTriggerContext.from(
+                                                watchedPath, event, fileTriggerMatchResult);
                                 final var jobRunArguments =
                                         new JobRunArguments(false, fileTriggerContext, null);
                                 registeredFileTrigger.consumer().accept(jobRunArguments);

@@ -11,9 +11,8 @@ public enum FileChangeEvent {
     ENTRY_DELETED,
     /** A special eventContext to indicate that events may have been lost or discarded. */
     OVERFLOW,
-    @JsonEnumDefaultValue
+@JsonEnumDefaultValue
     UNKNOWN;
-
     public static FileChangeEvent fromWatchEventKind(final WatchEvent.Kind<?> kind) {
         if (kind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
             return FileChangeEvent.ENTRY_CREATED;
