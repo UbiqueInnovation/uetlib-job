@@ -1,13 +1,13 @@
 package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
+import ch.ubique.backend.job.model.triggers.FileTriggerMatchResult;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
-import java.util.regex.Matcher;
 
 /**
  * @param watchedPath Path where the event was triggered
@@ -17,19 +17,21 @@ import java.util.regex.Matcher;
  *     FileChangeEvent#ENTRY_CREATED}, {@link FileChangeEvent#ENTRY_MODIFIED}, {@link
  *     FileChangeEvent#ENTRY_DELETED}\} or Object if {@link #fileChangeEvent()} is {@link
  *     FileChangeEvent#OVERFLOW}
- * @param fileMatcher Matcher that was used to match the file. {@link Matcher#find()} was already
- *     called on it
+ * @param fileTriggerMatchResult FileTriggerMatchResult the match result including all named capture
+ *     groups of the supplied file matcher regex. A subset of {@link java.util.regex.MatchResult)}.
  */
 public record FileTriggerContext(
         @NotNull Path watchedPath,
         @NotNull FileChangeEvent fileChangeEvent,
         @Nullable Path fileName,
         @NotNull Object eventContext,
-        Matcher fileMatcher)
+        @NotNull FileTriggerMatchResult fileTriggerMatchResult)
         implements TriggerContext {
 
     public static FileTriggerContext from(
-            final Path watchedPath, final WatchEvent<?> event, final Matcher fileMatcher) {
+            final Path watchedPath,
+            final WatchEvent<?> event,
+            final FileTriggerMatchResult fileTriggerMatchResult) {
         final Path fileName;
         if (event.context() instanceof final Path eventContextPath) {
             fileName = eventContextPath;
@@ -41,6 +43,6 @@ public record FileTriggerContext(
                 FileChangeEvent.fromWatchEventKind(event.kind()),
                 fileName,
                 event.context(),
-                fileMatcher);
+                fileTriggerMatchResult);
     }
 }
