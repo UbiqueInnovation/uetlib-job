@@ -16,7 +16,9 @@ public record FileTriggerMatchResult(
     public static FileTriggerMatchResult from(final MatchResult matchResult) {
         final var namedGroups = matchResult.namedGroups();
         final var groups =
-                IntStream.range(0, matchResult.groupCount()).mapToObj(matchResult::group).toList();
+                IntStream.rangeClosed(0, matchResult.groupCount())
+                        .mapToObj(matchResult::group)
+                        .toList();
         return new FileTriggerMatchResult(matchResult.groupCount(), groups, namedGroups);
     }
 
