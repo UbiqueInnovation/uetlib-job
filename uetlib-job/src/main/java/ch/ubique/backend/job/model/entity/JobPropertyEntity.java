@@ -21,7 +21,7 @@ public class JobPropertyEntity {
     private int jobId;
 
     @Id
-    @Column(name = "key", nullable = false)
+    @Column(name = "\"key\"", nullable = false)
     private String key;
 
     @Column(name = "value")
