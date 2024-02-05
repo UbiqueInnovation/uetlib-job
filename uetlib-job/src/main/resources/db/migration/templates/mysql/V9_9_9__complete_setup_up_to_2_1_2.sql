@@ -1,7 +1,7 @@
 create table t_job
 (
     pk_job_id integer auto_increment not null primary key,
-    clazz     text                   not null,
+    clazz     text                   not null
 );
 
 create table t_job_properties
