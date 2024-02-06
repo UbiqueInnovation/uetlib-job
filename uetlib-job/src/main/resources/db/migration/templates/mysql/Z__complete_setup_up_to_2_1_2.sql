@@ -57,7 +57,7 @@ CREATE TABLE logging_event_property
 (
     event_id     BIGINT       NOT NULL,
     mapped_key   VARCHAR(254) NOT NULL,
-    mapped_value VARCHAR(768),
+    mapped_value VARCHAR(1024),
     PRIMARY KEY (event_id, mapped_key),
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
@@ -70,12 +70,6 @@ CREATE TABLE logging_event_exception
     PRIMARY KEY (event_id, i),
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
-
-CREATE INDEX logging_event_property_mapped_key_index
-    ON logging_event_property (mapped_key);
-
-CREATE INDEX logging_event_property_mapped_value_index
-    ON logging_event_property (mapped_value);
 
 CREATE TABLE t_job_trigger
 (

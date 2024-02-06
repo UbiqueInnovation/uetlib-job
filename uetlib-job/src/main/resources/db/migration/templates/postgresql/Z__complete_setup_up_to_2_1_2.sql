@@ -71,12 +71,6 @@ CREATE TABLE logging_event_exception
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE INDEX logging_event_property_mapped_key_index
-    ON logging_event_property (mapped_key);
-
-CREATE INDEX logging_event_property_mapped_value_index
-    ON logging_event_property (mapped_value);
-
 CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
