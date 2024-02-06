@@ -1,9 +1,3 @@
-CREATE INDEX logging_event_property_mapped_key_index
-    ON logging_event_property (mapped_key);
-
-CREATE INDEX logging_event_property_mapped_value_index
-    ON logging_event_property (mapped_value);
-
 -- Remove logs where job run was already deleted
 DELETE
 FROM logging_event
