@@ -7,10 +7,9 @@ import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.pivovarit.function.exception.WrappedException;
+
 import io.kubernetes.client.openapi.models.V1Container;
-import io.kubernetes.client.openapi.models.V1EnvVar;
 
 import org.springframework.context.ApplicationContext;
 
@@ -59,8 +58,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
                         .image(currentPodContainer.getImage())
                         .args(args)
                         .env(currentPodContainer.getEnv())
-                        .addEnvItem(
-                                new V1EnvVar().name("ADDITIONAL_JAVA_OPTS").value("-XX:MaxRAMPercentage=95.0"))
+                        .addEnvItem(additionalJavaOptsEnvVar(kubernetesJobRunContext))
                         .envFrom(currentPodContainer.getEnvFrom())
                         .volumeMounts(currentPodContainer.getVolumeMounts())
                         .imagePullPolicy(currentPodContainer.getImagePullPolicy())
