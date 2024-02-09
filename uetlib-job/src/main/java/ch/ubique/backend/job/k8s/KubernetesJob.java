@@ -40,6 +40,12 @@ public abstract class KubernetesJob implements Job {
         return kubernetesJobRunContext.kubernetesContext().currentNamespace();
     }
 
+    private static Optional<V1PodSpec> getCurrentPodSpec(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod())
+                .map(V1Pod::getSpec);
+    }
+
     public ApiClient apiClient() throws IOException {
         return Config.defaultClient();
     }
@@ -65,6 +71,17 @@ public abstract class KubernetesJob implements Job {
         return new V1Job()
                 .metadata(jobMetadata(kubernetesJobRunContext))
                 .spec(jobSpec(kubernetesJobRunContext));
+    }
+
+    public V1EnvVar additionalJavaOptsEnvVar(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var additionalJavaOpts =
+                kubernetesJobRunContext
+                        .jobRunContext()
+                        .properties()
+                        .get(JobPropertyDefinitions.K8S_ADDITIONAL_JAVA_OPTS)
+                        .value();
+        return new V1EnvVar().name("ADDITIONAL_JAVA_OPTS").value(additionalJavaOpts);
     }
 
     protected V1ObjectMeta jobMetadata(final KubernetesJobRunContext kubernetesJobRunContext) {
@@ -195,11 +212,5 @@ public abstract class KubernetesJob implements Job {
                 Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));
         final var limits = Map.ofEntries(Map.entry("memory", memoryRequests));
         return new V1ResourceRequirements().requests(requests).limits(limits);
-    }
-
-    private static Optional<V1PodSpec> getCurrentPodSpec(
-            final KubernetesJobRunContext kubernetesJobRunContext) {
-        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod())
-                .map(V1Pod::getSpec);
     }
 }
