@@ -242,12 +242,19 @@ public class JobControllerService {
         jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
     }
 
+    public void replayJobRun(final String jobIdOrClassName)
+            throws ClassNotFoundException, ManualTriggerNotAllowedException {
+        final var jobClass = jobService.getJobClass(jobIdOrClassName);
+        final var lastJobRun = jobService.getLastJobRun(jobService.getJobId(jobClass));
+        replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
+    }
+
     public void replayJobRun(final String jobIdOrClassName, final int jobRunId)
             throws ClassNotFoundException, ManualTriggerNotAllowedException {
         final var jobRun = jobService.getJobRun(jobRunId);
         final var jobClass = jobService.getJobClass(jobRun.jobId());
         if (!jobClass.equals(getJobClass(jobIdOrClassName))) {
-            throw new ManualTriggerNotAllowedException(
+            throw new IllegalArgumentException(
                     MessageFormat.format(
                             "job class ''{0}'' of job run ''{1}'' does not match given jobIdOrClassName ''{2}''",
                             jobClass, jobRunId, jobIdOrClassName));
@@ -259,7 +266,7 @@ public class JobControllerService {
                                 .value()
                         == JobManualTriggerMode.REPLAY_RUN_ALLOWED;
         if (!replayExecutionAllowed) {
-            throw new IllegalArgumentException(
+            throw new ManualTriggerNotAllowedException(
                     String.format("Job %s does not allow replay execution", jobClass));
         }
         jobManualTriggerService.replayJobRun(jobRunId);

@@ -216,6 +216,10 @@ public class JobService {
         return jobDataService.findJobRunById(runId).orElseThrow();
     }
 
+    public Optional<JobRun> getLastJobRun(final int jobId) {
+        return jobDataService.findLatestJobRun(jobId);
+    }
+
     public void updateJobRun(@NotNull final JobRun jobRun) {
         jobDataService.saveJobRun(jobRun);
     }
