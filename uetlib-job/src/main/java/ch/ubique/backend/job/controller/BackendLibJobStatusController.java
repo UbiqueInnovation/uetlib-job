@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.controller;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
@@ -58,7 +60,8 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false) final Instant to,
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
-        return jobControllerService.findJobRuns(page, perPage, state, includeJobs, excludeJobs, from, to);
+        return jobControllerService.findJobRuns(
+                page, perPage, state, includeJobs, excludeJobs, from, to);
     }
 
     @GetMapping("/info")
@@ -101,11 +104,16 @@ public class BackendLibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/start")
-    public void startJob(
+    public ResponseEntity<String> startJob(
             @PathVariable final String jobIdOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        jobControllerService.startJobManual(jobIdOrClassName, forceRun);
+        try {
+            jobControllerService.startJobManual(jobIdOrClassName, forceRun);
+            return ResponseEntity.ok("Job successfully started");
+        } catch (final IllegalArgumentException e) {
+            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
+        }
     }
 
     @PostMapping("/job/start_all")
@@ -116,10 +124,14 @@ public class BackendLibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/replay_run/{jobRunId}")
-    public void replayRun(
-            @PathVariable final String jobIdOrClassName,
-            @PathVariable final int jobRunId)
+    public ResponseEntity<String> replayRun(
+            @PathVariable final String jobIdOrClassName, @PathVariable final int jobRunId)
             throws ClassNotFoundException {
-        jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
+        try {
+            jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
+            return ResponseEntity.ok("Job successfully replayed`");
+        } catch (final IllegalArgumentException e) {
+            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
+        }
     }
 }
