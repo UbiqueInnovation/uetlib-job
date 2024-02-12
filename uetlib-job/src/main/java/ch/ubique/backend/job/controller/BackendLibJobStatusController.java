@@ -2,10 +2,12 @@ package ch.ubique.backend.job.controller;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
+import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
+import ch.ubique.backend.job.model.response.StringResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
 import jakarta.validation.Valid;
@@ -104,15 +106,19 @@ public class BackendLibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/start")
-    public ResponseEntity<String> startJob(
+    public ResponseEntity<StringResponse> startJob(
             @PathVariable final String jobIdOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
         try {
             jobControllerService.startJobManual(jobIdOrClassName, forceRun);
-            return ResponseEntity.ok("Job successfully started");
-        } catch (final IllegalArgumentException e) {
-            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.ok(new StringResponse("Job successfully started"));
+        } catch (final ManualTriggerNotAllowedException e) {
+            return ResponseEntity.status(BAD_REQUEST)
+                    .body(
+                            new StringResponse(
+                                    "{\"message\": \"Job %s cannot be manually started.\"}"
+                                            .formatted(jobIdOrClassName)));
         }
     }
 
@@ -124,14 +130,18 @@ public class BackendLibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/replay_run/{jobRunId}")
-    public ResponseEntity<String> replayRun(
+    public ResponseEntity<StringResponse> replayRun(
             @PathVariable final String jobIdOrClassName, @PathVariable final int jobRunId)
             throws ClassNotFoundException {
         try {
             jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
-            return ResponseEntity.ok("Job successfully replayed`");
-        } catch (final IllegalArgumentException e) {
-            return ResponseEntity.status(BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
+        } catch (final ManualTriggerNotAllowedException e) {
+            return ResponseEntity.status(BAD_REQUEST)
+                    .body(
+                            new StringResponse(
+                                    "{\"message\": \"Job %s cannot be replayed.\"}"
+                                            .formatted(jobIdOrClassName)));
         }
     }
 }

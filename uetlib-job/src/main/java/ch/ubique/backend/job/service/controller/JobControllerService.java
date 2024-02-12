@@ -6,6 +6,7 @@ import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
@@ -225,7 +226,7 @@ public class JobControllerService {
      * @throws IllegalArgumentException If the job does not allow manual execution
      */
     public void startJobManual(final String jobIdOrClassName, final boolean forceRun)
-            throws ClassNotFoundException, IllegalArgumentException {
+            throws ClassNotFoundException, ManualTriggerNotAllowedException {
         final var jobClass = getJobClass(jobIdOrClassName);
         // Allowed manual execution?
         final var manualExecutionAllowed =
@@ -235,18 +236,18 @@ public class JobControllerService {
                                 .value()
                         == JobManualTriggerMode.NEW_RUN_ALLOWED;
         if (!manualExecutionAllowed) {
-            throw new IllegalArgumentException(
+            throw new ManualTriggerNotAllowedException(
                     String.format("Job %s does not allow manual execution", jobClass));
         }
         jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
     }
 
     public void replayJobRun(final String jobIdOrClassName, final int jobRunId)
-            throws ClassNotFoundException {
+            throws ClassNotFoundException, ManualTriggerNotAllowedException {
         final var jobRun = jobService.getJobRun(jobRunId);
         final var jobClass = jobService.getJobClass(jobRun.jobId());
         if (!jobClass.equals(getJobClass(jobIdOrClassName))) {
-            throw new IllegalArgumentException(
+            throw new ManualTriggerNotAllowedException(
                     MessageFormat.format(
                             "job class ''{0}'' of job run ''{1}'' does not match given jobIdOrClassName ''{2}''",
                             jobClass, jobRunId, jobIdOrClassName));
@@ -270,7 +271,7 @@ public class JobControllerService {
         for (final var job : jobs) {
             try {
                 startJobManual(job.canonicalClassName(), forceRun);
-            } catch (final IllegalArgumentException e) {
+            } catch (final ManualTriggerNotAllowedException e) {
                 // Ignore jobs that do not allow manual execution
             }
         }
