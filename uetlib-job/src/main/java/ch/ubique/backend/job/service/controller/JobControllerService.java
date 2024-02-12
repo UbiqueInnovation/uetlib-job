@@ -296,6 +296,8 @@ public class JobControllerService {
                         .findAny()
                         .map(trigger -> (CronTrigger) trigger.definition())
                         .map(CronTrigger::cronExpression);
+        final var manualReplayMode =
+                jobService.getProperties(job).get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE);
 
         return new JobInfo(
                 jobService.getId(job),
@@ -306,7 +308,13 @@ public class JobControllerService {
                 cronExpression.map(CronExpression::isValidExpression).orElse(true),
                 job.triggersConfig().isFixed(),
                 job.propertiesConfig().isFixed(),
-                job instanceof BaseInputJob<?>);
+                job instanceof BaseInputJob<?>,
+                manualReplayMode
+                        .valueMaybe()
+                        .orElse(
+                                JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE
+                                        .defaultValue()
+                                        .orElseThrow()));
     }
 
     private Stream<Trigger> getCronTriggers(final Job job) {
