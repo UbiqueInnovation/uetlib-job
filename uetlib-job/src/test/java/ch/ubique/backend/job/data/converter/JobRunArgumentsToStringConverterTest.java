@@ -10,20 +10,23 @@ import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import org.junit.jupiter.api.Test;
 
 class JobRunArgumentsToStringConverterTest {
-    private final JobRunArgumentsToStringConverter jobRunArgumentsToStringConverter = new JobRunArgumentsToStringConverter();
+    private final JobRunArgumentsToStringConverter jobRunArgumentsToStringConverter =
+            new JobRunArgumentsToStringConverter();
+
     @Test
     void testConvertForceRunToDatabaseColumn() {
         final var jobRunArguments = new JobRunArguments(true);
-        final var dbData = jobRunArgumentsToStringConverter.convertToDatabaseColumn(jobRunArguments);
-        assertEquals(
-                "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\"},\"additionalData\":null}",
-                dbData);
+        final var dbData =
+                jobRunArgumentsToStringConverter.convertToDatabaseColumn(jobRunArguments);
+        assertEquals("{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\"}}", dbData);
     }
 
     @Test
     void testConvertForceRunFromDatabaseColumn() {
-        final var dbData = "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\"},\"additionalData\":null}";
-        final var jobRunArguments = jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
+        final var dbData =
+                "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how did I get here\"}";
+        final var jobRunArguments =
+                jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
         assertEquals(new EmptyTriggerContext(), jobRunArguments.triggerContext());
     }
