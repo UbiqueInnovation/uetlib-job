@@ -2,10 +2,7 @@ package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.model.triggers.TriggerContextType;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.*;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -18,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
     @JsonSubTypes.Type(value = FileTriggerContext.class, name = "FILE"),
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public sealed interface TriggerContext permits EmptyTriggerContext, FileTriggerContext {
     /**
      * Serialize the trigger context type in order to be able to deserialize it later based on its
