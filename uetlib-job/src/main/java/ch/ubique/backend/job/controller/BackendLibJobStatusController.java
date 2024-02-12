@@ -117,7 +117,7 @@ public class BackendLibJobStatusController {
             return ResponseEntity.status(BAD_REQUEST)
                     .body(
                             new StringResponse(
-                                    "{\"message\": \"Job %s cannot be manually started.\"}"
+                                    "Job %s cannot be manually started."
                                             .formatted(jobIdOrClassName)));
         }
     }
@@ -140,8 +140,21 @@ public class BackendLibJobStatusController {
             return ResponseEntity.status(BAD_REQUEST)
                     .body(
                             new StringResponse(
-                                    "{\"message\": \"Job %s cannot be replayed.\"}"
-                                            .formatted(jobIdOrClassName)));
+                                    "Job %s cannot be replayed.".formatted(jobIdOrClassName)));
+        }
+    }
+
+    @PostMapping("/job/{jobIdOrClassName}/replay_run")
+    public ResponseEntity<StringResponse> replayRun(@PathVariable final String jobIdOrClassName)
+            throws ClassNotFoundException {
+        try {
+            jobControllerService.replayJobRun(jobIdOrClassName);
+            return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
+        } catch (final ManualTriggerNotAllowedException e) {
+            return ResponseEntity.status(BAD_REQUEST)
+                    .body(
+                            new StringResponse(
+                                    "Job %s cannot be replayed".formatted(jobIdOrClassName)));
         }
     }
 }
