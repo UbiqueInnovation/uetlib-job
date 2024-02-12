@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model.client;
 
+import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.validation.constraints.NotNull;
@@ -14,4 +15,5 @@ public record JobInfo(
         @NotNull boolean cronExpressionValid,
         @NotNull boolean cronFixed,
         @NotNull boolean propertiesFixed,
-        @NotNull boolean forceRunnable) {}
+        @NotNull boolean forceRunnable,
+        @NotNull JobManualTriggerMode manualTriggerMode) {}
