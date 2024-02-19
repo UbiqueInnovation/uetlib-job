@@ -152,7 +152,7 @@ public class KubernetesJobRunner implements JobRunner {
         }
         logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
         final var coreApi = new CoreV1Api(client);
-        return coreApi.readNamespacedPod(currentPodName, namespace, null);
+        return coreApi.readNamespacedPod(currentPodName, namespace).execute();
     }
 
     // min delay 2 seconds, max delay 5 minutes with random delays
@@ -164,8 +164,7 @@ public class KubernetesJobRunner implements JobRunner {
     private void submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
             throws ApiException {
         final var batchApi = new BatchV1Api(client);
-        final var createdJob =
-                batchApi.createNamespacedJob(namespace, jobDefinition, null, null, null, null);
+        final var createdJob = batchApi.createNamespacedJob(namespace, jobDefinition).execute();
 
         logger.info(
                 "Successfully created kubernetes job {}",
