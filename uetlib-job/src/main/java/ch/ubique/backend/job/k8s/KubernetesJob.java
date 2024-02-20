@@ -99,7 +99,7 @@ public abstract class KubernetesJob implements Job {
     }
 
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
-        final var ttl =
+        final var ttlAfterFinished =
                 kubernetesJobRunContext
                         .jobRunContext()
                         .properties()
@@ -107,7 +107,7 @@ public abstract class KubernetesJob implements Job {
                         .value();
 
         return new V1JobSpec()
-                .ttlSecondsAfterFinished((int) ttl.toSeconds())
+                .ttlSecondsAfterFinished((int) ttlAfterFinished.toSeconds())
                 .template(new V1PodTemplateSpec().spec(podSpec(kubernetesJobRunContext)));
     }
 
@@ -120,8 +120,16 @@ public abstract class KubernetesJob implements Job {
     }
 
     protected V1PodSpec podSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var serviceAccountName =
+                kubernetesJobRunContext
+                        .jobRunContext()
+                        .properties()
+                        .get(JobPropertyDefinitions.K8S_SERVICE_ACCOUNT_NAME)
+                        .value();
+
         final var podSpec =
                 new V1PodSpec()
+                        .serviceAccountName(serviceAccountName)
                         .imagePullSecrets(imagePullSecrets(kubernetesJobRunContext))
                         .volumes(volumes(kubernetesJobRunContext))
                         .nodeSelector(nodeSelector(kubernetesJobRunContext))
