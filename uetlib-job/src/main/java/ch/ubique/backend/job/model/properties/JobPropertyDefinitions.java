@@ -91,14 +91,6 @@ public final class JobPropertyDefinitions {
                     false,
                     "-XX:MaxRAMPercentage=95.0",
                     null);
-    public static final JobPropertyDefinition<String> K8S_SERVICE_ACCOUNT_NAME =
-            new StringPropertyDefinition(
-                    "K8S_SERVICE_ACCOUNT_NAME",
-                    "serviceAccountName to be set for for the k8s job.",
-                    JobPropertyDefinitionGroup.RUNNER,
-                    false,
-                    "default",
-                    null);
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(
                     "CLEANUP_DAYS_TO_KEEP",
