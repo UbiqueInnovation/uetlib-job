@@ -79,7 +79,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
                             + " this code to drop this restriction.");
         }
 
-        return currentPodSpec.getContainers().get(0);
+        return currentPodSpec.getContainers().getFirst();
     }
 
     private String serializeObject(final Object object) {
