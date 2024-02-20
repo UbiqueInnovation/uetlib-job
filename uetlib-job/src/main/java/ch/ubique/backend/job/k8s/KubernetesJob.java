@@ -120,16 +120,9 @@ public abstract class KubernetesJob implements Job {
     }
 
     protected V1PodSpec podSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
-        final var serviceAccountName =
-                kubernetesJobRunContext
-                        .jobRunContext()
-                        .properties()
-                        .get(JobPropertyDefinitions.K8S_SERVICE_ACCOUNT_NAME)
-                        .value();
-
         final var podSpec =
                 new V1PodSpec()
-                        .serviceAccountName(serviceAccountName)
+                        .serviceAccountName(serviceAccountName(kubernetesJobRunContext))
                         .imagePullSecrets(imagePullSecrets(kubernetesJobRunContext))
                         .volumes(volumes(kubernetesJobRunContext))
                         .nodeSelector(nodeSelector(kubernetesJobRunContext))
@@ -139,6 +132,12 @@ public abstract class KubernetesJob implements Job {
         toleration(kubernetesJobRunContext).ifPresent(podSpec::addTolerationsItem);
 
         return podSpec;
+    }
+
+    protected String serviceAccountName(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return getCurrentPodSpec(kubernetesJobRunContext)
+                .map(V1PodSpec::getServiceAccountName)
+                .orElseThrow();
     }
 
     protected List<V1LocalObjectReference> imagePullSecrets(
