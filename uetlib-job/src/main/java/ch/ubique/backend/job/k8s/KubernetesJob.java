@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.k8s;
 
+import static java.util.stream.Collectors.*;
+
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
@@ -87,17 +89,68 @@ public abstract class KubernetesJob implements Job {
     protected V1ObjectMeta jobMetadata(final KubernetesJobRunContext kubernetesJobRunContext) {
         return new V1ObjectMeta()
                 .namespace(namespace(kubernetesJobRunContext))
-                .name(jobName(kubernetesJobRunContext))
-                .annotations(annotations);
-                .annotations(annotations());
+                .name(kubernetesJobName(kubernetesJobRunContext))
+                .annotations(annotations(kubernetesJobRunContext));
     }
 
-    protected Map<String, String> annotations() {
+    protected Optional<String> maybeGetCurrentPodName(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod())
+                .map(V1Pod::getMetadata)
+                .map(V1ObjectMeta::getName);
+    }
+
+    protected String getCurrentPodName(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return maybeGetCurrentPodName(kubernetesJobRunContext)
+                .orElseGet(
+                        () -> {
+                            final var springApplicationName =
+                                    Objects.requireNonNull(
+                                            applicationContext
+                                                    .getEnvironment()
+                                                    .getProperty("spring.application.name"));
+                            logger.warn(
+                                    "Could not get current pod name, using spring.application.name={} as fallback",
+                                    springApplicationName);
+                            return springApplicationName;
+                        });
+    }
+
+    protected String getCurrentDeploymentName(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return maybeGetCurrentPodName(kubernetesJobRunContext)
+                .map(
+                        podName -> {
+                            final var splitPodName = Arrays.stream(podName.split("-")).toList();
+                            // the pod name always with '-[replica set id]-[pod id]'
+                            return splitPodName.stream()
+                                    .limit(splitPodName.size() - 2L)
+                                    .collect(joining("-"));
+                        })
+                .orElseGet(
+                        () -> {
+                            final var springApplicationName =
+                                    Objects.requireNonNull(
+                                            applicationContext
+                                                    .getEnvironment()
+                                                    .getProperty("spring.application.name"));
+                            logger.warn(
+                                    "Could not get current deployment name, using spring.application.name={} as fallback",
+                                    springApplicationName);
+                            return springApplicationName;
+                        });
+    }
+
+    protected Map<String, String> annotations(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var currentPodName = getCurrentPodName(kubernetesJobRunContext);
         // Add annotations to make Prometheus scrape our job
         return Map.ofEntries(
                 Map.entry("prometheus.io/path", "/actuator/prometheus"),
                 Map.entry("prometheus.io/port", "8085"),
-                Map.entry("prometheus.io/scrape", "true"));
+                Map.entry("prometheus.io/scrape", "true"),
+                // for easy identification after teh fact
+                Map.entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
     }
 
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
@@ -113,12 +166,32 @@ public abstract class KubernetesJob implements Job {
                 .template(new V1PodTemplateSpec().spec(podSpec(kubernetesJobRunContext)));
     }
 
-    protected String jobName(final KubernetesJobRunContext kubernetesJobRunContext) {
-        return applicationContext.getEnvironment().getProperty("spring.application.name")
-                + "-"
-                + kubernetesJobRunContext.jobRunContext().job().name().toLowerCase()
-                + "-run-"
-                + kubernetesJobRunContext.jobRunContext().jobRun().id();
+    protected String kubernetesJobName(final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var currentDeploymentName = getCurrentDeploymentName(kubernetesJobRunContext);
+        final var jobName = kubernetesJobRunContext.jobRunContext().job().name().toLowerCase();
+        final var jobRunId = kubernetesJobRunContext.jobRunContext().jobRun().id();
+
+        final var kubernetesJobName = currentDeploymentName + "-" + jobName + "-run-" + jobRunId;
+        if (kubernetesJobName.length() <= 63) {
+            return kubernetesJobName;
+        }
+        final var jobId = kubernetesJobRunContext.jobRunContext().job().id();
+        final var shortCurrentDeploymentName =
+                Arrays.stream(currentDeploymentName.split("-"))
+                        .filter(StringUtils::isNotBlank)
+                        .map(part -> part.substring(0, 1))
+                        .collect(joining("-"));
+        final var shortKubernetesJobName =
+                shortCurrentDeploymentName + "-id-" + jobId + "-run-" + jobRunId;
+
+        // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
+        logger.warn(
+                "job name cannot be longer than 63 characters, got {} characters for job name {}. Using {}",
+                kubernetesJobName.length(),
+                kubernetesJobName,
+                shortKubernetesJobName);
+
+        return shortKubernetesJobName;
     }
 
     protected V1PodSpec podSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
