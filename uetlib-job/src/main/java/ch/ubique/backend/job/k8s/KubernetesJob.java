@@ -85,17 +85,19 @@ public abstract class KubernetesJob implements Job {
     }
 
     protected V1ObjectMeta jobMetadata(final KubernetesJobRunContext kubernetesJobRunContext) {
-        // Add annotations to make Prometheus scrape our job
-        final var annotations =
-                Map.ofEntries(
-                        Map.entry("prometheus.io/path", "/actuator/prometheus"),
-                        Map.entry("prometheus.io/port", "8085"),
-                        Map.entry("prometheus.io/scrape", "true"));
-
         return new V1ObjectMeta()
                 .namespace(namespace(kubernetesJobRunContext))
                 .name(jobName(kubernetesJobRunContext))
                 .annotations(annotations);
+                .annotations(annotations());
+    }
+
+    protected Map<String, String> annotations() {
+        // Add annotations to make Prometheus scrape our job
+        return Map.ofEntries(
+                Map.entry("prometheus.io/path", "/actuator/prometheus"),
+                Map.entry("prometheus.io/port", "8085"),
+                Map.entry("prometheus.io/scrape", "true"));
     }
 
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
