@@ -3,6 +3,7 @@ package ch.ubique.backend.job.config;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
+import ch.ubique.backend.job.service.triggers.FileTriggerWatcher;
 import ch.ubique.backend.monitoring.service.MonitoringService;
 
 import jakarta.validation.ValidationException;
@@ -18,6 +19,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+
 @Configuration
 @EnableRetry
 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
@@ -25,12 +28,12 @@ public class BackendLibJobBaseConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public RestTemplate restTemplate(final RestTemplateBuilder restTemplateBuilder) {
+    RestTemplate restTemplate(final RestTemplateBuilder restTemplateBuilder) {
         return restTemplateBuilder.build();
     }
 
     @Bean
-    public JobService jobService(
+    JobService jobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService) {
@@ -42,7 +45,7 @@ public class BackendLibJobBaseConfig {
 
     @Bean
     @Profile("!job-run")
-    public MonitoringService monitoringService(
+    MonitoringService monitoringService(
             final RestTemplate restTemplate,
             @Value("${ch.ubique.backend.job.interface.heartbeat.enabled:true}")
                     final boolean heartbeatEnabled,
@@ -55,5 +58,10 @@ public class BackendLibJobBaseConfig {
                             + " disabled");
         }
         return new MonitoringService(restTemplate, heartbeatEnabled, heartbeatEndpoint);
+    }
+
+    @Bean
+    FileTriggerWatcher fileTriggerWatcher() throws IOException {
+        return new FileTriggerWatcher();
     }
 }
