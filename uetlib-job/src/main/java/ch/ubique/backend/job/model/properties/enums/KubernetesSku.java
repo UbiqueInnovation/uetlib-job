@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.properties.enums;
 
 public enum KubernetesSku {
+    NONE("none"), // default, will not set a sku
     HIGH_MEMORY("highmem"), // cluster ub-kub-dev
     DEDICATED_HUGE("dedicated-huge"); // cluster ub-hcloud
 

@@ -8,6 +8,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.properties.enums.KubernetesSku;
 
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.ApiClient;
@@ -256,6 +257,7 @@ public abstract class KubernetesJob implements Job {
                 .properties()
                 .get(JobPropertyDefinitions.K8S_SKU)
                 .valueMaybe()
+                .filter(value -> !KubernetesSku.NONE.value().equals(value))
                 .map(
                         value ->
                                 new V1Toleration()
