@@ -11,7 +11,7 @@ import javax.sql.DataSource;
 @Configuration
 public class PostgresqlFlywayConfig {
     @Bean
-    public Flyway flyway(final DataSource dataSource) {
+    Flyway flyway(final DataSource dataSource) {
         final var flyWay =
                 Flyway.configure()
                         .dataSource(dataSource)

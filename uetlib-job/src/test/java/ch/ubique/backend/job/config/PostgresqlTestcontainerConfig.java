@@ -13,7 +13,6 @@ public class PostgresqlTestcontainerConfig {
     @Bean
     @ServiceConnection
     PostgreSQLContainer<?> postgresDBContainer() {
-        //noinspection resource
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"));
     }
 }

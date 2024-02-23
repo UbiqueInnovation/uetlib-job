@@ -15,7 +15,7 @@ public class BackendLibJobDBAppenderConfig {
 
     @Bean
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-    public JobDBAppender jobAppender(final DataSource dataSource) {
+    JobDBAppender jobAppender(final DataSource dataSource) {
         final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 
         final var connectionSource = new DataSourceConnectionSource();

@@ -1,11 +1,13 @@
 package ch.ubique.backend.job.model.triggers;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.util.List;
 import java.util.Map;
 import java.util.regex.MatchResult;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public record FileTriggerMatchResult(
@@ -28,5 +30,11 @@ public record FileTriggerMatchResult(
 
     public String get(final String group) {
         return groups.get(namedGroups().get(group));
+    }
+
+    @JsonIgnore
+    public Map<String, String> namedGroupValues() {
+        return namedGroups.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> get(e.getValue())));
     }
 }

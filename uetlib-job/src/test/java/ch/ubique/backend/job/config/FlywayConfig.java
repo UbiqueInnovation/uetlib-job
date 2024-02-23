@@ -10,7 +10,7 @@ import javax.sql.DataSource;
 @Configuration
 public class FlywayConfig {
     @Bean
-    public Flyway flyway(
+    Flyway flyway(
             final DataSource dataSource,
             @Value("${spring.flyway.locations:classpath:/db/migration/templates/{vendor}")
                     final String flywayLocations) {
