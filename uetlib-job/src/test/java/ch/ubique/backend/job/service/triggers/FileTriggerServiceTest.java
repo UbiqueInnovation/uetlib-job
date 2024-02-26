@@ -97,13 +97,11 @@ class FileTriggerServiceTest {
         assertEquals(
                 Set.of(
                         Pair.of(
-                                new FileTriggerMatchResult(0, List.of("test.txt"), Map.of()),
+                                new FileTriggerMatchResult(List.of("test.txt"), Map.of()),
                                 Map.of()),
+                        Pair.of(new FileTriggerMatchResult(List.of("foo.txt"), Map.of()), Map.of()),
                         Pair.of(
-                                new FileTriggerMatchResult(0, List.of("foo.txt"), Map.of()),
-                                Map.of()),
-                        Pair.of(
-                                new FileTriggerMatchResult(0, List.of("bar.txt"), Map.of()),
+                                new FileTriggerMatchResult(List.of("bar.txt"), Map.of()),
                                 Map.of())),
                 fileTriggerContextCaptorValues.stream()
                         .map(
@@ -112,7 +110,7 @@ class FileTriggerServiceTest {
                                                 fileTriggerContext.fileTriggerMatchResult(),
                                                 fileTriggerContext
                                                         .fileTriggerMatchResult()
-                                                        .namedGroupValues()))
+                                                        .namedGroups()))
                         .collect(toSet()));
 
         // DELETE FILES
@@ -150,9 +148,10 @@ class FileTriggerServiceTest {
                 Set.of(
                         Pair.of(
                                 new FileTriggerMatchResult(
-                                        2,
                                         List.of("test.txt", "test", ".txt"),
-                                        ofEntries(entry("fileName", 1), entry("fileExtension", 2))),
+                                        ofEntries(
+                                                entry("fileName", "test"),
+                                                entry("fileExtension", ".txt"))),
                                 ofEntries(
                                         entry("fileName", "test"),
                                         entry("fileExtension", ".txt")))),
@@ -163,15 +162,12 @@ class FileTriggerServiceTest {
                                                 fileTriggerContext.fileTriggerMatchResult(),
                                                 fileTriggerContext
                                                         .fileTriggerMatchResult()
-                                                        .namedGroupValues()))
+                                                        .namedGroups()))
                         .collect(toSet()));
 
         assertEquals(
                 ofEntries(entry("fileName", "test"), entry("fileExtension", ".txt")),
-                fileTriggerContextCaptorValues
-                        .getFirst()
-                        .fileTriggerMatchResult()
-                        .namedGroupValues());
+                fileTriggerContextCaptorValues.getFirst().fileTriggerMatchResult().namedGroups());
 
         assertEquals(3, triggered.getCount(anyFileCreated));
         assertEquals(1, triggered.getCount(testTxtFileDeleted));
