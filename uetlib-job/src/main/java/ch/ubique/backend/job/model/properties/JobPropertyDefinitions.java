@@ -5,6 +5,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.properties.enums.KubernetesSku;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.pivovarit.function.ThrowingFunction;
 
 import java.lang.reflect.Field;
@@ -50,7 +51,7 @@ public final class JobPropertyDefinitions {
                     false,
                     new RunnerGroup("default", 1),
                     null,
-                    RunnerGroup.class);
+                    new TypeReference<>() {});
 
     public static final JobPropertyDefinition<String> K8S_SKU =
             new StringPropertyDefinition(
@@ -92,6 +93,14 @@ public final class JobPropertyDefinitions {
                     false,
                     "-XX:MaxRAMPercentage=95.0",
                     null);
+    public static final JobPropertyDefinition<Map<String, String>> K8S_POD_LABELS =
+            new GenericPropertyDefinition<>(
+                    "K8S_POD_LABELS",
+                    "K8S_POD_LABELS to be set for for the k8s job pod.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    Map.of(),
+                    null, new TypeReference<>() {});
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(
                     "CLEANUP_DAYS_TO_KEEP",
