@@ -91,7 +91,7 @@ public class FileTriggerWatcher {
                                 }
 
                                 final var fileTriggerMatchResult =
-                                        FileTriggerMatchResult.from(fileMatcher.toMatchResult());
+                                        FileTriggerMatchResult.from(fileMatcher);
                                 final var fileTriggerContext =
                                         FileTriggerContext.from(
                                                 watchedPath, event, fileTriggerMatchResult);
