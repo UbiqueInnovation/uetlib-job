@@ -153,7 +153,7 @@ public abstract class KubernetesJob implements Job {
                 entry("prometheus.io/path", "/actuator/prometheus"),
                 entry("prometheus.io/port", "8085"),
                 entry("prometheus.io/scrape", "true"),
-                // for easy identification after teh fact
+                // for easy identification after the fact
                 entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
     }
 

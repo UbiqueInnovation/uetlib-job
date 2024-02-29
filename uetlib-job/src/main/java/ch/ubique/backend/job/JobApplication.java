@@ -51,7 +51,7 @@ public class JobApplication {
             final JobApplicationJobToStartArgs jobToStartArgs,
             final String[] args) {
 
-        final var context =
+        final var applicationContext =
                 new SpringApplicationBuilder(applicationClass)
                         .profiles("job-run", "no-security")
                         .web(WebApplicationType.NONE)
@@ -60,18 +60,20 @@ public class JobApplication {
         final var jobClassName = jobToStartArgs.jobClassName();
 
         try {
-            final var jobClass = context.getBean(JobService.class).getJobClass(jobClassName);
-            context.getBean(JobExecutorService.class)
+            final var jobClass =
+                    applicationContext.getBean(JobService.class).getJobClass(jobClassName);
+            applicationContext
+                    .getBean(JobExecutorService.class)
                     .submit(
                             jobClass,
                             new JobRunArguments(
                                     jobToStartArgs.forceRun(),
-                                    getAdditionalData(jobToStartArgs, context)),
+                                    getAdditionalData(jobToStartArgs, applicationContext)),
                             jobToStartArgs.jobRunId(),
                             JobRunnerKey.CURRENT);
 
             logger.info("Waiting for job to finish.");
-            context.getBean(CurrentJobRunner.class).shutdownAndWaitForJobsToComplete();
+            applicationContext.getBean(CurrentJobRunner.class).shutdownAndWaitForJobsToComplete();
 
             logger.info("Completed job, going to shut down");
         } catch (final ClassNotFoundException e) {
@@ -80,13 +82,13 @@ public class JobApplication {
             logger.error("Could not deserialize additional data.", e);
         }
 
-        final var exitCode = SpringApplication.exit(context);
+        final var exitCode = SpringApplication.exit(applicationContext);
         logger.info("Shutdown completed. Exit code {}", exitCode);
         System.exit(exitCode);
     }
 
     private static Object getAdditionalData(
-            final JobApplicationJobToStartArgs args, final ApplicationContext context)
+            final JobApplicationJobToStartArgs args, final ApplicationContext applicationContext)
             throws ClassNotFoundException, JsonProcessingException {
         final var additionalDataString = args.additionalDataString();
         if (additionalDataString == null) {
@@ -99,9 +101,12 @@ public class JobApplication {
         }
 
         final var additionalDataClass =
-                context.getBean(ClassLoaderService.class).getClassForName(additionalDataClassName);
+                applicationContext
+                        .getBean(ClassLoaderService.class)
+                        .getClassForName(additionalDataClassName);
 
-        return context.getBean(ObjectMapper.class)
+        return applicationContext
+                .getBean(ObjectMapper.class)
                 .readValue(additionalDataString, additionalDataClass);
     }
 }
