@@ -222,7 +222,8 @@ public abstract class KubernetesJob implements Job {
     protected String serviceAccountName(final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext)
                 .map(V1PodSpec::getServiceAccountName)
-                .orElseThrow();
+                // null is fine (locally when not running in k8s, will be set to default serviceAccount by k8s
+                .orElse(null);
     }
 
     protected List<V1LocalObjectReference> imagePullSecrets(
