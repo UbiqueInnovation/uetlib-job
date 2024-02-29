@@ -10,11 +10,10 @@ import static java.util.stream.Collectors.*;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
-import ch.ubique.backend.job.model.triggers.FileTriggerMatchResult;
 
 import org.apache.commons.collections4.bag.HashBag;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -96,20 +95,19 @@ class FileTriggerServiceTest {
 
         assertEquals(
                 Set.of(
-                        Pair.of(
-                                new FileTriggerMatchResult(0, List.of("test.txt"), Map.of()),
-                                Map.of()),
-                        Pair.of(
-                                new FileTriggerMatchResult(0, List.of("foo.txt"), Map.of()),
-                                Map.of()),
-                        Pair.of(
-                                new FileTriggerMatchResult(0, List.of("bar.txt"), Map.of()),
-                                Map.of())),
+                        Triple.of(0, List.of("test.txt"), Map.of()),
+                        Triple.of(0, List.of("foo.txt"), Map.of()),
+                        Triple.of(0, List.of("bar.txt"), Map.of())),
                 fileTriggerContextCaptorValues.stream()
                         .map(
                                 fileTriggerContext ->
-                                        Pair.of(
-                                                fileTriggerContext.fileTriggerMatchResult(),
+                                        Triple.of(
+                                                fileTriggerContext
+                                                        .fileTriggerMatchResult()
+                                                        .groupCount(),
+                                                fileTriggerContext
+                                                        .fileTriggerMatchResult()
+                                                        .groups(),
                                                 fileTriggerContext
                                                         .fileTriggerMatchResult()
                                                         .namedGroupValues()))
@@ -148,19 +146,22 @@ class FileTriggerServiceTest {
 
         assertEquals(
                 Set.of(
-                        Pair.of(
-                                new FileTriggerMatchResult(
-                                        2,
-                                        List.of("test.txt", "test", ".txt"),
-                                        ofEntries(entry("fileName", 1), entry("fileExtension", 2))),
+                        Triple.of(
+                                2,
+                                List.of("test.txt", "test", ".txt"),
                                 ofEntries(
                                         entry("fileName", "test"),
                                         entry("fileExtension", ".txt")))),
                 fileTriggerContextCaptorValues.stream()
                         .map(
                                 fileTriggerContext ->
-                                        Pair.of(
-                                                fileTriggerContext.fileTriggerMatchResult(),
+                                        Triple.of(
+                                                fileTriggerContext
+                                                        .fileTriggerMatchResult()
+                                                        .groupCount(),
+                                                fileTriggerContext
+                                                        .fileTriggerMatchResult()
+                                                        .groups(),
                                                 fileTriggerContext
                                                         .fileTriggerMatchResult()
                                                         .namedGroupValues()))
