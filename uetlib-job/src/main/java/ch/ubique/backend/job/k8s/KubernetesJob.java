@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.k8s;
 
+import static java.util.Map.entry;
+import static java.util.Map.ofEntries;
 import static java.util.stream.Collectors.*;
 
 import ch.ubique.backend.job.Job;
@@ -147,12 +149,20 @@ public abstract class KubernetesJob implements Job {
             final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentPodName = getCurrentPodName(kubernetesJobRunContext);
         // Add annotations to make Prometheus scrape our job
-        return Map.ofEntries(
-                Map.entry("prometheus.io/path", "/actuator/prometheus"),
-                Map.entry("prometheus.io/port", "8085"),
-                Map.entry("prometheus.io/scrape", "true"),
+        return ofEntries(
+                entry("prometheus.io/path", "/actuator/prometheus"),
+                entry("prometheus.io/port", "8085"),
+                entry("prometheus.io/scrape", "true"),
                 // for easy identification after teh fact
-                Map.entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
+                entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
+    }
+
+    protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return kubernetesJobRunContext
+                .jobRunContext()
+                .properties()
+                .get(JobPropertyDefinitions.K8S_POD_LABELS)
+                .value();
     }
 
     protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
@@ -302,9 +312,8 @@ public abstract class KubernetesJob implements Job {
                                         new IllegalArgumentException(
                                                 "must specify K8S_REQUESTS_MEMORY for a dedicated KubernetesJob"));
 
-        final var requests =
-                Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));
-        final var limits = Map.ofEntries(Map.entry("memory", memoryRequests));
+        final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
+        final var limits = ofEntries(entry("memory", memoryRequests));
         return new V1ResourceRequirements().requests(requests).limits(limits);
     }
 }
