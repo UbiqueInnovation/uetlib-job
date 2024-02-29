@@ -32,8 +32,8 @@ public final class CurrentJobRunner implements JobRunner {
         executorServices = new ConcurrentHashMap<>();
     }
 
-    private static RunnerGroup runnerGroup(final JobRunContext context) {
-        return context.properties().get(RUNNER_GROUP).value();
+    private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
+        return jobRunContext.properties().get(RUNNER_GROUP).value();
     }
 
     @Override
@@ -42,14 +42,14 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(final Job job, final JobRunContext context) {
-        final var runnerGroup = runnerGroup(context);
+    public synchronized boolean submit(final Job job, final JobRunContext jobRunContext) {
+        final var runnerGroup = runnerGroup(jobRunContext);
         if (!check(job, runnerGroup)) {
             return false;
         }
 
         final var executorService = getExecutorService(runnerGroup);
-        executorService.submit(() -> run(job, context));
+        executorService.submit(() -> run(job, jobRunContext));
         return true;
     }
 
@@ -67,13 +67,13 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private void run(final Job job, final JobRunContext initialContext) {
-        final var context = prepareRun(initialContext);
-        final var state = runJob(job, context);
-        finishRun(context, state);
+        final var jobRunContext = prepareRun(initialContext);
+        final var state = runJob(job, jobRunContext);
+        finishRun(jobRunContext, state);
     }
 
     private JobRunContext prepareRun(final JobRunContext initialContext) {
-        final var context =
+        final var jobRunContext =
                 new JobRunContext(
                         initialContext.job(),
                         initialContext
@@ -84,15 +84,15 @@ public final class CurrentJobRunner implements JobRunner {
                                 .toJobRun(),
                         initialContext.arguments(),
                         initialContext.properties());
-        jobService.updateJobRun(context.jobRun());
-        MDC.put("jobRunId", String.valueOf(context.jobRun().id()));
-        return context;
+        jobService.updateJobRun(jobRunContext.jobRun());
+        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
+        return jobRunContext;
     }
 
-    private JobRunState runJob(final Job job, final JobRunContext context) {
+    private JobRunState runJob(final Job job, final JobRunContext jobRunContext) {
         try {
-            logger.info("Running job {} with context {}", job, context);
-            final var state = job.run(context);
+            logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
+            final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job, state);
             return state;
         } catch (final Exception e) {
@@ -101,21 +101,26 @@ public final class CurrentJobRunner implements JobRunner {
         }
     }
 
-    private void finishRun(final JobRunContext context, final JobRunState finalState) {
+    private void finishRun(final JobRunContext jobRunContext, final JobRunState finalState) {
         jobService.updateJobRun(
-                context.jobRun().modify().state(finalState).finishedAt(Instant.now()).toJobRun());
+                jobRunContext
+                        .jobRun()
+                        .modify()
+                        .state(finalState)
+                        .finishedAt(Instant.now())
+                        .toJobRun());
         MDC.remove("jobRunId");
     }
 
     private boolean check(final Job job, final RunnerGroup runnerGroup) {
         if (runnerGroup.allowedJobs().isEmpty()
-            || runnerGroup.allowedJobs().contains(job.getClass())) {
+                || runnerGroup.allowedJobs().contains(job.getClass())) {
             return true;
         }
-        
+
         logger.error(
                 "The runner group only allows the following job classes: {} but a job of the"
-                    + " following class was provided:  {}",
+                        + " following class was provided:  {}",
                 runnerGroup.allowedJobs(),
                 job.getClass());
         return false;

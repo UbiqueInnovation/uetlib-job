@@ -59,7 +59,7 @@ public class CleanupJob implements Job {
 
     @NotNull
     @Override
-    public JobRunState run(final JobRunContext context) {
+    public JobRunState run(final JobRunContext jobRunContext) {
 
         final var cleanJobRunsState = cleanJobRuns();
         if (cleanJobRunsState != JobRunState.DONE) {

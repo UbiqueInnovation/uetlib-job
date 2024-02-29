@@ -30,17 +30,17 @@ class CurrentJobRunnerTest {
         final var jobProperties = mock(JobProperties.class);
         when(jobProperties.get(RUNNER_GROUP))
                 .thenReturn(RUNNER_GROUP.createProperty(HealthCheckJob.runnerGroup()));
-        final var context =
+        final var jobRunContext =
                 new JobRunContext(
                         mock(JobClassAndId.class),
                         mock(JobRun.class),
                         mock(JobRunArguments.class),
                         jobProperties);
-        assertTrue(runner.submit(new HealthCheckJob(), context));
+        assertTrue(runner.submit(new HealthCheckJob(), jobRunContext));
         assertFalse(
                 runner.submit(
                         new CleanupJob(mock(JobRunStorage.class), mock(JobDataService.class)),
-                        context),
+                        jobRunContext),
                 "Only the HealthCheckJob can be submitted to the HealthCheckJob.runnerGroup().");
     }
 }

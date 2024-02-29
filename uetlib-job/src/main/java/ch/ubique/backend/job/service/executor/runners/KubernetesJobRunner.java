@@ -87,7 +87,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean submit(final Job job, final JobRunContext context) {
+    public boolean submit(final Job job, final JobRunContext jobRunContext) {
         final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
         final var client = tryToGetKubernetesApiClient(kubernetesJob);
         if (client == null) {
@@ -97,10 +97,10 @@ public class KubernetesJobRunner implements JobRunner {
         try {
             final var currentPod = getCurrentPod(client);
 
-            final var k8sContext =
+            final var kubernetesJobRunContext =
                     new KubernetesJobRunContext(
-                            context, new KubernetesContext(client, namespace, currentPod));
-            final var jobDefinition = kubernetesJob.job(k8sContext);
+                            jobRunContext, new KubernetesContext(client, namespace, currentPod));
+            final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
             submitJobToKubernetes(client, jobDefinition);
             return true;

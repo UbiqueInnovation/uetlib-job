@@ -36,7 +36,7 @@ public final class HealthCheckJob implements Job {
      */
     @NotNull
     @Override
-    public JobRunState run(final JobRunContext context) {
+    public JobRunState run(final JobRunContext jobRunContext) {
         logger.info("Running health check.");
         return JobRunState.DONE;
     }
