@@ -91,7 +91,8 @@ public abstract class KubernetesJob implements Job {
         return new V1ObjectMeta()
                 .namespace(namespace(kubernetesJobRunContext))
                 .name(kubernetesJobName(kubernetesJobRunContext))
-                .annotations(annotations(kubernetesJobRunContext));
+                .annotations(annotations(kubernetesJobRunContext))
+                .labels(labels(kubernetesJobRunContext));
     }
 
     protected Optional<String> maybeGetCurrentPodName(
@@ -152,6 +153,14 @@ public abstract class KubernetesJob implements Job {
                 Map.entry("prometheus.io/scrape", "true"),
                 // for easy identification after teh fact
                 Map.entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
+    }
+
+    protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return kubernetesJobRunContext
+                .jobRunContext()
+                .properties()
+                .get(JobPropertyDefinitions.K8S_POD_LABELS)
+                .value();
     }
 
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {

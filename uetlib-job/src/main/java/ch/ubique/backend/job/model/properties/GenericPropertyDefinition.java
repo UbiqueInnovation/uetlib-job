@@ -3,6 +3,7 @@ package ch.ubique.backend.job.model.properties;
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.Nullable;
@@ -17,7 +18,7 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperUtils.objectMapper();
 
-    private final Class<T> genericClass;
+    private final TypeReference<T> typeReference;
 
     GenericPropertyDefinition(
             @NotBlank final String key,
@@ -26,7 +27,7 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
             @NotNull final boolean nullable,
             @Nullable final T defaultValue,
             @Nullable final Set<T> allowedValues,
-            @NotNull final Class<T> genericClass) {
+            @NotNull final TypeReference<T> typeReference) {
         super(
                 key,
                 description,
@@ -34,13 +35,13 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
                 nullable,
                 Objects.requireNonNull(defaultValue),
                 allowedValues);
-        this.genericClass = genericClass;
+        this.typeReference = typeReference;
     }
 
     @Override
     public T decode(final String value) {
         try {
-            return OBJECT_MAPPER.readValue(value, genericClass);
+            return OBJECT_MAPPER.readValue(value, typeReference);
         } catch (final JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
