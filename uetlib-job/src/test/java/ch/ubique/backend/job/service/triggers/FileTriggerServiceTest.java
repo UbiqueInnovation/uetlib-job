@@ -7,6 +7,7 @@ import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static java.util.stream.Collectors.*;
 
+import ch.ubique.backend.core.regex.SerializableMatchResult;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
@@ -102,14 +103,12 @@ class FileTriggerServiceTest {
                         .map(
                                 fileTriggerContext ->
                                         Triple.of(
-                                                fileTriggerContext
-                                                        .fileTriggerMatchResult()
-                                                        .groupCount(),
-                                                fileTriggerContext
-                                                        .fileTriggerMatchResult()
+                                                fileTriggerContext.matchResult().groupCount(),
+                                                ((SerializableMatchResult)
+                                                                fileTriggerContext.matchResult())
                                                         .groups(),
-                                                fileTriggerContext
-                                                        .fileTriggerMatchResult()
+                                                ((SerializableMatchResult)
+                                                                fileTriggerContext.matchResult())
                                                         .namedGroupValues()))
                         .collect(toSet()));
 
@@ -156,22 +155,18 @@ class FileTriggerServiceTest {
                         .map(
                                 fileTriggerContext ->
                                         Triple.of(
-                                                fileTriggerContext
-                                                        .fileTriggerMatchResult()
-                                                        .groupCount(),
-                                                fileTriggerContext
-                                                        .fileTriggerMatchResult()
+                                                fileTriggerContext.matchResult().groupCount(),
+                                                ((SerializableMatchResult)
+                                                                fileTriggerContext.matchResult())
                                                         .groups(),
-                                                fileTriggerContext
-                                                        .fileTriggerMatchResult()
+                                                ((SerializableMatchResult)
+                                                                fileTriggerContext.matchResult())
                                                         .namedGroupValues()))
                         .collect(toSet()));
 
         assertEquals(
                 ofEntries(entry("fileName", "test"), entry("fileExtension", ".txt")),
-                fileTriggerContextCaptorValues
-                        .getFirst()
-                        .fileTriggerMatchResult()
+                ((SerializableMatchResult) fileTriggerContextCaptorValues.getFirst().matchResult())
                         .namedGroupValues());
 
         assertEquals(3, triggered.getCount(anyFileCreated));
