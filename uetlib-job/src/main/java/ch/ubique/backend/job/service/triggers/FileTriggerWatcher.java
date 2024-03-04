@@ -1,10 +1,10 @@
 package ch.ubique.backend.job.service.triggers;
 
+import ch.ubique.backend.core.utils.RegexUtil;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
-import ch.ubique.backend.job.model.triggers.FileTriggerMatchResult;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -90,11 +90,10 @@ public class FileTriggerWatcher {
                                     return;
                                 }
 
-                                final var fileTriggerMatchResult =
-                                        FileTriggerMatchResult.from(fileMatcher);
+                                final var matchResult =
+                                        RegexUtil.toSerializableMatchResult(fileMatcher);
                                 final var fileTriggerContext =
-                                        FileTriggerContext.from(
-                                                watchedPath, event, fileTriggerMatchResult);
+                                        FileTriggerContext.from(watchedPath, event, matchResult);
                                 consumeJobRunArgument(registeredFileTrigger, fileTriggerContext);
                             });
         }
