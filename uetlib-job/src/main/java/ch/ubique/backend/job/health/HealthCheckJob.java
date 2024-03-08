@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.heath;
+package ch.ubique.backend.job.health;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;

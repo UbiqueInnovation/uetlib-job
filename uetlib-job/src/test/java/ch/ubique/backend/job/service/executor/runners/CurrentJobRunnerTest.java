@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 
 import ch.ubique.backend.job.cleanup.CleanupJob;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.heath.HealthCheckJob;
+import ch.ubique.backend.job.health.HealthCheckJob;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
