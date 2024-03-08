@@ -71,11 +71,8 @@ public class JobService {
                                         !ClassUtils.isInnerClass(clazz)
                                                 && !ClassUtils.isStaticClass(clazz));
         final var enableJobsClass =
-                EnableAnnotationUtils.findSingletonNullableEnableClass(
+                EnableAnnotationUtils.findSingletonEnableClass(
                         applicationContext, EnableJobs.class);
-        if (enableJobsClass == null) {
-            return Set.of();
-        }
 
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
