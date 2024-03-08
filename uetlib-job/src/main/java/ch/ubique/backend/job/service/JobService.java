@@ -32,6 +32,7 @@ import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
@@ -70,8 +71,11 @@ public class JobService {
                                         !ClassUtils.isInnerClass(clazz)
                                                 && !ClassUtils.isStaticClass(clazz));
         final var enableJobsClass =
-                EnableAnnotationUtils.findSingletonEnableClass(
+                EnableAnnotationUtils.findSingletonNullableEnableClass(
                         applicationContext, EnableJobs.class);
+        if (enableJobsClass == null) {
+            return Set.of();
+        }
 
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
@@ -94,10 +98,11 @@ public class JobService {
                 logger.info("Registered {}.", jobClass);
             } catch (final ClassCastException e) {
                 throw new ClassCastException(
-                        "Class annotated with "
-                                + RegisteredJob.class
-                                + " must implement "
-                                + Job.class);
+                        MessageFormat.format(
+                                "Job class {0} annotated with @{1} must implement {2}",
+                                cls.getCanonicalName(),
+                                RegisteredJob.class.getCanonicalName(),
+                                Job.class));
             }
         }
 
