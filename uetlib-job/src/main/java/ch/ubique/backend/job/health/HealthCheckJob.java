@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.heath;
+package ch.ubique.backend.job.health;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
@@ -36,7 +36,7 @@ public final class HealthCheckJob implements Job {
      */
     @NotNull
     @Override
-    public JobRunState run(final JobRunContext context) {
+    public JobRunState run(final JobRunContext jobRunContext) {
         logger.info("Running health check.");
         return JobRunState.DONE;
     }

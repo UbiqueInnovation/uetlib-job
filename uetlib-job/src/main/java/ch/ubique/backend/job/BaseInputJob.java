@@ -94,7 +94,7 @@ public abstract class BaseInputJob<T> implements Job {
     }
 
     /**
-     * Access to job run context during execution of the job. USe for example to access the forceRun
+     * Access to job run context during execution of the job. Use for example to access the forceRun
      * flag in {@link #processInputs}.
      */
     protected JobRunContext jobRunContext() {

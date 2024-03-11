@@ -1,5 +1,8 @@
 package ch.ubique.backend.job.checks;
 
+import static java.util.Map.entry;
+import static java.util.Map.ofEntries;
+
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
@@ -80,10 +83,10 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
         }
 
         return Optional.of(
-                Map.ofEntries(
-                        Map.entry("job", job.canonicalClassName()),
-                        Map.entry("lastRunMaxAge", lastRunMaxAge),
-                        Map.entry("lastRunStartedAt", lastRunStartedAt),
-                        Map.entry("lastRunAge", lastRunAge)));
+                ofEntries(
+                        entry("job", job.canonicalClassName()),
+                        entry("lastRunMaxAge", lastRunMaxAge),
+                        entry("lastRunStartedAt", lastRunStartedAt),
+                        entry("lastRunAge", lastRunAge)));
     }
 }
