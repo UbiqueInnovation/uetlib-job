@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 
 public interface Job {
 
-    JobRunState run(final JobRunContext context) throws Exception;
+    JobRunState run(final JobRunContext jobRunContext) throws Exception;
 
     /**
      * The version is saved to the database for each job run. With this, we can track, what version

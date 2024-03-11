@@ -9,6 +9,7 @@ import java.util.Set;
 
 final class IntPropertyDefinition extends JobPropertyDefinition<Integer> {
 
+    @SuppressWarnings("NullableProblems")
     IntPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,

@@ -8,5 +8,5 @@ public interface JobRunner {
 
     JobRunnerKey key();
 
-    boolean submit(Job job, JobRunContext context);
+    boolean submit(Job job, JobRunContext jobRunContext);
 }

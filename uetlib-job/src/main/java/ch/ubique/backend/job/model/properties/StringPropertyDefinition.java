@@ -8,6 +8,7 @@ import java.util.Set;
 
 final class StringPropertyDefinition extends JobPropertyDefinition<String> {
 
+    @SuppressWarnings("NullableProblems")
     StringPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,
