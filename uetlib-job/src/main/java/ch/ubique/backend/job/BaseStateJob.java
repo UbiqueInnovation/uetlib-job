@@ -95,9 +95,7 @@ public abstract class BaseStateJob<T> implements Job {
      * the saved state.
      */
     @NotNull
-    protected TypeReference<T> stateTypeReference() {
-        return new TypeReference<>() {};
-    }
+    protected abstract TypeReference<T> stateTypeReference();
 
     @Override
     @NotNull
