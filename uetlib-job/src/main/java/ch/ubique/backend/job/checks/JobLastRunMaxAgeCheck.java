@@ -58,7 +58,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
                             .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE)
                             .valueMaybe();
         } catch (ClassNotFoundException e) {
-            throw new WrappedException(e);
+            return Optional.empty();
         }
 
         if (lastRunMaxAgeMaybe.isEmpty()) {
