@@ -114,34 +114,12 @@ public class CleanupJob implements Job {
 
     /** Attempts to delete all stored input files of a job run */
     private void cleanInputFiles(final JobClassAndId job, final JobRun run) throws IOException {
-        // Clean input files
-        final var jobRunInputs = jobDataService.findJobRunInputs(run.id());
-        for (final var input : jobRunInputs) {
-            final var fileDidExist =
-                    jobRunStorage.deleteJobRunInput(job.name(), run.readableId(), input.getName());
-            if (fileDidExist) {
-                logger.info(
-                        "Deleted run input file [jobId: {}; runId {}; inputName: {}]",
-                        job.id(),
-                        run.id(),
-                        input.getName());
-            } else {
-                logger.info(
-                        "Failed to delete run input file: doesn't exist [jobId: {}; runId: {};"
-                                + " inputName: {}]",
-                        job.id(),
-                        run.id(),
-                        input.getName());
-            }
-        }
-
-        // Finally, clean input file directories
-        final var dirDidExist =
-                jobRunStorage.deleteJobRunInputDirectory(job.name(), run.readableId());
+        // Clean all files in directory of job run
+        final var dirDidExist = jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
         if (dirDidExist) {
             logger.info(
                     "Deleted run input file directory [jobId: {}; runId: {}]", job.id(), run.id());
-        } else if (!jobRunInputs.isEmpty()) {
+        } else {
             logger.debug(
                     "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
                             + " {}]",

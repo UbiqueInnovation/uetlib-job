@@ -5,6 +5,7 @@ import ch.ubique.backend.storage.annotations.*;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 @Storage(
         clientQualifier = "jobRunStorageClient",
@@ -19,12 +20,16 @@ public interface JobRunStorage {
             @PathVariable String fileName)
             throws IOException;
 
-    @DeleteMapping(path = "{jobName}/{runId}/{fileName}.gz")
-    boolean deleteJobRunInput(
-            @PathVariable String jobName, @PathVariable String runId, @PathVariable String fileName)
+    @DeleteMapping(path = "{jobName}/{runId}", recursive = true)
+    boolean deleteJobRunDirectory(@PathVariable String jobName, @PathVariable String runId)
             throws IOException;
 
-    @DeleteMapping(path = "{jobName}/{runId}", recursive = true)
-    boolean deleteJobRunInputDirectory(@PathVariable String jobName, @PathVariable String runId)
+    @OutputMapping(path = "{jobName}/{runId}/state.json")
+    void saveJobRunState(
+            @StorageObject Object output, @PathVariable String jobName, @PathVariable String runId)
+            throws IOException;
+
+    @InputMapping(path = "{jobName}/{runId}/state.json")
+    InputStream loadJobRunState(@PathVariable String jobName, @PathVariable String runId)
             throws IOException;
 }
