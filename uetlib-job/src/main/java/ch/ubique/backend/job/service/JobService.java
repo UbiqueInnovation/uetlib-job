@@ -147,6 +147,12 @@ public class JobService {
         return classLoaderService.getClassForName(className, Job.class);
     }
 
+    public JobProperties getProperties(final JobClassAndId jobClassAndId)
+            throws ClassNotFoundException {
+        final var job = instantiateJob(jobClassAndId);
+        return getProperties(job);
+    }
+
     /**
      * This method computes the effective job properties for a given job and works as following:
      * <li>If the job has fixed properties -> return them
