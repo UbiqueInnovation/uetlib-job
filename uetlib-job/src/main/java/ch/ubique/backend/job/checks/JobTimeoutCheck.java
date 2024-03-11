@@ -67,7 +67,7 @@ public class JobTimeoutCheck implements StatusCheck {
                             .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
                             .value();
         } catch (ClassNotFoundException e) {
-            throw new WrappedException(e);
+            return Optional.empty();
         }
 
         if (latestRun.runDuration().compareTo(runtimeLimit) <= 0) {
