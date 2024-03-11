@@ -12,6 +12,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
 import jakarta.validation.constraints.NotNull;
@@ -29,10 +30,15 @@ public class CleanupJob implements Job {
     private static final Logger logger = LoggerFactory.getLogger(CleanupJob.class);
 
     private final JobRunStorage jobRunStorage;
+    private final JobService jobService;
     private final JobDataService jobDataService;
 
-    public CleanupJob(final JobRunStorage jobRunStorage, final JobDataService jobDataService) {
+    public CleanupJob(
+            final JobRunStorage jobRunStorage,
+            final JobService jobService,
+            final JobDataService jobDataService) {
         this.jobRunStorage = jobRunStorage;
+        this.jobService = jobService;
         this.jobDataService = jobDataService;
     }
 
@@ -59,7 +65,7 @@ public class CleanupJob implements Job {
 
     @NotNull
     @Override
-    public JobRunState run(final JobRunContext context) {
+    public JobRunState run(final JobRunContext context) throws ClassNotFoundException {
 
         final var cleanJobRunsState = cleanJobRuns();
         if (cleanJobRunsState != JobRunState.DONE) {
@@ -76,17 +82,14 @@ public class CleanupJob implements Job {
     }
 
     @NotNull
-    private JobRunState cleanJobRuns() {
+    private JobRunState cleanJobRuns() throws ClassNotFoundException {
         for (final var job : jobDataService.findJobs()) {
+            final var jobProperties = jobService.getProperties(job);
             // Get cleanup properties
             final var daysToKeep =
-                    jobDataService
-                            .getProperty(job.id(), JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP)
-                            .value();
+                    jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value();
             final var chunkSize =
-                    jobDataService
-                            .getProperty(job.id(), JobPropertyDefinitions.CLEANUP_CHUNK_SIZE)
-                            .value();
+                    jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value();
 
             final var cleanableRuns =
                     jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);

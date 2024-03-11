@@ -4,9 +4,12 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
+
+import com.pivovarit.function.exception.WrappedException;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -22,9 +25,11 @@ import java.util.Optional;
 @Profile("!job-run")
 public class JobLastRunMaxAgeCheck implements StatusCheck {
 
+    private final JobService jobService;
     private final JobDataService jobDataService;
 
-    public JobLastRunMaxAgeCheck(final JobDataService jobDataService) {
+    public JobLastRunMaxAgeCheck(final JobService jobService, final JobDataService jobDataService) {
+        this.jobService = jobService;
         this.jobDataService = jobDataService;
     }
 
@@ -45,10 +50,16 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
 
     @NotNull
     private Optional<Map<String, Object>> checkJobOverdue(final JobClassAndId job) {
-        final var lastRunMaxAgeMaybe =
-                jobDataService
-                        .getProperty(job.id(), JobPropertyDefinitions.LAST_RUN_MAX_AGE)
-                        .valueMaybe();
+        final Optional<Duration> lastRunMaxAgeMaybe;
+        try {
+            lastRunMaxAgeMaybe =
+                    jobService
+                            .getProperties(job)
+                            .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE)
+                            .valueMaybe();
+        } catch (ClassNotFoundException e) {
+            throw new WrappedException(e);
+        }
 
         if (lastRunMaxAgeMaybe.isEmpty()) {
             return Optional.empty();

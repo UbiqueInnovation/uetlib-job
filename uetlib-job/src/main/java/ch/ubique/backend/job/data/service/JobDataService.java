@@ -237,6 +237,13 @@ public class JobDataService {
                         .toList());
     }
 
+    /**
+     * WARN: IF YOU DO NOT KNOW WHAT YOU ARE DOING, ONLY CALL THIS METHOD VIA {@link
+     * ch.ubique.backend.job.service.JobService#getProperties}.
+     *
+     * <p>This method only retrieves properties are they are in the DB and ignores fixed
+     * JobProperties
+     */
     @Transactional(readOnly = true)
     public <T> JobProperty<T> getProperty(
             final Integer jobId, final JobPropertyDefinition<T> definition) {

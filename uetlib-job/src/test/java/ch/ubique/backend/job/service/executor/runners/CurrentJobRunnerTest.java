@@ -39,7 +39,10 @@ class CurrentJobRunnerTest {
         assertTrue(runner.submit(new HealthCheckJob(), context));
         assertFalse(
                 runner.submit(
-                        new CleanupJob(mock(JobRunStorage.class), mock(JobDataService.class)),
+                        new CleanupJob(
+                                mock(JobRunStorage.class),
+                                mock(JobService.class),
+                                mock(JobDataService.class)),
                         context),
                 "Only the HealthCheckJob can be submitted to the HealthCheckJob.runnerGroup().");
     }

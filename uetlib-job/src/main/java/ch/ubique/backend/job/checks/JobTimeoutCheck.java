@@ -4,15 +4,19 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
+
+import com.pivovarit.function.exception.WrappedException;
 
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,9 +24,11 @@ import java.util.Optional;
 @Profile("!job-run")
 public class JobTimeoutCheck implements StatusCheck {
 
+    private final JobService jobService;
     private final JobDataService jobDataService;
 
-    public JobTimeoutCheck(final JobDataService jobDataService) {
+    public JobTimeoutCheck(JobService jobService, final JobDataService jobDataService) {
+        this.jobService = jobService;
         this.jobDataService = jobDataService;
     }
 
@@ -53,8 +59,16 @@ public class JobTimeoutCheck implements StatusCheck {
             return Optional.empty();
         }
 
-        final var runtimeLimit =
-                jobDataService.getProperty(job.id(), JobPropertyDefinitions.RUN_TIME_LIMIT).value();
+        final Duration runtimeLimit;
+        try {
+            runtimeLimit =
+                    jobService
+                            .getProperties(job)
+                            .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
+                            .value();
+        } catch (ClassNotFoundException e) {
+            throw new WrappedException(e);
+        }
 
         if (latestRun.runDuration().compareTo(runtimeLimit) <= 0) {
             return Optional.empty();
