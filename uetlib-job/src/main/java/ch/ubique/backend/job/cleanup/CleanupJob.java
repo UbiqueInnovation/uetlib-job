@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
@@ -65,7 +66,7 @@ public class CleanupJob implements Job {
 
     @NotNull
     @Override
-    public JobRunState run(final JobRunContext context) throws ClassNotFoundException {
+    public JobRunState run(final JobRunContext context) {
 
         final var cleanJobRunsState = cleanJobRuns();
         if (cleanJobRunsState != JobRunState.DONE) {
@@ -82,9 +83,16 @@ public class CleanupJob implements Job {
     }
 
     @NotNull
-    private JobRunState cleanJobRuns() throws ClassNotFoundException {
+    private JobRunState cleanJobRuns() {
         for (final var job : jobDataService.findJobs()) {
-            final var jobProperties = jobService.getProperties(job);
+            final JobProperties jobProperties;
+            try {
+                jobProperties = jobService.getProperties(job);
+            } catch (final ClassNotFoundException e) {
+                logger.info("Failed to instantiate job {}, not need to clean: ", job, e);
+                continue;
+            }
+
             // Get cleanup properties
             final var daysToKeep =
                     jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value();
