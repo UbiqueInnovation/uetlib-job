@@ -90,10 +90,7 @@ public abstract class BaseStateJob<T> implements Job {
     protected abstract JobRunState processState(T latestState, @NotNull JobRunContext jobRunContext)
             throws Exception;
 
-    /**
-     * If the state contains generics, you need to overwrite this method to correctly deserialize
-     * the saved state.
-     */
+    /** You need to overwrite this method to correctly deserialize the saved state. */
     @NotNull
     protected abstract TypeReference<T> stateTypeReference();
 
