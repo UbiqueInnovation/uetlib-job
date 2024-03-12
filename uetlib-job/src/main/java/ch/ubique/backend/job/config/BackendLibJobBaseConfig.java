@@ -32,7 +32,8 @@ public class BackendLibJobBaseConfig {
         return restTemplateBuilder.build();
     }
 
-    @Bean
+    @Bean("jobService")
+    @Profile("!job-run")
     JobService jobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
@@ -41,6 +42,15 @@ public class BackendLibJobBaseConfig {
                 new JobService(jobDataService, applicationContext, classLoaderService);
         jobService.init();
         return jobService;
+    }
+
+    @Bean("jobService")
+    @Profile("job-run")
+    JobService jobServiceForJobRun(
+            final JobDataService jobDataService,
+            final ApplicationContext applicationContext,
+            final ClassLoaderService classLoaderService) {
+        return new JobService(jobDataService, applicationContext, classLoaderService);
     }
 
     @Bean
