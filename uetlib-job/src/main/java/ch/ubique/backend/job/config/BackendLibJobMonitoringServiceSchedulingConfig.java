@@ -2,6 +2,7 @@ package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.monitoring.service.MonitoringService;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -12,11 +13,13 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableScheduling
 @Profile("!job-run")
-public class BackendLibJobSchedulingConfig {
+@ConditionalOnBean(MonitoringService.class)
+public class BackendLibJobMonitoringServiceSchedulingConfig {
 
     private final MonitoringService monitoringService;
 
-    public BackendLibJobSchedulingConfig(final MonitoringService monitoringService) {
+    public BackendLibJobMonitoringServiceSchedulingConfig(
+            final MonitoringService monitoringService) {
         this.monitoringService = monitoringService;
     }
 
