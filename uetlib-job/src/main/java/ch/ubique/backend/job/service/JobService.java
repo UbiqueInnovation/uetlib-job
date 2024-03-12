@@ -57,6 +57,7 @@ public class JobService {
         this.classLoaderService = classLoaderService;
     }
 
+    /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
     @Transactional
     public void init() {
         registerAllJobs();
