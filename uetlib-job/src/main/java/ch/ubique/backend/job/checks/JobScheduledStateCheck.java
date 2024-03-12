@@ -9,6 +9,7 @@ import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -21,10 +22,14 @@ public class JobScheduledStateCheck implements StatusCheck {
 
     private final JobDataService jobDataService;
 
-    private static final Duration MAX_DURATION_IN_SCHEDULED_STATE = Duration.ofMinutes(15);
+    private final Duration maxDurationInScheduledState;
 
-    public JobScheduledStateCheck(final JobDataService jobDataService) {
+    public JobScheduledStateCheck(
+            final JobDataService jobDataService,
+            @Value("${ch.ubique.backend.job.checks.max-duration-in-scheduled-state:PT15M}")
+                    final Duration maxDurationInScheduledState) {
         this.jobDataService = jobDataService;
+        this.maxDurationInScheduledState = maxDurationInScheduledState;
     }
 
     @Override
@@ -58,7 +63,7 @@ public class JobScheduledStateCheck implements StatusCheck {
             return Optional.empty();
         }
 
-        if (latestRun.runDuration().compareTo(MAX_DURATION_IN_SCHEDULED_STATE) <= 0) {
+        if (latestRun.runDuration().compareTo(maxDurationInScheduledState) <= 0) {
             return Optional.empty();
         }
 
