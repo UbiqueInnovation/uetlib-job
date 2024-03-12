@@ -181,7 +181,7 @@ public abstract class BaseStateJob<T> implements Job {
             final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
             logger.info("Resolved previous state {}.", previousState);
             return previousState;
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             logger.warn("Could not load previous state.", e);
             return null;
         }
