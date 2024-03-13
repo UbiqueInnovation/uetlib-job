@@ -34,6 +34,14 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.MONITORING,
                     true,
                     null);
+    public static final JobPropertyDefinition<Duration> MAX_DURATION_IN_SCHEDULED_STATE =
+            new DurationPropertyDefinition(
+                    "MAX_DURATION_IN_SCHEDULED_STATE",
+                    "The monitoring will report an error if the latest run is longer in the SCHEDULED state than the"
+                            + " specified value.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false,
+                    Duration.ofMinutes(15));
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(
                     "RUNNER",
@@ -100,7 +108,8 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Map.of(),
-                    null, new TypeReference<>() {});
+                    null,
+                    new TypeReference<>() {});
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(
                     "CLEANUP_DAYS_TO_KEEP",
