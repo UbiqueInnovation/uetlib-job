@@ -47,7 +47,8 @@ public record RunnerGroup(
         if (sameIdentifierButNotEqual.isPresent()) {
             throw new IllegalArgumentException(
                     MessageFormat.format(
-                            "There is already a different RunnerGroup with the same identifier. New runner group: {0}, existing: {1}",
+                            "There is already a different RunnerGroup with the same identifier. New"
+                                + " runner group: {0}, existing: {1}",
                             runnerGroup, sameIdentifierButNotEqual));
         }
         INSTANCES.add(runnerGroup);

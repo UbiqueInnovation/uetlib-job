@@ -255,7 +255,8 @@ public class JobControllerService {
         if (!jobClass.equals(getJobClass(jobIdOrClassName))) {
             throw new IllegalArgumentException(
                     MessageFormat.format(
-                            "job class ''{0}'' of job run ''{1}'' does not match given jobIdOrClassName ''{2}''",
+                            "job class ''{0}'' of job run ''{1}'' does not match given"
+                                + " jobIdOrClassName ''{2}''",
                             jobClass, jobRunId, jobIdOrClassName));
         }
         final var replayExecutionAllowed =

@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.client;
 
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.validation.constraints.NotNull;

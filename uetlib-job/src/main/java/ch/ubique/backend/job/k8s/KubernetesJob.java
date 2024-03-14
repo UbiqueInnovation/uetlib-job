@@ -114,7 +114,8 @@ public abstract class KubernetesJob implements Job {
                                                     .getEnvironment()
                                                     .getProperty("spring.application.name"));
                             logger.warn(
-                                    "Could not get current pod name, using spring.application.name={} as fallback",
+                                    "Could not get current pod name, using"
+                                        + " spring.application.name={} as fallback",
                                     springApplicationName);
                             return springApplicationName;
                         });
@@ -139,7 +140,8 @@ public abstract class KubernetesJob implements Job {
                                                     .getEnvironment()
                                                     .getProperty("spring.application.name"));
                             logger.warn(
-                                    "Could not get current deployment name, using spring.application.name={} as fallback",
+                                    "Could not get current deployment name, using"
+                                        + " spring.application.name={} as fallback",
                                     springApplicationName);
                             return springApplicationName;
                         });
@@ -198,7 +200,8 @@ public abstract class KubernetesJob implements Job {
 
         // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
         logger.warn(
-                "job name cannot be longer than 63 characters, got {} characters for job name {}. Using {}",
+                "job name cannot be longer than 63 characters, got {} characters for job name {}."
+                    + " Using {}",
                 kubernetesJobName.length(),
                 kubernetesJobName,
                 shortKubernetesJobName);
@@ -292,7 +295,8 @@ public abstract class KubernetesJob implements Job {
                         .orElseThrow(
                                 () ->
                                         new IllegalArgumentException(
-                                                "must specify K8S_REQUESTS_CPU for a dedicated KubernetesJob"));
+                                                "must specify K8S_REQUESTS_CPU for a dedicated"
+                                                    + " KubernetesJob"));
         final var memoryRequests =
                 kubernetesJobRunContext
                         .jobRunContext()
@@ -303,7 +307,8 @@ public abstract class KubernetesJob implements Job {
                         .orElseThrow(
                                 () ->
                                         new IllegalArgumentException(
-                                                "must specify K8S_REQUESTS_MEMORY for a dedicated KubernetesJob"));
+                                                "must specify K8S_REQUESTS_MEMORY for a dedicated"
+                                                    + " KubernetesJob"));
 
         final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
         final var limits = ofEntries(entry("memory", memoryRequests));

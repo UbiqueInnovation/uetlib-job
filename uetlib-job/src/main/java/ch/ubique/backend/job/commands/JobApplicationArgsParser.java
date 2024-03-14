@@ -36,7 +36,8 @@ public class JobApplicationArgsParser {
                         "c",
                         "additionalDataClass",
                         true,
-                        "Fully qualified name of the class to be used for deserializing the additional data.");
+                        "Fully qualified name of the class to be used for deserializing the"
+                            + " additional data.");
         options.addOption(help);
         options.addOption(jobClassOption);
         options.addOption(jobRunIdOption);
