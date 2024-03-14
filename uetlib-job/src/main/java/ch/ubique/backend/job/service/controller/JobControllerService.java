@@ -3,7 +3,6 @@ package ch.ubique.backend.job.service.controller;
 import static java.util.function.Function.identity;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.job.BaseInputJob;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
@@ -316,7 +315,7 @@ public class JobControllerService {
                 cronExpression.map(CronExpression::isValidExpression).orElse(true),
                 job.triggersConfig().isFixed(),
                 job.propertiesConfig().isFixed(),
-                job instanceof BaseInputJob<?>,
+                job.supportsForceRun(),
                 manualReplayMode
                         .valueMaybe()
                         .orElse(

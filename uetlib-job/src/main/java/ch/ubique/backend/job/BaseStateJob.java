@@ -35,6 +35,11 @@ public abstract class BaseStateJob<T> implements Job {
         objectMapper = applicationContext.getBean(ObjectMapper.class);
     }
 
+    @Override
+    public boolean supportsForceRun() {
+        return true;
+    }
+
     /**
      * This method should be used to fetch/compute the latest state.
      *

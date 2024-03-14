@@ -38,4 +38,8 @@ public interface Job {
     default int priority() {
         return 0;
     }
+
+    default boolean supportsForceRun() {
+        return false;
+    }
 }
