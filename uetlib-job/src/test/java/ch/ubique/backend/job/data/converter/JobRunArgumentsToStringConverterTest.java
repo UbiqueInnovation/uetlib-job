@@ -3,6 +3,7 @@ package ch.ubique.backend.job.data.converter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 import ch.ubique.backend.core.regex.SerializableMatchResult;
 import ch.ubique.backend.core.utils.RegexUtil;
 import ch.ubique.backend.job.model.EmptyTriggerContext;
@@ -11,7 +12,13 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -20,8 +27,21 @@ class JobRunArgumentsToStringConverterTest {
 
     private static final Pattern TEST_PATTERN =
             Pattern.compile("\\w+-(?<blockB>\\w+)-(?<blockC>\\w+)-\\w+.txt");
+
+    private final ObjectMapper objectMapperOrdered =
+            ObjectMapperUtils.objectMapper(
+                    customizer ->
+                            customizer
+                                    .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS));
     private final JobRunArgumentsToStringConverter jobRunArgumentsToStringConverter =
             new JobRunArgumentsToStringConverter();
+
+    @BeforeEach
+    void beforeEach() {
+        ReflectionTestUtils.setField(
+                jobRunArgumentsToStringConverter, "objectMapper", objectMapperOrdered);
+    }
 
     @Test
     void testConvertForceRunToDatabaseColumn() {
@@ -35,7 +55,7 @@ class JobRunArgumentsToStringConverterTest {
     void testConvertForceRunFromDatabaseColumn() {
         final var dbData =
                 "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
-                + " did I get here\"}";
+                        + " did I get here\"}";
         final var jobRunArguments =
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
@@ -62,14 +82,14 @@ class JobRunArgumentsToStringConverterTest {
         final var dbData =
                 jobRunArgumentsToStringConverter.convertToDatabaseColumn(jobRunArguments);
         assertEquals(
-                "{\"forceRun\":true,\"triggerContext\":{\"watchedPath\":\"file:///tmp/\",\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"last\":23,\"groupCount\":2,\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"groupIndices\":[0,23,5,9,10,14],\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"namedGroups\":{\"blockC\":2,\"blockB\":1}},\"type\":\"FILE\"}}",
+                "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"watchedPath\":\"file:///tmp/\",\"type\":\"FILE\"}}",
                 dbData);
     }
 
     @Test
     void testConvertFileTriggerContextFromDatabaseColumn() {
         final var dbData =
-                "{\"forceRun\":true,\"triggerContext\":{\"watchedPath\":\"file:///tmp/\",\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"last\":23,\"groupCount\":2,\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"groupIndices\":[0,23,5,9,10,14],\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"namedGroups\":{\"blockC\":2,\"blockB\":1}},\"type\":\"FILE\"}}";
+                "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"watchedPath\":\"file:///tmp/\",\"type\":\"FILE\"}}";
         final var testFileName = "AAAA-BBBB-CCCC-DDDD.txt";
         final var matcher = TEST_PATTERN.matcher(testFileName);
         //noinspection ResultOfMethodCallIgnored
