@@ -4,7 +4,6 @@ import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
-import ch.ubique.backend.job.model.entity.JobRunInputEntity;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
 import com.pivovarit.function.exception.WrappedException;
@@ -36,6 +35,11 @@ public abstract class BaseInputJob<T> implements Job {
     protected BaseInputJob(@NotNull final ApplicationContext applicationContext) {
         jobRunStorage = applicationContext.getBean(JobRunStorage.class);
         jobDataService = applicationContext.getBean(JobDataService.class);
+    }
+
+    @Override
+    public boolean supportsForceRun() {
+        return true;
     }
 
     /**
