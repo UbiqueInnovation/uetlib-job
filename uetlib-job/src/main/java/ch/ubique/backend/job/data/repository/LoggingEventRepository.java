@@ -15,11 +15,11 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
     @Query(
             value =
                     """
-                            select *
-                            from logging_event
-                            where job_run_id = :jobRunId
-                            order by timestmp
-                            limit :pageSize offset :skipLines""",
+                    select *
+                    from logging_event
+                    where job_run_id = :jobRunId
+                    order by timestmp
+                    limit :pageSize offset :skipLines""",
             nativeQuery = true)
     List<LoggingEventEntity> findByJobRunId(int jobRunId, long skipLines, int pageSize);
 

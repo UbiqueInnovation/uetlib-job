@@ -3,6 +3,7 @@ package ch.ubique.backend.job.logging;
 import ch.ubique.backend.core.validator.NullOrNotBlank;
 
 import jakarta.validation.constraints.PositiveOrZero;
+
 import org.apache.commons.lang3.StringUtils;
 
 public class LogLineAccumulator {

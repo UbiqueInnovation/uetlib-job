@@ -9,8 +9,6 @@ import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
-import com.pivovarit.function.exception.WrappedException;
-
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.context.annotation.Profile;
