@@ -16,10 +16,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -54,9 +51,13 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
 
-        logger.info("{} submitted to executor.", jobClass);
-
         final var job = jobService.instantiateJob(jobClass);
+        if (!job.allowParallelRuns() || isCurrentlyRunning(job)) {
+            logger.info("Job is already running and parallel runs are disallowed.");
+            return;
+        }
+
+        logger.info("{} submitted to executor.", jobClass);
         final var jobRunContext = createContext(job, runId, arguments);
         final var runner = getJobRunner(jobRunContext, jobRunnerKey);
 
@@ -93,6 +94,16 @@ public class JobExecutorService {
             logger.warn("Unhandled exception while trying to schedule job.", e);
             return false;
         }
+    }
+
+    @NotNull
+    private boolean isCurrentlyRunning(final Job job) {
+        final var runningStates = Set.of(JobRunState.SCHEDULED, JobRunState.BUSY);
+        return jobService
+                .getLastJobRun(jobService.getId(job))
+                .map(JobRun::state)
+                .map(runningStates::contains)
+                .orElse(false);
     }
 
     @NotNull
