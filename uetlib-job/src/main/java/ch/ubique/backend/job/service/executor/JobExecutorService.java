@@ -52,7 +52,7 @@ public class JobExecutorService {
             @Nullable final JobRunnerKey jobRunnerKey) {
 
         final var job = jobService.instantiateJob(jobClass);
-        if (!job.allowParallelRuns() && isCurrentlyRunning(job)) {
+        if (!job.allowParallelRuns() && isCurrentlyRunning(job) && !isSameAsLastRun(job, runId)) {
             logger.info("Job is already running and parallel runs are disallowed.");
             return;
         }
@@ -104,6 +104,14 @@ public class JobExecutorService {
                 .map(JobRun::state)
                 .map(runningStates::contains)
                 .orElse(false);
+    }
+
+    private boolean isSameAsLastRun(final Job job, final Integer runId) {
+        if (runId == null) {
+            return false;
+        }
+        final var lastRun = jobService.getLastJobRun(jobService.getId(job));
+        return lastRun.isPresent() && lastRun.get().id() == runId;
     }
 
     @NotNull
