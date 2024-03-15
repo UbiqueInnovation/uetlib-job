@@ -57,19 +57,20 @@ public class JobExecutorService {
         logger.info("{} submitted to executor.", jobClass);
 
         final var job = jobService.instantiateJob(jobClass);
-        final var context = createContext(job, runId, arguments);
-        final var runner = getJobRunner(context, jobRunnerKey);
+        final var jobRunContext = createContext(job, runId, arguments);
+        final var runner = getJobRunner(jobRunContext, jobRunnerKey);
 
-        MDC.put("jobRunId", String.valueOf(context.jobRun().id()));
+        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
 
-        final var scheduled = tryToSchedule(runner, job, context);
+        final var scheduled = tryToSchedule(runner, job, jobRunContext);
 
         if (scheduled) {
             logger.info("Job {} successfully scheduled", job);
         } else {
             logger.error("Job {} could not be scheduled", job);
             jobService.updateJobRun(
-                    context.jobRun()
+                    jobRunContext
+                            .jobRun()
                             .modify()
                             .state(JobRunState.ERROR)
                             .finishedAt(Instant.now())
@@ -80,14 +81,14 @@ public class JobExecutorService {
     }
 
     private boolean tryToSchedule(
-            final JobRunner runner, final Job job, final JobRunContext context) {
+            final JobRunner runner, final Job job, final JobRunContext jobRunContext) {
         try {
             logger.info(
-                    "Scheduling job {} with context {} using runner {}",
+                    "Scheduling job {} with jobRunContext {} using runner {}",
                     job,
-                    context,
+                    jobRunContext,
                     runner.getClass());
-            return runner.submit(job, context);
+            return runner.submit(job, jobRunContext);
         } catch (final Exception e) {
             logger.warn("Unhandled exception while trying to schedule job.", e);
             return false;
@@ -110,11 +111,11 @@ public class JobExecutorService {
 
     @NotNull
     private JobRunner getJobRunner(
-            final JobRunContext context, @Nullable final JobRunnerKey jobRunnerKey) {
+            final JobRunContext jobRunContext, @Nullable final JobRunnerKey jobRunnerKey) {
 
         final var selectedRunnerKey =
                 Objects.requireNonNullElseGet(
-                        jobRunnerKey, () -> getRunnerKeyFromJobProperties(context));
+                        jobRunnerKey, () -> getRunnerKeyFromJobProperties(jobRunContext));
 
         if (!jobRunners.containsKey(selectedRunnerKey)) {
             throw new NoSuchElementException(
@@ -125,7 +126,7 @@ public class JobExecutorService {
     }
 
     @NotNull
-    private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobRunContext context) {
-        return context.properties().get(JobPropertyDefinitions.RUNNER).value();
+    private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobRunContext jobRunContext) {
+        return jobRunContext.properties().get(JobPropertyDefinitions.RUNNER).value();
     }
 }

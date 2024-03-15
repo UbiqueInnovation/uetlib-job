@@ -4,6 +4,7 @@ import ch.ubique.backend.core.utils.CronValidationUtils;
 import ch.ubique.backend.core.validator.ValidCron;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 

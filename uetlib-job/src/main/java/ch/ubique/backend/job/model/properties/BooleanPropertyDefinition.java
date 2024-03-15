@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public final class BooleanPropertyDefinition extends JobPropertyDefinition<Boolean> {
+    @SuppressWarnings("NullableProblems")
     BooleanPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,

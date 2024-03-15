@@ -87,7 +87,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean submit(final Job job, final JobRunContext context) {
+    public boolean submit(final Job job, final JobRunContext jobRunContext) {
         final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
         final var client = tryToGetKubernetesApiClient(kubernetesJob);
         if (client == null) {
@@ -97,10 +97,10 @@ public class KubernetesJobRunner implements JobRunner {
         try {
             final var currentPod = getCurrentPod(client);
 
-            final var k8sContext =
+            final var kubernetesJobRunContext =
                     new KubernetesJobRunContext(
-                            context, new KubernetesContext(client, namespace, currentPod));
-            final var jobDefinition = kubernetesJob.job(k8sContext);
+                            jobRunContext, new KubernetesContext(client, namespace, currentPod));
+            final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
             submitJobToKubernetes(client, jobDefinition);
             return true;
@@ -126,15 +126,15 @@ public class KubernetesJobRunner implements JobRunner {
     private void warnIfNamespaceOrPodUnknown() {
         if (StringUtils.isBlank(namespace)) {
             logger.warn(
-                    "Could not get kubernetes namespace. If this application is not running the on a k8s cluster, "
-                            + "this is the expected behaviour.");
+                    "Could not get kubernetes namespace. If this application is not running the on"
+                        + " a k8s cluster, this is the expected behaviour.");
         }
 
         // Get current pod name
         if (StringUtils.isBlank(currentPodName)) {
             logger.warn(
-                    "Could not get pod name. If this application is not running the on a k8s cluster, "
-                            + "this is the expected behaviour.");
+                    "Could not get pod name. If this application is not running the on a k8s"
+                        + " cluster, this is the expected behaviour.");
         }
     }
 
@@ -147,7 +147,8 @@ public class KubernetesJobRunner implements JobRunner {
     private V1Pod getCurrentPod(final ApiClient client) throws ApiException {
         if (StringUtils.isBlank(currentPodName) || StringUtils.isBlank(namespace)) {
             logger.warn(
-                    "Unable to get current pod, as the current pod name and/or namespace are unknown.");
+                    "Unable to get current pod, as the current pod name and/or namespace are"
+                        + " unknown.");
             return null;
         }
         logger.info("Getting info for {} on namespace {}", currentPodName, namespace);

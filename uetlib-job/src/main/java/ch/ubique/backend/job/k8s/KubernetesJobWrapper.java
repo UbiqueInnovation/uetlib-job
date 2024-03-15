@@ -75,8 +75,8 @@ public class KubernetesJobWrapper extends KubernetesJob {
         if (currentPodSpec.getContainers().size() != 1) {
             throw new IllegalArgumentException(
                     "Expected current importer pod to have exactly one container. This is a"
-                            + " simplification of the current implementation. If needed, you can modify"
-                            + " this code to drop this restriction.");
+                        + " simplification of the current implementation. If needed, you can modify"
+                        + " this code to drop this restriction.");
         }
 
         return currentPodSpec.getContainers().getFirst();

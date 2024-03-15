@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @EnableAutoConfiguration
 @SpringBootTest(
         classes = {
-                JobDataServiceConfig.class,
-                TestcontainerConfig.class,
+            JobDataServiceConfig.class,
+            TestcontainerConfig.class,
         })
 public abstract class BaseJobDatabaseTest {}

@@ -55,7 +55,7 @@ class JobRunArgumentsToStringConverterTest {
     void testConvertForceRunFromDatabaseColumn() {
         final var dbData =
                 "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
-                        + " did I get here\"}";
+                    + " did I get here\"}";
         final var jobRunArguments =
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());

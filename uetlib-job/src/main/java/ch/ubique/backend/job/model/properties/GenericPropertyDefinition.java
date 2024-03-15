@@ -20,6 +20,7 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
 
     private final TypeReference<T> typeReference;
 
+    @SuppressWarnings("NullableProblems")
     GenericPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,

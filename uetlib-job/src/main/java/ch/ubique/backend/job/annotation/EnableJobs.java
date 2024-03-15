@@ -2,6 +2,7 @@ package ch.ubique.backend.job.annotation;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
+
 import org.springframework.core.annotation.AliasFor;
 
 import java.lang.annotation.*;

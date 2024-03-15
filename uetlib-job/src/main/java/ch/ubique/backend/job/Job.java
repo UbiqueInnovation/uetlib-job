@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 
 public interface Job {
 
-    JobRunState run(final JobRunContext context) throws Exception;
+    JobRunState run(final JobRunContext jobRunContext) throws Exception;
 
     /**
      * The version is saved to the database for each job run. With this, we can track, what version
@@ -37,5 +37,9 @@ public interface Job {
     /** You can override this method to give the job a higher priority when waiting in a queue. */
     default int priority() {
         return 0;
+    }
+
+    default boolean supportsForceRun() {
+        return false;
     }
 }
