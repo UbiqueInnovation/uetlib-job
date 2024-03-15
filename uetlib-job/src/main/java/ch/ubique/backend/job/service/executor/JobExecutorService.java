@@ -52,7 +52,7 @@ public class JobExecutorService {
             @Nullable final JobRunnerKey jobRunnerKey) {
 
         final var job = jobService.instantiateJob(jobClass);
-        if (!job.allowParallelRuns() || isCurrentlyRunning(job)) {
+        if (!job.allowParallelRuns() && isCurrentlyRunning(job)) {
             logger.info("Job is already running and parallel runs are disallowed.");
             return;
         }
