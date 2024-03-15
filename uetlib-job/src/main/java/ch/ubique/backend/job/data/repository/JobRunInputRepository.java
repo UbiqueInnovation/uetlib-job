@@ -19,6 +19,7 @@ public interface JobRunInputRepository extends JpaRepository<JobRunInputEntity, 
     @Transactional
     @Modifying
     @Query(
-            "delete from JobRunInputEntity jri where jri.runId in (select jr.id from JobRunEntity jr where jr.jobId = :jobId)")
+            "delete from JobRunInputEntity jri where jri.runId in (select jr.id from JobRunEntity"
+                + " jr where jr.jobId = :jobId)")
     void deleteAllByJobId(int jobId);
 }

@@ -37,8 +37,8 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Duration> MAX_DURATION_IN_SCHEDULED_STATE =
             new DurationPropertyDefinition(
                     "MAX_DURATION_IN_SCHEDULED_STATE",
-                    "The monitoring will report an error if the latest run is longer in the SCHEDULED state than the"
-                            + " specified value.",
+                    "The monitoring will report an error if the latest run is longer in the"
+                        + " SCHEDULED state than the specified value.",
                     JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofMinutes(15));
@@ -53,8 +53,8 @@ public final class JobPropertyDefinitions {
             new GenericPropertyDefinition<>(
                     "RUNNER_GROUP",
                     "Jobs with the same runner group share the same executor service. Jobs with"
-                            + " different groups use different executors and may run in parallel. Only"
-                            + " applicable for RUNNER == CURRENT",
+                        + " different groups use different executors and may run in parallel. Only"
+                        + " applicable for RUNNER == CURRENT",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     new RunnerGroup("default", 1),
@@ -130,7 +130,8 @@ public final class JobPropertyDefinitions {
     public static final EnumPropertyDefinition<JobManualTriggerMode> JOB_MANUAL_TRIGGER_MODE =
             new EnumPropertyDefinition<>(
                     "JOB_MANUAL_TRIGGER_MODE",
-                    "Whether the job can be executed manually from the interface, or replayed with context.",
+                    "Whether the job can be executed manually from the interface, or replayed with"
+                        + " context.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobManualTriggerMode.NEW_RUN_ALLOWED);
 

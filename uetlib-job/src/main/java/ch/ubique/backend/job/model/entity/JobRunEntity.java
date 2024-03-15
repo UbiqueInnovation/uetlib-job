@@ -37,7 +37,6 @@ public class JobRunEntity {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
-
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = JobRunArgumentsToStringConverter.class)
     @Column(name = "job_run_arguments", nullable = false)

@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.k8s;
 
+import static java.util.Map.entry;
+import static java.util.Map.ofEntries;
 import static java.util.stream.Collectors.*;
 
 import ch.ubique.backend.job.Job;
@@ -112,7 +114,8 @@ public abstract class KubernetesJob implements Job {
                                                     .getEnvironment()
                                                     .getProperty("spring.application.name"));
                             logger.warn(
-                                    "Could not get current pod name, using spring.application.name={} as fallback",
+                                    "Could not get current pod name, using"
+                                        + " spring.application.name={} as fallback",
                                     springApplicationName);
                             return springApplicationName;
                         });
@@ -137,7 +140,8 @@ public abstract class KubernetesJob implements Job {
                                                     .getEnvironment()
                                                     .getProperty("spring.application.name"));
                             logger.warn(
-                                    "Could not get current deployment name, using spring.application.name={} as fallback",
+                                    "Could not get current deployment name, using"
+                                        + " spring.application.name={} as fallback",
                                     springApplicationName);
                             return springApplicationName;
                         });
@@ -147,12 +151,12 @@ public abstract class KubernetesJob implements Job {
             final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentPodName = getCurrentPodName(kubernetesJobRunContext);
         // Add annotations to make Prometheus scrape our job
-        return Map.ofEntries(
-                Map.entry("prometheus.io/path", "/actuator/prometheus"),
-                Map.entry("prometheus.io/port", "8085"),
-                Map.entry("prometheus.io/scrape", "true"),
-                // for easy identification after teh fact
-                Map.entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
+        return ofEntries(
+                entry("prometheus.io/path", "/actuator/prometheus"),
+                entry("prometheus.io/port", "8085"),
+                entry("prometheus.io/scrape", "true"),
+                // for easy identification after the fact
+                entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
     }
 
     protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
@@ -196,7 +200,8 @@ public abstract class KubernetesJob implements Job {
 
         // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
         logger.warn(
-                "job name cannot be longer than 63 characters, got {} characters for job name {}. Using {}",
+                "job name cannot be longer than 63 characters, got {} characters for job name {}."
+                    + " Using {}",
                 kubernetesJobName.length(),
                 kubernetesJobName,
                 shortKubernetesJobName);
@@ -222,7 +227,8 @@ public abstract class KubernetesJob implements Job {
     protected String serviceAccountName(final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext)
                 .map(V1PodSpec::getServiceAccountName)
-                // null is fine (locally when not running in k8s, will be set to default serviceAccount by k8s
+                // null is fine (locally when not running in k8s, will be set to default
+                // serviceAccount by k8s
                 .orElse(null);
     }
 
@@ -289,7 +295,8 @@ public abstract class KubernetesJob implements Job {
                         .orElseThrow(
                                 () ->
                                         new IllegalArgumentException(
-                                                "must specify K8S_REQUESTS_CPU for a dedicated KubernetesJob"));
+                                                "must specify K8S_REQUESTS_CPU for a dedicated"
+                                                    + " KubernetesJob"));
         final var memoryRequests =
                 kubernetesJobRunContext
                         .jobRunContext()
@@ -300,11 +307,11 @@ public abstract class KubernetesJob implements Job {
                         .orElseThrow(
                                 () ->
                                         new IllegalArgumentException(
-                                                "must specify K8S_REQUESTS_MEMORY for a dedicated KubernetesJob"));
+                                                "must specify K8S_REQUESTS_MEMORY for a dedicated"
+                                                    + " KubernetesJob"));
 
-        final var requests =
-                Map.ofEntries(Map.entry("cpu", cpuRequests), Map.entry("memory", memoryRequests));
-        final var limits = Map.ofEntries(Map.entry("memory", memoryRequests));
+        final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
+        final var limits = ofEntries(entry("memory", memoryRequests));
         return new V1ResourceRequirements().requests(requests).limits(limits);
     }
 }
