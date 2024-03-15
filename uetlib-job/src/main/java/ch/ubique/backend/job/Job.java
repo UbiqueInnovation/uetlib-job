@@ -39,6 +39,10 @@ public interface Job {
         return 0;
     }
 
+    default boolean allowParallelRuns() {
+        return false;
+    }
+
     default boolean supportsForceRun() {
         return false;
     }
