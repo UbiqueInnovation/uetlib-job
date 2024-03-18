@@ -5,7 +5,6 @@ import static java.util.Map.ofEntries;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
-import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
@@ -52,13 +51,19 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
     @NotNull
     private Optional<Map<String, Object>> checkJobOverdue(final JobClassAndId job) {
         final Optional<Duration> lastRunMaxAgeMaybe;
+        final boolean lastRunMaxAgeAllowNoRun;
         try {
             lastRunMaxAgeMaybe =
                     jobService
                             .getProperties(job)
                             .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE)
                             .valueMaybe();
-        } catch (ClassNotFoundException e) {
+            lastRunMaxAgeAllowNoRun =
+                    jobService
+                            .getProperties(job)
+                            .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE_ALLOW_NO_RUN)
+                            .value();
+        } catch (final ClassNotFoundException e) {
             return Optional.empty();
         }
 
@@ -68,11 +73,23 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
 
         final var lastRunMaxAge = lastRunMaxAgeMaybe.get();
 
-        final var lastRunStartedAt =
-                jobDataService
-                        .findLatestJobRun(job.id())
-                        .map(JobRun::startedAt)
-                        .orElse(Instant.EPOCH);
+        final var lastRunMaybe = jobDataService.findLatestJobRun(job.id());
+
+        if (lastRunMaybe.isEmpty()) {
+            if (lastRunMaxAgeAllowNoRun) {
+                return Optional.empty();
+            }
+            //noinspection ConstantValue
+            return Optional.of(
+                    ofEntries(
+                            entry("job", job.canonicalClassName()),
+                            entry("lastRunMaxAge", lastRunMaxAge),
+                            entry("lastRunMaxAgeAllowNoRun", lastRunMaxAgeAllowNoRun),
+                            entry("lastRunStartedAt", "null"),
+                            entry("lastRunAge", "null")));
+        }
+
+        final var lastRunStartedAt = lastRunMaybe.get().startedAt();
 
         final var lastRunAge = Duration.between(lastRunStartedAt, Instant.now());
 
@@ -84,6 +101,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
                 ofEntries(
                         entry("job", job.canonicalClassName()),
                         entry("lastRunMaxAge", lastRunMaxAge),
+                        entry("lastRunMaxAgeAllowNoRun", lastRunMaxAgeAllowNoRun),
                         entry("lastRunStartedAt", lastRunStartedAt),
                         entry("lastRunAge", lastRunAge)));
     }
