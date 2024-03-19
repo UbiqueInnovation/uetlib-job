@@ -116,7 +116,7 @@ public class JobDataService {
                         .map(p -> (Pageable) PageRequest.of(p, pageSize))
                         // pre v1.5 does not send page and pageSize parameter, need to fall back to
                         // unpaged
-                        .orElse(Pageable.unpaged());
+                        .orElseGet(Pageable::unpaged);
         return jobRepository.findAllByOrderById(pageRequest).map(JobEntity::toRecord);
     }
 

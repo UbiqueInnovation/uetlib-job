@@ -256,7 +256,7 @@ public class JobControllerService {
             throw new IllegalArgumentException(
                     MessageFormat.format(
                             "job class ''{0}'' of job run ''{1}'' does not match given"
-                                + " jobIdOrClassName ''{2}''",
+                                    + " jobIdOrClassName ''{2}''",
                             jobClass, jobRunId, jobIdOrClassName));
         }
         final var replayExecutionAllowed =
@@ -319,10 +319,8 @@ public class JobControllerService {
                 job.supportsForceRun(),
                 manualReplayMode
                         .valueMaybe()
-                        .orElse(
-                                JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE
-                                        .defaultValue()
-                                        .orElseThrow()));
+                        .or(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE::defaultValue)
+                        .orElseThrow());
     }
 
     private Stream<Trigger> getCronTriggers(final Job job) {
