@@ -37,8 +37,8 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<Boolean> LAST_RUN_MAX_AGE_ALLOW_NO_RUN =
             new BooleanPropertyDefinition(
                     "LAST_RUN_MAX_AGE_ALLOW_NO_RUN",
-                    "The monitoring will report an error if the latest run is older than the"
-                            + " specified value, only if this property is set to false",
+                    "When set to true, the JobLastRunMaxAgeCheck will not report an error if there"
+                            + " is no last run",
                     JobPropertyDefinitionGroup.MONITORING,
                     false);
     public static final JobPropertyDefinition<Duration> MAX_DURATION_IN_SCHEDULED_STATE =
