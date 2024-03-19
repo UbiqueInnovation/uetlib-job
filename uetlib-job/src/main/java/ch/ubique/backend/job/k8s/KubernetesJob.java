@@ -115,7 +115,7 @@ public abstract class KubernetesJob implements Job {
                                                     .getProperty("spring.application.name"));
                             logger.warn(
                                     "Could not get current pod name, using"
-                                        + " spring.application.name={} as fallback",
+                                            + " spring.application.name={} as fallback",
                                     springApplicationName);
                             return springApplicationName;
                         });
@@ -141,7 +141,7 @@ public abstract class KubernetesJob implements Job {
                                                     .getProperty("spring.application.name"));
                             logger.warn(
                                     "Could not get current deployment name, using"
-                                        + " spring.application.name={} as fallback",
+                                            + " spring.application.name={} as fallback",
                                     springApplicationName);
                             return springApplicationName;
                         });
@@ -201,7 +201,7 @@ public abstract class KubernetesJob implements Job {
         // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
         logger.warn(
                 "job name cannot be longer than 63 characters, got {} characters for job name {}."
-                    + " Using {}",
+                        + " Using {}",
                 kubernetesJobName.length(),
                 kubernetesJobName,
                 shortKubernetesJobName);
@@ -236,7 +236,7 @@ public abstract class KubernetesJob implements Job {
             final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext)
                 .map(V1PodSpec::getImagePullSecrets)
-                .orElse(fallBackImagePullSecret());
+                .orElseGet(this::fallBackImagePullSecret);
     }
 
     private List<V1LocalObjectReference> fallBackImagePullSecret() {
@@ -253,14 +253,14 @@ public abstract class KubernetesJob implements Job {
     protected List<V1Volume> volumes(final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext)
                 .map(V1PodSpec::getVolumes)
-                .orElse(List.of());
+                .orElseGet(List::of);
     }
 
     protected Map<String, String> nodeSelector(
             final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext)
                 .map(V1PodSpec::getNodeSelector)
-                .orElse(Map.of());
+                .orElseGet(Map::of);
     }
 
     protected abstract Collection<V1Container> containers(
@@ -296,7 +296,7 @@ public abstract class KubernetesJob implements Job {
                                 () ->
                                         new IllegalArgumentException(
                                                 "must specify K8S_REQUESTS_CPU for a dedicated"
-                                                    + " KubernetesJob"));
+                                                        + " KubernetesJob"));
         final var memoryRequests =
                 kubernetesJobRunContext
                         .jobRunContext()
@@ -308,7 +308,7 @@ public abstract class KubernetesJob implements Job {
                                 () ->
                                         new IllegalArgumentException(
                                                 "must specify K8S_REQUESTS_MEMORY for a dedicated"
-                                                    + " KubernetesJob"));
+                                                        + " KubernetesJob"));
 
         final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
         final var limits = ofEntries(entry("memory", memoryRequests));
