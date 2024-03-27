@@ -3,6 +3,7 @@ package ch.ubique.backend.job.model;
 import ch.ubique.backend.core.regex.SerializableMatchResult;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import java.nio.file.Path;
@@ -19,7 +20,7 @@ public record FileTriggerContext(
         @NotNull Path watchedPath,
         @NotNull FileChangeEvent fileChangeEvent,
         @NotNull String fileName,
-        @NotNull SerializableMatchResult matchResult)
+        @NotNull @Valid SerializableMatchResult matchResult)
         implements TriggerContext {
 
     public static FileTriggerContext from(

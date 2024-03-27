@@ -4,12 +4,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.annotation.Nullable;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRunArguments(
-        boolean forceRun, @NotNull TriggerContext triggerContext, @Nullable Object additionalData) {
+        boolean forceRun, @NotNull @Valid TriggerContext triggerContext, @Nullable Object additionalData) {
 
     public static JobRunArguments DEFAULT = new JobRunArguments(false);
 
