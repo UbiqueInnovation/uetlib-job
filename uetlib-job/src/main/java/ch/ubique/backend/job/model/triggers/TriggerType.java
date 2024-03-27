@@ -11,7 +11,8 @@ public enum TriggerType {
     STARTUP(RunOnStartupTrigger.class),
     FIXED_RATE(FixedRateTrigger.class),
     FILE(FileTrigger.class),
-    JOB_RUN_STATE(JobRunStateTrigger.class);
+    JOB_RUN_STATE(JobRunStateTrigger.class),
+    DATABASE_SUBMISSION(DatabaseSubmissionTrigger.class);
 
     private static final Map<Class<? extends TriggerDefinition>, TriggerType>
             TRIGGER_TYPE_BY_DEFINITION_CLASS =
