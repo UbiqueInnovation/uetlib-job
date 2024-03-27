@@ -1,3 +1,5 @@
+-- 1.0.0
+
 create table t_job
 (
     pk_job_id integer auto_increment not null primary key,
@@ -33,6 +35,8 @@ create table t_job_run_input
     input_name          varchar(255)           not null,
     input_hash          varchar(128)           not null
 );
+
+-- 1.3.0
 
 CREATE TABLE logging_event
 (
@@ -72,6 +76,8 @@ CREATE TABLE logging_event_exception
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- 2.0.0
+
 CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER auto_increment NOT NULL PRIMARY KEY,
@@ -83,6 +89,18 @@ CREATE TABLE t_job_trigger
 CREATE INDEX idx_type ON t_job_trigger (type);
 CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
 
+-- 2.1.2
+
 CREATE INDEX logging_event_job_run_id_index
     ON logging_event (job_run_id);
 
+-- 2.3.0
+
+create table t_job_run_database_submission
+(
+    pk_job_run_database_submission_id     integer auto_increment not null primary key,
+    fk_job_id                             integer                not null references t_job (pk_job_id) on delete cascade on update cascade,
+    submitted_at                          timestamp              not null,
+    executed_at                           timestamp,
+    job_run_database_submission_arguments json                   not null
+);

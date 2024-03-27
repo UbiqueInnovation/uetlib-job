@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.data.service;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
+import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
@@ -40,6 +41,7 @@ public class JobDataService {
     private final JobPropertyRepository jobPropertyRepository;
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
+    private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final LoggingEventRepository loggingEventRepository;
 
     @PersistenceContext private EntityManager entityManager;
@@ -50,12 +52,14 @@ public class JobDataService {
             final JobPropertyRepository jobPropertyRepository,
             final JobRunRepository jobRunRepository,
             final JobRunInputRepository jobRunInputRepository,
+            final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
             final LoggingEventRepository loggingEventRepository) {
         this.jobRepository = jobRepository;
         this.jobTriggerRepository = jobTriggerRepository;
         this.jobPropertyRepository = jobPropertyRepository;
         this.jobRunRepository = jobRunRepository;
         this.jobRunInputRepository = jobRunInputRepository;
+        this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
         this.loggingEventRepository = loggingEventRepository;
     }
 
@@ -362,5 +366,36 @@ public class JobDataService {
         return jobRunRepository.findAllByFinishedAtIsNotNullAndFinishedAtAfter(instant).stream()
                 .map(JobRunEntity::toJobRun)
                 .toList();
+    }
+
+    @Transactional
+    public void insertDatabaseSubmission(
+            final int jobId,
+            final JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments) {
+        final var submittedAt = Instant.now();
+        final var entity =
+                new JobRunDatabaseSubmissionEntity(
+                        jobId, submittedAt, jobRunDatabaseSubmissionArguments);
+        jobRunDatabaseSubmissionRepository.save(entity);
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobRunDatabaseSubmission> findNewDatabaseSubmissions() {
+        return jobRunDatabaseSubmissionRepository.findAllBySubmittedAtIsNull().stream()
+                .map(JobRunDatabaseSubmissionEntity::toJobRunDatabaseSubmission)
+                .toList();
+    }
+
+    @Transactional
+    public void markDatabaseSubmissionAsSubmitted(final int databaseSubmissionId) {
+        final var entity =
+                jobRunDatabaseSubmissionRepository
+                        .findById(databaseSubmissionId)
+                        .orElseThrow(
+                                ResourceNotFoundException.supplierWithMessage(
+                                        "No JobRunDatabaseSubmissionEntity with id {0} found",
+                                        databaseSubmissionId));
+        entity.setSubmittedAt(Instant.now());
+        jobRunDatabaseSubmissionRepository.save(entity);
     }
 }
