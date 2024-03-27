@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.controller;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
@@ -114,7 +112,7 @@ public class BackendLibJobStatusController {
             jobControllerService.startJobManual(jobIdOrClassName, forceRun);
             return ResponseEntity.ok(new StringResponse("Job successfully started"));
         } catch (final ManualTriggerNotAllowedException e) {
-            return ResponseEntity.status(BAD_REQUEST)
+            return ResponseEntity.badRequest()
                     .body(
                             new StringResponse(
                                     "Job %s cannot be manually started."
@@ -137,7 +135,7 @@ public class BackendLibJobStatusController {
             jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
             return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
         } catch (final ManualTriggerNotAllowedException e) {
-            return ResponseEntity.status(BAD_REQUEST)
+            return ResponseEntity.badRequest()
                     .body(
                             new StringResponse(
                                     "Job %s cannot be replayed.".formatted(jobIdOrClassName)));
@@ -151,7 +149,7 @@ public class BackendLibJobStatusController {
             jobControllerService.replayJobRun(jobIdOrClassName);
             return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
         } catch (final ManualTriggerNotAllowedException e) {
-            return ResponseEntity.status(BAD_REQUEST)
+            return ResponseEntity.badRequest()
                     .body(
                             new StringResponse(
                                     "Job %s cannot be replayed".formatted(jobIdOrClassName)));
