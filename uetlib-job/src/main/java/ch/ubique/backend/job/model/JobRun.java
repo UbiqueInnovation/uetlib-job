@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model;
 
 import jakarta.annotation.Nullable;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Duration;
@@ -14,7 +15,7 @@ public record JobRun(
         @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
         @NotNull JobRunState state,
-        @Nullable JobRunArguments jobRunArguments) {
+        @Nullable @Valid JobRunArguments jobRunArguments) {
 
     public Duration runDuration() {
         final var end = Objects.requireNonNullElse(finishedAt(), Instant.now());
