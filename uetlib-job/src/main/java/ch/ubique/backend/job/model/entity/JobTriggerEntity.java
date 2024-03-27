@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model.entity;
 
+import ch.ubique.backend.job.model.converters.TriggerDefinitionToStringConverter;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.model.triggers.TriggerType;
