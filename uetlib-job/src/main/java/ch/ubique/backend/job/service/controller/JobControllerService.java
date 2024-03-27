@@ -222,7 +222,7 @@ public class JobControllerService {
 
     /**
      * @throws ClassNotFoundException If the job class could not be found for the given id or class
-     * @throws IllegalArgumentException If the job does not allow manual execution
+     * @throws ManualTriggerNotAllowedException If the job does not allow manual execution
      */
     public void startJobManual(final String jobIdOrClassName, final boolean forceRun)
             throws ClassNotFoundException, ManualTriggerNotAllowedException {
