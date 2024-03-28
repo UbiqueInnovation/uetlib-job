@@ -11,4 +11,6 @@ import java.util.List;
 public interface JobRunDatabaseSubmissionRepository
         extends JpaRepository<JobRunDatabaseSubmissionEntity, Integer> {
     List<JobRunDatabaseSubmissionEntity> findAllBySubmittedAtIsNull();
+
+    void deleteByJobId(int jobId);
 }

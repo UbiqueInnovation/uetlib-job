@@ -398,4 +398,9 @@ public class JobDataService {
         entity.setSubmittedAt(Instant.now());
         jobRunDatabaseSubmissionRepository.save(entity);
     }
+
+    @Transactional
+    public void deleteJobRunDatabaseSubmissionsByJobId(final int jobId) {
+        jobRunDatabaseSubmissionRepository.deleteByJobId(jobId);
+    }
 }
