@@ -117,6 +117,9 @@ public class CleanupJob implements Job {
             // Delete job runs - cascades to delete job run input files, too
             jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
 
+            // Delete job database submissions that are already submitted - cascades to delete job run input files, too
+            jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
+
             logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
         }
 
