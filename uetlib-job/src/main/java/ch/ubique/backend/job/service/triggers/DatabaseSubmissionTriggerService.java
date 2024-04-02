@@ -47,10 +47,15 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
     private void onNewDatabaseSubmission(final JobRunDatabaseSubmission jobRunDatabaseSubmission)
             throws ClassNotFoundException {
         final var jobClass = jobService.getJobClass(jobRunDatabaseSubmission.jobId());
+        final var jobRunDatabaseSubmissionArguments =
+                jobRunDatabaseSubmission.jobRunDatabaseSubmissionArguments();
+
         logger.info(
-                "Got new database submission for job {} with arguments {}.",
+                "Got new database submission for job {} with submission arguments {}.",
                 jobClass,
-                jobRunDatabaseSubmission.jobRunDatabaseSubmissionArguments());
+                jobRunDatabaseSubmissionArguments);
+
+        final var jobRunArguments = jobRunDatabaseSubmissionArguments.toJobRunArguments();
 
         registeredTriggers.entrySet().stream()
                 .filter(
@@ -62,13 +67,13 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
                         entry -> {
                             final var consumer = triggerCallbacks.get(entry.getKey());
                             logger.info("Calling callback for {}.", entry.getValue());
-                            consumer.accept(new JobRunArguments());
+                            consumer.accept(jobRunArguments);
                         });
         logger.info(
-                "Submitted new database submission for job {} with arguments {}.",
+                "Submitted new job run from database submission for job {} with run arguments {}.",
                 jobClass,
-                jobRunDatabaseSubmission.jobRunDatabaseSubmissionArguments());
         jobDataService.markDatabaseSubmissionAsSubmitted(jobRunDatabaseSubmission.id());
+                jobRunArguments);
     }
 
     @Override
