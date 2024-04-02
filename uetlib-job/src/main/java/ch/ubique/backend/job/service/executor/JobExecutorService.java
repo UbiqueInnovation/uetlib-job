@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.executor;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
@@ -58,8 +59,9 @@ public class JobExecutorService {
         }
 
         logger.info("{} submitted to executor.", jobClass);
-        final var jobRunContext = createContext(job, runId, arguments);
-        final var runner = getJobRunner(jobRunContext, jobRunnerKey);
+        final var selectedJobRunnerKey = getSelectedJobRunnerKey(job, jobRunnerKey);
+        final var jobRunContext = createContext(job, runId, selectedJobRunnerKey, arguments);
+        final var runner = jobRunners.get(jobRunnerKey);
 
         MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
 
@@ -96,7 +98,6 @@ public class JobExecutorService {
         }
     }
 
-    @NotNull
     private boolean isCurrentlyRunning(final Job job) {
         final var runningStates = Set.of(JobRunState.SCHEDULED, JobRunState.BUSY);
         return jobService
@@ -118,34 +119,36 @@ public class JobExecutorService {
     private JobRunContext createContext(
             @NotNull final Job job,
             @Nullable final Integer runId,
+            @NotNull final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
         final var arguments =
                 Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
-        return new JobRunContext(
-                new JobClassAndId(jobService.getId(job), job.getClass().getCanonicalName()),
-                jobService.getOrCreateJobRun(job, runId, arguments),
-                arguments,
-                jobService.getProperties(job));
+        final var jobClassAndId =
+                new JobClassAndId(jobService.getId(job), job.getClass().getCanonicalName());
+        final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
+        final var jobProperties = jobService.getProperties(job);
+        return new JobRunContext(jobClassAndId, jobRun, arguments, jobProperties);
     }
 
     @NotNull
-    private JobRunner getJobRunner(
-            final JobRunContext jobRunContext, @Nullable final JobRunnerKey jobRunnerKey) {
+    private JobRunnerKey getSelectedJobRunnerKey(
+            @NotNull final Job job, @Nullable final JobRunnerKey jobRunnerKey) {
+        final var jobProperties = jobService.getProperties(job);
 
-        final var selectedRunnerKey =
+        final var selectedJobRunnerKey =
                 Objects.requireNonNullElseGet(
-                        jobRunnerKey, () -> getRunnerKeyFromJobProperties(jobRunContext));
+                        jobRunnerKey, () -> getRunnerKeyFromJobProperties(jobProperties));
 
-        if (!jobRunners.containsKey(selectedRunnerKey)) {
+        if (!jobRunners.containsKey(selectedJobRunnerKey)) {
             throw new NoSuchElementException(
-                    "Could not find a runner for the given runner key " + selectedRunnerKey);
+                    "Could not find a runner for the given runner key " + selectedJobRunnerKey);
         }
 
-        return jobRunners.get(selectedRunnerKey);
+        return selectedJobRunnerKey;
     }
 
     @NotNull
-    private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobRunContext jobRunContext) {
-        return jobRunContext.properties().get(JobPropertyDefinitions.RUNNER).value();
+    private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobProperties jobProperties) {
+        return jobProperties.get(JobPropertyDefinitions.RUNNER).value();
     }
 }

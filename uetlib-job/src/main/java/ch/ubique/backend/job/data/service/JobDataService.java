@@ -7,6 +7,7 @@ import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.properties.*;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.*;
 
 import com.pivovarit.function.ThrowingFunction;
@@ -96,14 +97,14 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsInclude(List<Integer> includeJobIds) {
+    public List<JobClassAndId> findJobsInclude(final List<Integer> includeJobIds) {
         return jobRepository.findAllByIdInOrderById(includeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsExclude(List<Integer> excludeJobIds) {
+    public List<JobClassAndId> findJobsExclude(final List<Integer> excludeJobIds) {
         return jobRepository.findAllByIdNotInOrderById(excludeJobIds).stream()
                 .map(JobEntity::toRecord)
                 .toList();
@@ -301,13 +302,17 @@ public class JobDataService {
 
     @Transactional
     public JobRun createJobRun(
-            final int jobId, final int jobVersion, final JobRunArguments arguments) {
+            final int jobId,
+            final int jobVersion,
+            final JobRunnerKey runnerKey,
+            final JobRunArguments arguments) {
         return jobRunRepository
                 .save(
                         new JobRunEntity(
                                 jobId,
                                 jobVersion,
                                 JobRunState.SCHEDULED,
+                                runnerKey,
                                 Instant.now(),
                                 null,
                                 arguments))
@@ -346,8 +351,8 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Collection<JobRun> findJobRunsWithoutFinishedTimestamp() {
-        return jobRunRepository.findAllByFinishedAtIsNull().stream()
+    public Collection<JobRun> findAllCurrentRunnerJobRunsWithoutFinishedTimestamp() {
+        return jobRunRepository.findAllByRunnerKeyAndFinishedAtIsNull(JobRunnerKey.CURRENT).stream()
                 .map(JobRunEntity::toJobRun)
                 .toList();
     }

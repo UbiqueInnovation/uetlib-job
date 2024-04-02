@@ -4,6 +4,7 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import jakarta.persistence.*;
 
@@ -28,8 +29,12 @@ public class JobRunEntity {
     private Integer jobVersion;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "state", nullable = false, length = 20)
+    @Column(name = "state", nullable = false, length = Integer.MAX_VALUE)
     private JobRunState state;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
+    private JobRunnerKey runnerKey;
 
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
@@ -49,6 +54,7 @@ public class JobRunEntity {
         jobId = jobRun.jobId();
         jobVersion = jobRun.jobVersion();
         state = jobRun.state();
+        runnerKey = jobRun.runnerKey();
         startedAt = jobRun.startedAt();
         finishedAt = jobRun.finishedAt();
         jobRunArguments = jobRun.jobRunArguments();
@@ -58,18 +64,21 @@ public class JobRunEntity {
             final int jobId,
             final int jobVersion,
             final JobRunState state,
+            final JobRunnerKey runnerKey,
             final Instant startedAt,
             final Instant finishedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.jobVersion = jobVersion;
         this.state = state;
+        this.runnerKey = runnerKey;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
         this.jobRunArguments = jobRunArguments;
     }
 
     public JobRun toJobRun() {
-        return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state, jobRunArguments);
+        return new JobRun(
+                id, jobId, jobVersion, startedAt, finishedAt, state, runnerKey, jobRunArguments);
     }
 }

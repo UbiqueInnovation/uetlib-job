@@ -19,7 +19,6 @@ import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.storage.annotations.EnableAnnotationUtils;
 
 import com.pivovarit.function.ThrowingFunction;
-import com.pivovarit.function.ThrowingPredicate;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -123,8 +122,7 @@ public class JobService {
 
     private void setAbortedRunsToUnfinished() {
         final var now = Instant.now();
-        jobDataService.findJobRunsWithoutFinishedTimestamp().stream()
-                .filter(ThrowingPredicate.unchecked(this::usesCurrentRunner))
+        jobDataService.findAllCurrentRunnerJobRunsWithoutFinishedTimestamp().stream()
                 .map(
                         jobRun ->
                                 jobRun.modify()
@@ -132,13 +130,6 @@ public class JobService {
                                         .state(JobRunState.UNFINISHED)
                                         .toJobRun())
                 .forEach(jobDataService::saveJobRun);
-    }
-
-    private boolean usesCurrentRunner(final JobRun jobRun) throws ClassNotFoundException {
-        return getProperties(instantiateJob(getJobClass(jobRun.jobId())))
-                        .get(JobPropertyDefinitions.RUNNER)
-                        .value()
-                == JobRunnerKey.CURRENT;
     }
 
     public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {
@@ -206,19 +197,22 @@ public class JobService {
         return getJobClass(jobDataService.findJobById(jobId).orElseThrow().canonicalClassName());
     }
 
-    public JobRun createNewJobRun(
-            @NotNull final Job job, @NotNull final JobRunArguments arguments) {
+    private JobRun createNewJobRun(
+            @NotNull final Job job,
+            @NotNull final JobRunnerKey runnerKey,
+            @NotNull final JobRunArguments arguments) {
         final var jobId = getJobId(job.getClass());
-        return jobDataService.createJobRun(jobId, job.version(), arguments);
+        return jobDataService.createJobRun(jobId, job.version(), runnerKey, arguments);
     }
 
     public JobRun getOrCreateJobRun(
             @NotNull final Job job,
             @Nullable final Integer runId,
+            @NotNull final JobRunnerKey runnerKey,
             @NotNull final JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
-                .orElseGet(() -> createNewJobRun(job, arguments));
+                .orElseGet(() -> createNewJobRun(job, runnerKey, arguments));
     }
 
     public JobRun getJobRun(final int runId) {

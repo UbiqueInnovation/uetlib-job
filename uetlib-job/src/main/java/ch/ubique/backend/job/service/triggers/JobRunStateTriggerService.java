@@ -42,7 +42,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
         this.jobService = jobService;
         registeredTriggers = new ConcurrentHashMap<>();
         triggerCallbacks = new ConcurrentHashMap<>();
-        activeJobRuns = jobDataService.findJobRunsWithoutFinishedTimestamp();
+        activeJobRuns = jobDataService.findAllCurrentRunnerJobRunsWithoutFinishedTimestamp();
         lastCheck = Instant.now();
     }
 
@@ -52,7 +52,8 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
         lastCheck = Instant.now();
 
         // Check if the currently active jobs differ to before
-        final var currentlyActive = jobDataService.findJobRunsWithoutFinishedTimestamp();
+        final var currentlyActive =
+                jobDataService.findAllCurrentRunnerJobRunsWithoutFinishedTimestamp();
         final var previouslyActiveById =
                 activeJobRuns.stream().collect(Collectors.toMap(JobRun::id, Function.identity()));
         for (final var jobRun : currentlyActive) {

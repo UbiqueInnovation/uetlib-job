@@ -10,6 +10,7 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.config.JobRunStateTriggerServiceTestConfig;
@@ -71,15 +72,22 @@ class JobRunStateTriggerServiceTest {
 
         final var jobRun =
                 new JobRun(
-                        1, 1, 1, Instant.now(), null, JobRunState.SCHEDULED, new JobRunArguments());
-        doReturn(Set.of(jobRun)).when(jobDataService).findJobRunsWithoutFinishedTimestamp();
+                        1,
+                        1,
+                        1,
+                        Instant.now(),
+                        null,
+                        JobRunState.SCHEDULED,
+                        JobRunnerKey.CURRENT,
+                        new JobRunArguments());
+        doReturn(Set.of(jobRun)).when(jobDataService).findAllCurrentRunnerJobRunsWithoutFinishedTimestamp();
 
         triggerService.checkJobRuns();
 
         assertEquals(1, scheduledRunCount.get());
         assertEquals(0, doneRunCount.get());
 
-        doReturn(Set.of()).when(jobDataService).findJobRunsWithoutFinishedTimestamp();
+        doReturn(Set.of()).when(jobDataService).findAllCurrentRunnerJobRunsWithoutFinishedTimestamp();
         doReturn(
                         Set.of(
                                 jobRun.modify()
