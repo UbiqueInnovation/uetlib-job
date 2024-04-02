@@ -68,7 +68,6 @@ public class JobDataService {
         return jobRepository.findById(id).map(JobEntity::toRecord);
     }
 
-    @SuppressWarnings("unused") // used in swisstopo-backend::LastLayerUpdateService
     @Transactional(readOnly = true)
     public Optional<JobClassAndId> findJobByCanonicalClassName(final String clazz) {
         return jobRepository.findByCanonicalClassName(clazz).map(JobEntity::toRecord);
@@ -369,7 +368,7 @@ public class JobDataService {
     }
 
     @Transactional
-    public void insertDatabaseSubmission(
+    public void insertNewDatabaseSubmission(
             final int jobId,
             final JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments) {
         final var submittedAt = Instant.now();
