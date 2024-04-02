@@ -61,7 +61,7 @@ public class JobExecutorService {
         logger.info("{} submitted to executor.", jobClass);
         final var selectedJobRunnerKey = getSelectedJobRunnerKey(job, jobRunnerKey);
         final var jobRunContext = createContext(job, runId, selectedJobRunnerKey, arguments);
-        final var runner = jobRunners.get(jobRunnerKey);
+        final var runner = jobRunners.get(selectedJobRunnerKey);
 
         MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
 
