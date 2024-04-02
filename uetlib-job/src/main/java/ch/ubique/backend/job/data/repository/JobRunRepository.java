@@ -3,6 +3,7 @@ package ch.ubique.backend.job.data.repository;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +19,7 @@ import java.util.Optional;
 public interface JobRunRepository
         extends JpaRepository<JobRunEntity, Integer>, JpaSpecificationExecutor<JobRunEntity> {
 
-    Collection<JobRunEntity> findAllByFinishedAtIsNull();
+    Collection<JobRunEntity> findAllByRunnerKeyAndFinishedAtIsNull(JobRunnerKey runnerKey);
 
     Collection<JobRunEntity> findAllByFinishedAtIsNotNullAndFinishedAtAfter(Instant instant);
 

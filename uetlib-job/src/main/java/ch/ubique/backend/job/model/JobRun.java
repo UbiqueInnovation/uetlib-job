@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model;
 
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +17,7 @@ public record JobRun(
         @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
         @NotNull JobRunState state,
+        @NotNull JobRunnerKey runnerKey,
         @Nullable @Valid JobRunArguments jobRunArguments) {
 
     public Duration runDuration() {
@@ -37,6 +40,7 @@ public record JobRun(
         private Instant startedAt;
         private Instant finishedAt;
         private JobRunState state;
+        private JobRunnerKey runnerKey;
         private JobRunArguments jobRunArguments;
 
         private ModifiableJobRun(final JobRun jobRun) {
@@ -46,6 +50,7 @@ public record JobRun(
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
             this.state = Objects.requireNonNull(jobRun.state);
+            this.runnerKey = Objects.requireNonNull(jobRun.runnerKey);
             this.jobRunArguments = jobRun.jobRunArguments;
         }
 
@@ -79,13 +84,26 @@ public record JobRun(
             return this;
         }
 
+        public ModifiableJobRun runnerKey(@NotNull final JobRunnerKey runnerKey) {
+            this.runnerKey = Objects.requireNonNull(runnerKey);
+            return this;
+        }
+
         public ModifiableJobRun jobRunArguments(@Nullable final JobRunArguments jobRunArguments) {
             this.jobRunArguments = Objects.requireNonNull(jobRunArguments);
             return this;
         }
 
         public JobRun toJobRun() {
-            return new JobRun(id, jobId, jobVersion, startedAt, finishedAt, state, jobRunArguments);
+            return new JobRun(
+                    id,
+                    jobId,
+                    jobVersion,
+                    startedAt,
+                    finishedAt,
+                    state,
+                    runnerKey,
+                    jobRunArguments);
         }
     }
 }
