@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface JobRunDatabaseSubmissionRepository
         extends JpaRepository<JobRunDatabaseSubmissionEntity, Integer> {
-    List<JobRunDatabaseSubmissionEntity> findAllBySubmittedAtIsNull();
+    List<JobRunDatabaseSubmissionEntity> findAllByExecutedAtIsNull();
 
     void deleteByJobId(int jobId);
 }

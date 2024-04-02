@@ -380,13 +380,13 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Collection<JobRunDatabaseSubmission> findNewDatabaseSubmissions() {
-        return jobRunDatabaseSubmissionRepository.findAllBySubmittedAtIsNull().stream()
+        return jobRunDatabaseSubmissionRepository.findAllByExecutedAtIsNull().stream()
                 .map(JobRunDatabaseSubmissionEntity::toJobRunDatabaseSubmission)
                 .toList();
     }
 
     @Transactional
-    public void markDatabaseSubmissionAsSubmitted(final int databaseSubmissionId) {
+    public void markDatabaseSubmissionAsExecuted(final int databaseSubmissionId) {
         final var entity =
                 jobRunDatabaseSubmissionRepository
                         .findById(databaseSubmissionId)
@@ -394,7 +394,7 @@ public class JobDataService {
                                 ResourceNotFoundException.supplierWithMessage(
                                         "No JobRunDatabaseSubmissionEntity with id {0} found",
                                         databaseSubmissionId));
-        entity.setSubmittedAt(Instant.now());
+        entity.setExecutedAt(Instant.now());
         jobRunDatabaseSubmissionRepository.save(entity);
     }
 

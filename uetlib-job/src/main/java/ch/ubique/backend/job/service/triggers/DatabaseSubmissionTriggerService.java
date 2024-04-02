@@ -72,8 +72,8 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
         logger.info(
                 "Submitted new job run from database submission for job {} with run arguments {}.",
                 jobClass,
-        jobDataService.markDatabaseSubmissionAsSubmitted(jobRunDatabaseSubmission.id());
                 jobRunArguments);
+        jobDataService.markDatabaseSubmissionAsExecuted(jobRunDatabaseSubmission.id());
     }
 
     @Override

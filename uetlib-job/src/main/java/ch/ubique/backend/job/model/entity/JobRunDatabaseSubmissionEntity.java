@@ -25,11 +25,11 @@ public class JobRunDatabaseSubmissionEntity {
     private Integer jobId;
 
     @CreationTimestamp
-    @Column(name = "created_at")
-    private Instant createdAt;
-
     @Column(name = "submitted_at", nullable = false)
     private Instant submittedAt;
+
+    @Column(name = "executed_at")
+    private Instant executedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = JobRunDatabaseSubmissionArgumentsToStringConverter.class)
@@ -63,20 +63,20 @@ public class JobRunDatabaseSubmissionEntity {
         this.jobId = jobId;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(final Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public Instant getSubmittedAt() {
         return submittedAt;
     }
 
     public void setSubmittedAt(final Instant submittedAt) {
         this.submittedAt = submittedAt;
+    }
+
+    public Instant getExecutedAt() {
+        return executedAt;
+    }
+
+    public void setExecutedAt(final Instant executedAt) {
+        this.executedAt = executedAt;
     }
 
     public JobRunDatabaseSubmissionArguments getJobRunDatabaseSubmissionArguments() {
@@ -90,6 +90,6 @@ public class JobRunDatabaseSubmissionEntity {
 
     public JobRunDatabaseSubmission toJobRunDatabaseSubmission() {
         return new JobRunDatabaseSubmission(
-                id, jobId, createdAt, submittedAt, jobRunDatabaseSubmissionArguments);
+                id, jobId, submittedAt, executedAt, jobRunDatabaseSubmissionArguments);
     }
 }
