@@ -1,15 +1,14 @@
-package ch.ubique.backend.job.service;
+package ch.ubique.backend.job.service.submission;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.JobSubmissionException;
 import ch.ubique.backend.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.backend.job.model.triggers.DatabaseSubmissionTrigger;
+import ch.ubique.backend.job.service.JobService;
 
 import jakarta.annotation.Nullable;
 
 import org.springframework.stereotype.Service;
-
-import java.text.MessageFormat;
 
 /**
  * Modules that are not the job module use this service to submit new jobs to be trigger via {@link
