@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Profile("test")
 @Configuration
-@EnableJpaRepositories(basePackages = {"ch.ubique.backend.job"})
-@EntityScan(basePackages = {"ch.ubique.backend.job.model.entity"})
+@EnableJpaRepositories(basePackages = "ch.ubique.backend.job")
+@EntityScan(basePackages = "ch.ubique.backend.job.model.entity")
 public class BaseTestConfig {}
