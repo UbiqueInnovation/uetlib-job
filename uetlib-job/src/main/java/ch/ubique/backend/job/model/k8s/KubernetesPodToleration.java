@@ -9,11 +9,8 @@ import io.kubernetes.client.openapi.models.V1Toleration;
  * Use the {@link #builder()} to set only some of the fields, as none of them are actually required,
  * but some have implicit default values in k8s.
  *
- * @param key
- * @param operator
- * @param value
- * @param effect
- * @param tolerationSeconds
+ * <p>{@link #operator()} {@link KubernetesPodTolerationOperator#Equal} requires a {@link #value()},
+ * while {@link KubernetesPodTolerationOperator#Exists} requires none.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
