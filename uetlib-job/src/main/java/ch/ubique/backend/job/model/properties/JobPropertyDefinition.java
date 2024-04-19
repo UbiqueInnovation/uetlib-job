@@ -27,7 +27,7 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
 
     @NotNull private final JobPropertyDefinitionGroup group;
 
-    @NotNull private final boolean nullable;
+    private final boolean nullable;
 
     @Nullable private final T defaultValue;
 
@@ -37,7 +37,7 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean nullable,
+            final boolean nullable,
             @Nullable final T defaultValue,
             @Nullable final Set<T> allowedValues) {
 
@@ -88,6 +88,8 @@ public abstract sealed class JobPropertyDefinition<T> implements StringEncoderDe
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
                 .append("key", key)
+                .append("description", description)
+                .append("group", group)
                 .append("nullable", nullable)
                 .append("defaultValue", defaultValue)
                 .append("allowedValues", allowedValues)
