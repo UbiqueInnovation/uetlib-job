@@ -8,6 +8,7 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
+import ch.ubique.backend.job.model.k8s.KubernetesPodToleration;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
@@ -166,6 +167,30 @@ public abstract class KubernetesJob implements Job {
                 .value();
     }
 
+    /**
+     * Get pod tolerations from {@link JobPropertyDefinitions#K8S_POD_TOLERATIONS} or, if not set,
+     * from the current pod
+     */
+    protected List<V1Toleration> tolerations(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return kubernetesJobRunContext
+                .jobRunContext()
+                .properties()
+                .get(JobPropertyDefinitions.K8S_POD_TOLERATIONS)
+                .valueMaybe()
+                .map(
+                        kubernetesPodTolerations ->
+                                kubernetesPodTolerations.tolerations().stream()
+                                        .map(KubernetesPodToleration::toV1Toleration)
+                                        .toList())
+                .orElseGet(
+                        () ->
+                                // get node selector from current pod if not explicitly set
+                                getCurrentPodSpec(kubernetesJobRunContext)
+                                        .map(V1PodSpec::getTolerations)
+                                        .orElseGet(List::of));
+    }
+
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var ttlAfterFinished =
                 kubernetesJobRunContext
@@ -215,6 +240,7 @@ public abstract class KubernetesJob implements Job {
                         .imagePullSecrets(imagePullSecrets(kubernetesJobRunContext))
                         .volumes(volumes(kubernetesJobRunContext))
                         .nodeSelector(nodeSelector(kubernetesJobRunContext))
+                        .tolerations(tolerations(kubernetesJobRunContext))
                         .restartPolicy("Never");
 
         containers(kubernetesJobRunContext).forEach(podSpec::addContainersItem);
@@ -254,11 +280,23 @@ public abstract class KubernetesJob implements Job {
                 .orElseGet(List::of);
     }
 
+    /**
+     * Get pod node selector from {@link JobPropertyDefinitions#K8S_POD_NODE_SELECTOR} or, if not
+     * set, from the current pod
+     */
     protected Map<String, String> nodeSelector(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        return getCurrentPodSpec(kubernetesJobRunContext)
-                .map(V1PodSpec::getNodeSelector)
-                .orElseGet(Map::of);
+        return kubernetesJobRunContext
+                .jobRunContext()
+                .properties()
+                .get(JobPropertyDefinitions.K8S_POD_NODE_SELECTOR)
+                .valueMaybe()
+                .orElseGet(
+                        () ->
+                                // get node selector from current pod if not explicitly set
+                                getCurrentPodSpec(kubernetesJobRunContext)
+                                        .map(V1PodSpec::getNodeSelector)
+                                        .orElseGet(Map::of));
     }
 
     protected abstract Collection<V1Container> containers(
