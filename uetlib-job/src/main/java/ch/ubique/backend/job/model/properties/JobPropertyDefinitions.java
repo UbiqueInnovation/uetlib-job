@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model.properties;
 
+import ch.ubique.backend.job.model.k8s.KubernetesPodTolerations;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
@@ -106,6 +107,24 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Map.of(),
+                    null,
+                    new TypeReference<>() {});
+    public static final JobPropertyDefinition<KubernetesPodTolerations> K8S_POD_TOLERATIONS =
+            new GenericPropertyDefinition<>(
+                    "K8S_POD_TOLERATIONS",
+                    "K8S_POD_TOLERATIONS to be set for for the k8s job pod.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
+                    null,
+                    new TypeReference<>() {});
+    public static final JobPropertyDefinition<Map<String, String>> K8S_POD_NODE_SELECTOR =
+            new GenericPropertyDefinition<>(
+                    "K8S_POD_NODE_SELECTOR",
+                    "K8S_POD_NODE_SELECTOR to be set for for the k8s job pod.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
                     null,
                     new TypeReference<>() {});
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
