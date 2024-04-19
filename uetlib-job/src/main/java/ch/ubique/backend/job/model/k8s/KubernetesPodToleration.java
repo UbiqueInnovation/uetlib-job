@@ -10,7 +10,8 @@ import io.kubernetes.client.openapi.models.V1Toleration;
  * but some have implicit default values in k8s.
  *
  * <p>{@link #operator()} {@link KubernetesPodTolerationOperator#Equal} requires a {@link #value()},
- * while {@link KubernetesPodTolerationOperator#Exists} requires none.
+ * while {@link KubernetesPodTolerationOperator#Exists} requires none. {@link
+ * KubernetesPodTolerationOperator#Equal} is also the default operator in k8s if unset.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
