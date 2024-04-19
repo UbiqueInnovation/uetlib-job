@@ -2,7 +2,6 @@ package ch.ubique.backend.job.model.properties;
 
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
-import ch.ubique.backend.job.model.properties.enums.KubernetesSku;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -68,14 +67,6 @@ public final class JobPropertyDefinitions {
                     null,
                     new TypeReference<>() {});
 
-    public static final JobPropertyDefinition<String> K8S_SKU =
-            new StringPropertyDefinition(
-                    "K8S_SKU",
-                    "If set, the k8s job will run on the selected node pool.",
-                    JobPropertyDefinitionGroup.RUNNER,
-                    false,
-                    KubernetesSku.NONE.value(),
-                    Set.of("none", "highmem", "dedicated-huge"));
     public static final JobPropertyDefinition<Duration> K8S_TTL_AFTER_FINISHED =
             new DurationPropertyDefinition(
                     "K8S_TTL_AFTER_FINISHED",

@@ -17,3 +17,7 @@ create table t_job_run_database_submission
     executed_at                           timestamp with time zone,
     job_run_database_submission_arguments jsonb                    not null
 );
+
+DELETE
+FROM t_job_properties
+WHERE key = 'K8S_SKU';

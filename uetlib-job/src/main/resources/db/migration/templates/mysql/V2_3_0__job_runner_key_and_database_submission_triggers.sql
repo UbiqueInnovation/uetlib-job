@@ -20,3 +20,7 @@ create table t_job_run_database_submission
     executed_at                           timestamp,
     job_run_database_submission_arguments json                   not null
 );
+
+DELETE
+FROM t_job_properties
+WHERE `key` = 'K8S_SKU';
