@@ -18,7 +18,11 @@ import io.kubernetes.client.openapi.models.V1Toleration;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record KubernetesPodToleration(
-        String key, String operator, String value, String effect, Long tolerationSeconds) {
+        String key,
+        KubernetesPodTolerationOperator operator,
+        String value,
+        KubernetesPodTolerationEffect effect,
+        Long tolerationSeconds) {
 
     public static KubernetesPodTolerationBuilder builder() {
         return new KubernetesPodTolerationBuilder();
@@ -27,17 +31,17 @@ public record KubernetesPodToleration(
     public V1Toleration toV1Toleration() {
         return new V1Toleration()
                 .key(key)
-                .operator(operator)
+                .operator(operator.name())
                 .value(value)
-                .effect(effect)
+                .effect(effect.name())
                 .tolerationSeconds(tolerationSeconds);
     }
 
     public static final class KubernetesPodTolerationBuilder {
         private String key;
-        private String operator;
+        private KubernetesPodTolerationOperator operator;
         private String value;
-        private String effect;
+        private KubernetesPodTolerationEffect effect;
         private Long tolerationSeconds;
 
         private KubernetesPodTolerationBuilder() {}
@@ -47,7 +51,8 @@ public record KubernetesPodToleration(
             return this;
         }
 
-        public KubernetesPodTolerationBuilder withOperator(final String operator) {
+        public KubernetesPodTolerationBuilder withOperator(
+                final KubernetesPodTolerationOperator operator) {
             this.operator = operator;
             return this;
         }
@@ -57,7 +62,8 @@ public record KubernetesPodToleration(
             return this;
         }
 
-        public KubernetesPodTolerationBuilder withEffect(final String effect) {
+        public KubernetesPodTolerationBuilder withEffect(
+                final KubernetesPodTolerationEffect effect) {
             this.effect = effect;
             return this;
         }
