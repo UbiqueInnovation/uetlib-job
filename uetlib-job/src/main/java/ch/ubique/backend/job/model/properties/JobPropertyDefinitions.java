@@ -71,7 +71,7 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<String> K8S_SKU =
             new StringPropertyDefinition(
                     "K8S_SKU",
-                    "If set, the K8s job will run on the selected node pool.",
+                    "If set, the k8s job will run on the selected node pool.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     KubernetesSku.NONE.value(),
@@ -87,7 +87,7 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<String> K8S_REQUESTS_CPU =
             new StringPropertyDefinition(
                     "K8S_REQUESTS_CPU",
-                    "CPU request for the K8s job. CPU limit will stay as unset",
+                    "CPU request for the k8s job. CPU limit will stay as unset",
                     JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
@@ -95,7 +95,7 @@ public final class JobPropertyDefinitions {
     public static final JobPropertyDefinition<String> K8S_REQUESTS_MEMORY =
             new StringPropertyDefinition(
                     "K8S_REQUESTS_MEMORY",
-                    "Memory request and limit for the K8s job.",
+                    "Memory request and limit for the k8s job.",
                     JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
