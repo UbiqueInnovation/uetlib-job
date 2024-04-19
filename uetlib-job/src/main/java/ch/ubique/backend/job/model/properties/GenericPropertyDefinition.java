@@ -34,7 +34,7 @@ final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
                 description,
                 group,
                 nullable,
-                Objects.requireNonNull(defaultValue),
+                nullable ? defaultValue : Objects.requireNonNull(defaultValue),
                 allowedValues);
         this.typeReference = typeReference;
     }
