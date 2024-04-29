@@ -1,7 +1,12 @@
 package ch.ubique.backend.job;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
+
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -28,11 +33,13 @@ public abstract class BaseStateJob<T> implements Job {
     private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;
     private final ObjectMapper objectMapper;
+    private final JobExecutorService jobExecutorService;
 
     protected BaseStateJob(@NotNull final ApplicationContext applicationContext) {
         jobRunStorage = applicationContext.getBean(JobRunStorage.class);
         jobDataService = applicationContext.getBean(JobDataService.class);
         objectMapper = applicationContext.getBean(ObjectMapper.class);
+        jobExecutorService = applicationContext.getBean(JobExecutorService.class);
     }
 
     @Override
@@ -99,21 +106,53 @@ public abstract class BaseStateJob<T> implements Job {
     @NotNull
     protected abstract TypeReference<T> stateTypeReference();
 
+    /**
+     * You may override this method if you want the processing to run on a specific runner. This
+     * runner is allowed to differ from the runner specified in the job properties.
+     */
+    @Nullable
+    protected JobRunnerKey runnerForProcessing() {
+        return null;
+    }
+
     @Override
     @NotNull
     public final JobRunState run(@NotNull final JobRunContext jobRunContext) throws Exception {
-        logger.info("Getting latest state");
+        final var currentJobRun = jobRunContext.jobRun();
+
+        // Check if state for current run has already been computed and saved.
+        final var currentState = loadStateIfPresent(currentJobRun);
+        if (currentState != null) {
+            logger.info("Starting processing for state {}.", currentState);
+            return processState(currentState, jobRunContext);
+        }
+
+        // Compute latest state
+        logger.info("Computing latest state.");
         final var latestState =
-                Objects.requireNonNull(
-                        getLatestState(jobRunContext), "Latest state must not be null");
+                requireNonNull(getLatestState(jobRunContext), "Latest state must not be null");
         logger.info("Got latest state {}.", latestState);
 
+        // Skip if allowed
         if (isAllowedToSkipAndCanSkip(jobRunContext, latestState)) {
             return JobRunState.SKIPPED;
         }
 
+        // Save state to storage
         saveState(latestState, jobRunContext);
 
+        // Run processing on a different runner, if requested
+        final var currentRunnerKey = currentJobRun.runnerKey();
+        final var processingRunnerKey = requireNonNullElse(runnerForProcessing(), currentRunnerKey);
+        if (currentRunnerKey != processingRunnerKey) {
+            logger.info("Requested to run processing on runner {}.", processingRunnerKey);
+            jobExecutorService.submit(
+                    getClass(), jobRunContext.arguments(), currentJobRun.id(), processingRunnerKey);
+            return JobRunState.SCHEDULED;
+        }
+
+        // Start processing on current runner
+        logger.info("Starting processing.");
         return processState(latestState, jobRunContext);
     }
 
@@ -174,21 +213,40 @@ public abstract class BaseStateJob<T> implements Job {
     @Nullable
     private T loadPreviousState(final JobRunContext jobRunContext) {
         final var lastRun = latestSuccessfulRun(jobRunContext.job());
-        if (lastRun.isEmpty()) {
-            return null;
-        }
+        return lastRun.map(this::loadState).orElse(null);
+    }
 
-        logger.info("Loading previous state.");
+    @Nullable
+    private T loadState(@NotNull final JobRun jobRun) {
+        logger.info("Loading state of run {}.", jobRun.id());
         try (final var inputStream =
-                jobRunStorage.loadJobRunState(
-                        getClass().getSimpleName(), lastRun.get().readableId())) {
+                jobRunStorage.loadJobRunState(getClass().getSimpleName(), jobRun.readableId())) {
 
             final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
-            logger.info("Resolved previous state {}.", previousState);
+            logger.info("Resolved state {}.", previousState);
             return previousState;
         } catch (final Exception e) {
-            logger.warn("Could not load previous state.", e);
+            logger.warn("Could not load state for run {}.", jobRun.id(), e);
             return null;
+        }
+    }
+
+    @Nullable
+    private T loadStateIfPresent(@NotNull final JobRun jobRun) {
+        if (!hasStateForRun(jobRun)) {
+            return null;
+        }
+        return loadState(jobRun);
+    }
+
+    private boolean hasStateForRun(final JobRun jobRun) {
+        try {
+            final var files =
+                    jobRunStorage.listJobRunFiles(getClass().getSimpleName(), jobRun.readableId());
+            return files.stream().anyMatch(file -> file.endsWith("state.json"));
+        } catch (final IOException e) {
+            logger.warn("Could not list files for run {}.", jobRun.id(), e);
+            return false;
         }
     }
 }
