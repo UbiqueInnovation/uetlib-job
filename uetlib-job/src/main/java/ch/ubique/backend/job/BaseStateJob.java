@@ -241,11 +241,9 @@ public abstract class BaseStateJob<T> implements Job {
 
     private boolean hasStateForRun(final JobRun jobRun) {
         try {
-            final var files =
-                    jobRunStorage.listJobRunFiles(getClass().getSimpleName(), jobRun.readableId());
-            return files.stream().anyMatch(file -> file.endsWith("state.json"));
+            return jobRunStorage.jobRunStateExists(getClass().getSimpleName(), jobRun.readableId());
         } catch (final IOException e) {
-            logger.warn("Could not list files for run {}.", jobRun.id(), e);
+            logger.warn("Could not query if state for run {} exists.", jobRun.id(), e);
             return false;
         }
     }
