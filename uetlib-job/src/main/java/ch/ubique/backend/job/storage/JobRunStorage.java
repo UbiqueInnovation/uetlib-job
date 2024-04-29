@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 
 @Storage(
         clientQualifier = "jobRunStorageClient",
@@ -34,7 +33,7 @@ public interface JobRunStorage {
     InputStream loadJobRunState(@PathVariable String jobName, @PathVariable String runId)
             throws IOException;
 
-    @ListMapping(path = "{jobName}/{runId}")
-    Collection<String> listJobRunFiles(@PathVariable String jobName, @PathVariable String runId)
+    @ExistsMapping(path = "{jobName}/{runId}/state.json")
+    boolean jobRunStateExists(@PathVariable String jobName, @PathVariable String runId)
             throws IOException;
 }
