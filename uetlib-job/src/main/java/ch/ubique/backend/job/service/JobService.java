@@ -34,6 +34,7 @@ import org.springframework.util.ClassUtils;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -212,7 +213,18 @@ public class JobService {
             @NotNull final JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
+                .map(jobRun -> updateJobIfNeeded(jobRun, runnerKey, arguments))
                 .orElseGet(() -> createNewJobRun(job, runnerKey, arguments));
+    }
+
+    private JobRun updateJobIfNeeded(
+            final JobRun jobRun, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
+        if (jobRun.runnerKey() == runnerKey
+                && Objects.equals(arguments, jobRun.jobRunArguments())) {
+            return jobRun;
+        }
+        return jobDataService.saveJobRun(
+                jobRun.modify().runnerKey(runnerKey).jobRunArguments(arguments).toJobRun());
     }
 
     public JobRun getJobRun(final int runId) {

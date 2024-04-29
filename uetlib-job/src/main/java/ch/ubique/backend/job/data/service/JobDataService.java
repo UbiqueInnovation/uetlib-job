@@ -180,8 +180,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public void saveJobRun(final JobRun jobRun) {
-        jobRunRepository.save(new JobRunEntity(jobRun));
+    public JobRun saveJobRun(final JobRun jobRun) {
+        return jobRunRepository.save(new JobRunEntity(jobRun)).toJobRun();
     }
 
     @Transactional(readOnly = true)
