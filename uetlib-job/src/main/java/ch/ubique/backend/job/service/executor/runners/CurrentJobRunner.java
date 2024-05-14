@@ -3,6 +3,7 @@ package ch.ubique.backend.job.service.executor.runners;
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.RUNNER_GROUP;
 
 import ch.ubique.backend.job.Job;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -24,12 +25,14 @@ public final class CurrentJobRunner implements JobRunner {
     private static final Logger logger = LoggerFactory.getLogger(CurrentJobRunner.class);
 
     private final Map<RunnerGroup, ExecutorService> executorServices;
+    private final Map<Integer, Future<?>> futuresByJobRun;
 
     private final JobService jobService;
 
     public CurrentJobRunner(final JobService jobService) {
         this.jobService = jobService;
         executorServices = new ConcurrentHashMap<>();
+        futuresByJobRun = new ConcurrentHashMap<>();
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
@@ -49,8 +52,18 @@ public final class CurrentJobRunner implements JobRunner {
         }
 
         final var executorService = getExecutorService(runnerGroup);
-        executorService.submit(() -> run(job, jobRunContext));
+        final var future = executorService.submit(() -> run(job, jobRunContext));
+        futuresByJobRun.put(jobRunContext.jobRun().id(), future);
         return true;
+    }
+
+    @Override
+    public void cancel(final JobRun jobRun) {
+        final var future = futuresByJobRun.get(jobRun.id());
+        if (future != null) {
+            future.cancel(true);
+            futuresByJobRun.remove(jobRun.id());
+        }
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
@@ -110,6 +123,7 @@ public final class CurrentJobRunner implements JobRunner {
                         .finishedAt(Instant.now())
                         .toJobRun());
         MDC.remove("jobRunId");
+        futuresByJobRun.remove(jobRunContext.jobRun().id());
     }
 
     private boolean check(final Job job, final RunnerGroup runnerGroup) {

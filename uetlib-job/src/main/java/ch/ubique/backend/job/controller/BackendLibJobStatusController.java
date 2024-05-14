@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
 import ch.ubique.backend.job.model.response.StringResponse;
+import ch.ubique.backend.job.model.response.SuccessResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
 import jakarta.validation.Valid;
@@ -125,6 +126,11 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
         jobControllerService.startAllJobs(forceRun);
+    }
+
+    @GetMapping("/run/{jobRunId}/cancel")
+    public SuccessResponse cancelJobRun(@PathVariable final int jobRunId) {
+        return jobControllerService.cancelJobRun(jobRunId);
     }
 
     @PostMapping("/job/{jobIdOrClassName}/replay_run/{jobRunId}")

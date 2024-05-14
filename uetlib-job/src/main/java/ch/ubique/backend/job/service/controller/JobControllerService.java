@@ -17,6 +17,7 @@ import ch.ubique.backend.job.model.client.triggers.JobTriggers;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
+import ch.ubique.backend.job.model.response.SuccessResponse;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
@@ -431,5 +432,15 @@ public class JobControllerService {
         } catch (final NumberFormatException ignored) {
             return jobService.getJobId(jobService.getJobClass(jobIdOrClassName));
         }
+    }
+
+    public SuccessResponse cancelJobRun(final int jobRunId) {
+        final var jobRunMaybe = jobDataService.findJobRunById(jobRunId);
+        if (jobRunMaybe.isEmpty()) {
+            return new SuccessResponse(false, "No job for given ID found");
+        }
+        final var success = jobService.cancel(jobRunMaybe.get());
+        return new SuccessResponse(
+                success, success ? "Job cancelled." : "Job could not be cancelled");
     }
 }

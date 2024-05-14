@@ -1,5 +1,8 @@
 package ch.ubique.backend.job.service;
 
+import static ch.ubique.backend.job.model.JobRunState.UNFINISHED;
+
+import static java.time.Instant.now;
 import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
@@ -9,13 +12,13 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
-import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
+import ch.ubique.backend.job.service.executor.runners.JobRunner;
 import ch.ubique.backend.storage.annotations.EnableAnnotationUtils;
 
 import com.pivovarit.function.ThrowingFunction;
@@ -32,11 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
 import java.text.MessageFormat;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -122,14 +121,9 @@ public class JobService {
     }
 
     private void setAbortedRunsToUnfinished() {
-        final var now = Instant.now();
+        final var now = now();
         jobDataService.findAllCurrentRunnerJobRunsWithoutFinishedTimestamp().stream()
-                .map(
-                        jobRun ->
-                                jobRun.modify()
-                                        .finishedAt(now)
-                                        .state(JobRunState.UNFINISHED)
-                                        .toJobRun())
+                .map(jobRun -> jobRun.modify().finishedAt(now).state(UNFINISHED).toJobRun())
                 .forEach(jobDataService::saveJobRun);
     }
 
@@ -183,7 +177,11 @@ public class JobService {
     }
 
     public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
-        return instantiateJob(getJobClass(jobClassAndId.id()));
+        return instantiateJob(jobClassAndId.id());
+    }
+
+    public Job instantiateJob(final int jobId) throws ClassNotFoundException {
+        return instantiateJob(getJobClass(jobId));
     }
 
     public int getJobId(final Class<? extends Job> jobClass) {
@@ -192,6 +190,10 @@ public class JobService {
 
     public int getId(final Job job) {
         return getJobId(job.getClass());
+    }
+
+    public JobClassAndId getJobClassAndId(final Job job) {
+        return new JobClassAndId(getId(job), job.getClass().getCanonicalName());
     }
 
     public Class<? extends Job> getJobClass(final int jobId) throws ClassNotFoundException {
@@ -244,5 +246,19 @@ public class JobService {
                 .map(ThrowingFunction.lifted(this::instantiateJob))
                 .flatMap(Optional::stream)
                 .toList();
+    }
+
+    public boolean cancel(final JobRun jobRun) {
+        if (!jobRun.state().isRunning()) {
+            return false;
+        }
+        final var jobRunner =
+                applicationContext.getBeansOfType(JobRunner.class).values().stream()
+                        .filter(runner -> runner.key() == jobRun.runnerKey())
+                        .findFirst()
+                        .orElseThrow();
+        jobRunner.cancel(jobRun);
+        jobDataService.saveJobRun(jobRun.modify().state(UNFINISHED).finishedAt(now()).toJobRun());
+        return true;
     }
 }

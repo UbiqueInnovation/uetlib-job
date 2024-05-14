@@ -39,7 +39,7 @@ public abstract class JobStateCheck implements StatusCheck {
 
     private boolean hasState(final JobClassAndId job) {
         return jobDataService
-                .findLatestJobRunByStates(job.id(), JobRunState.allExceptRunning())
+                .findLatestJobRunByStates(job.id(), JobRunState.ALL_EXCEPT_RUNNING)
                 .map(run -> run.state() == stateToCheck)
                 .orElse(false);
     }

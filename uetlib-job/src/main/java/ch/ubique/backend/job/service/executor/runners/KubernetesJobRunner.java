@@ -1,12 +1,16 @@
 package ch.ubique.backend.job.service.executor.runners;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables;
 import ch.ubique.backend.job.k8s.KubernetesJob;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.k8s.KubernetesContext;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.JobService;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
@@ -95,11 +99,8 @@ public class KubernetesJobRunner implements JobRunner {
         }
 
         try {
-            final var currentPod = getCurrentPod(client);
-
             final var kubernetesJobRunContext =
-                    new KubernetesJobRunContext(
-                            jobRunContext, new KubernetesContext(client, namespace, currentPod));
+                    new KubernetesJobRunContext(jobRunContext, kubernetesContext(client));
             final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
             submitJobToKubernetes(client, jobDefinition);
@@ -109,6 +110,40 @@ public class KubernetesJobRunner implements JobRunner {
             logger.error("k8s exception: {}", e.getResponseBody(), e);
             return false;
         }
+    }
+
+    @Override
+    public void cancel(final JobRun jobRun) {
+        try {
+            final var client = getClient(jobRun);
+            final var jobName = findJobName(jobRun, client);
+            final var batchApi = new BatchV1Api(client);
+            batchApi.deleteNamespacedJob(jobName, namespace);
+        } catch (final IOException | ClassNotFoundException | ApiException e) {
+            logger.info("Got exception when trying to cancel job run {}", jobRun, e);
+        }
+    }
+
+    private ApiClient getClient(final JobRun jobRun) throws ClassNotFoundException, IOException {
+        final var jobService = applicationContext.getBean(JobService.class);
+        final var job = jobService.instantiateJob(jobRun.jobId());
+        return KubernetesJob.forJob(job, applicationContext).apiClient();
+    }
+
+    private String findJobName(final JobRun jobRun, final ApiClient client)
+            throws ApiException, ClassNotFoundException {
+        final var jobService = applicationContext.getBean(JobService.class);
+        final var job = jobService.instantiateJob(jobRun.jobId());
+        final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
+        final var context =
+                new KubernetesJobRunContext(
+                        new JobRunContext(
+                                jobService.getJobClassAndId(job),
+                                jobRun,
+                                jobRun.jobRunArguments(),
+                                jobService.getProperties(job)),
+                        kubernetesContext(client));
+        return requireNonNull(kubernetesJob.job(context).getMetadata()).getName();
     }
 
     private ApiClient tryToGetKubernetesApiClient(final KubernetesJob kubernetesJob) {
@@ -169,6 +204,11 @@ public class KubernetesJobRunner implements JobRunner {
 
         logger.info(
                 "Successfully created kubernetes job {}",
-                Objects.requireNonNull(createdJob.getMetadata()).getName());
+                requireNonNull(createdJob.getMetadata()).getName());
+    }
+
+    private KubernetesContext kubernetesContext(final ApiClient client) throws ApiException {
+        final var currentPod = getCurrentPod(client);
+        return new KubernetesContext(client, namespace, currentPod);
     }
 }
