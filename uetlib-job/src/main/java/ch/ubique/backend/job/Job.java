@@ -43,7 +43,15 @@ public interface Job {
         return false;
     }
 
+    /**
+     * If true, the job is allowed to start a parallel run when force run is set, regardless of
+     * {@link Job#allowParallelRuns()}.
+     */
+    default boolean forceRunOverridesAllowParallelRuns() {
+        return true;
+    }
+
     default boolean supportsForceRun() {
-        return false;
+        return !allowParallelRuns() && forceRunOverridesAllowParallelRuns();
     }
 }
