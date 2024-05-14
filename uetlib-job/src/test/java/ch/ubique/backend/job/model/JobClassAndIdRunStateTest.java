@@ -10,6 +10,10 @@ class JobClassAndIdRunStateTest {
 
     @Test
     void allExceptRunning() {
+        assertEquals(JobRunState.RUNNING, Set.of(JobRunState.SCHEDULED, JobRunState.BUSY));
+        assertTrue(JobRunState.RUNNING.stream().allMatch(JobRunState::isRunning));
+        assertTrue(JobRunState.ALL_EXCEPT_RUNNING.stream().noneMatch(JobRunState::isRunning));
+
         assertEquals(
                 Set.of(
                         JobRunState.DONE,
@@ -18,16 +22,17 @@ class JobClassAndIdRunStateTest {
                         JobRunState.NONE,
                         JobRunState.UNFINISHED,
                         JobRunState.SKIPPED),
-                Set.of(JobRunState.allExceptRunning()));
+                JobRunState.allExcept(JobRunState.RUNNING));
+        assertEquals(JobRunState.ALL_EXCEPT_RUNNING, JobRunState.allExcept(JobRunState.RUNNING));
 
         assertEquals(
                 Set.of(JobRunState.SCHEDULED, JobRunState.BUSY),
-                Set.of(JobRunState.allExcept(Set.of(JobRunState.allExceptRunning()))));
+                JobRunState.allExcept(JobRunState.ALL_EXCEPT_RUNNING));
     }
 
     @Test
     void allExcept() {
-        assertEquals(Set.of(JobRunState.values()), Set.of(JobRunState.allExcept(Set.of())));
-        assertEquals(Set.of(), Set.of(JobRunState.allExcept(Set.of(JobRunState.values()))));
+        assertEquals(Set.of(JobRunState.values()), JobRunState.allExcept(Set.of()));
+        assertEquals(Set.of(), JobRunState.allExcept(Set.of(JobRunState.values())));
     }
 }

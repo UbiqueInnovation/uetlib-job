@@ -88,9 +88,10 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<JobRun> findLatestJobRunByStates(final int jobId, final JobRunState... states) {
+    public Optional<JobRun> findLatestJobRunByStates(
+            final int jobId, final Collection<JobRunState> states) {
         return jobRunRepository
-                .findFirstByJobIdAndStateInOrderByStartedAtDesc(jobId, List.of(states))
+                .findFirstByJobIdAndStateInOrderByStartedAtDesc(jobId, states)
                 .map(JobRunEntity::toJobRun);
     }
 

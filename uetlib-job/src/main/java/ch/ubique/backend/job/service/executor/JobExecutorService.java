@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.service.executor;
 
+import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.JobProperties;
@@ -18,8 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 public class JobExecutorService {
@@ -32,8 +31,7 @@ public class JobExecutorService {
 
     public JobExecutorService(final JobService jobService, final Collection<JobRunner> jobRunners) {
         this.jobService = jobService;
-        this.jobRunners =
-                jobRunners.stream().collect(Collectors.toMap(JobRunner::key, Function.identity()));
+        this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
     public void submit(@NotNull final Class<? extends Job> jobClass) {
@@ -103,11 +101,10 @@ public class JobExecutorService {
     }
 
     private boolean isCurrentlyRunning(final Job job) {
-        final var runningStates = Set.of(JobRunState.SCHEDULED, JobRunState.BUSY);
         return jobService
                 .getLastJobRun(jobService.getId(job))
                 .map(JobRun::state)
-                .map(runningStates::contains)
+                .map(JobRunState::isRunning)
                 .orElse(false);
     }
 
@@ -127,8 +124,7 @@ public class JobExecutorService {
             @Nullable final JobRunArguments nullableArguments) {
         final var arguments =
                 Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
-        final var jobClassAndId =
-                new JobClassAndId(jobService.getId(job), job.getClass().getCanonicalName());
+        final var jobClassAndId = jobService.getJobClassAndId(job);
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
         return new JobRunContext(jobClassAndId, jobRun, arguments, jobProperties);
