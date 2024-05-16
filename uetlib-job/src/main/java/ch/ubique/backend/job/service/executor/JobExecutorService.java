@@ -53,9 +53,9 @@ public class JobExecutorService {
         final var job = jobService.instantiateJob(jobClass);
         final var isForceRun =
                 Optional.ofNullable(arguments).map(JobRunArguments::forceRun).orElse(false);
-        final var allowParallelRuns =
+        final var allowParallelScheduling =
                 job.allowParallelRuns() || (isForceRun && job.forceRunOverridesAllowParallelRuns());
-        if (!allowParallelRuns && isCurrentlyRunning(job) && !isSameAsLastRun(job, runId)) {
+        if (!allowParallelScheduling && isCurrentlyRunning(job) && !isSameAsLastRun(job, runId)) {
             logger.info("Job is already running and parallel runs are disallowed.");
             return;
         }
