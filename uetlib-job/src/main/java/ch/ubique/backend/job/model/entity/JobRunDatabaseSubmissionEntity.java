@@ -4,6 +4,7 @@ import ch.ubique.backend.job.model.JobRunDatabaseSubmission;
 import ch.ubique.backend.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.backend.job.model.converters.JobRunDatabaseSubmissionArgumentsToStringConverter;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -11,6 +12,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "t_job_run_database_submission")
@@ -44,7 +46,8 @@ public class JobRunDatabaseSubmissionEntity {
             final JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments) {
         this.jobId = jobId;
         this.submittedAt = submittedAt;
-        this.jobRunDatabaseSubmissionArguments = jobRunDatabaseSubmissionArguments;
+        this.jobRunDatabaseSubmissionArguments =
+                Objects.requireNonNull(jobRunDatabaseSubmissionArguments);
     }
 
     public Integer getId() {
@@ -63,32 +66,15 @@ public class JobRunDatabaseSubmissionEntity {
         this.jobId = jobId;
     }
 
-    public Instant getSubmittedAt() {
-        return submittedAt;
-    }
-
-    public void setSubmittedAt(final Instant submittedAt) {
-        this.submittedAt = submittedAt;
-    }
-
-    public Instant getExecutedAt() {
-        return executedAt;
-    }
-
     public void setExecutedAt(final Instant executedAt) {
         this.executedAt = executedAt;
     }
 
-    public JobRunDatabaseSubmissionArguments getJobRunDatabaseSubmissionArguments() {
-        return jobRunDatabaseSubmissionArguments;
-    }
-
-    public void setJobRunDatabaseSubmissionArguments(
-            final JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments) {
-        this.jobRunDatabaseSubmissionArguments = jobRunDatabaseSubmissionArguments;
-    }
-
+    @Nullable
     public JobRunDatabaseSubmission toJobRunDatabaseSubmission() {
+        if (jobRunDatabaseSubmissionArguments == null) {
+            return null;
+        }
         return new JobRunDatabaseSubmission(
                 id, jobId, submittedAt, executedAt, jobRunDatabaseSubmissionArguments);
     }

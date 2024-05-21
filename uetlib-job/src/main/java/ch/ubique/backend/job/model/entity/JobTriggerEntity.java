@@ -5,10 +5,13 @@ import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import java.util.Objects;
 
 @Table(name = "t_job_trigger")
 @Entity
@@ -45,11 +48,15 @@ public class JobTriggerEntity {
             final Integer id, final int jobId, final TriggerDefinition triggerDefinition) {
         this.id = id;
         this.jobId = jobId;
-        this.type = triggerDefinition.type();
-        this.triggerDefinition = triggerDefinition;
+        this.triggerDefinition = Objects.requireNonNull(triggerDefinition);
+        this.type = Objects.requireNonNull(triggerDefinition.type());
     }
 
+    @Nullable
     public Trigger toTrigger() {
+        if (triggerDefinition == null) {
+            return null;
+        }
         return new Trigger(id, jobId, triggerDefinition);
     }
 }

@@ -11,8 +11,6 @@ import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.*;
 
-import com.pivovarit.function.ThrowingFunction;
-
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -300,7 +298,8 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Collection<Trigger> getTriggers(final int jobId) {
         return jobTriggerRepository.findAllByJobId(jobId).stream()
-                .map(ThrowingFunction.unchecked(JobTriggerEntity::toTrigger))
+                .map(JobTriggerEntity::toTrigger)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -325,7 +324,7 @@ public class JobDataService {
 
     @Transactional
     public void saveTrigger(final Trigger trigger) {
-        jobTriggerRepository.save(new JobTriggerEntity(trigger)).toTrigger();
+        jobTriggerRepository.save(new JobTriggerEntity(trigger));
     }
 
     @Transactional
@@ -345,13 +344,14 @@ public class JobDataService {
                 triggerDefinitions.stream().map(def -> new JobTriggerEntity(jobId, def)).toList();
         return jobTriggerRepository.saveAll(entities).stream()
                 .map(JobTriggerEntity::toTrigger)
+                .map(Objects::requireNonNull)
                 .toList();
     }
 
     @Transactional
     public Trigger insertTrigger(final int jobId, final TriggerDefinition triggerDefinition) {
         final var entity = new JobTriggerEntity(jobId, triggerDefinition);
-        return jobTriggerRepository.save(entity).toTrigger();
+        return Objects.requireNonNull(jobTriggerRepository.save(entity).toTrigger());
     }
 
     @Transactional(readOnly = true)
@@ -383,6 +383,7 @@ public class JobDataService {
     public Collection<JobRunDatabaseSubmission> findNewDatabaseSubmissions() {
         return jobRunDatabaseSubmissionRepository.findAllByExecutedAtIsNull().stream()
                 .map(JobRunDatabaseSubmissionEntity::toJobRunDatabaseSubmission)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
