@@ -7,7 +7,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
-import ch.ubique.backend.job.service.executor.runners.CurrentJobRunner;
+import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -70,10 +70,10 @@ public class JobApplication {
                                     jobToStartArgs.forceRun(),
                                     getAdditionalData(jobToStartArgs, applicationContext)),
                             jobToStartArgs.jobRunId(),
-                            JobRunnerKey.CURRENT);
+                            JobRunnerKey.DEDICATED_K8S_JOB);
 
             logger.info("Waiting for job to finish.");
-            applicationContext.getBean(CurrentJobRunner.class).shutdownAndWaitForJobsToComplete();
+            applicationContext.getBean(DedicatedJobRunner.class).awaitCompletion();
 
             logger.info("Completed job, going to shut down");
         } catch (final ClassNotFoundException e) {
