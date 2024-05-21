@@ -5,17 +5,14 @@ import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.RUNN
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
-import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -47,12 +44,13 @@ public final class CurrentJobRunner implements JobRunner {
     @Override
     public synchronized boolean submit(final Job job, final JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
-        if (!check(job, runnerGroup)) {
+        if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
         }
 
         final var executorService = getExecutorService(runnerGroup);
-        final var future = executorService.submit(() -> run(job, jobRunContext));
+        final var future =
+                executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
         futuresByJobRun.put(jobRunContext.jobRun().id(), future);
         return true;
     }
@@ -79,54 +77,7 @@ public final class CurrentJobRunner implements JobRunner {
                 new LinkedBlockingQueue<>());
     }
 
-    private void run(final Job job, final JobRunContext initialContext) {
-        final var jobRunContext = prepareRun(initialContext);
-        final var state = runJob(job, jobRunContext);
-        finishRun(jobRunContext, state);
-    }
-
-    private JobRunContext prepareRun(final JobRunContext initialContext) {
-        final var jobRunContext =
-                new JobRunContext(
-                        initialContext.job(),
-                        initialContext
-                                .jobRun()
-                                .modify()
-                                .startedAt(Instant.now())
-                                .state(JobRunState.BUSY)
-                                .toJobRun(),
-                        initialContext.arguments(),
-                        initialContext.properties());
-        jobService.updateJobRun(jobRunContext.jobRun());
-        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
-        return jobRunContext;
-    }
-
-    private JobRunState runJob(final Job job, final JobRunContext jobRunContext) {
-        try {
-            logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
-            final var state = job.run(jobRunContext);
-            logger.info("Job {} finished with state {}", job, state);
-            return state;
-        } catch (final Exception e) {
-            logger.error("Exception running job: ", e);
-            return JobRunState.ERROR;
-        }
-    }
-
-    private void finishRun(final JobRunContext jobRunContext, final JobRunState finalState) {
-        jobService.updateJobRun(
-                jobRunContext
-                        .jobRun()
-                        .modify()
-                        .state(finalState)
-                        .finishedAt(Instant.now())
-                        .toJobRun());
-        MDC.remove("jobRunId");
-        futuresByJobRun.remove(jobRunContext.jobRun().id());
-    }
-
-    private boolean check(final Job job, final RunnerGroup runnerGroup) {
+    private boolean isRunnerGroupAllowed(final Job job, final RunnerGroup runnerGroup) {
         if (runnerGroup.allowedJobs().isEmpty()
                 || runnerGroup.allowedJobs().contains(job.getClass())) {
             return true;
@@ -138,18 +89,5 @@ public final class CurrentJobRunner implements JobRunner {
                 runnerGroup.allowedJobs(),
                 job.getClass());
         return false;
-    }
-
-    public void shutdownAndWaitForJobsToComplete() {
-        for (final var executorService : executorServices.values()) {
-            executorService.shutdown();
-            try {
-                //noinspection ResultOfMethodCallIgnored
-                executorService.awaitTermination(365, TimeUnit.DAYS);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
-        }
     }
 }
