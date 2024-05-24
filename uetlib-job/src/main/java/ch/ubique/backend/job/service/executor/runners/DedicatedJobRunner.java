@@ -46,12 +46,16 @@ public final class DedicatedJobRunner implements JobRunner {
 
     @Override
     public void cancel(final JobRun jobRun) {
-        future.cancel(true);
+        if (future != null) {
+            future.cancel(true);
+        }
     }
 
     public void awaitCompletion() {
         try {
-            future.get();
+            if (future != null) {
+                future.get();
+            }
             logger.info("Awaited completion.");
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
