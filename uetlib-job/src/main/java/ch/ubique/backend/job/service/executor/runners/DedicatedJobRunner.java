@@ -48,6 +48,8 @@ public final class DedicatedJobRunner implements JobRunner {
     public void cancel(final JobRun jobRun) {
         if (future != null) {
             future.cancel(true);
+        } else {
+            logger.info("No job submitted so far. Cancel request is ignored.");
         }
     }
 
