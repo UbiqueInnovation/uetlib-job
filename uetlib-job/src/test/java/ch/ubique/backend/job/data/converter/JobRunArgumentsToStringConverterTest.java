@@ -55,7 +55,7 @@ class JobRunArgumentsToStringConverterTest {
     void testConvertForceRunFromDatabaseColumn() {
         final var dbData =
                 "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
-                    + " did I get here\"}";
+                        + " did I get here\"}";
         final var jobRunArguments =
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
@@ -82,7 +82,7 @@ class JobRunArgumentsToStringConverterTest {
         final var dbData =
                 jobRunArgumentsToStringConverter.convertToDatabaseColumn(jobRunArguments);
         assertEquals(
-                "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"watchedPath\":\"file:///tmp/\",\"type\":\"FILE\"}}",
+                "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"type\":\"FILE\",\"watchedPath\":\"file:///tmp/\"}}",
                 dbData);
     }
 
