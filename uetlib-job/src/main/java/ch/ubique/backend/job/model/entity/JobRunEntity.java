@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -18,36 +19,46 @@ import java.time.Instant;
 public class JobRunEntity {
 
     @Id
+    @Positive
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_job_run_id", nullable = false)
     private Integer id;
 
+    @NotNull
+    @Positive
     @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
 
+    @NotNull
+    @PositiveOrZero
     @Column(name = "job_version", nullable = false)
     private Integer jobVersion;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = Integer.MAX_VALUE)
     private JobRunState state;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
     private JobRunnerKey runnerKey;
 
+    @NotNull
+    @PastOrPresent
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
+    @PastOrPresent
     @Column(name = "finished_at")
     private Instant finishedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = JobRunArgumentsToStringConverter.class)
-    @Column(name = "job_run_arguments", nullable = false)
+    @Column(name = "job_run_arguments")
     private JobRunArguments jobRunArguments;
 
-    public JobRunEntity() {}
+    protected JobRunEntity() {}
 
     public JobRunEntity(final JobRun jobRun) {
         id = jobRun.id();
@@ -61,12 +72,12 @@ public class JobRunEntity {
     }
 
     public JobRunEntity(
-            final int jobId,
-            final int jobVersion,
-            final JobRunState state,
-            final JobRunnerKey runnerKey,
-            final Instant startedAt,
-            final Instant finishedAt,
+            @Positive final int jobId,
+            @PositiveOrZero final int jobVersion,
+            @NotNull final JobRunState state,
+            @NotNull final JobRunnerKey runnerKey,
+            @NotNull @PastOrPresent final Instant startedAt,
+            @PastOrPresent final Instant finishedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.jobVersion = jobVersion;
