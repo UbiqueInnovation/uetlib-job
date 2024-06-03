@@ -17,6 +17,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.domain.Page;
@@ -305,9 +306,9 @@ public class JobDataService {
 
     @Transactional
     public JobRun createJobRun(
-            final int jobId,
-            final int jobVersion,
-            final JobRunnerKey runnerKey,
+            @Positive final int jobId,
+            @Positive final int jobVersion,
+            @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         return jobRunRepository
                 .save(
