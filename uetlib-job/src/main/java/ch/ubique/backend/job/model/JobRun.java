@@ -90,7 +90,7 @@ public record JobRun(
         }
 
         public ModifiableJobRun jobRunArguments(@Nullable final JobRunArguments jobRunArguments) {
-            this.jobRunArguments = Objects.requireNonNull(jobRunArguments);
+            this.jobRunArguments = jobRunArguments;
             return this;
         }
 
