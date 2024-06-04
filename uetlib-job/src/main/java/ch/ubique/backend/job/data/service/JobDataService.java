@@ -307,7 +307,7 @@ public class JobDataService {
     @Transactional
     public JobRun createJobRun(
             @Positive final int jobId,
-            @Positive final int jobVersion,
+            @PositiveOrZero final int jobVersion,
             @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         return jobRunRepository
