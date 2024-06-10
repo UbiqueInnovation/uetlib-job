@@ -98,7 +98,7 @@ public final class JobPropertyDefinitions {
                     "ADDITIONAL_JAVA_OPTS to be set for for the k8s job.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
-                    "-XX:MaxRAMPercentage=95.0",
+                    "-XX:MaxRAMPercentage=80.0",
                     null);
     public static final JobPropertyDefinition<Map<String, String>> K8S_POD_LABELS =
             new GenericPropertyDefinition<>(
