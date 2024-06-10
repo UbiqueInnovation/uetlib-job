@@ -2,7 +2,6 @@ package ch.ubique.backend.job.service;
 
 import static ch.ubique.backend.job.model.JobRunState.UNFINISHED;
 
-import static java.time.Instant.now;
 import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
@@ -35,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -121,7 +121,7 @@ public class JobService {
     }
 
     private void setAbortedRunsToUnfinished() {
-        final var now = now();
+        final var now = Instant.now();
         jobDataService.findAllCurrentRunnerJobRunsWithoutFinishedTimestamp().stream()
                 .map(jobRun -> jobRun.modify().finishedAt(now).state(UNFINISHED).toJobRun())
                 .forEach(jobDataService::saveJobRun);
@@ -258,7 +258,8 @@ public class JobService {
                         .findFirst()
                         .orElseThrow();
         jobRunner.cancel(jobRun);
-        jobDataService.saveJobRun(jobRun.modify().state(UNFINISHED).finishedAt(now()).toJobRun());
+        jobDataService.saveJobRun(
+                jobRun.modify().state(UNFINISHED).finishedAt(Instant.now()).toJobRun());
         return true;
     }
 }
