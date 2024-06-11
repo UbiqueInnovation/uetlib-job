@@ -58,12 +58,13 @@ public class JobRunnerHelper {
             final JobService jobService,
             final JobRunContext jobRunContext,
             final JobRunState finalState) {
+        final var finishedAt = finalState.isRunning() ? null : Instant.now();
         jobService.updateJobRun(
                 jobRunContext
                         .jobRun()
                         .modify()
                         .state(finalState)
-                        .finishedAt(Instant.now())
+                        .finishedAt(finishedAt)
                         .toJobRun());
         MDC.remove("jobRunId");
     }
