@@ -210,9 +210,12 @@ public abstract class KubernetesJob implements Job {
         final var jobRunId = kubernetesJobRunContext.jobRunContext().jobRun().id();
 
         final var kubernetesJobName = currentDeploymentName + "-" + jobName + "-run-" + jobRunId;
+
+        // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
         if (kubernetesJobName.length() <= 63) {
             return kubernetesJobName;
         }
+
         final var jobId = kubernetesJobRunContext.jobRunContext().job().id();
         final var shortCurrentDeploymentName =
                 Arrays.stream(currentDeploymentName.split("-"))
@@ -223,14 +226,35 @@ public abstract class KubernetesJob implements Job {
                 shortCurrentDeploymentName + "-id-" + jobId + "-run-" + jobRunId;
 
         // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
-        logger.warn(
+        if (shortKubernetesJobName.length() <= 63) {
+            logger.info(
+                    "job name cannot be longer than 63 characters, got {} characters for job name {}."
+                            + " Using shortened name: {}",
+                    kubernetesJobName.length(),
+                    kubernetesJobName,
+                    shortKubernetesJobName);
+            return shortKubernetesJobName;
+        }
+
+        final var evenShorterKubernetesJobName = shortCurrentDeploymentName + "-" + jobRunId;
+        logger.info(
                 "job name cannot be longer than 63 characters, got {} characters for job name {}."
-                        + " Using {}",
+                        + " Using even more drastically shortened name: {}",
                 kubernetesJobName.length(),
                 kubernetesJobName,
-                shortKubernetesJobName);
+                evenShorterKubernetesJobName);
 
-        return shortKubernetesJobName;
+        // Pray it is short enough
+        if (evenShorterKubernetesJobName.length() <= 63) {
+            return evenShorterKubernetesJobName;
+        }
+
+        throw new IllegalStateException(
+                "Job name still longer than 63 characters even after shortening "
+                        + kubernetesJobName
+                        + " down to "
+                        + evenShorterKubernetesJobName
+                        + ". Cannot handle :(");
     }
 
     protected V1PodSpec podSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
