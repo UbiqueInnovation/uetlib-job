@@ -216,16 +216,7 @@ public abstract class KubernetesJob implements Job {
             return kubernetesJobName;
         }
 
-        final var jobId = kubernetesJobRunContext.jobRunContext().job().id();
-        final var shortCurrentDeploymentName =
-                Arrays.stream(currentDeploymentName.split("-"))
-                        .filter(StringUtils::isNotBlank)
-                        .map(part -> part.substring(0, 1))
-                        .collect(joining("-"));
-        final var shortKubernetesJobName =
-                shortCurrentDeploymentName + "-id-" + jobId + "-run-" + jobRunId;
-
-        // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
+        final var shortKubernetesJobName = currentDeploymentName + "-run-" + jobRunId;
         if (shortKubernetesJobName.length() <= 63) {
             logger.info(
                     "job name cannot be longer than 63 characters, got {} characters for job name {}."
@@ -236,19 +227,24 @@ public abstract class KubernetesJob implements Job {
             return shortKubernetesJobName;
         }
 
-        final var evenShorterKubernetesJobName = shortCurrentDeploymentName + "-" + jobRunId;
-        logger.info(
-                "job name cannot be longer than 63 characters, got {} characters for job name {}."
-                        + " Using even more drastically shortened name: {}",
-                kubernetesJobName.length(),
-                kubernetesJobName,
-                evenShorterKubernetesJobName);
-
+        final var shortCurrentDeploymentName =
+                Arrays.stream(currentDeploymentName.split("-"))
+                        .filter(StringUtils::isNotBlank)
+                        .map(part -> part.substring(0, 1))
+                        .collect(joining("-"));
+        final var evenShorterKubernetesJobName = shortCurrentDeploymentName + "-run-" + jobRunId;
         // Pray it is short enough
         if (evenShorterKubernetesJobName.length() <= 63) {
+            logger.info(
+                    "job name cannot be longer than 63 characters, got {} characters for job name {}."
+                            + " Using shortened name: {}",
+                    kubernetesJobName.length(),
+                    kubernetesJobName,
+                    evenShorterKubernetesJobName);
             return evenShorterKubernetesJobName;
         }
 
+        // commit Seppuku
         throw new IllegalStateException(
                 "Job name still longer than 63 characters even after shortening "
                         + kubernetesJobName
