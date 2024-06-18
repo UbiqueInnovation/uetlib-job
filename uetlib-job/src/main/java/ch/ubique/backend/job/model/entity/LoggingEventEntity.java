@@ -12,8 +12,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Table(name = "logging_event")
 @Entity
+@Table(name = "logging_event")
 public class LoggingEventEntity {
 
     @Id

@@ -10,6 +10,10 @@ import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
 
 @Entity
 @IdClass(JobPropertyId.class)
@@ -26,6 +30,14 @@ public class JobPropertyEntity {
 
     @Column(name = "value")
     private String value;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     public static <T> JobPropertyEntity from(final int jobId, final JobProperty<T> property) {
         final var entity = new JobPropertyEntity();

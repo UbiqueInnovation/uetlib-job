@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
@@ -27,8 +28,12 @@ public class JobRunDatabaseSubmissionEntity {
     private Integer jobId;
 
     @CreationTimestamp
-    @Column(name = "submitted_at", nullable = false)
-    private Instant submittedAt;
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     @Column(name = "executed_at")
     private Instant executedAt;
@@ -42,10 +47,10 @@ public class JobRunDatabaseSubmissionEntity {
 
     public JobRunDatabaseSubmissionEntity(
             final Integer jobId,
-            final Instant submittedAt,
+            final Instant createdAt,
             final JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments) {
         this.jobId = jobId;
-        this.submittedAt = submittedAt;
+        this.createdAt = createdAt;
         this.jobRunDatabaseSubmissionArguments =
                 Objects.requireNonNull(jobRunDatabaseSubmissionArguments);
     }
@@ -76,6 +81,6 @@ public class JobRunDatabaseSubmissionEntity {
             return null;
         }
         return new JobRunDatabaseSubmission(
-                id, jobId, submittedAt, executedAt, jobRunDatabaseSubmissionArguments);
+                id, jobId, createdAt, executedAt, jobRunDatabaseSubmissionArguments);
     }
 }

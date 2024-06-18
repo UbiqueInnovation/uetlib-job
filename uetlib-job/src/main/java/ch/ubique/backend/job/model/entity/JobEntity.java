@@ -8,9 +8,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-@Table(name = "t_job")
+import java.time.Instant;
+
 @Entity
+@Table(name = "t_job")
 public class JobEntity {
 
     @Id
@@ -20,6 +24,14 @@ public class JobEntity {
 
     @Column(name = "clazz", nullable = false)
     private String canonicalClassName;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     public JobEntity() {}
 

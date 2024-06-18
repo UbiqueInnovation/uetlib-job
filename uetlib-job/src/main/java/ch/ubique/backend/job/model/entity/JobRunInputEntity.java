@@ -10,6 +10,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run_input")
@@ -28,6 +32,14 @@ public class JobRunInputEntity implements JobRunInput {
 
     @Column(name = "input_hash", nullable = false, length = 128)
     private String hash;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     public static JobRunInputEntity from(final JobRun jobRun, final ByteFile file) {
         final var input = new JobRunInputEntity();

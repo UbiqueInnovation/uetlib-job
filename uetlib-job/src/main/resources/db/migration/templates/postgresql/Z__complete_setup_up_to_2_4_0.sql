@@ -2,15 +2,19 @@
 
 create table t_job
 (
-    pk_job_id integer generated always as identity primary key,
-    clazz     text not null
+    pk_job_id  integer generated always as identity primary key,
+    clazz      text                     not null,
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null
 );
 
 create table t_job_properties
 (
-    fk_job_id integer not null references t_job (pk_job_id) on delete cascade on update cascade,
-    key       text    not null,
-    value     text,
+    fk_job_id  integer                  not null references t_job (pk_job_id) on delete cascade on update cascade,
+    key        text                     not null,
+    value      text,
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null,
     PRIMARY KEY (fk_job_id, key)
 );
 
@@ -21,6 +25,8 @@ create table t_job_run
     job_version       integer                  not null,
     state             text                     not null,
     runner_key        text                     not null,
+    created_at        timestamp with time zone not null,
+    updated_at        timestamp with time zone not null,
     started_at        timestamp with time zone not null,
     finished_at       timestamp with time zone,
     job_run_arguments jsonb
@@ -31,9 +37,11 @@ create index idx_finished_at on t_job_run (finished_at);
 create table t_job_run_input
 (
     pk_job_run_input_id integer generated always as identity primary key,
-    fk_job_run_id       integer      not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
-    input_name          varchar(255) not null,
-    input_hash          varchar(128) not null
+    fk_job_run_id       integer                  not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    input_name          varchar(255)             not null,
+    input_hash          varchar(128)             not null,
+    created_at          timestamp with time zone not null,
+    updated_at          timestamp with time zone not null
 );
 
 -- 1.3.0
@@ -81,9 +89,11 @@ CREATE TABLE logging_event_exception
 CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    fk_job_id          INTEGER NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               TEXT    NOT NULL,
-    trigger_definition JSONB   NOT NULL
+    fk_job_id          INTEGER                  NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    type               TEXT                     NOT NULL,
+    trigger_definition JSONB                    NOT NULL,
+    created_at         timestamp with time zone not null,
+    updated_at         timestamp with time zone not null
 );
 
 CREATE INDEX idx_type ON t_job_trigger (type);
@@ -100,7 +110,8 @@ create table t_job_run_database_submission
 (
     pk_job_run_database_submission_id     integer generated always as identity primary key,
     fk_job_id                             integer                  not null references t_job (pk_job_id) on delete cascade on update cascade,
-    submitted_at                          timestamp with time zone not null,
+    created_at                            timestamp with time zone not null,
+    updated_at                            timestamp with time zone not null,
     executed_at                           timestamp with time zone,
     job_run_database_submission_arguments jsonb                    not null
 );
