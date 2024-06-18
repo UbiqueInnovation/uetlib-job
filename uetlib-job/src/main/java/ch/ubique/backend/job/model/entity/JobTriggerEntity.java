@@ -8,13 +8,16 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.util.Objects;
 
-@Table(name = "t_job_trigger")
 @Entity
+@Table(name = "t_job_trigger")
 public class JobTriggerEntity {
 
     @Id
@@ -23,7 +26,7 @@ public class JobTriggerEntity {
     private Integer id;
 
     @Column(name = "fk_job_id", nullable = false)
-    private Integer jobId;
+    private int jobId;
 
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -33,6 +36,14 @@ public class JobTriggerEntity {
     @Convert(converter = TriggerDefinitionToStringConverter.class)
     @Column(name = "trigger_definition", nullable = false)
     private TriggerDefinition triggerDefinition;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     public JobTriggerEntity() {}
 

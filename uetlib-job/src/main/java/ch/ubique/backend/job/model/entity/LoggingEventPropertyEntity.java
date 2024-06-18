@@ -7,8 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-@Table(name = "logging_event_property")
 @Entity
+@Table(name = "logging_event_property")
 public class LoggingEventPropertyEntity {
 
     @Id

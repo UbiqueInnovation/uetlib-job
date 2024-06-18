@@ -9,7 +9,9 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
@@ -57,6 +59,14 @@ public class JobRunEntity {
     @Convert(converter = JobRunArgumentsToStringConverter.class)
     @Column(name = "job_run_arguments")
     private JobRunArguments jobRunArguments;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     protected JobRunEntity() {}
 
