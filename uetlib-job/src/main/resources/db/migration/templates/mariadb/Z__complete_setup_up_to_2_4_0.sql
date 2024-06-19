@@ -115,3 +115,15 @@ create table t_job_run_database_submission
     executed_at                           timestamp,
     job_run_database_submission_arguments json                   not null
 ) charset = utf8;
+
+
+-- 2.4.0
+
+create table t_k8s_jobs
+(
+    pk_k8s_jobs_id integer auto_increment not null primary key,
+    fk_job_run_id  integer                not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    k8s_job_name   text                   not null,
+    created_at     timestamp              not null,
+    updated_at     timestamp              not null
+);

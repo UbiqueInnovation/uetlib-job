@@ -1,3 +1,13 @@
+-- Create table to store k8s jobs for job runs
+create table t_k8s_jobs
+(
+    pk_k8s_jobs_id integer auto_increment not null primary key,
+    fk_job_run_id  integer                not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    k8s_job_name   text                   not null,
+    created_at     timestamp              not null,
+    updated_at     timestamp              not null
+);
+
 -- Add columns for t_job
 ALTER TABLE t_job
     ADD COLUMN created_at TIMESTAMP;
