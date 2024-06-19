@@ -21,6 +21,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,7 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
+    private final K8sJobRepository k8sJobRepository;
     private final LoggingEventRepository loggingEventRepository;
 
     @PersistenceContext private EntityManager entityManager;
@@ -53,6 +55,7 @@ public class JobDataService {
             final JobRunRepository jobRunRepository,
             final JobRunInputRepository jobRunInputRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
+            final K8sJobRepository k8sJobRepository,
             final LoggingEventRepository loggingEventRepository) {
         this.jobRepository = jobRepository;
         this.jobTriggerRepository = jobTriggerRepository;
@@ -60,6 +63,7 @@ public class JobDataService {
         this.jobRunRepository = jobRunRepository;
         this.jobRunInputRepository = jobRunInputRepository;
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
+        this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
     }
 
@@ -405,5 +409,17 @@ public class JobDataService {
     @Transactional
     public void deleteJobRunDatabaseSubmissionsByJobId(final int jobId) {
         jobRunDatabaseSubmissionRepository.deleteByJobId(jobId);
+    }
+
+    @Transactional
+    public void saveK8sJob(final int jobRunId, final String k8sJobName) {
+        k8sJobRepository.save(new K8sJobEntity(jobRunId, k8sJobName));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<String> findK8sJobName(final int jobRunId) {
+        return k8sJobRepository.findBy(
+                Example.of(new K8sJobEntity(jobRunId, null)),
+                entity -> entity.first().map(K8sJobEntity::k8sJobName));
     }
 }
