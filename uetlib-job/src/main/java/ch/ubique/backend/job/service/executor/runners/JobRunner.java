@@ -5,11 +5,16 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
+import jakarta.validation.constraints.NotNull;
+
 public interface JobRunner {
 
+    @NotNull
     JobRunnerKey key();
 
-    boolean submit(Job job, JobRunContext jobRunContext);
+    boolean submit(@NotNull Job job, @NotNull JobRunContext jobRunContext);
 
-    void cancel(JobRun jobRun);
+    void cancel(@NotNull JobRun jobRun);
+
+    boolean isRunning(@NotNull JobRun jobRun);
 }

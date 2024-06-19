@@ -60,7 +60,6 @@ public class JobService {
     @Transactional
     public void init() {
         registerAllJobs();
-        setAbortedRunsToUnfinished();
     }
 
     private Set<Class<?>> findAllRegisteredJobClasses() {
@@ -118,13 +117,6 @@ public class JobService {
                 jobDataService.delete(job);
             }
         }
-    }
-
-    private void setAbortedRunsToUnfinished() {
-        final var now = Instant.now();
-        jobDataService.findAllCurrentRunnerJobRunsWithoutFinishedTimestamp().stream()
-                .map(jobRun -> jobRun.modify().finishedAt(now).state(UNFINISHED).toJobRun())
-                .forEach(jobDataService::saveJobRun);
     }
 
     public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {

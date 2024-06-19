@@ -18,6 +18,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Job;
+import io.kubernetes.client.openapi.models.V1JobStatus;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Namespaces;
 
@@ -31,6 +32,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Service
 @Profile("!job-run")
@@ -130,6 +132,31 @@ public class KubernetesJobRunner implements JobRunner {
             batchApi.deleteNamespacedJob(jobName, namespace);
         } catch (final IOException | ClassNotFoundException e) {
             logger.info("Got exception when trying to cancel job run {}", jobRun, e);
+        }
+    }
+
+    @Override
+    public boolean isRunning(final JobRun jobRun) {
+        final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
+        if (k8sJobNameMaybe.isEmpty()) {
+            return false;
+        }
+
+        final var jobName = k8sJobNameMaybe.get();
+
+        try {
+            final var client = getClient(jobRun);
+            final var batchApi = new BatchV1Api(client);
+            final var job = batchApi.readNamespacedJob(jobName, namespace).execute();
+
+            return Optional.ofNullable(job)
+                    .map(V1Job::getStatus)
+                    .map(V1JobStatus::getActive)
+                    .map(active -> active > 0)
+                    .orElse(false);
+        } catch (final IOException | ClassNotFoundException | ApiException e) {
+            logger.info("Got exception when trying to query the status of {}", jobName, e);
+            return false;
         }
     }
 
