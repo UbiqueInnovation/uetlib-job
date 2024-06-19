@@ -77,7 +77,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
         // last check
         for (final var recentlyFinishedJobRun : recentlyFinishedJobRuns) {
             if (!activeJobRunsById.containsKey(recentlyFinishedJobRun.id())) {
-                final var currentState = activeJobRunsById.get(recentlyFinishedJobRun.id()).state();
+                final var currentState = recentlyFinishedJobRun.state();
                 onStateChanged(recentlyFinishedJobRun, currentState);
             }
         }
