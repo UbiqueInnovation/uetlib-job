@@ -100,6 +100,13 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public Collection<JobRun> findJobRunByStates(final Collection<JobRunState> states) {
+        return jobRunRepository.findAllByStateIn(states).stream()
+                .map(JobRunEntity::toJobRun)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<JobClassAndId> findJobs() {
         return jobRepository.findAllByOrderById().stream().map(JobEntity::toRecord).toList();
     }

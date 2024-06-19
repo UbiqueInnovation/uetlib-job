@@ -6,6 +6,8 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 
+import jakarta.validation.constraints.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -19,6 +21,7 @@ public final class DedicatedJobRunner implements JobRunner {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private JobRun activeJobRun;
     private Future<?> future;
     private final ExecutorService executorService;
 
@@ -40,6 +43,7 @@ public final class DedicatedJobRunner implements JobRunner {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;
         }
+        activeJobRun = jobRunContext.jobRun();
         future = executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
         return true;
     }
@@ -48,9 +52,18 @@ public final class DedicatedJobRunner implements JobRunner {
     public void cancel(final JobRun jobRun) {
         if (future != null) {
             future.cancel(true);
+            activeJobRun = null;
         } else {
             logger.info("No job submitted so far. Cancel request is ignored.");
         }
+    }
+
+    @Override
+    public boolean isRunning(@NotNull final JobRun jobRun) {
+        if (activeJobRun == null) {
+            return false;
+        }
+        return activeJobRun.id() == jobRun.id();
     }
 
     public void awaitCompletion() {

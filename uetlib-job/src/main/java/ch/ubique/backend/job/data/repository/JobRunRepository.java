@@ -31,6 +31,8 @@ public interface JobRunRepository
     Optional<JobRunEntity> findFirstByJobIdAndStateInOrderByStartedAtDesc(
             int jobId, final Collection<JobRunState> states);
 
+    Collection<JobRunEntity> findAllByStateIn(final Collection<JobRunState> states);
+
     Optional<JobRunEntity> findById(int id);
 
     Optional<JobRun> findFirstByStateAndFinishedAtIsNotNullAndJobIdOrderByFinishedAtDesc(

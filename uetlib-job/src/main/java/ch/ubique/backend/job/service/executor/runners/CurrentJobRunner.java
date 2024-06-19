@@ -9,6 +9,8 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
+import jakarta.validation.constraints.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -62,6 +64,11 @@ public final class CurrentJobRunner implements JobRunner {
             future.cancel(true);
             futuresByJobRun.remove(jobRun.id());
         }
+    }
+
+    @Override
+    public boolean isRunning(@NotNull final JobRun jobRun) {
+        return futuresByJobRun.containsKey(jobRun.id());
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
