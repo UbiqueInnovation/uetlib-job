@@ -16,6 +16,8 @@ public enum JobRunState {
     SCHEDULED;
 
     public static final Collection<JobRunState> RUNNING_STATES = Set.of(BUSY, SCHEDULED);
+
+    @SuppressWarnings("java:S2386")
     public static final Collection<JobRunState> ALL_EXCEPT_RUNNING_STATES =
             allExcept(RUNNING_STATES);
 
