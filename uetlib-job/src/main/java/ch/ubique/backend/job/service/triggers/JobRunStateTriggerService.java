@@ -68,14 +68,28 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
         }
 
         // Check if any jobs finished recently
-        final var recentlyFinishedJobRunsById =
-                jobDataService.findJobRunsFinishedAfter(aBitBeforePreviousCheck).stream()
-                        .collect(Collectors.toMap(JobRun::id, Function.identity()));
+        final var recentlyFinishedJobRuns =
+                jobDataService.findJobRunsFinishedAfter(aBitBeforePreviousCheck);
 
-        for (final var jobRun : activeJobRuns) {
-            if (recentlyFinishedJobRunsById.containsKey(jobRun.id())) {
-                final var currentState = recentlyFinishedJobRunsById.get(jobRun.id()).state();
-                onStateChanged(jobRun, currentState);
+        final var activeJobRunsById =
+                activeJobRuns.stream().collect(Collectors.toMap(JobRun::id, Function.identity()));
+        // check for state change on all recentlyFinishedJobRuns that were not active during the
+        // last check
+        for (final var recentlyFinishedJobRun : recentlyFinishedJobRuns) {
+            if (!activeJobRunsById.containsKey(recentlyFinishedJobRun.id())) {
+                final var currentState = activeJobRunsById.get(recentlyFinishedJobRun.id()).state();
+                onStateChanged(recentlyFinishedJobRun, currentState);
+            }
+        }
+
+        final var recentlyFinishedJobRunsById =
+                recentlyFinishedJobRuns.stream()
+                        .collect(Collectors.toMap(JobRun::id, Function.identity()));
+        // check for state change on all activeJobRuns that recently finished
+        for (final var activeJobRun : activeJobRuns) {
+            if (recentlyFinishedJobRunsById.containsKey(activeJobRun.id())) {
+                final var currentState = recentlyFinishedJobRunsById.get(activeJobRun.id()).state();
+                onStateChanged(activeJobRun, currentState);
             }
         }
 
