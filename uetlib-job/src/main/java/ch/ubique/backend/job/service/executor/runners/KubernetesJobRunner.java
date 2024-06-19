@@ -3,6 +3,7 @@ package ch.ubique.backend.job.service.executor.runners;
 import static java.util.Objects.requireNonNull;
 
 import ch.ubique.backend.job.Job;
+import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables;
 import ch.ubique.backend.job.k8s.KubernetesJob;
 import ch.ubique.backend.job.model.JobRun;
@@ -30,7 +31,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.*;
 
 @Service
 @Profile("!job-run")
@@ -39,6 +39,7 @@ public class KubernetesJobRunner implements JobRunner {
     private static final Logger logger = LoggerFactory.getLogger(KubernetesJobRunner.class);
 
     private final ApplicationContext applicationContext;
+    private final JobDataService jobDataService;
 
     private final String namespace;
     private final String currentPodName;
@@ -47,6 +48,7 @@ public class KubernetesJobRunner implements JobRunner {
         this.applicationContext = applicationContext;
         namespace = getCurrentKubernetesNamespace();
         currentPodName = getCurrentPodName();
+        jobDataService = applicationContext.getBean(JobDataService.class);
     }
 
     private static String getCurrentKubernetesNamespace() {
@@ -103,7 +105,8 @@ public class KubernetesJobRunner implements JobRunner {
                     new KubernetesJobRunContext(jobRunContext, kubernetesContext(client));
             final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
-            submitJobToKubernetes(client, jobDefinition);
+            final var k8sJobName = submitJobToKubernetes(client, jobDefinition);
+            jobDataService.saveK8sJob(jobRunContext.jobRun().jobId(), k8sJobName);
             return true;
 
         } catch (final ApiException e) {
@@ -114,12 +117,18 @@ public class KubernetesJobRunner implements JobRunner {
 
     @Override
     public void cancel(final JobRun jobRun) {
+        final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.jobId());
+        if (k8sJobNameMaybe.isEmpty()) {
+            logger.info("No k8s job found for given job run.");
+            return;
+        }
+
         try {
             final var client = getClient(jobRun);
-            final var jobName = findJobName(jobRun, client);
+            final var jobName = k8sJobNameMaybe.get();
             final var batchApi = new BatchV1Api(client);
             batchApi.deleteNamespacedJob(jobName, namespace);
-        } catch (final IOException | ClassNotFoundException | ApiException e) {
+        } catch (final IOException | ClassNotFoundException e) {
             logger.info("Got exception when trying to cancel job run {}", jobRun, e);
         }
     }
@@ -128,22 +137,6 @@ public class KubernetesJobRunner implements JobRunner {
         final var jobService = applicationContext.getBean(JobService.class);
         final var job = jobService.instantiateJob(jobRun.jobId());
         return KubernetesJob.forJob(job, applicationContext).apiClient();
-    }
-
-    private String findJobName(final JobRun jobRun, final ApiClient client)
-            throws ApiException, ClassNotFoundException {
-        final var jobService = applicationContext.getBean(JobService.class);
-        final var job = jobService.instantiateJob(jobRun.jobId());
-        final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
-        final var context =
-                new KubernetesJobRunContext(
-                        new JobRunContext(
-                                jobService.getJobClassAndId(job),
-                                jobRun,
-                                jobRun.jobRunArguments(),
-                                jobService.getProperties(job)),
-                        kubernetesContext(client));
-        return requireNonNull(kubernetesJob.job(context).getMetadata()).getName();
     }
 
     private ApiClient tryToGetKubernetesApiClient(final KubernetesJob kubernetesJob) {
@@ -162,14 +155,14 @@ public class KubernetesJobRunner implements JobRunner {
         if (StringUtils.isBlank(namespace)) {
             logger.warn(
                     "Could not get kubernetes namespace. If this application is not running the on"
-                        + " a k8s cluster, this is the expected behaviour.");
+                            + " a k8s cluster, this is the expected behaviour.");
         }
 
         // Get current pod name
         if (StringUtils.isBlank(currentPodName)) {
             logger.warn(
                     "Could not get pod name. If this application is not running the on a k8s"
-                        + " cluster, this is the expected behaviour.");
+                            + " cluster, this is the expected behaviour.");
         }
     }
 
@@ -183,7 +176,7 @@ public class KubernetesJobRunner implements JobRunner {
         if (StringUtils.isBlank(currentPodName) || StringUtils.isBlank(namespace)) {
             logger.warn(
                     "Unable to get current pod, as the current pod name and/or namespace are"
-                        + " unknown.");
+                            + " unknown.");
             return null;
         }
         logger.info("Getting info for {} on namespace {}", currentPodName, namespace);
@@ -197,14 +190,14 @@ public class KubernetesJobRunner implements JobRunner {
             maxAttempts = 10,
             backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
-    private void submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
+    private String submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
             throws ApiException {
         final var batchApi = new BatchV1Api(client);
         final var createdJob = batchApi.createNamespacedJob(namespace, jobDefinition).execute();
 
-        logger.info(
-                "Successfully created kubernetes job {}",
-                requireNonNull(createdJob.getMetadata()).getName());
+        final var k8sJobName = requireNonNull(createdJob.getMetadata()).getName();
+        logger.info("Successfully created kubernetes job {}", k8sJobName);
+        return k8sJobName;
     }
 
     private KubernetesContext kubernetesContext(final ApiClient client) throws ApiException {
