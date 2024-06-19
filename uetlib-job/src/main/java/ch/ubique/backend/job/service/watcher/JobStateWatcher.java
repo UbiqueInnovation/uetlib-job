@@ -36,7 +36,7 @@ public class JobStateWatcher {
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
     public void checkIfJobsAreRunning() {
         logger.info("Checking if jobs are running");
-        final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING);
+        final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
             if (!isRunning(jobRun)) {
                 logger.info("{} is not running.", jobRun);
