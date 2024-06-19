@@ -4,8 +4,10 @@ ALTER TABLE t_job
 ALTER TABLE t_job
     ADD COLUMN updated_at TIMESTAMP;
 UPDATE t_job
-SET created_at = NOW(),
-    updated_at = NOW()
+SET created_at = NOW()
+WHERE true;
+UPDATE t_job
+SET updated_at = created_at
 WHERE true;
 ALTER TABLE t_job
     MODIFY created_at TIMESTAMP NOT NULL;
@@ -32,8 +34,10 @@ ALTER TABLE t_job_run_input
 ALTER TABLE t_job_run_input
     ADD COLUMN updated_at TIMESTAMP;
 UPDATE t_job_run_input
-SET created_at = NOW(),
-    updated_at = NOW()
+SET created_at = NOW()
+WHERE true;
+UPDATE t_job_run_input
+SET updated_at = created_at
 WHERE true;
 ALTER TABLE t_job_run_input
     MODIFY created_at TIMESTAMP NOT NULL;
@@ -46,8 +50,10 @@ ALTER TABLE t_job_properties
 ALTER TABLE t_job_properties
     ADD COLUMN updated_at TIMESTAMP;
 UPDATE t_job_properties
-SET created_at = NOW(),
-    updated_at = NOW()
+SET created_at = NOW()
+WHERE true;
+UPDATE t_job_properties
+SET updated_at = created_at
 WHERE true;
 ALTER TABLE t_job_properties
     MODIFY created_at TIMESTAMP NOT NULL;
@@ -60,8 +66,10 @@ ALTER TABLE t_job_trigger
 ALTER TABLE t_job_trigger
     ADD COLUMN updated_at TIMESTAMP;
 UPDATE t_job_trigger
-SET created_at = NOW(),
-    updated_at = NOW()
+SET created_at = NOW()
+WHERE true;
+UPDATE t_job_trigger
+SET updated_at = created_at
 WHERE true;
 ALTER TABLE t_job_trigger
     MODIFY created_at TIMESTAMP NOT NULL;
@@ -69,7 +77,8 @@ ALTER TABLE t_job_trigger
     MODIFY updated_at TIMESTAMP NOT NULL;
 
 -- Rename column and add updated_at for t_job_run_database_submission
-ALTER TABLE t_job_run_database_submission RENAME COLUMN submitted_at TO created_at;
+ALTER TABLE t_job_run_database_submission
+    RENAME COLUMN submitted_at TO created_at;
 ALTER TABLE t_job_run_database_submission
     ADD COLUMN updated_at TIMESTAMP;
 UPDATE t_job_run_database_submission
