@@ -24,7 +24,7 @@ public class K8sJobEntity {
     private Integer jobRunId;
 
     @NotNull
-    @PositiveOrZero
+    @NotBlank
     @Column(name = "k8s_job_name", nullable = false)
     private String k8sJobName;
 
