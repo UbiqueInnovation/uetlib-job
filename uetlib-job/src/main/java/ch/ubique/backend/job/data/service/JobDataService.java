@@ -188,7 +188,7 @@ public class JobDataService {
     public JobRun saveJobRun(final JobRun jobRun) {
         return jobRunRepository
                 .findById(jobRun.id())
-                .map(entity -> jobRunRepository.save(entity.set(jobRun)))
+                .map(entity -> jobRunRepository.save(entity.with(jobRun)))
                 .orElseGet(() -> jobRunRepository.save(new JobRunEntity(jobRun)))
                 .toJobRun();
     }

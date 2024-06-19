@@ -71,19 +71,7 @@ public class JobRunEntity {
     protected JobRunEntity() {}
 
     public JobRunEntity(final JobRun jobRun) {
-        set(jobRun);
-    }
-
-    public JobRunEntity set(final JobRun jobRun) {
-        id = jobRun.id();
-        jobId = jobRun.jobId();
-        jobVersion = jobRun.jobVersion();
-        state = jobRun.state();
-        runnerKey = jobRun.runnerKey();
-        startedAt = jobRun.startedAt();
-        finishedAt = jobRun.finishedAt();
-        jobRunArguments = jobRun.jobRunArguments();
-        return this;
+        with(jobRun);
     }
 
     public JobRunEntity(
@@ -101,6 +89,18 @@ public class JobRunEntity {
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
         this.jobRunArguments = jobRunArguments;
+    }
+
+    public JobRunEntity with(final JobRun jobRun) {
+        id = jobRun.id();
+        jobId = jobRun.jobId();
+        jobVersion = jobRun.jobVersion();
+        state = jobRun.state();
+        runnerKey = jobRun.runnerKey();
+        startedAt = jobRun.startedAt();
+        finishedAt = jobRun.finishedAt();
+        jobRunArguments = jobRun.jobRunArguments();
+        return this;
     }
 
     public JobRun toJobRun() {
