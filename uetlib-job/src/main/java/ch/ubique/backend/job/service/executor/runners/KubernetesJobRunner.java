@@ -108,7 +108,7 @@ public class KubernetesJobRunner implements JobRunner {
             final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
             final var k8sJobName = submitJobToKubernetes(client, jobDefinition);
-            jobDataService.saveK8sJob(jobRunContext.jobRun().jobId(), k8sJobName);
+            jobDataService.saveK8sJob(jobRunContext.jobRun().id(), k8sJobName);
             return true;
 
         } catch (final ApiException e) {
