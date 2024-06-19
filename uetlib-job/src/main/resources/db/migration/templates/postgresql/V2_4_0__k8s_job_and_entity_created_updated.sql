@@ -1,3 +1,13 @@
+-- Creates k8s job table
+create table t_k8s_jobs
+(
+    pk_k8s_jobs_id integer generated always as identity primary key,
+    fk_job_run_id  integer                  not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    k8s_job_name   text                     not null,
+    created_at     timestamp with time zone not null,
+    updated_at     timestamp with time zone not null
+);
+
 -- Add columns for t_job
 alter table t_job
     add column created_at timestamp with time zone;
