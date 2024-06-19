@@ -186,7 +186,11 @@ public class JobDataService {
 
     @Transactional
     public JobRun saveJobRun(final JobRun jobRun) {
-        return jobRunRepository.save(new JobRunEntity(jobRun)).toJobRun();
+        return jobRunRepository
+                .findById(jobRun.id())
+                .map(entity -> jobRunRepository.save(entity.set(jobRun)))
+                .orElseGet(() -> jobRunRepository.save(new JobRunEntity(jobRun)))
+                .toJobRun();
     }
 
     @Transactional(readOnly = true)

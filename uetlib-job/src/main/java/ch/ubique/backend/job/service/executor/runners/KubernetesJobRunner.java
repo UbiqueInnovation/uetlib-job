@@ -117,7 +117,7 @@ public class KubernetesJobRunner implements JobRunner {
 
     @Override
     public void cancel(final JobRun jobRun) {
-        final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.jobId());
+        final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             logger.info("No k8s job found for given job run.");
             return;

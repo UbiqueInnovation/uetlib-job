@@ -71,6 +71,10 @@ public class JobRunEntity {
     protected JobRunEntity() {}
 
     public JobRunEntity(final JobRun jobRun) {
+        set(jobRun);
+    }
+
+    public JobRunEntity set(final JobRun jobRun) {
         id = jobRun.id();
         jobId = jobRun.jobId();
         jobVersion = jobRun.jobVersion();
@@ -79,6 +83,7 @@ public class JobRunEntity {
         startedAt = jobRun.startedAt();
         finishedAt = jobRun.finishedAt();
         jobRunArguments = jobRun.jobRunArguments();
+        return this;
     }
 
     public JobRunEntity(
