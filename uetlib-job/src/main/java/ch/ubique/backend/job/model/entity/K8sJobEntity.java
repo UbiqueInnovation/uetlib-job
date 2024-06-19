@@ -23,7 +23,6 @@ public class K8sJobEntity {
     @Column(name = "fk_job_run_id", nullable = false)
     private Integer jobRunId;
 
-    @NotNull
     @NotBlank
     @Column(name = "k8s_job_name", nullable = false)
     private String k8sJobName;
