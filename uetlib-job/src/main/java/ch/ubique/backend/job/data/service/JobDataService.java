@@ -188,7 +188,12 @@ public class JobDataService {
 
     @Transactional
     public JobClassAndId saveJob(final Class<? extends Job> jobClass) {
-        return jobRepository.save(new JobEntity(jobClass.getCanonicalName())).toRecord();
+        final var jobClassCanonicalName = jobClass.getCanonicalName();
+        return jobRepository
+                .findByCanonicalClassName(jobClassCanonicalName)
+                .map(entity -> jobRepository.save(entity.with(jobClassCanonicalName)))
+                .orElseGet(() -> jobRepository.save(new JobEntity(jobClassCanonicalName)))
+                .toRecord();
     }
 
     @Transactional
@@ -341,7 +346,10 @@ public class JobDataService {
 
     @Transactional
     public void saveTrigger(final Trigger trigger) {
-        jobTriggerRepository.save(new JobTriggerEntity(trigger));
+        jobTriggerRepository
+                .findById(trigger.id())
+                .map(entity -> jobTriggerRepository.save(entity.with(trigger)))
+                .orElseGet(() -> jobTriggerRepository.save(new JobTriggerEntity(trigger)));
     }
 
     @Transactional
@@ -358,7 +366,9 @@ public class JobDataService {
     public Collection<Trigger> insertTriggers(
             final int jobId, final Collection<TriggerDefinition> triggerDefinitions) {
         final var entities =
-                triggerDefinitions.stream().map(def -> new JobTriggerEntity(jobId, def)).toList();
+                triggerDefinitions.stream()
+                        .map(triggerDefinition -> new JobTriggerEntity(jobId, triggerDefinition))
+                        .toList();
         return jobTriggerRepository.saveAll(entities).stream()
                 .map(JobTriggerEntity::toTrigger)
                 .map(Objects::requireNonNull)
