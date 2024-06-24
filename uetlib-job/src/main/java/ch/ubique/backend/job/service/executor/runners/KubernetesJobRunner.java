@@ -22,6 +22,8 @@ import io.kubernetes.client.openapi.models.V1JobStatus;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Namespaces;
 
+import jakarta.validation.constraints.NotNull;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,12 +92,12 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunnerKey key() {
+    public @NotNull JobRunnerKey key() {
         return JobRunnerKey.DEDICATED_K8S_JOB;
     }
 
     @Override
-    public boolean submit(final Job job, final JobRunContext jobRunContext) {
+    public boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
         final var client = tryToGetKubernetesApiClient(kubernetesJob);
         if (client == null) {
@@ -118,7 +120,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final JobRun jobRun) {
+    public void cancel(final @NotNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             logger.info("No k8s job found for given job run.");
@@ -136,7 +138,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean isRunning(final JobRun jobRun) {
+    public boolean isRunning(final @NotNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             return false;
