@@ -39,12 +39,12 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunnerKey key() {
+    public @NotNull JobRunnerKey key() {
         return JobRunnerKey.CURRENT;
     }
 
     @Override
-    public synchronized boolean submit(final Job job, final JobRunContext jobRunContext) {
+    public synchronized boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
         if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
@@ -58,7 +58,7 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final JobRun jobRun) {
+    public void cancel(final @NotNull JobRun jobRun) {
         final var future = futuresByJobRun.get(jobRun.id());
         if (future != null) {
             future.cancel(true);

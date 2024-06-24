@@ -33,12 +33,12 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunnerKey key() {
+    public @NotNull JobRunnerKey key() {
         return JobRunnerKey.DEDICATED_K8S_JOB;
     }
 
     @Override
-    public synchronized boolean submit(final Job job, final JobRunContext jobRunContext) {
+    public synchronized boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         if (future != null) {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;
@@ -49,7 +49,7 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final JobRun jobRun) {
+    public void cancel(final @NotNull JobRun jobRun) {
         if (future != null) {
             future.cancel(true);
             activeJobRun = null;
