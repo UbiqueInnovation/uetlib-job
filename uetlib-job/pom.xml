@@ -26,6 +26,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>ch.ubique</groupId>
+            <artifactId>backend-jvm-lib-db</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Command line args parsing -->
         <dependency>
             <groupId>commons-cli</groupId>
