@@ -10,17 +10,12 @@ create table t_job
 
 create table t_job_properties
 (
-    fk_job_id integer not null references t_job (pk_job_id) on delete cascade on update cascade, `
-    key
-    `
-    varchar
-(
-    100
-) not null,
+    fk_job_id integer not null references t_job (pk_job_id) on delete cascade on update cascade,
+    `key` varchar (100) not null,
     value text,
     created_at timestamp not null,
     updated_at timestamp not null,
-    PRIMARY KEY (fk_job_id, ` key `)
+    PRIMARY KEY (fk_job_id, `key`)
     ) charset = utf8;
 
 create table t_job_run
@@ -43,8 +38,8 @@ create table t_job_run_input
 (
     pk_job_run_input_id integer auto_increment not null primary key,
     fk_job_run_id       integer      not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
-    input_name          varchar(255) not null,
-    input_hash          varchar(128) not null,
+    input_name          text         not null,
+    input_hash          text         not null,
     created_at          timestamp    not null,
     updated_at          timestamp    not null
 ) charset = utf8;
