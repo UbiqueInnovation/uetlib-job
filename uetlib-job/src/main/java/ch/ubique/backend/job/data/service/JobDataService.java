@@ -178,20 +178,12 @@ public class JobDataService {
     }
 
     @Transactional
-    @SuppressWarnings("java:S6809")
     public JobClassAndId findOrInsertJob(final Class<? extends Job> jobClass) {
-        return jobRepository
-                .findByCanonicalClassName(jobClass.getCanonicalName())
-                .map(JobEntity::toRecord)
-                .orElseGet(() -> saveJob(jobClass));
-    }
-
-    @Transactional
-    public JobClassAndId saveJob(final Class<? extends Job> jobClass) {
         final var jobClassCanonicalName = jobClass.getCanonicalName();
         return jobRepository
                 .findByCanonicalClassName(jobClassCanonicalName)
-                .map(entity -> jobRepository.save(entity.with(jobClassCanonicalName)))
+                // uncomment the following line if you ever add additional fields to JobRunEntity apart from the canonical class name
+                // .map(entity -> jobRepository.save(entity.with(jobClassCanonicalName)))
                 .orElseGet(() -> jobRepository.save(new JobEntity(jobClassCanonicalName)))
                 .toRecord();
     }
