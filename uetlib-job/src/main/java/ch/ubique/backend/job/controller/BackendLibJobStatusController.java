@@ -128,7 +128,7 @@ public class BackendLibJobStatusController {
         jobControllerService.startAllJobs(forceRun);
     }
 
-    @GetMapping("/run/{jobRunId}/cancel")
+    @PostMapping("/run/{jobRunId}/cancel")
     public SuccessResponse cancelJobRun(@PathVariable final int jobRunId) {
         return jobControllerService.cancelJobRun(jobRunId);
     }
