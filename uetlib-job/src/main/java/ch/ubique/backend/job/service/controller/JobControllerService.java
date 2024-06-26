@@ -33,10 +33,11 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
@@ -122,9 +123,8 @@ public class JobControllerService {
         return jobInfos(jobs);
     }
 
-    public JobInfosContainer findJobs(final int page, final int perPage)
-            throws ClassNotFoundException {
-        final var jobsPage = jobDataService.findJobsPage(page, perPage);
+    public JobInfosContainer findJobs(final Pageable pageable) throws ClassNotFoundException {
+        final var jobsPage = jobDataService.findJobsPage(pageable);
         final var jobs = jobsPage.toList();
         final var latestRuns = findLatestJobRuns(jobs);
         final var jobInfos = jobInfos(jobs);
@@ -172,8 +172,7 @@ public class JobControllerService {
      * @return The job runs matching the specified criteria.
      */
     public JobRunInfosContainer findJobRuns(
-            final int page,
-            final int perPage,
+            final Pageable pageable,
             final JobRunState state,
             @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds,
@@ -187,8 +186,7 @@ public class JobControllerService {
                 getJobIdIncludeList(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var fromToRange = getFromToRangeOptional(from, to);
         final var jobRunsPage =
-                jobDataService.findJobRunsUsingCriteriaBuilder(
-                        page, perPage, selectedJobIdList, state, fromToRange);
+                jobDataService.findJobRuns(pageable, selectedJobIdList, state, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
         return new JobRunInfosContainer(
                 jobRuns,
@@ -213,10 +211,9 @@ public class JobControllerService {
         return List.of();
     }
 
-    private Optional<Pair<Instant, Instant>> getFromToRangeOptional(
-            final Instant from, final Instant to) {
+    private Optional<Range<Instant>> getFromToRangeOptional(final Instant from, final Instant to) {
         return Optional.ofNullable(from)
-                .flatMap(fromI -> Optional.ofNullable(to).map(toI -> Pair.of(fromI, toI)));
+                .flatMap(fromI -> Optional.ofNullable(to).map(toI -> Range.of(fromI, toI)));
     }
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {

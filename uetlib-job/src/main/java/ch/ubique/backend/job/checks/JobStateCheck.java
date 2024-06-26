@@ -24,23 +24,23 @@ public abstract class JobStateCheck implements StatusCheck {
     public final CheckStatus check() {
         final var jobsInStateToCheck =
                 jobDataService.findJobs().stream()
-                        .filter(this::hasState)
+                        .filter(this::hasStateToCheck)
                         .map(JobClassAndId::canonicalClassName)
                         .toList();
 
         if (!jobsInStateToCheck.isEmpty()) {
             return new CheckFailed(
-                    "Some jobs are in the " + stateToCheck + " state.",
+                    "Some jobs are in state" + stateToCheck + ".",
                     Map.of("jobs", jobsInStateToCheck));
         }
 
         return CheckStatus.CHECK_PASSED;
     }
 
-    private boolean hasState(final JobClassAndId job) {
+    private boolean hasStateToCheck(final JobClassAndId job) {
         return jobDataService
                 .findLatestJobRunByStates(job.id(), JobRunState.ALL_EXCEPT_RUNNING_STATES)
-                .map(run -> run.state() == stateToCheck)
+                .map(run -> run.latestState() == stateToCheck)
                 .orElse(false);
     }
 }

@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.controller;
 
+import static ch.ubique.backend.db.data.sort.PageableUtil.toPageableWithDefaultDirection;
+
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
@@ -12,6 +14,8 @@ import ch.ubique.backend.job.service.controller.JobControllerService;
 import jakarta.validation.Valid;
 
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -46,15 +50,26 @@ public class BackendLibJobStatusController {
     @GetMapping("/jobs")
     public JobInfosContainer jobs(
             @RequestParam(required = false) final Integer page,
-            @RequestParam(required = false, defaultValue = "25") final int perPage)
+            @RequestParam(required = false, defaultValue = "25") final int perPage,
+            @RequestParam(required = false, defaultValue = "id") final List<String> orderBy,
+            @RequestParam(required = false, defaultValue = "ASC")
+                    final List<Sort.Direction> directions)
             throws ClassNotFoundException {
-        return jobControllerService.findJobs(page, perPage);
+        // pre v1.5 does not send page and pageSize parameter, need to fall back to unpaged
+        final var pageable =
+                Optional.ofNullable(page)
+                        .map(p -> toPageableWithDefaultDirection(p, perPage, orderBy, directions))
+                        .orElseGet(Pageable::unpaged);
+        return jobControllerService.findJobs(pageable);
     }
 
     @GetMapping("/runs")
     public JobRunInfosContainer jobRuns(
             @RequestParam(required = false, defaultValue = "0") final int page,
             @RequestParam(required = false, defaultValue = "25") final int perPage,
+            @RequestParam(required = false, defaultValue = "id") final List<String> orderBy,
+            @RequestParam(required = false, defaultValue = "ASC")
+                    final List<Sort.Direction> directions,
             @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
             @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
             @RequestParam(required = false) final Instant from,
@@ -62,7 +77,12 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false) final JobRunState state)
             throws ClassNotFoundException {
         return jobControllerService.findJobRuns(
-                page, perPage, state, includeJobs, excludeJobs, from, to);
+                toPageableWithDefaultDirection(page, perPage, orderBy, directions),
+                state,
+                includeJobs,
+                excludeJobs,
+                from,
+                to);
     }
 
     @GetMapping("/info")

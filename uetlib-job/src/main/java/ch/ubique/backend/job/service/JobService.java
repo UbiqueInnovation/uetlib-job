@@ -11,6 +11,7 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
@@ -110,11 +111,11 @@ public class JobService {
                     // The class exists, but was not discovered by findAllRegisteredJobClasses()
                     // This could e.g. be the case if @EnableJobs does not include this job
                     logger.warn("{} is not part of the job classes. Removing database entry.", job);
-                    jobDataService.delete(job);
+                    jobDataService.deleteJob(job.id());
                 }
             } catch (final ClassNotFoundException e) {
                 logger.warn("Could not find class for {}. Removing database entry.", job);
-                jobDataService.delete(job);
+                jobDataService.deleteJob(job.id());
             }
         }
     }
@@ -217,8 +218,7 @@ public class JobService {
                 && Objects.equals(arguments, jobRun.jobRunArguments())) {
             return jobRun;
         }
-        return jobDataService.saveJobRun(
-                jobRun.modify().runnerKey(runnerKey).jobRunArguments(arguments).toJobRun());
+        return jobDataService.updateJobRun(jobRun, runnerKey, arguments);
     }
 
     public JobRun getJobRun(final int runId) {
@@ -229,8 +229,13 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public void updateJobRun(@NotNull final JobRun jobRun) {
-        jobDataService.saveJobRun(jobRun);
+    public JobRun startJobRun(@NotNull final JobRun jobRun, final Instant startedAt) {
+        return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
+    }
+
+    public void finishJobRun(
+            final JobRun jobRun, final JobRunState finalState, final Instant finishedAt) {
+        jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
     }
 
     public Collection<Job> getAllJobs() {
@@ -241,15 +246,14 @@ public class JobService {
     }
 
     public boolean cancel(final JobRun jobRun) {
-        if (!jobRun.state().isRunning()) {
+        if (!jobRun.latestState().isRunning()) {
             logger.info("Job run can not be canceled, as it is not running.");
             return false;
         }
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        jobDataService.saveJobRun(
-                jobRun.modify().state(UNFINISHED).finishedAt(Instant.now()).toJobRun());
+        jobDataService.finishJobRun(jobRun.id(), UNFINISHED, Instant.now());
         return true;
     }
 

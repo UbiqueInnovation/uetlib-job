@@ -23,7 +23,6 @@ create table t_job_run
     pk_job_run_id     integer generated always as identity primary key,
     fk_job_id         integer                  not null references t_job (pk_job_id) on delete cascade on update cascade,
     job_version       integer                  not null,
-    state             text                     not null,
     runner_key        text                     not null,
     created_at        timestamp with time zone not null,
     updated_at        timestamp with time zone not null,
@@ -126,3 +125,15 @@ create table t_k8s_jobs
     created_at     timestamp with time zone not null,
     updated_at     timestamp with time zone not null
 );
+
+-- 2.4.1
+
+create table t_job_run_state_transition
+(
+    pk_job_run_state_transition_id integer generated always as identity primary key,
+    fk_job_run_id                  integer                  not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    state                          text                     not null,
+    transitioned_at                timestamp with time zone not null
+);
+
+create index on t_job_run_state_transition (transitioned_at);

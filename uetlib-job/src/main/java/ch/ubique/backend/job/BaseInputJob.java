@@ -269,7 +269,7 @@ public abstract class BaseInputJob<T> implements Job {
                                 new JobRunWithInputs(
                                         run.id(),
                                         run.jobVersion(),
-                                        run.state(),
+                                        run.latestState(),
                                         run.startedAt(),
                                         run.startedAt(),
                                         jobDataService.findJobRunInputs(run.id()).stream()

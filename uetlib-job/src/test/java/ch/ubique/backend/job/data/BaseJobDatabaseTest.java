@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.data;
 
-import ch.ubique.backend.job.config.JobDataServiceConfig;
+import ch.ubique.backend.job.config.JobServiceConfig;
 import ch.ubique.backend.job.config.TestcontainerConfig;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @EnableAutoConfiguration
 @SpringBootTest(
         classes = {
-            JobDataServiceConfig.class,
+            JobServiceConfig.class,
             TestcontainerConfig.class,
         })
 public abstract class BaseJobDatabaseTest {}

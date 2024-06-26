@@ -23,7 +23,7 @@ create table t_job_run
     pk_job_run_id     integer auto_increment not null primary key,
     fk_job_id         integer                not null references t_job (pk_job_id) on delete cascade on update cascade,
     job_version       integer                not null,
-    state             text                   not null,
+
     runner_key        text                   not null,
     created_at        timestamp              not null,
     updated_at        timestamp              not null,
@@ -90,7 +90,7 @@ CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER auto_increment NOT NULL PRIMARY KEY,
     fk_job_id          INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               VARCHAR(100)           NOT NULL, -- MySQL requires a limit on keys / indices
+    type               VARCHAR(100)           NOT NULL, -- MySQL requires a limit on keys / indices, whereas MariaDB does not
     trigger_definition JSON                   NOT NULL,
     created_at         timestamp              not null,
     updated_at         timestamp              not null
@@ -126,3 +126,14 @@ create table t_k8s_jobs
     created_at     timestamp              not null,
     updated_at     timestamp              not null
 ) charset = utf8mb4;
+
+-- 2.4.1
+
+CREATE TABLE t_job_run_state_transition
+(
+    pk_job_run_state_transition_id INT auto_increment NOT NULL PRIMARY KEY,
+    fk_job_run_id                  INT                NOT NULL REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    state                          TEXT               NOT NULL,
+    transitioned_at                TIMESTAMP          NOT NULL,
+    index (transitioned_at)
+);

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 @Repository
 public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity, Long> {
@@ -21,7 +21,7 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
                     order by timestmp
                     limit :pageSize offset :skipLines""",
             nativeQuery = true)
-    List<LoggingEventEntity> findByJobRunId(int jobRunId, long skipLines, int pageSize);
+    Stream<LoggingEventEntity> findByJobRunId(int jobRunId, long skipLines, int pageSize);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = "delete from logging_event where job_run_id = :jobRunId", nativeQuery = true)

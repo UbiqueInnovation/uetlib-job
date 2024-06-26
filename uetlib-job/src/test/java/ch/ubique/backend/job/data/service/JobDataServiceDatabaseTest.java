@@ -6,7 +6,11 @@ import ch.ubique.backend.job.data.BaseJobDatabaseTest;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.jdbc.Sql;
 
+//@ActiveProfiles({"postgres", "test"})
+@Sql("classpath:sql/postgresql/insert_job_runs.sql")
 class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
     @Autowired JobDataService jobDataService;
 
