@@ -4,7 +4,7 @@ CREATE TABLE t_job_trigger
     fk_job_id          INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
     type               VARCHAR(100)           NOT NULL, -- MySQL requires a limit on keys / indices
     trigger_definition JSON                   NOT NULL
-);
+) charset = utf8mb4;
 
 CREATE INDEX idx_type ON t_job_trigger (type);
 CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);

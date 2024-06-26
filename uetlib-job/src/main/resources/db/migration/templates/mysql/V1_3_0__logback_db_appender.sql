@@ -29,7 +29,7 @@ CREATE TABLE logging_event
     caller_method     VARCHAR(254) NOT NULL,
     caller_line       CHAR(4)      NOT NULL,
     event_id          BIGINT auto_increment PRIMARY KEY
-);
+) charset = utf8mb4;
 
 CREATE TABLE logging_event_property
 (
@@ -38,7 +38,7 @@ CREATE TABLE logging_event_property
     mapped_value VARCHAR(1024),
     PRIMARY KEY (event_id, mapped_key),
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
-);
+) charset = utf8mb4;
 
 CREATE TABLE logging_event_exception
 (
@@ -47,4 +47,4 @@ CREATE TABLE logging_event_exception
     trace_line VARCHAR(254) NOT NULL,
     PRIMARY KEY (event_id, i),
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
-);
+) charset = utf8mb4;

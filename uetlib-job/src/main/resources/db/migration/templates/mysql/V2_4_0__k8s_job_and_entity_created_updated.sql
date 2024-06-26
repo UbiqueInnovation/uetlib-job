@@ -6,7 +6,7 @@ create table t_k8s_jobs
     k8s_job_name   text                   not null,
     created_at     timestamp              not null,
     updated_at     timestamp              not null
-);
+) charset = utf8mb4;
 
 -- Add columns for t_job
 ALTER TABLE t_job
