@@ -156,8 +156,25 @@ public class KubernetesJobRunner implements JobRunner {
                     .map(V1JobStatus::getActive)
                     .map(active -> active > 0)
                     .orElse(false);
-        } catch (final IOException | ClassNotFoundException | ApiException e) {
-            logger.info("Got exception when trying to query the status of {}", jobName, e);
+        } catch (final IOException | ClassNotFoundException e) {
+            logger.info(
+                    "Got exception when trying to query the status of {}. Treating as not running.",
+                    jobName,
+                    e);
+            return false;
+        } catch (final ApiException e) {
+            if (e.getCode() == 403) {
+                logger.info(
+                        "API failed to query status of {}. Ignore treat as not running. ",
+                        jobName,
+                        e);
+                return true;
+            }
+            logger.info(
+                    "API failed to query status of {} with error code {}. Treating as not running. ",
+                    jobName,
+                    e.getCode(),
+                    e);
             return false;
         }
     }
