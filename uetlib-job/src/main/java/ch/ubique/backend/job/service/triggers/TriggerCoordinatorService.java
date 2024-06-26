@@ -70,7 +70,7 @@ public class TriggerCoordinatorService {
 
     public void deleteTrigger(final Trigger trigger) {
         removeTrigger(trigger);
-        jobDataService.delete(trigger);
+        jobDataService.deleteJob(trigger);
         logger.info("Deleted trigger {}", trigger);
     }
 

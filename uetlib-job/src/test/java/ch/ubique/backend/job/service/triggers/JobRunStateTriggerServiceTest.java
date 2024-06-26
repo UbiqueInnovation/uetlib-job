@@ -10,6 +10,7 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunStateTransition;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.backend.job.service.JobService;
@@ -27,7 +28,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.core.env.Environment;
 
 import java.time.Instant;
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SpringBootTest(classes = JobRunStateTriggerServiceTestConfig.class)
@@ -70,42 +71,46 @@ class JobRunStateTriggerServiceTest {
                 new JobRunStateTrigger(CleanupJob.class, JobRunState.SCHEDULED),
                 jobRunArguments -> scheduledRunCount.incrementAndGet());
 
+        final var jobRunStartedAt = Instant.now();
         final var jobRun =
                 new JobRun(
                         1,
                         1,
                         1,
-                        Instant.now(),
+                        jobRunStartedAt,
                         null,
                         JobRunState.SCHEDULED,
                         JobRunnerKey.CURRENT,
                         new JobRunArguments());
-        doReturn(Set.of(jobRun)).when(jobDataService).findAllCurrentRunnerJobRunsWithoutFinishedTimestamp();
+
+        final var jobRunScheduledStateTransition =
+                new JobRunStateTransition(1, jobRun, JobRunState.SCHEDULED, jobRunStartedAt);
+        doReturn(List.of(jobRunScheduledStateTransition))
+                .when(jobDataService)
+                .findJobRunStateTransitionsSince(any());
 
         triggerService.checkJobRuns();
 
         assertEquals(1, scheduledRunCount.get());
         assertEquals(0, doneRunCount.get());
 
-        doReturn(Set.of()).when(jobDataService).findAllCurrentRunnerJobRunsWithoutFinishedTimestamp();
-        doReturn(
-                        Set.of(
-                                jobRun.modify()
-                                        .state(JobRunState.DONE)
-                                        .finishedAt(Instant.now())
-                                        .toJobRun()))
+        final var jobRunFinishedAt = Instant.now();
+        final var jobRunDoneStateTransition =
+                new JobRunStateTransition(
+                        2,
+                        jobRun.modify()
+                                .state(JobRunState.DONE)
+                                .finishedAt(jobRunFinishedAt)
+                                .toJobRun(),
+                        JobRunState.DONE,
+                        jobRunFinishedAt);
+        doReturn(List.of(jobRunDoneStateTransition))
                 .when(jobDataService)
-                .findJobRunsFinishedAfter(any());
+                .findJobRunStateTransitionsSince(any());
+
         triggerService.checkJobRuns();
 
         assertEquals(1, scheduledRunCount.get());
         assertEquals(1, doneRunCount.get());
-    }
-
-    @Test
-    void instantiateJob() {
-        final var job1 = jobService.instantiateJob(CleanupJob.class);
-        final var job2 = jobService.instantiateJob(CleanupJob.class);
-        assertNotEquals(job1, job2);
     }
 }

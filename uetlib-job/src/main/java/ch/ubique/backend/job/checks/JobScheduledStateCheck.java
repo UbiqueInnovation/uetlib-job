@@ -53,7 +53,7 @@ public class JobScheduledStateCheck implements StatusCheck {
         }
 
         final var latestRun = latestRunMaybe.get();
-        if (latestRun.state() != JobRunState.SCHEDULED) {
+        if (latestRun.latestState() != JobRunState.SCHEDULED) {
             return Optional.empty();
         }
 

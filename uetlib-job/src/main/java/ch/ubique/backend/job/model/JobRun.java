@@ -16,7 +16,7 @@ public record JobRun(
         int jobVersion,
         @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
-        @NotNull JobRunState state,
+        @NotNull JobRunState latestState,
         @NotNull JobRunnerKey runnerKey,
         @Nullable @Valid JobRunArguments jobRunArguments) {
 
@@ -49,7 +49,7 @@ public record JobRun(
             this.jobVersion = jobRun.jobVersion;
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
-            this.state = Objects.requireNonNull(jobRun.state);
+            this.state = Objects.requireNonNull(jobRun.latestState);
             this.runnerKey = Objects.requireNonNull(jobRun.runnerKey);
             this.jobRunArguments = jobRun.jobRunArguments;
         }

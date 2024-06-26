@@ -53,7 +53,7 @@ public class JobTimeoutCheck implements StatusCheck {
         }
 
         final var latestRun = latestRunMaybe.get();
-        if (latestRun.state() != JobRunState.BUSY) {
+        if (latestRun.latestState() != JobRunState.BUSY) {
             return Optional.empty();
         }
 

@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.service.config;
 
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.SpringBootConfiguration;
 
-@Configuration
+@SpringBootConfiguration
 public class JobRunStateTriggerServiceTestConfig {}

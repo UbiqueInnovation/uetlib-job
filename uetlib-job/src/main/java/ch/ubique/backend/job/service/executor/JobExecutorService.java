@@ -73,13 +73,7 @@ public class JobExecutorService {
             logger.info("Job {} successfully scheduled", job);
         } else {
             logger.error("Job {} could not be scheduled", job);
-            jobService.updateJobRun(
-                    jobRunContext
-                            .jobRun()
-                            .modify()
-                            .state(JobRunState.ERROR)
-                            .finishedAt(Instant.now())
-                            .toJobRun());
+            jobService.finishJobRun(jobRunContext.jobRun(), JobRunState.ERROR, Instant.now());
         }
 
         MDC.remove("jobRunId");
@@ -103,7 +97,7 @@ public class JobExecutorService {
     private boolean isCurrentlyRunning(final Job job) {
         return jobService
                 .getLastJobRun(jobService.getId(job))
-                .map(JobRun::state)
+                .map(JobRun::latestState)
                 .map(JobRunState::isRunning)
                 .orElse(false);
     }

@@ -7,18 +7,28 @@ import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import jakarta.persistence.*;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.*;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "t_job_run")
 public class JobRunEntity {
+
+    @NotEmpty
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "t_job_run_state_transition",
+            joinColumns = @JoinColumn(name = "fk_job_run_id"))
+    @OrderBy("transitionedAt desc")
+    private final List<JobRunStateTransitionEmbeddable> jobRunStateTransitions = new ArrayList<>();
 
     @Id
     @Positive
@@ -26,27 +36,18 @@ public class JobRunEntity {
     @Column(name = "pk_job_run_id", nullable = false)
     private Integer id;
 
-    @NotNull
     @Positive
     @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
 
-    @NotNull
     @PositiveOrZero
     @Column(name = "job_version", nullable = false)
     private Integer jobVersion;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(name = "state", nullable = false, length = Integer.MAX_VALUE)
-    private JobRunState state;
-
-    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
     private JobRunnerKey runnerKey;
 
-    @NotNull
     @PastOrPresent
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
@@ -70,21 +71,15 @@ public class JobRunEntity {
 
     protected JobRunEntity() {}
 
-    public JobRunEntity(final JobRun jobRun) {
-        with(jobRun);
-    }
-
     public JobRunEntity(
             @Positive final int jobId,
             @PositiveOrZero final int jobVersion,
-            @NotNull final JobRunState state,
             @NotNull final JobRunnerKey runnerKey,
             @NotNull @PastOrPresent final Instant startedAt,
             @PastOrPresent final Instant finishedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.jobVersion = jobVersion;
-        this.state = state;
         this.runnerKey = runnerKey;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
@@ -92,19 +87,43 @@ public class JobRunEntity {
     }
 
     public JobRunEntity with(final JobRun jobRun) {
-        id = jobRun.id();
-        jobId = jobRun.jobId();
-        jobVersion = jobRun.jobVersion();
-        state = jobRun.state();
-        runnerKey = jobRun.runnerKey();
-        startedAt = jobRun.startedAt();
-        finishedAt = jobRun.finishedAt();
-        jobRunArguments = jobRun.jobRunArguments();
         return this;
+    }
+
+    public JobRunState latestState() {
+        return jobRunStateTransitions.getFirst().state();
     }
 
     public JobRun toJobRun() {
         return new JobRun(
-                id, jobId, jobVersion, startedAt, finishedAt, state, runnerKey, jobRunArguments);
+                id,
+                jobId,
+                jobVersion,
+                startedAt,
+                finishedAt,
+                latestState(),
+                runnerKey,
+                jobRunArguments);
+    }
+
+    public void setRunnerKey(final JobRunnerKey runnerKey) {
+        this.runnerKey = runnerKey;
+    }
+
+    public void setJobRunArguments(final JobRunArguments jobRunArguments) {
+        this.jobRunArguments = jobRunArguments;
+    }
+
+    public void setFinishedAt(final Instant finishedAt) {
+        this.finishedAt = finishedAt;
+    }
+
+    public void setStartedAt(final Instant startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public void addJobRunStateTransition(
+            final JobRunStateTransitionEmbeddable jobRunStateEmbeddableTransition) {
+        jobRunStateTransitions.add(jobRunStateEmbeddableTransition);
     }
 }

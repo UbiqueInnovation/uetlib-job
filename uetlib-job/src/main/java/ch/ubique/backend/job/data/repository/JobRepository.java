@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Repository
 public interface JobRepository extends JpaRepository<JobEntity, Integer> {
@@ -18,11 +19,9 @@ public interface JobRepository extends JpaRepository<JobEntity, Integer> {
 
     Optional<JobEntity> findByCanonicalClassName(String canonicalClassName);
 
-    List<JobEntity> findAllByOrderById();
+    Stream<JobEntity> findAllByOrderById();
 
-    List<JobEntity> findAllByIdInOrderById(Collection<Integer> id);
+    Stream<JobEntity> findAllByIdInOrderById(Collection<Integer> id);
 
-    List<JobEntity> findAllByIdNotInOrderById(Collection<Integer> id);
-
-    Page<JobEntity> findAllByOrderById(Pageable pageable);
+    Stream<JobEntity> findAllByIdNotInOrderById(Collection<Integer> id);
 }

@@ -13,9 +13,9 @@ import java.time.Instant;
 
 public class JobRunnerHelper {
 
-    private JobRunnerHelper() {}
-
     private static final Logger logger = LoggerFactory.getLogger(JobRunnerHelper.class);
+
+    private JobRunnerHelper() {}
 
     static void run(
             final Job job, final JobService jobService, final JobRunContext initialContext) {
@@ -26,18 +26,13 @@ public class JobRunnerHelper {
 
     static JobRunContext prepareRun(
             final JobService jobService, final JobRunContext initialContext) {
+        final var startedJobRun = jobService.startJobRun(initialContext.jobRun(), Instant.now());
         final var jobRunContext =
                 new JobRunContext(
                         initialContext.job(),
-                        initialContext
-                                .jobRun()
-                                .modify()
-                                .startedAt(Instant.now())
-                                .state(JobRunState.BUSY)
-                                .toJobRun(),
+                        startedJobRun,
                         initialContext.arguments(),
                         initialContext.properties());
-        jobService.updateJobRun(jobRunContext.jobRun());
         MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
         return jobRunContext;
     }
@@ -59,13 +54,7 @@ public class JobRunnerHelper {
             final JobRunContext jobRunContext,
             final JobRunState finalState) {
         final var finishedAt = finalState.isRunning() ? null : Instant.now();
-        jobService.updateJobRun(
-                jobRunContext
-                        .jobRun()
-                        .modify()
-                        .state(finalState)
-                        .finishedAt(finishedAt)
-                        .toJobRun());
+        jobService.finishJobRun(jobRunContext.jobRun(), finalState, finishedAt);
         MDC.remove("jobRunId");
     }
 }
