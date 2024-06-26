@@ -19,7 +19,7 @@ create table t_job_run_database_submission
     submitted_at                          timestamp              not null,
     executed_at                           timestamp,
     job_run_database_submission_arguments json                   not null
-);
+) charset = utf8mb4;
 
 DELETE
 FROM t_job_properties
