@@ -164,14 +164,14 @@ public class KubernetesJobRunner implements JobRunner {
             return false;
         } catch (final ApiException e) {
             if (e.getCode() == 403) {
-                logger.info(
-                        "API failed to query status of {}. Ignore treat as not running. ",
+                logger.warn(
+                        "API failed to query status of {} as 403 Forbidden. Treat as running.",
                         jobName,
                         e);
                 return true;
             }
-            logger.info(
-                    "API failed to query status of {} with error code {}. Treating as not running. ",
+            logger.warn(
+                    "API failed to query status of {} with error code {}. Treating as not running.",
                     jobName,
                     e.getCode(),
                     e);
