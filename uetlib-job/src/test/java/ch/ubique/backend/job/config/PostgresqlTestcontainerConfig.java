@@ -9,7 +9,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Profile("postgres")
 @TestConfiguration
-public class PostgresqlTestcontainerConfig extends BaseDatabaseTestConfig {
+public class PostgresqlTestcontainerConfig extends BaseDatabaseTestcontainerConfig {
 
     @Bean
     @ServiceConnection

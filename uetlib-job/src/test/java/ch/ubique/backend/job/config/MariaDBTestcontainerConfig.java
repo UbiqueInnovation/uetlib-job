@@ -9,7 +9,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @Profile("mariadb")
 @TestConfiguration
-public class MariaDBTestcontainerConfig extends BaseDatabaseTestConfig {
+public class MariaDBTestcontainerConfig extends BaseDatabaseTestcontainerConfig {
 
     @Bean
     @ServiceConnection
