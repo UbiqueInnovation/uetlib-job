@@ -19,8 +19,6 @@ public class MariaDBTestcontainerConfig extends BaseDatabaseTestConfig {
     @Bean
     @ServiceConnection
     MariaDBContainer<?> mariaDBContainer() {
-        //noinspection resource
-        return new MariaDBContainer<>(DockerImageName.parse("mariadb:11"))
-                .withConfigurationOverride("mysql_conf");
+        return new MariaDBContainer<>(DockerImageName.parse("mariadb:11"));
     }
 }

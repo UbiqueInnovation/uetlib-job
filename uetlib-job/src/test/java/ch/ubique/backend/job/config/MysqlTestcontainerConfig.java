@@ -19,8 +19,6 @@ public class MysqlTestcontainerConfig extends BaseDatabaseTestConfig {
     @Bean
     @ServiceConnection
     MySQLContainer<?> mysqlContainer() {
-        //noinspection resource
-        return new MySQLContainer<>(DockerImageName.parse("mysql:8"))
-                .withConfigurationOverride("mysql_conf");
+        return new MySQLContainer<>(DockerImageName.parse("mysql:8.3"));
     }
 }
