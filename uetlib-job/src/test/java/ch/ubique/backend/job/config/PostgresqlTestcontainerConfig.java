@@ -13,7 +13,7 @@ public class PostgresqlTestcontainerConfig extends BaseDatabaseTestConfig {
 
     @Override
     String databaseSpecificProfileName() {
-        return "postgres";
+        return "postgresql";
     }
 
     @Bean
