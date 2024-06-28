@@ -1,0 +1,22 @@
+insert into t_job (clazz, created_at, updated_at)
+values ('ch.ubique.backend.job.testjob.TestJob', now() - interval 10 hour, now());
+
+insert
+into t_job_run(fk_job_id, job_version, started_at, finished_at, job_run_arguments, runner_key, created_at, updated_at)
+values (1, 0, now() - interval 8 hour, null, '{}', 'CURRENT', now() - interval 9 hour, now() - interval 9 hour),
+       (1, 0, now() - interval 7 hour, null, '{}', 'CURRENT', now() - interval 8 hour, now() - interval 6 hour),
+       (1, 0, now() - interval 6 hour, now() - interval 2 hour, '{}', 'CURRENT', now() - interval 7 hour,
+        now() - interval 4 hour),
+       (1, 0, now() - interval 5 hour, now() - interval 1 hour, '{}', 'CURRENT', now() - interval 6 hour,
+        now() - interval 4 hour);
+
+insert into t_job_run_state_transition(fk_job_run_id, state, transitioned_at)
+values (1, 'SCHEDULED', now() - interval 8 hour),
+       (2, 'SCHEDULED', now() - interval 7 hour),
+       (2, 'BUSY', now() - interval 6 hour),
+       (3, 'SCHEDULED', now() - interval 5 hour),
+       (3, 'BUSY', now() - interval 4 hour),
+       (3, 'DONE', now() - interval 3 hour),
+       (4, 'SCHEDULED', now() - interval 4 hour),
+       (4, 'BUSY', now() - interval 3 hour),
+       (4, 'ERROR', now() - interval 2 hour);
