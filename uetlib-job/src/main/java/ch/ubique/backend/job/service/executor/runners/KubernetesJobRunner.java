@@ -158,7 +158,7 @@ public class KubernetesJobRunner implements JobRunner {
                     .orElse(false);
         } catch (final IOException | ClassNotFoundException | ApiException e) {
             logger.warn(
-                    "Got exception when trying to query the status of {}. Treating as NOT running.",
+                    "Got exception when trying to query the status of {}. Treating as running.",
                     jobName,
                     e);
             return true;
