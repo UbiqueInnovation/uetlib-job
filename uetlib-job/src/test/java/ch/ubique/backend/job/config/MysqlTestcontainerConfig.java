@@ -11,11 +11,6 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration
 public class MysqlTestcontainerConfig extends BaseDatabaseTestConfig {
 
-    @Override
-    String databaseSpecificProfileName() {
-        return "mysql";
-    }
-
     @Bean
     @ServiceConnection
     MySQLContainer<?> mysqlContainer() {
