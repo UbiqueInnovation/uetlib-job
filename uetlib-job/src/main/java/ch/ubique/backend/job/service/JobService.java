@@ -242,16 +242,21 @@ public class JobService {
 
     public boolean cancel(final JobRun jobRun) {
         if (!jobRun.state().isRunning()) {
+            logger.info("Job run can not be canceled, as it is not running.");
             return false;
         }
-        final var jobRunner =
-                applicationContext.getBeansOfType(JobRunner.class).values().stream()
-                        .filter(runner -> runner.key() == jobRun.runnerKey())
-                        .findFirst()
-                        .orElseThrow();
+        final var jobRunner = jobRunner(jobRun);
+        logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
         jobDataService.saveJobRun(
                 jobRun.modify().state(UNFINISHED).finishedAt(Instant.now()).toJobRun());
         return true;
+    }
+
+    private JobRunner jobRunner(final JobRun jobRun) {
+        return applicationContext.getBeansOfType(JobRunner.class).values().stream()
+                .filter(runner -> runner.key() == jobRun.runnerKey())
+                .findFirst()
+                .orElseThrow();
     }
 }

@@ -131,8 +131,10 @@ public class KubernetesJobRunner implements JobRunner {
             final var client = getClient(jobRun);
             final var jobName = k8sJobNameMaybe.get();
             final var batchApi = new BatchV1Api(client);
-            batchApi.deleteNamespacedJob(jobName, namespace);
-        } catch (final IOException | ClassNotFoundException e) {
+            logger.info("Deleting {} for namespace {} using batch API", jobName, namespace);
+            final var status = batchApi.deleteNamespacedJob(jobName, namespace).execute();
+            logger.info("Completed delete request with status {}", status);
+        } catch (final IOException | ClassNotFoundException | ApiException e) {
             logger.info("Got exception when trying to cancel job run {}", jobRun, e);
         }
     }
