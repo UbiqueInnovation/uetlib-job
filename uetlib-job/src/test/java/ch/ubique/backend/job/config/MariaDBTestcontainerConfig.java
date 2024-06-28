@@ -9,7 +9,13 @@ import org.testcontainers.utility.DockerImageName;
 
 @Profile("mariadb")
 @TestConfiguration
-public class MariaDBTestcontainerConfig {
+public class MariaDBTestcontainerConfig extends BaseDatabaseTestConfig {
+
+    @Override
+    String databaseSpecificProfileName() {
+        return "mariadb";
+    }
+
     @Bean
     @ServiceConnection
     MariaDBContainer<?> mariaDBContainer() {

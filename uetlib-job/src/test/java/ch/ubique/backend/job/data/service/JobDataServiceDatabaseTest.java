@@ -19,6 +19,7 @@ import java.util.List;
 
 @SuppressWarnings("DataFlowIssue")
 class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
+
     @Autowired JobDataService jobDataService;
 
     @Test

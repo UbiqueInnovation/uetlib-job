@@ -9,7 +9,13 @@ import org.testcontainers.utility.DockerImageName;
 
 @Profile("postgres")
 @TestConfiguration
-public class PostgresqlTestcontainerConfig {
+public class PostgresqlTestcontainerConfig extends BaseDatabaseTestConfig {
+
+    @Override
+    String databaseSpecificProfileName() {
+        return "postgres";
+    }
+
     @Bean
     @ServiceConnection
     PostgreSQLContainer<?> postgresDBContainer() {
