@@ -53,7 +53,7 @@ public interface JobRunLatestStateViewRepository
                     select jrlsve
                     from JobRunLatestStateViewEntity jrlsve
                     where jrlsve.jobId = :jobId
-                      and jrlsve.latestState in :latestState
+                      and jrlsve.latestState = :latestState
                       and jrlsve.finishedAt is not null
                     order by jrlsve.finishedAt desc
                     limit 1""")
