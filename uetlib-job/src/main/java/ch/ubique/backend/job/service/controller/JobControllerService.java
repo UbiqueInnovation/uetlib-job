@@ -34,6 +34,8 @@ import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,9 @@ import java.util.stream.Stream;
 @Service
 @Profile("!job-run")
 public class JobControllerService {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     private final JobService jobService;
 
     private final JobExecutorService jobExecutorService;
@@ -435,12 +440,14 @@ public class JobControllerService {
     }
 
     public SuccessResponse cancelJobRun(final int jobRunId) {
+        logger.info("Cancel requested for job run {}", jobRunId);
         final var jobRunMaybe = jobDataService.findJobRunById(jobRunId);
         if (jobRunMaybe.isEmpty()) {
             return new SuccessResponse(false, "No job for given ID found");
         }
         final var success = jobService.cancel(jobRunMaybe.get());
-        return new SuccessResponse(
-                success, success ? "Job cancelled." : "Job could not be cancelled");
+        final var message = success ? "Job cancelled." : "Job could not be cancelled";
+        logger.info(message);
+        return new SuccessResponse(success, message);
     }
 }
