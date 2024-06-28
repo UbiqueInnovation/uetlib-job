@@ -51,7 +51,7 @@ public class JobDataService {
             final JobPropertyRepository jobPropertyRepository,
             final JobRunRepository jobRunRepository,
             final JobRunLatestStateViewRepository jobRunLatestStateViewRepository,
-            JobRunStateTransitionRepository jobRunStateTransitionRepository,
+            final JobRunStateTransitionRepository jobRunStateTransitionRepository,
             final JobRunInputRepository jobRunInputRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
             final K8sJobRepository k8sJobRepository,
@@ -105,6 +105,15 @@ public class JobDataService {
         return jobRunLatestStateViewRepository
                 .findAllByLatestStateIn(states)
                 .map(JobRunLatestStateViewEntity::toJobRun)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobRunStateTransition> findJobRunStateTransitionsByJobRunId(
+            final int jobRunId) {
+        return jobRunStateTransitionRepository
+                .findAllByJobRunId(jobRunId)
+                .map(JobRunStateTransitionEntity::toJobRunStateTransition)
                 .toList();
     }
 
@@ -268,7 +277,8 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Stream<LoggingEvent> findLogsForJobRun(
             final int jobRunId, final long skipLines, final int pageSize) {
-        return loggingEventRepository.findByJobRunId(jobRunId, skipLines, pageSize)
+        return loggingEventRepository
+                .findByJobRunId(jobRunId, skipLines, pageSize)
                 .map(LoggingEventEntity::toLoggingEvent);
     }
 
@@ -340,7 +350,8 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Collection<Trigger> getTriggers(final int jobId) {
-        return jobTriggerRepository.findAllByJobId(jobId)
+        return jobTriggerRepository
+                .findAllByJobId(jobId)
                 .map(JobTriggerEntity::toTrigger)
                 .filter(Objects::nonNull)
                 .toList();
