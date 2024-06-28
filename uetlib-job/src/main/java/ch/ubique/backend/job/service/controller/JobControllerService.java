@@ -446,7 +446,7 @@ public class JobControllerService {
             return new SuccessResponse(false, "No job for given ID found");
         }
         final var success = jobService.cancel(jobRunMaybe.get());
-        final var message = success ? "Job cancelled." : "Job could not be cancelled";
+        final var message = success ? "Job run cancelled." : "Job run could not be cancelled";
         logger.info(message);
         return new SuccessResponse(success, message);
     }
