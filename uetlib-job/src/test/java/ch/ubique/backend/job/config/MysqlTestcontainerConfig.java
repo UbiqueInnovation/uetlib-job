@@ -14,7 +14,7 @@ public class MysqlTestcontainerConfig {
     @ServiceConnection
     MySQLContainer<?> mysqlContainer() {
         //noinspection resource
-        return new MySQLContainer<>(DockerImageName.parse("mysql:8.0.32"))
+        return new MySQLContainer<>(DockerImageName.parse("mysql:8"))
                 .withConfigurationOverride("mysql_conf");
     }
 }
