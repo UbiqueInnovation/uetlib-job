@@ -10,7 +10,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-public abstract class BaseDatabaseTestConfig {
+public abstract class BaseDatabaseTestcontainerConfig {
 
     @Bean
     List<ClassPathResource> databaseSpecificInitializationScripts(
