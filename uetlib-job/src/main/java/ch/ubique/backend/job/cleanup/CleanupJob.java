@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Set;
 
 @RegisteredJob
@@ -84,6 +85,8 @@ public class CleanupJob implements Job {
 
     @NotNull
     private JobRunState cleanJobRuns() {
+        final var runsWithCleanupErrors = new ArrayList<Integer>();
+
         for (final var job : jobDataService.findJobs()) {
             final JobProperties jobProperties;
             try {
@@ -104,26 +107,39 @@ public class CleanupJob implements Job {
 
             logger.info("Cleaning {} runs for job {}", cleanableRuns.size(), job);
 
-            try {
-                for (final var run : cleanableRuns) {
-                    cleanInputFiles(job, run);
-                    cleanLogs(run);
+            for (final var cleanableRun : cleanableRuns) {
+                try {
+                    cleanInputFiles(job, cleanableRun);
+                } catch (final IOException e) {
+                    logger.warn(
+                            "Failed to delete run input files for job {} and run {}",
+                            job.id(),
+                            cleanableRun.id(),
+                            e);
+                    runsWithCleanupErrors.add(cleanableRun.id());
                 }
-            } catch (final IOException e) {
-                logger.error("Failed to delete run input file", e);
-                return JobRunState.ERROR;
+
+                cleanLogs(cleanableRun);
             }
 
             // Delete job runs - cascades to delete job run input files, too
             jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
 
-            // Delete job database submissions that are already submitted - cascades to delete job run input files, too
+            // Delete job database submissions that are already submitted - cascades to delete job
+            // run input files, too
             jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
 
             logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
         }
 
-        return JobRunState.DONE;
+        if (runsWithCleanupErrors.isEmpty()) {
+            return JobRunState.DONE;
+        }
+
+        logger.error(
+                "Encountered problems when deleting run input files (see logs above) for runs with ids {}",
+                runsWithCleanupErrors);
+        return JobRunState.ERROR;
     }
 
     /** Attempts to delete all stored input files of a job run */
