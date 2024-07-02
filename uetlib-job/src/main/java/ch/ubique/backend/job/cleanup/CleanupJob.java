@@ -131,7 +131,7 @@ public class CleanupJob implements Job {
         // Clean all files in directory of job run
         final var dirDidExist = jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
         if (dirDidExist) {
-            logger.info(
+            logger.debug(
                     "Deleted run input file directory [jobId: {}; runId: {}]", job.id(), run.id());
         } else {
             logger.debug(
