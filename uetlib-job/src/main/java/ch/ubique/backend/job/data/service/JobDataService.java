@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -295,11 +296,9 @@ public class JobDataService {
     public void saveProperties(final int jobId, final Collection<JobProperty<?>> properties) {
 
         // Save all where value is set
-        jobPropertyRepository.saveAll(
-                properties.stream()
-                        .filter(JobProperty::isValuePresent)
-                        .map(property -> JobPropertyEntity.from(jobId, property))
-                        .toList());
+        properties.stream()
+                .filter(JobProperty::isValuePresent)
+                .forEach(property -> saveProperty(jobId, property));
 
         // Delete all where value is unset
         jobPropertyRepository.deleteAll(
@@ -307,6 +306,16 @@ public class JobDataService {
                         .filter(property -> !property.isValuePresent())
                         .map(property -> JobPropertyEntity.from(jobId, property))
                         .toList());
+    }
+
+    private void saveProperty(final int jobId, final JobProperty<?> property) {
+        final var updatedEntity =
+                jobPropertyRepository
+                        .findBy(JobPropertyEntity.keyExample(jobId, property), Function.identity())
+                        .first()
+                        .map(entity -> entity.setValue(property))
+                        .orElseGet(() -> JobPropertyEntity.from(jobId, property));
+        jobPropertyRepository.save(updatedEntity);
     }
 
     @Transactional(readOnly = true)
