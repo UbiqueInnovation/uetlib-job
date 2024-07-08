@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -311,8 +310,7 @@ public class JobDataService {
     private void saveProperty(final int jobId, final JobProperty<?> property) {
         final var updatedEntity =
                 jobPropertyRepository
-                        .findBy(JobPropertyEntity.keyExample(jobId, property), Function.identity())
-                        .first()
+                        .findByJobIdAndKey(jobId, property.key())
                         .map(entity -> entity.setValue(property))
                         .orElseGet(() -> JobPropertyEntity.from(jobId, property));
         jobPropertyRepository.save(updatedEntity);

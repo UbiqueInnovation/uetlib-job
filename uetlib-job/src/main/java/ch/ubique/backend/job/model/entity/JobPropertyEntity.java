@@ -12,7 +12,6 @@ import jakarta.persistence.Table;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.domain.Example;
 
 import java.time.Instant;
 
@@ -51,14 +50,6 @@ public class JobPropertyEntity {
     public <T> JobPropertyEntity setValue(final JobProperty<T> property) {
         this.value = property.encodedValue();
         return this;
-    }
-
-    public static Example<JobPropertyEntity> keyExample(
-            final int jobId, final JobProperty<?> property) {
-        final var entity = new JobPropertyEntity();
-        entity.jobId = jobId;
-        entity.key = property.key();
-        return Example.of(entity);
     }
 
     public JobProperty<Object> toProperty() {
