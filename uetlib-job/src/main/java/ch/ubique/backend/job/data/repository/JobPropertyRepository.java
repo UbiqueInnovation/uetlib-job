@@ -7,12 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Repository
 public interface JobPropertyRepository extends JpaRepository<JobPropertyEntity, JobPropertyId> {
 
     Stream<JobPropertyEntity> findAllByJobId(int jobId);
+
+    Optional<JobPropertyEntity> findByJobIdAndKey(int jobId, String key);
 
     void deleteAllByJobId(int jobId);
 
