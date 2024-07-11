@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
 @Component
 @Profile("!job-run")
@@ -48,7 +47,7 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         patternLayoutEncoder = new PatternLayoutEncoder();
         patternLayoutEncoder.setPattern(
                 "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint}"
-                    + " %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
+                        + " %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
         patternLayoutEncoder.setCharset(StandardCharsets.UTF_8);
         patternLayoutEncoder.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
         patternLayoutEncoder.start();
@@ -76,18 +75,11 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         activeSessions.forEach(this::sendLogToSession);
     }
 
-    @SuppressWarnings("java:S3864")
     private void sendLogToSession(final String sessionId, final ActiveSession activeSession) {
         final var session = activeSession.session();
         final var jobRunId = activeSession.jobRunId();
         final var counter = activeSession.counter();
-        final var accumulatedLogLines =
-                getLogLines(jobRunId, counter.get())
-                        .reduce(
-                                new LogLineAccumulator(),
-                                LogLineAccumulator::accumulate,
-                                LogLineAccumulator::combine)
-                        .collectLog();
+        final var accumulatedLogLines = getAccumulatedLogLines(jobRunId, counter.get());
         if (accumulatedLogLines.lines() == 0) {
             return;
         }
@@ -106,14 +98,21 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private Stream<String> getLogLines(final Integer jobRunId, final long skipLines) {
+    private LogLineAccumulator.AccumulatedLogLines getAccumulatedLogLines(
+            final Integer jobRunId, final long skipLines) {
         final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
         loggerContext.getLogger("ROOT").getAppender("console");
 
         return jobDataService
                 .findLogsForJobRun(jobRunId, skipLines, BackendLibJobWebSocketHandler.PAGE_SIZE)
+                .stream()
                 .map(patternLayoutEncoder::encode)
-                .map(bytes -> new String(bytes, StandardCharsets.UTF_8));
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .reduce(
+                        new LogLineAccumulator(),
+                        LogLineAccumulator::accumulate,
+                        LogLineAccumulator::combine)
+                .collectLog();
     }
 
     record LogRequestMessage(int jobRunId) {}

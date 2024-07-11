@@ -27,7 +27,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class JobDataService {
@@ -275,11 +274,12 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Stream<LoggingEvent> findLogsForJobRun(
+    public Collection<LoggingEvent> findLogsForJobRun(
             final int jobRunId, final long skipLines, final int pageSize) {
         return loggingEventRepository
                 .findByJobRunId(jobRunId, skipLines, pageSize)
-                .map(LoggingEventEntity::toLoggingEvent);
+                .map(LoggingEventEntity::toLoggingEvent)
+                .toList();
     }
 
     @Transactional(readOnly = true)

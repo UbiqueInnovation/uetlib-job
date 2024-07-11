@@ -29,7 +29,7 @@ class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
 
     @Test
     void testFindLogsForJobRun() {
-        assertEquals(0, jobDataService.findLogsForJobRun(42, 0, 1000).count());
+        assertEquals(0, jobDataService.findLogsForJobRun(42, 0, 1000).size());
     }
 
     @Test
