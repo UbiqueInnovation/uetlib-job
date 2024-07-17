@@ -68,7 +68,7 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false, defaultValue = "0") final int page,
             @RequestParam(required = false, defaultValue = "25") final int perPage,
             @RequestParam(required = false, defaultValue = "id") final List<String> orderBy,
-            @RequestParam(required = false, defaultValue = "ASC")
+            @RequestParam(required = false, defaultValue = "DESC")
                     final List<Sort.Direction> directions,
             @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
             @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
