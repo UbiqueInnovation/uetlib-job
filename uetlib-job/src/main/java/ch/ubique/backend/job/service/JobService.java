@@ -229,13 +229,22 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public JobRun startJobRun(@NotNull final JobRun jobRun, final Instant startedAt) {
+    public JobRun startJobRun(@NotNull final JobRun jobRun, @NotNull final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
     }
 
     public void finishJobRun(
-            final JobRun jobRun, final JobRunState finalState, final Instant finishedAt) {
+            @NotNull final JobRun jobRun,
+            @NotNull final JobRunState finalState,
+            @NotNull final Instant finishedAt) {
         jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
+    }
+
+    public void updateJobRunState(
+            @NotNull final JobRun jobRun,
+            @NotNull final JobRunState state,
+            @NotNull final Instant transitionedAt) {
+        jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
     }
 
     public Collection<Job> getAllJobs() {
@@ -245,7 +254,7 @@ public class JobService {
                 .toList();
     }
 
-    public boolean cancel(final JobRun jobRun) {
+    public boolean cancel(@NotNull final JobRun jobRun) {
         if (!jobRun.latestState().isRunning()) {
             logger.info("Job run can not be canceled, as it is not running.");
             return false;
@@ -257,7 +266,7 @@ public class JobService {
         return true;
     }
 
-    private JobRunner jobRunner(final JobRun jobRun) {
+    private JobRunner jobRunner(@NotNull final JobRun jobRun) {
         return applicationContext.getBeansOfType(JobRunner.class).values().stream()
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()
