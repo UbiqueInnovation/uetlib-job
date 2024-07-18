@@ -21,7 +21,8 @@ public class JobRunnerHelper {
             final Job job, final JobService jobService, final JobRunContext initialContext) {
         final var jobRunContext = prepareRun(jobService, initialContext);
         final var state = runJob(job, jobRunContext);
-        finishRun(jobService, jobRunContext, state);
+
+        updateJobRunState(jobService, jobRunContext, state);
     }
 
     static JobRunContext prepareRun(
@@ -49,12 +50,21 @@ public class JobRunnerHelper {
         }
     }
 
-    static void finishRun(
+    /**
+     * In most cases, this is will finish the job and set the finishedAt timestamp. But, in the case
+     * of a StateJob, this new state might {@link JobRunState#SCHEDULED} if the actual job is
+     * scheduled as a new pod in the k8s.
+     */
+    static void updateJobRunState(
             final JobService jobService,
             final JobRunContext jobRunContext,
-            final JobRunState finalState) {
-        final var finishedAt = finalState.isRunning() ? null : Instant.now();
-        jobService.finishJobRun(jobRunContext.jobRun(), finalState, finishedAt);
+            final JobRunState state) {
+        final var transitionedAt = Instant.now();
+        if (state.isRunning()) {
+            jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
+        } else {
+            jobService.finishJobRun(jobRunContext.jobRun(), state, transitionedAt);
+        }
         MDC.remove("jobRunId");
     }
 }
