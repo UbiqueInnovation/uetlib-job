@@ -76,7 +76,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     private void onStateChanged(final JobRun jobRun, final JobRunState newState)
             throws ClassNotFoundException {
         final var jobClass = jobService.getJobClass(jobRun.jobId());
-        logger.info("{} changed to state {}.", jobRun, newState);
+        logger.debug("{} changed to state {}.", jobRun, newState);
 
         registeredTriggers.entrySet().stream()
                 .filter(
@@ -88,7 +88,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                 .forEach(
                         entry -> {
                             final var consumer = triggerCallbacks.get(entry.getKey());
-                            logger.info("Calling callback for {}.", entry.getValue());
+                            logger.debug("Calling callback for {}.", entry.getValue());
                             consumer.accept(new JobRunArguments());
                         });
     }

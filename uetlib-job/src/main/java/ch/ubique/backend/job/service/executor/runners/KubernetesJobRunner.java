@@ -17,11 +17,10 @@ import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Job;
-import io.kubernetes.client.openapi.models.V1JobStatus;
-import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.Namespaces;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.StringUtils;
@@ -132,7 +131,10 @@ public class KubernetesJobRunner implements JobRunner {
             final var jobName = k8sJobNameMaybe.get();
             final var batchApi = new BatchV1Api(client);
             logger.info("Deleting {} for namespace {} using batch API", jobName, namespace);
-            final var status = batchApi.deleteNamespacedJob(jobName, namespace).execute();
+            final var status =
+                    batchApi.deleteNamespacedJob(jobName, namespace)
+                            .propagationPolicy("Foreground")
+                            .execute();
             logger.info("Completed delete request with status {}", status);
         } catch (final IOException | ClassNotFoundException | ApiException e) {
             logger.info("Got exception when trying to cancel job run {}", jobRun, e);
@@ -151,9 +153,9 @@ public class KubernetesJobRunner implements JobRunner {
         try {
             final var client = getClient(jobRun);
             final var batchApi = new BatchV1Api(client);
-            final var job = batchApi.readNamespacedJob(jobName, namespace).execute();
-
-            return Optional.ofNullable(job)
+            return batchApi.listNamespacedJob(namespace).execute().getItems().stream()
+                    .filter(job -> jobName.equals(jobName(job)))
+                    .findFirst()
                     .map(V1Job::getStatus)
                     .map(V1JobStatus::getActive)
                     .map(active -> active > 0)
@@ -165,6 +167,14 @@ public class KubernetesJobRunner implements JobRunner {
                     e);
             return true;
         }
+    }
+
+    @Nullable
+    private static String jobName(final V1Job job) {
+        return Optional.ofNullable(job)
+                .map(V1Job::getMetadata)
+                .map(V1ObjectMeta::getName)
+                .orElse(null);
     }
 
     private ApiClient getClient(final JobRun jobRun) throws ClassNotFoundException, IOException {
