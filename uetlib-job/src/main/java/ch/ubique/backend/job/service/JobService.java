@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.MergedAnnotations;
+import org.springframework.core.env.Environment;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
@@ -47,14 +48,17 @@ public class JobService {
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
+    private final Environment environment;
 
     public JobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService) {
+            final ClassLoaderService classLoaderService,
+            final Environment environment) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
+        this.environment = environment;
     }
 
     /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
@@ -76,12 +80,17 @@ public class JobService {
 
         final var enableJobsAnnotation =
                 mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
-        return EnableAnnotationUtils.findAllClassesBy(
-                enableJobsAnnotation.jobs(),
-                enableJobsAnnotation.basePackages(),
-                enableJobsAnnotation.basePackageClasses(),
-                enableJobsClass.getPackageName(),
-                RegisteredJob.class);
+
+        final var storageClasses =
+                EnableAnnotationUtils.findAllClassesBy(
+                        enableJobsAnnotation.jobs(),
+                        enableJobsAnnotation.basePackages(),
+                        enableJobsAnnotation.basePackageClasses(),
+                        enableJobsClass.getPackageName(),
+                        RegisteredJob.class);
+
+        return EnableAnnotationUtils.filterClassesByProfileEnabled(
+                environment, mergedAnnotationsSearch, storageClasses);
     }
 
     private void registerAllJobs() {
@@ -194,18 +203,18 @@ public class JobService {
     }
 
     private JobRun createNewJobRun(
-            @NotNull final Job job,
-            @NotNull final JobRunnerKey runnerKey,
-            @NotNull final JobRunArguments arguments) {
+            final @NotNull Job job,
+            final @NotNull JobRunnerKey runnerKey,
+            final @NotNull JobRunArguments arguments) {
         final var jobId = getJobId(job.getClass());
         return jobDataService.createJobRun(jobId, job.version(), runnerKey, arguments);
     }
 
     public JobRun getOrCreateJobRun(
-            @NotNull final Job job,
+            final @NotNull Job job,
             @Nullable final Integer runId,
-            @NotNull final JobRunnerKey runnerKey,
-            @NotNull final JobRunArguments arguments) {
+            final @NotNull JobRunnerKey runnerKey,
+            final @NotNull JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
                 .map(jobRun -> updateJobIfNeeded(jobRun, runnerKey, arguments))
@@ -229,21 +238,21 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public JobRun startJobRun(@NotNull final JobRun jobRun, @NotNull final Instant startedAt) {
+    public JobRun startJobRun(final @NotNull JobRun jobRun, final @NotNull Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
     }
 
     public void finishJobRun(
-            @NotNull final JobRun jobRun,
-            @NotNull final JobRunState finalState,
-            @NotNull final Instant finishedAt) {
+            final @NotNull JobRun jobRun,
+            final @NotNull JobRunState finalState,
+            final @NotNull Instant finishedAt) {
         jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
     }
 
     public void updateJobRunState(
-            @NotNull final JobRun jobRun,
-            @NotNull final JobRunState state,
-            @NotNull final Instant transitionedAt) {
+            final @NotNull JobRun jobRun,
+            final @NotNull JobRunState state,
+            final @NotNull Instant transitionedAt) {
         jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
     }
 
@@ -254,7 +263,7 @@ public class JobService {
                 .toList();
     }
 
-    public boolean cancel(@NotNull final JobRun jobRun) {
+    public boolean cancel(final @NotNull JobRun jobRun) {
         if (!jobRun.latestState().isRunning()) {
             logger.info("Job run can not be canceled, as it is not running.");
             return false;
@@ -266,7 +275,7 @@ public class JobService {
         return true;
     }
 
-    private JobRunner jobRunner(@NotNull final JobRun jobRun) {
+    private JobRunner jobRunner(final @NotNull JobRun jobRun) {
         return applicationContext.getBeansOfType(JobRunner.class).values().stream()
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()

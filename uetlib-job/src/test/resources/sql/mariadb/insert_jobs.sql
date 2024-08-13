@@ -1,6 +1,3 @@
-insert into t_job (clazz, created_at, updated_at)
-values ('ch.ubique.backend.job.testjob.TestJob', now() - interval 10 hour, now());
-
 insert
 into t_job_run(fk_job_id, job_version, started_at, finished_at, job_run_arguments, runner_key, created_at, updated_at)
 values (1, 0, now() - interval 8 hour, null, '{}', 'CURRENT', now() - interval 9 hour, now() - interval 9 hour),
