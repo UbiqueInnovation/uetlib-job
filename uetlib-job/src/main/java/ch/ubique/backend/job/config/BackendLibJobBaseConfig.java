@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.web.client.RestTemplate;
 
@@ -28,9 +29,10 @@ public class BackendLibJobBaseConfig {
     JobService jobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService) {
+            final ClassLoaderService classLoaderService,
+            final Environment environment) {
         final var jobService =
-                new JobService(jobDataService, applicationContext, classLoaderService);
+                new JobService(jobDataService, applicationContext, classLoaderService, environment);
         jobService.init();
         return jobService;
     }
@@ -40,7 +42,8 @@ public class BackendLibJobBaseConfig {
     JobService jobServiceForJobRun(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService) {
-        return new JobService(jobDataService, applicationContext, classLoaderService);
+            final ClassLoaderService classLoaderService,
+            final Environment environment) {
+        return new JobService(jobDataService, applicationContext, classLoaderService, environment);
     }
 }

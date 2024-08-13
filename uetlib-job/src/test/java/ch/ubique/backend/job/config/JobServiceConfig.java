@@ -11,6 +11,7 @@ import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitializat
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.scheduling.TaskScheduler;
@@ -51,9 +52,10 @@ public class JobServiceConfig {
     JobService jobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService) {
+            final ClassLoaderService classLoaderService,
+            final Environment environment) {
         final var jobService =
-                new JobService(jobDataService, applicationContext, classLoaderService);
+                new JobService(jobDataService, applicationContext, classLoaderService, environment);
         jobService.init();
         return jobService;
     }
