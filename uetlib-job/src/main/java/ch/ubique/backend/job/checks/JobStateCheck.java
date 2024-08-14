@@ -30,7 +30,7 @@ public abstract class JobStateCheck implements StatusCheck {
 
         if (!jobsInStateToCheck.isEmpty()) {
             return new CheckFailed(
-                    "Some jobs are in state" + stateToCheck + ".",
+                    "Some jobs are in state " + stateToCheck + ".",
                     Map.of("jobs", jobsInStateToCheck));
         }
 
