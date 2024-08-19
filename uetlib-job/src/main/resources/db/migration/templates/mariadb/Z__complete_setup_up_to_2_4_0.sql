@@ -28,7 +28,8 @@ create table t_job_run
     updated_at        timestamp              not null,
     started_at        timestamp              not null,
     finished_at       timestamp,
-    job_run_arguments json
+    job_run_arguments json,
+    index (started_at)
 ) charset = utf8mb4;
 
 create index idx_finished_at on t_job_run (finished_at);
@@ -134,5 +135,15 @@ CREATE TABLE t_job_run_state_transition
     fk_job_run_id                  INT                NOT NULL REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE ON UPDATE CASCADE,
     state                          TEXT               NOT NULL,
     transitioned_at                TIMESTAMP          NOT NULL,
-    index (transitioned_at)
+    index (transitioned_at),
+    index (state)
 );
+
+CREATE VIEW v_job_run_latest_state AS
+SELECT tjr.*,
+       (SELECT state
+        FROM t_job_run_state_transition tjrs
+        WHERE tjrs.fk_job_run_id = tjr.pk_job_run_id
+        ORDER BY tjrs.transitioned_at DESC
+        LIMIT 1) AS latest_state
+from t_job_run tjr;
