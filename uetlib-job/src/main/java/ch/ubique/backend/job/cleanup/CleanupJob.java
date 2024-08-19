@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.cleanup;
 
+import ch.ubique.backend.core.executor.VirtualThreadUtils;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -23,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Set;
 
 @RegisteredJob
@@ -48,15 +48,13 @@ public class CleanupJob implements Job {
         return new RunnerGroup("cleanup", 1, Set.of(CleanupJob.class));
     }
 
-    @NotNull
     @Override
-    public JobTriggersConfig triggersConfig() {
+    public @NotNull JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
     }
 
-    @NotNull
     @Override
-    public JobPropertiesConfig propertiesConfig() {
+    public @NotNull JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
@@ -65,9 +63,8 @@ public class CleanupJob implements Job {
                         Duration.ofDays(1).plusHours(1)));
     }
 
-    @NotNull
     @Override
-    public JobRunState run(final JobRunContext jobRunContext) {
+    public @NotNull JobRunState run(final JobRunContext jobRunContext) {
 
         final var cleanJobRunsState = cleanJobRuns();
         if (cleanJobRunsState != JobRunState.DONE) {
@@ -77,69 +74,57 @@ public class CleanupJob implements Job {
         return clearUnknownJobProperties();
     }
 
-    @NotNull
-    private JobRunState clearUnknownJobProperties() {
+    private @NotNull JobRunState clearUnknownJobProperties() {
         jobDataService.clearUnknownJobProperties();
         return JobRunState.DONE;
     }
 
-    @NotNull
-    private JobRunState cleanJobRuns() {
-        final var runsWithCleanupErrors = new ArrayList<Integer>();
+    private @NotNull JobRunState cleanJobRuns() {
+        VirtualThreadUtils.forEach(this::cleanJob, jobDataService.findJobs());
+        return JobRunState.DONE;
+    }
 
-        for (final var job : jobDataService.findJobs()) {
-            final JobProperties jobProperties;
-            try {
-                jobProperties = jobService.getProperties(job);
-            } catch (final ClassNotFoundException e) {
-                logger.info("Failed to instantiate job {}, not need to clean: ", job, e);
-                continue;
-            }
-
-            // Get cleanup properties
-            final var daysToKeep =
-                    jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value();
-            final var chunkSize =
-                    jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value();
-
-            final var cleanableRuns =
-                    jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
-
-            logger.info("Cleaning {} runs for job {}", cleanableRuns.size(), job);
-
-            for (final var cleanableRun : cleanableRuns) {
-                try {
-                    cleanInputFiles(job, cleanableRun);
-                } catch (final IOException e) {
-                    logger.warn(
-                            "Failed to delete run input files for job {} and run {}",
-                            job.id(),
-                            cleanableRun.id(),
-                            e);
-                    runsWithCleanupErrors.add(cleanableRun.id());
-                }
-
-                cleanLogs(cleanableRun);
-            }
-
-            // Delete job runs - cascades to delete job run input files, too
-            jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
-
-            // Delete job database submissions that are already submitted - cascades to delete job
-            // run input files, too
-            jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
-
-            logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
+    private void cleanJob(final JobClassAndId job) {
+        final JobProperties jobProperties;
+        try {
+            jobProperties = jobService.getProperties(job);
+        } catch (final ClassNotFoundException e) {
+            logger.info("Failed to instantiate job {}, not need to clean: ", job, e);
+            return;
         }
 
-        if (runsWithCleanupErrors.isEmpty()) {
-            return JobRunState.DONE;
+        // Get cleanup properties
+        final var daysToKeep =
+                jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value();
+        final var chunkSize = jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value();
+
+        final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
+
+        logger.info("Cleaning {} runs for job {}", cleanableRuns.size(), job);
+        VirtualThreadUtils.forEach(run -> cleanRun(job, run), cleanableRuns);
+
+        // Delete job runs - cascades to delete job run input files, too
+        jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
+
+        // Delete job database submissions that are already submitted - cascades to delete job
+        // run input files, too
+        jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
+
+        logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
+    }
+
+    private void cleanRun(final JobClassAndId job, final JobRun cleanableRun) {
+        try {
+            cleanInputFiles(job, cleanableRun);
+        } catch (final IOException e) {
+            logger.info(
+                    "Failed to delete run input files for job {} and run {}",
+                    job.id(),
+                    cleanableRun.id(),
+                    e);
         }
 
-        logger.error(
-                "Encountered problems when deleting run input files (see logs above) for runs with ids {}",
-                runsWithCleanupErrors);
-        return JobRunState.ERROR;
+        cleanLogs(cleanableRun);
     }
 
     /** Attempts to delete all stored input files of a job run */
