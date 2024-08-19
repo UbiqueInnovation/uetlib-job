@@ -5,7 +5,7 @@ CREATE TABLE t_job_run_state_transition
     state                          TEXT               NOT NULL,
     transitioned_at                TIMESTAMP          NOT NULL,
     index (transitioned_at),
-    index (state)
+    index (state(10))
 );
 
 INSERT INTO t_job_run_state_transition (fk_job_run_id, state, transitioned_at)
