@@ -136,7 +136,7 @@ CREATE TABLE t_job_run_state_transition
     state                          TEXT               NOT NULL,
     transitioned_at                TIMESTAMP          NOT NULL,
     index (transitioned_at),
-    index (state)
+    index (state(10))
 );
 
 CREATE VIEW v_job_run_latest_state AS
