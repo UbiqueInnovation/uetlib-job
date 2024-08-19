@@ -6,8 +6,6 @@ create table t_job_run_state_transition
     transitioned_at                timestamp with time zone not null
 );
 
-create index on t_job_run_state_transition (transitioned_at);
-
 insert into t_job_run_state_transition(fk_job_run_id, state, transitioned_at)
 select tjr.pk_job_run_id, tjr.state, tjr.updated_at
 from t_job_run tjr;
@@ -15,8 +13,15 @@ from t_job_run tjr;
 alter table t_job_run
     drop column state;
 
+create index idx_started_at on t_job_run (started_at);
+create index idx_state on t_job_run_state_transition (state);
+create index idx_transitioned_at on t_job_run_state_transition (transitioned_at);
+
 create view v_job_run_latest_state as
-select distinct on (tjr.pk_job_run_id) tjr.*, tjrs.state as latest_state
-from t_job_run tjr
-         join t_job_run_state_transition tjrs on tjrs.fk_job_run_id = tjr.pk_job_run_id
-order by tjr.pk_job_run_id, tjrs.transitioned_at desc;
+select r.*,
+       (select state
+        from t_job_run_state_transition t
+        where t.fk_job_run_id = r.pk_job_run_id
+        order by t.transitioned_at desc
+           limit 1) as latest_state
+from t_job_run r;
