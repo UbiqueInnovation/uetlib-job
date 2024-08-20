@@ -15,8 +15,7 @@ ALTER TABLE t_job_run
     DROP COLUMN state;
 
 CREATE VIEW v_job_run_latest_state AS
-WITH tjrs_latest AS (SELECT fk_job_run_id,
-                            MAX(transitioned_at) AS latest_pk_job_run_state_transition_id
+WITH tjrs_latest AS (SELECT fk_job_run_id, MAX(transitioned_at) AS latest_pk_job_run_state_transition_id
                      FROM t_job_run_state_transition
                      GROUP BY fk_job_run_id)
 SELECT tjr.*, tjrs.state as latest_state
