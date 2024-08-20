@@ -137,9 +137,10 @@ create table t_job_run_state_transition
 );
 
 -- 2.4.5
-create index idx_started_at on t_job_run (started_at);
-create index idx_state on t_job_run_state_transition (state);
-create index idx_transitioned_at on t_job_run_state_transition (transitioned_at);
+create index idx_job_run_started_at on t_job_run (started_at);
+create index idx_job_run_state_transition_state on t_job_run_state_transition (state);
+create index idx_job_run_state_transition_transitioned_at on t_job_run_state_transition (transitioned_at);
+create index idx_job_run_state_transition_transitioned_at_desc on t_job_run_state_transition (transitioned_at DESC);
 
 create view v_job_run_latest_state as
 select r.*,
