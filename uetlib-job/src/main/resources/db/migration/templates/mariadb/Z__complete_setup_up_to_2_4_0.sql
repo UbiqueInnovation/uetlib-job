@@ -90,7 +90,7 @@ CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER auto_increment NOT NULL PRIMARY KEY,
     fk_job_id          INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type VARCHAR(100) NOT NULL, -- MySQL requires a limit on keys / indices, whereas MariaDB does not
+    type               TEXT                   NOT NULL,
     trigger_definition JSON                   NOT NULL,
     created_at         timestamp              not null,
     updated_at         timestamp              not null
