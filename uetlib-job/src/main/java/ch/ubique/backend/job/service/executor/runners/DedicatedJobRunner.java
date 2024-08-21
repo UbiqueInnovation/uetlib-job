@@ -3,6 +3,7 @@ package ch.ubique.backend.job.service.executor.runners;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 
@@ -38,7 +39,8 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+    public synchronized boolean submit(
+            final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         if (future != null) {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;
@@ -59,11 +61,11 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean isRunning(@NotNull final JobRun jobRun) {
+    public JobRunState isRunning(@NotNull final JobRun jobRun) {
         if (activeJobRun == null) {
-            return false;
+            return JobRunState.UNFINISHED;
         }
-        return activeJobRun.id() == jobRun.id();
+        return activeJobRun.id() == jobRun.id() ? JobRunState.BUSY : JobRunState.UNFINISHED;
     }
 
     public void awaitCompletion() {

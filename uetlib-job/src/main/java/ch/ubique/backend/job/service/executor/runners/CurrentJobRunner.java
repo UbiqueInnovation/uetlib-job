@@ -5,6 +5,7 @@ import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.RUNN
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
@@ -44,7 +45,8 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+    public synchronized boolean submit(
+            final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
         if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
@@ -67,8 +69,8 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean isRunning(@NotNull final JobRun jobRun) {
-        return futuresByJobRun.containsKey(jobRun.id());
+    public JobRunState isRunning(@NotNull final JobRun jobRun) {
+        return futuresByJobRun.containsKey(jobRun.id()) ? JobRunState.BUSY : JobRunState.UNFINISHED;
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {

@@ -38,20 +38,21 @@ public class JobStateWatcher {
         logger.info("Checking if jobs are running");
         final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
-            if (!isRunning(jobRun)) {
+            final var state = isRunning(jobRun);
+            if (state != JobRunState.BUSY) {
                 logger.info("{} is not running.", jobRun);
-                jobDataService.finishJobRun(jobRun.id(), JobRunState.UNFINISHED, Instant.now());
-                logger.info("Set job run {} to unfinished.", jobRun.id());
+                jobDataService.finishJobRun(jobRun.id(), state, Instant.now());
+                logger.info("Set job run {} to {}.", jobRun.id(), state);
             }
         }
     }
 
-    private boolean isRunning(final JobRun jobRun) {
+    private JobRunState isRunning(final JobRun jobRun) {
         final var runnerKey = jobRun.runnerKey();
         final var runner = jobRunners.get(runnerKey);
         if (runner == null) {
             logger.info("No runner found for {}", runnerKey);
-            return false;
+            return JobRunState.UNFINISHED;
         }
         return runner.isRunning(jobRun);
     }
