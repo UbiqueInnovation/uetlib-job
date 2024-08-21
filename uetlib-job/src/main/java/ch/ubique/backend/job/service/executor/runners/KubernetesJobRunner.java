@@ -8,6 +8,7 @@ import ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables;
 import ch.ubique.backend.job.k8s.KubernetesJob;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesContext;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -33,7 +34,11 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 @Profile("!job-run")
@@ -44,6 +49,8 @@ public class KubernetesJobRunner implements JobRunner {
     private final ApplicationContext applicationContext;
     private final JobDataService jobDataService;
 
+    private final ExecutorService jobWatcherExecutor;
+
     private final String namespace;
     private final String currentPodName;
 
@@ -52,6 +59,8 @@ public class KubernetesJobRunner implements JobRunner {
         namespace = getCurrentKubernetesNamespace();
         currentPodName = getCurrentPodName();
         jobDataService = applicationContext.getBean(JobDataService.class);
+
+        jobWatcherExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     private static String getCurrentKubernetesNamespace() {
@@ -108,8 +117,9 @@ public class KubernetesJobRunner implements JobRunner {
                     new KubernetesJobRunContext(jobRunContext, kubernetesContext(client));
             final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
-            final var k8sJobName = submitJobToKubernetes(client, jobDefinition);
-            jobDataService.saveK8sJob(jobRunContext.jobRun().id(), k8sJobName);
+            final var jobRunId = jobRunContext.jobRun().id();
+            final var k8sJobName = submitJobToKubernetes(client, jobDefinition, jobRunId);
+            jobDataService.saveK8sJob(jobRunId, k8sJobName);
             return true;
 
         } catch (final ApiException e) {
@@ -228,24 +238,104 @@ public class KubernetesJobRunner implements JobRunner {
         return coreApi.readNamespacedPod(currentPodName, namespace).execute();
     }
 
+    private KubernetesContext kubernetesContext(final ApiClient client) throws ApiException {
+        final var currentPod = getCurrentPod(client);
+        return new KubernetesContext(client, namespace, currentPod);
+    }
+
     // min delay 2 seconds, max delay 5 minutes with random delays
     @Retryable(
             retryFor = ApiException.class,
             maxAttempts = 10,
             backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
-    private String submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
+    private String submitJobToKubernetes(
+            final ApiClient client, final V1Job jobDefinition, final int jobRunId)
             throws ApiException {
         final var batchApi = new BatchV1Api(client);
         final var createdJob = batchApi.createNamespacedJob(namespace, jobDefinition).execute();
 
         final var k8sJobName = requireNonNull(createdJob.getMetadata()).getName();
         logger.info("Successfully created kubernetes job {}", k8sJobName);
+
+        jobWatcherExecutor.submit(new KubernetesJobWatcher(client, createdJob, jobRunId));
+
         return k8sJobName;
     }
 
-    private KubernetesContext kubernetesContext(final ApiClient client) throws ApiException {
-        final var currentPod = getCurrentPod(client);
-        return new KubernetesContext(client, namespace, currentPod);
+    private class KubernetesJobWatcher implements Callable<KubernetesJobStatus> {
+        private ApiClient client;
+        private V1Job createdJob;
+        private int jobRunId;
+
+        public KubernetesJobWatcher(
+                final ApiClient client, final V1Job createdJob, final int jobRunId) {
+            this.client = client;
+            this.createdJob = createdJob;
+            this.jobRunId = jobRunId;
+        }
+
+        @Override
+        public KubernetesJobStatus call() throws ApiException, InterruptedException {
+            final var createdJobName =
+                    requireNonNull(requireNonNull(createdJob.getMetadata()).getName());
+            final var api = new BatchV1Api(client);
+            while (true) {
+                Thread.sleep(10_000);
+                final var jobList = api.listNamespacedJob(namespace).execute();
+                final var jobFromApiOptional =
+                        jobList.getItems().stream()
+                                .filter(
+                                        job ->
+                                                job.getMetadata() != null
+                                                        && createdJobName.equals(
+                                                                job.getMetadata().getName()))
+                                .findAny();
+                final var status =
+                        jobFromApiOptional
+                                .map(
+                                        jobFromApi ->
+                                                KubernetesJobStatus.fromStatus(
+                                                        requireNonNull(jobFromApi.getStatus())))
+                                .orElse(KubernetesJobStatus.UNKNOWN);
+                if (status == KubernetesJobStatus.ACTIVE) {
+                    continue;
+                }
+                jobDataService.finishJobRun(jobRunId, status.jobRunState(), Instant.now());
+                switch (status) {
+                    case SUCCEEDED -> logger.info("Job Run {} succeeded.", jobRunId);
+                    case FAILED -> logger.error("Job Run {} failed.", jobRunId);
+                    case UNKNOWN -> logger.warn("Job Run {} not found in K8S.", jobRunId);
+                }
+                return status;
+            }
+        }
+    }
+
+    private enum KubernetesJobStatus {
+        ACTIVE(null),
+        SUCCEEDED(JobRunState.DONE),
+        FAILED(JobRunState.ERROR),
+        UNKNOWN(JobRunState.UNFINISHED);
+
+        private final JobRunState jobRunState;
+
+        KubernetesJobStatus(final JobRunState jobRunState) {
+            this.jobRunState = jobRunState;
+        }
+
+        public static KubernetesJobStatus fromStatus(final V1JobStatus status) {
+            if (requireNonNull(status.getActive()) != 0) return ACTIVE;
+            if (requireNonNull(status.getSucceeded()) == 1) return SUCCEEDED;
+            if (requireNonNull(status.getFailed()) == 1) return FAILED;
+            return UNKNOWN;
+        }
+
+        public JobRunState jobRunState() {
+            if (this == ACTIVE) {
+                throw new UnsupportedOperationException();
+            }
+            return jobRunState;
+        }
     }
 }
