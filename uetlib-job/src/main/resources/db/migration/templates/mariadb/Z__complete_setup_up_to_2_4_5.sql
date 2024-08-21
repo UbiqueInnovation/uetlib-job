@@ -136,6 +136,7 @@ CREATE TABLE t_job_run_state_transition
     state                          TEXT               NOT NULL,
     transitioned_at                TIMESTAMP          NOT NULL,
     index (transitioned_at),
+    index (transitioned_at desc),
     index (state(10))
 );
 
