@@ -117,7 +117,7 @@ public class KubernetesJobRunner implements JobRunner {
             final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
             final var jobRunId = jobRunContext.jobRun().id();
-            final var k8sJobName = submitJobToKubernetes(client, jobDefinition, jobRunId);
+            final var k8sJobName = submitJobToKubernetes(client, jobDefinition);
             jobDataService.saveK8sJob(jobRunId, k8sJobName);
             return true;
 
@@ -151,7 +151,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState isRunning(final @NotNull JobRun jobRun) {
+    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             return JobRunState.UNFINISHED;
@@ -166,22 +166,7 @@ public class KubernetesJobRunner implements JobRunner {
                     .filter(job -> jobName.equals(jobName(job)))
                     .findFirst()
                     .map(V1Job::getStatus)
-                    .map(
-                            status -> {
-                                if (requireNonNullElse(status.getActive(), 0) > 0) {
-                                    return JobRunState.BUSY;
-                                }
-                                if (requireNonNullElse(status.getFailed(), 0) > 0) {
-                                    return JobRunState.ERROR;
-                                }
-                                if (requireNonNullElse(status.getSucceeded(), 0) > 0) {
-                                    // TODO: We may not conclude that it actually completed its task
-                                    //  successfully but at the moment there is no way of knowing,
-                                    //  so this may lead to false negatives!
-                                    return JobRunState.DONE;
-                                }
-                                return JobRunState.UNFINISHED;
-                            })
+                    .map(this::getJobRunStatus)
                     .orElse(JobRunState.UNFINISHED);
         } catch (final IOException | ClassNotFoundException | ApiException e) {
             logger.warn(
@@ -190,6 +175,25 @@ public class KubernetesJobRunner implements JobRunner {
                     e);
             return JobRunState.BUSY;
         }
+    }
+
+    private @NotNull JobRunState getJobRunStatus(final V1JobStatus status) {
+        if (requireNonNullElse(status.getActive(), 0) > 0) {
+            return JobRunState.BUSY;
+        }
+        if (requireNonNullElse(status.getFailed(), 0) > 0) {
+            return JobRunState.ERROR;
+        }
+        if (requireNonNullElse(status.getSucceeded(), 0) > 0) {
+            // TODO: We may not conclude that it actually completed its task
+            //  successfully but at the moment there is no way of knowing,
+            //  so this may lead to false negatives!
+            return JobRunState.DONE;
+        }
+        if (requireNonNullElse(status.getReady(), 1) == 0) {
+            return JobRunState.SCHEDULED;
+        }
+        return JobRunState.UNFINISHED;
     }
 
     @Nullable
@@ -262,8 +266,7 @@ public class KubernetesJobRunner implements JobRunner {
             maxAttempts = 10,
             backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
-    private String submitJobToKubernetes(
-            final ApiClient client, final V1Job jobDefinition, final int jobRunId)
+    private String submitJobToKubernetes(final ApiClient client, final V1Job jobDefinition)
             throws ApiException {
         final var batchApi = new BatchV1Api(client);
         final var createdJob = batchApi.createNamespacedJob(namespace, jobDefinition).execute();
