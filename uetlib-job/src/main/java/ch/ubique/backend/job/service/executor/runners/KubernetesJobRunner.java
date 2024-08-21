@@ -12,7 +12,6 @@ import ch.ubique.backend.job.model.k8s.KubernetesContext;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
-import ch.ubique.backend.job.service.watcher.KubernetesJobWatcher;
 
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
@@ -263,9 +262,6 @@ public class KubernetesJobRunner implements JobRunner {
 
         final var k8sJobName = requireNonNull(createdJob.getMetadata()).getName();
         logger.info("Successfully created kubernetes job {}", k8sJobName);
-
-        jobWatcherExecutor.submit(
-                new KubernetesJobWatcher(jobDataService, client, namespace, createdJob, jobRunId));
 
         return k8sJobName;
     }
