@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 public interface JobRunner {
@@ -17,5 +18,6 @@ public interface JobRunner {
 
     void cancel(@NotNull JobRun jobRun);
 
-    JobRunState isRunning(@NotNull JobRun jobRun);
+    @Nullable
+    JobRunState resolveJobRunState(@NotNull JobRun jobRun);
 }

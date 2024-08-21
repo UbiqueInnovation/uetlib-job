@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -38,22 +39,25 @@ public class JobStateWatcher {
         logger.info("Checking if jobs are running");
         final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
-            final var state = isRunning(jobRun);
-            if (state != JobRunState.BUSY) {
+            final var state = findJobRunState(jobRun);
+            if (state.isEmpty()) {
+                continue;
+            }
+            if (!state.get().isRunning()) {
                 logger.info("{} is not running.", jobRun);
-                jobDataService.finishJobRun(jobRun.id(), state, Instant.now());
+                jobDataService.finishJobRun(jobRun.id(), state.get(), Instant.now());
                 logger.info("Set job run {} to {}.", jobRun.id(), state);
             }
         }
     }
 
-    private JobRunState isRunning(final JobRun jobRun) {
+    private Optional<JobRunState> findJobRunState(final JobRun jobRun) {
         final var runnerKey = jobRun.runnerKey();
         final var runner = jobRunners.get(runnerKey);
         if (runner == null) {
             logger.info("No runner found for {}", runnerKey);
-            return JobRunState.UNFINISHED;
+            return Optional.of(JobRunState.UNFINISHED);
         }
-        return runner.isRunning(jobRun);
+        return Optional.ofNullable(runner.resolveJobRunState(jobRun));
     }
 }

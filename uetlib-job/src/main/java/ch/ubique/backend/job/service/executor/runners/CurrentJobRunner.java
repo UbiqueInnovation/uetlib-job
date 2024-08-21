@@ -10,6 +10,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -69,8 +70,9 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState isRunning(@NotNull final JobRun jobRun) {
-        return futuresByJobRun.containsKey(jobRun.id()) ? JobRunState.BUSY : JobRunState.UNFINISHED;
+    @Nullable
+    public JobRunState resolveJobRunState(@NotNull final JobRun jobRun) {
+        return futuresByJobRun.containsKey(jobRun.id()) ? JobRunState.BUSY : null;
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {

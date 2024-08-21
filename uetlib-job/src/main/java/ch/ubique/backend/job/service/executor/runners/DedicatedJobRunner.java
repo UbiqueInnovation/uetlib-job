@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -61,11 +62,12 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState isRunning(@NotNull final JobRun jobRun) {
+    @Nullable
+    public JobRunState resolveJobRunState(@NotNull final JobRun jobRun) {
         if (activeJobRun == null) {
-            return JobRunState.UNFINISHED;
+            return null;
         }
-        return activeJobRun.id() == jobRun.id() ? JobRunState.BUSY : JobRunState.UNFINISHED;
+        return activeJobRun.id() == jobRun.id() ? JobRunState.BUSY : null;
     }
 
     public void awaitCompletion() {
