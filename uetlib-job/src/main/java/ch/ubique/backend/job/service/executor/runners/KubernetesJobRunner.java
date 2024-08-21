@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.executor.runners;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -8,6 +9,7 @@ import ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables;
 import ch.ubique.backend.job.k8s.KubernetesJob;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesContext;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -149,10 +151,10 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean isRunning(final @NotNull JobRun jobRun) {
+    public JobRunState isRunning(final @NotNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
-            return false;
+            return JobRunState.UNFINISHED;
         }
 
         final var jobName = k8sJobNameMaybe.get();
@@ -172,15 +174,29 @@ public class KubernetesJobRunner implements JobRunner {
                                 return job;
                             })
                     .map(V1Job::getStatus)
-                    .map(V1JobStatus::getActive)
-                    .map(active -> active > 0)
-                    .orElse(false);
+                    .map(
+                            status -> {
+                                if (requireNonNullElse(status.getActive(), 0) > 0) {
+                                    return JobRunState.BUSY;
+                                }
+                                if (requireNonNullElse(status.getFailed(), 0) > 0) {
+                                    return JobRunState.ERROR;
+                                }
+                                if (requireNonNullElse(status.getSucceeded(), 0) > 0) {
+                                    // TODO: We may not conclude that it actually completed its task
+                                    //  successfully but at the moment there is no way of knowing,
+                                    //  so this may lead to false negatives!
+                                    return JobRunState.DONE;
+                                }
+                                return JobRunState.UNFINISHED;
+                            })
+                    .orElse(JobRunState.UNFINISHED);
         } catch (final IOException | ClassNotFoundException | ApiException e) {
             logger.warn(
                     "Got exception when trying to query the status of {}. Treating as running.",
                     jobName,
                     e);
-            return true;
+            return JobRunState.BUSY;
         }
     }
 
