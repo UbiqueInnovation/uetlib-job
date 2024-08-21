@@ -17,17 +17,10 @@ public class DefaultRetryListener implements RetryListener {
             final RetryContext retryContext,
             final RetryCallback<T, E> callback,
             final Throwable throwable) {
-        logger.warn(
-                "Got error while trying on retry #{}: ",
-                retryContext.getRetryCount() - 1,
-                throwable);
-    }
-
-    @Override
-    public <T, E extends Throwable> boolean open(
-            final RetryContext retryContext, final RetryCallback<T, E> callback) {
-        logger.debug("Starting to run {} with retries enabled now.", callback);
-        return true;
+        logger.info(
+                "Got {} while trying on retry #{}: ",
+                throwable.getClass().getSimpleName(),
+                retryContext.getRetryCount() - 1);
     }
 
     @Override
@@ -35,7 +28,9 @@ public class DefaultRetryListener implements RetryListener {
             final RetryContext retryContext,
             final RetryCallback<T, E> callback,
             final Throwable throwable) {
-        logger.debug("Done with retrying for {}.", callback);
+        if (throwable != null) {
+            logger.warn("Could not complete task.", throwable);
+        }
     }
 
     @Override
