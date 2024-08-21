@@ -165,14 +165,6 @@ public class KubernetesJobRunner implements JobRunner {
             return batchApi.listNamespacedJob(namespace).execute().getItems().stream()
                     .filter(job -> jobName.equals(jobName(job)))
                     .findFirst()
-                    .map(
-                            job -> {
-                                logger.info(
-                                        "Found job {} with status {}.",
-                                        job.getMetadata(),
-                                        job.getStatus());
-                                return job;
-                            })
                     .map(V1Job::getStatus)
                     .map(
                             status -> {
