@@ -23,3 +23,13 @@ create index if not exists fk_idx_job_run_state_transition_job_run_id on t_job_r
 create index if not exists fk_idx_job_trigger_job_id on t_job_trigger (fk_job_id);
 
 create index if not exists fk_idx_k8s_jobs_job_run_id on t_k8s_jobs (fk_job_run_id);
+
+-- Recreate view, with additional ordering by PK
+create view v_job_run_latest_state as
+select r.*,
+       (select state
+        from t_job_run_state_transition t
+        where t.fk_job_run_id = r.pk_job_run_id
+        order by t.transitioned_at desc, t.pk_job_run_state_transition_id DESC
+        limit 1) as latest_state
+from t_job_run r;
