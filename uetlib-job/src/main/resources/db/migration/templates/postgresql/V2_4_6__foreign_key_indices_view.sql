@@ -25,6 +25,7 @@ create index if not exists fk_idx_job_trigger_job_id on t_job_trigger (fk_job_id
 create index if not exists fk_idx_k8s_jobs_job_run_id on t_k8s_jobs (fk_job_run_id);
 
 -- Recreate view, with additional ordering by PK
+drop view if exists v_job_run_latest_state ;
 create view v_job_run_latest_state as
 select r.*,
        (select state
