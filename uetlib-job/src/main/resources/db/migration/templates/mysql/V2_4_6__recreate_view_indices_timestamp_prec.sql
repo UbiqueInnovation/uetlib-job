@@ -1,3 +1,4 @@
+DELETE FROM logging_event WHERE job_run_id NOT IN (SELECT pk_job_run_id FROM t_job_run);
 ALTER TABLE logging_event
     ADD CONSTRAINT fk_job_run_id
         FOREIGN KEY (job_run_id) REFERENCES t_job_run (pk_job_run_id)
