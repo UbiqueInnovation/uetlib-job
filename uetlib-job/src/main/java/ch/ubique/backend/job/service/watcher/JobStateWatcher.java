@@ -1,10 +1,10 @@
 package ch.ubique.backend.job.service.watcher;
 
 import ch.ubique.backend.core.utils.MapCollectors;
-import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
 import org.slf4j.Logger;
@@ -24,23 +24,22 @@ public class JobStateWatcher {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final JobDataService jobDataService;
+    private final JobService jobService;
     private final Map<JobRunnerKey, JobRunner> jobRunners;
 
-    public JobStateWatcher(
-            final JobDataService jobDataService, final Collection<JobRunner> jobRunners) {
-        this.jobDataService = jobDataService;
+    public JobStateWatcher(final JobService jobService, final Collection<JobRunner> jobRunners) {
+        this.jobService = jobService;
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
     public void checkIfJobsAreRunning() {
         logger.info("Checking if jobs are running");
-        final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING_STATES);
+        final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
             if (!isRunning(jobRun)) {
                 logger.info("{} is not running.", jobRun);
-                jobDataService.finishJobRun(jobRun.id(), JobRunState.UNFINISHED, Instant.now());
+                jobService.finishJobRun(jobRun, JobRunState.UNFINISHED, Instant.now());
                 logger.info("Set job run {} to unfinished.", jobRun.id());
             }
         }
