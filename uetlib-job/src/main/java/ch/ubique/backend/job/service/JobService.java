@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.MergedAnnotations;
+import org.springframework.core.annotation.MergedAnnotations.SearchStrategy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 
@@ -44,6 +46,7 @@ public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
+    private final RetryTemplate retryTemplate;
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
@@ -55,6 +58,7 @@ public class JobService {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
+        this.retryTemplate = RetryTemplate.builder().maxAttempts(10).noBackoff().build();
     }
 
     /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
@@ -65,7 +69,7 @@ public class JobService {
 
     private Set<Class<?>> findAllRegisteredJobClasses() {
         final var mergedAnnotationsSearch =
-                MergedAnnotations.search(MergedAnnotations.SearchStrategy.TYPE_HIERARCHY)
+                MergedAnnotations.search(SearchStrategy.TYPE_HIERARCHY)
                         .withEnclosingClasses(
                                 clazz ->
                                         !ClassUtils.isInnerClass(clazz)
@@ -237,7 +241,11 @@ public class JobService {
             @NotNull final JobRun jobRun,
             @NotNull final JobRunState finalState,
             @NotNull final Instant finishedAt) {
-        jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
+        retryTemplate.execute(
+                c -> {
+                    jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
+                    return null;
+                });
     }
 
     public void updateJobRunState(
@@ -262,7 +270,7 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        jobDataService.finishJobRun(jobRun.id(), UNFINISHED, Instant.now());
+        finishJobRun(jobRun, UNFINISHED, Instant.now());
         return true;
     }
 
