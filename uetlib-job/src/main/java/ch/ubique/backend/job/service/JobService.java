@@ -252,7 +252,11 @@ public class JobService {
             @NotNull final JobRun jobRun,
             @NotNull final JobRunState state,
             @NotNull final Instant transitionedAt) {
-        jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
+        retryTemplate.execute(
+                c -> {
+                    jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
+                    return null;
+                });
     }
 
     public Collection<Job> getAllJobs() {
@@ -279,5 +283,9 @@ public class JobService {
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()
                 .orElseThrow();
+    }
+
+    public Collection<JobRun> findJobRunsByStates(final Collection<JobRunState> states) {
+        return jobDataService.findJobRunByStates(states);
     }
 }
