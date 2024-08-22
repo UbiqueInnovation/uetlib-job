@@ -1,4 +1,5 @@
 -- Logging tables
+delete from logging_event where job_run_id not in (select pk_job_run_id from t_job_run);
 alter table logging_event add constraint fk_job_run_id foreign key (job_run_id) references t_job_run (pk_job_run_id) on delete cascade on update cascade;
 create index if not exists fk_idx_logging_event_job_run_id on logging_event (job_run_id);
 create index if not exists idx_logging_event_timestmp on logging_event (timestmp);
