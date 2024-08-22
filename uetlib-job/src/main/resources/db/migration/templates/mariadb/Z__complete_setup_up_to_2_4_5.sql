@@ -134,7 +134,7 @@ CREATE TABLE t_job_run_state_transition
     pk_job_run_state_transition_id INT auto_increment NOT NULL PRIMARY KEY,
     fk_job_run_id                  INT                NOT NULL REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE ON UPDATE CASCADE,
     state                          TEXT               NOT NULL,
-    transitioned_at                TIMESTAMP          NOT NULL,
+    transitioned_at                TIMESTAMP(3)       NOT NULL,
     index (transitioned_at),
     index (transitioned_at desc),
     index (state(10))
@@ -145,6 +145,16 @@ SELECT tjr.*,
        (SELECT state
         FROM t_job_run_state_transition tjrs
         WHERE tjrs.fk_job_run_id = tjr.pk_job_run_id
-        ORDER BY tjrs.transitioned_at DESC
+        ORDER BY tjrs.transitioned_at DESC, tjrs.pk_job_run_state_transition_id DESC
         LIMIT 1) AS latest_state
 from t_job_run tjr;
+
+-- 2.4.6
+ALTER TABLE logging_event
+    ADD CONSTRAINT fk_job_run_id
+        FOREIGN KEY (job_run_id) REFERENCES t_job_run (pk_job_run_id)
+            ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE logging_event
+    ADD INDEX (timestmp);
+ALTER TABLE logging_event_exception
+    ADD INDEX (i);
