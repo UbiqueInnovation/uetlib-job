@@ -193,6 +193,8 @@ public class KubernetesJobRunner implements JobRunner {
         if (requireNonNullElse(status.getReady(), 1) == 0) {
             return JobRunState.SCHEDULED;
         }
+        // TODO: The current assumption is that once a job is ready it will never lose its status as
+        //  'ready' or 'active' or 'succeeded' or 'failed'
         return JobRunState.UNFINISHED;
     }
 
