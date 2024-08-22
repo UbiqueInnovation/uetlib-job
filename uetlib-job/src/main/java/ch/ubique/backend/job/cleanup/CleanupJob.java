@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.cleanup;
 
+import static ch.ubique.backend.core.executor.VirtualThreadUtils.mapAll;
+
 import ch.ubique.backend.core.executor.VirtualThreadUtils;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
@@ -65,32 +67,33 @@ public class CleanupJob implements Job {
 
     @Override
     public @NotNull JobRunState run(final JobRunContext jobRunContext) {
-
-        final var cleanJobRunsState = cleanJobRuns();
-        if (cleanJobRunsState != JobRunState.DONE) {
-            return cleanJobRunsState;
-        }
-
-        return clearUnknownJobProperties();
+        clearUnknownJobProperties();
+        return cleanJobRuns();
     }
 
-    private @NotNull JobRunState clearUnknownJobProperties() {
+    private void clearUnknownJobProperties() {
         jobDataService.clearUnknownJobProperties();
-        return JobRunState.DONE;
     }
 
     private @NotNull JobRunState cleanJobRuns() {
-        VirtualThreadUtils.forEach(this::cleanJob, jobDataService.findJobs());
-        return JobRunState.DONE;
+        final var successList = mapAll(this::cleanJob, jobDataService.findJobs());
+        final var hasWarnings = successList.stream().anyMatch(success -> !success);
+        if (hasWarnings) {
+            logger.info("Got Warnings will cleaning. Please check your cleanup properties.");
+        }
+        return hasWarnings ? JobRunState.WARNING : JobRunState.DONE;
     }
 
-    private void cleanJob(final JobClassAndId job) {
+    /**
+     * @return true if cleaning was possible without any warnings
+     */
+    private boolean cleanJob(final JobClassAndId job) {
         final JobProperties jobProperties;
         try {
             jobProperties = jobService.getProperties(job);
         } catch (final ClassNotFoundException e) {
-            logger.info("Failed to instantiate job {}, not need to clean: ", job, e);
-            return;
+            logger.info("Failed to instantiate job {}, no need to clean: ", job, e);
+            return true;
         }
 
         // Get cleanup properties
@@ -100,7 +103,7 @@ public class CleanupJob implements Job {
 
         final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
 
-        logger.info("Cleaning {} runs for job {}", cleanableRuns.size(), job);
+        logger.debug("Cleaning {} runs for job {}", cleanableRuns.size(), job);
         VirtualThreadUtils.forEach(run -> cleanRun(job, run), cleanableRuns);
 
         // Delete job runs - cascades to delete job run input files, too
@@ -111,6 +114,12 @@ public class CleanupJob implements Job {
         jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
 
         logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
+
+        if (cleanableRuns.size() >= chunkSize) {
+            logger.info("Chunk size used up for {}. There might still be more runs to clean.", job);
+            return false;
+        }
+        return true;
     }
 
     private void cleanRun(final JobClassAndId job, final JobRun cleanableRun) {
