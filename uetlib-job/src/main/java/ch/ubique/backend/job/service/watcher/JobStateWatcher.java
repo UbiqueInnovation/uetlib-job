@@ -41,6 +41,8 @@ public class JobStateWatcher {
         for (final var jobRun : running) {
             final var state = findJobRunState(jobRun);
             if (state.isEmpty()) {
+                logger.info("Could not find job state, treating as UNFINISHED.");
+                jobDataService.finishJobRun(jobRun.id(), JobRunState.UNFINISHED, Instant.now());
                 continue;
             }
             if (!state.get().isRunning()) {

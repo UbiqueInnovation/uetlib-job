@@ -116,9 +116,8 @@ public class KubernetesJobRunner implements JobRunner {
                     new KubernetesJobRunContext(jobRunContext, kubernetesContext(client));
             final var jobDefinition = kubernetesJob.job(kubernetesJobRunContext);
 
-            final var jobRunId = jobRunContext.jobRun().id();
             final var k8sJobName = submitJobToKubernetes(client, jobDefinition);
-            jobDataService.saveK8sJob(jobRunId, k8sJobName);
+            jobDataService.saveK8sJob(jobRunContext.jobRun().id(), k8sJobName);
             return true;
 
         } catch (final ApiException e) {
@@ -154,7 +153,7 @@ public class KubernetesJobRunner implements JobRunner {
     public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
-            return JobRunState.UNFINISHED;
+            return null;
         }
 
         final var jobName = k8sJobNameMaybe.get();
@@ -167,17 +166,18 @@ public class KubernetesJobRunner implements JobRunner {
                     .findFirst()
                     .map(V1Job::getStatus)
                     .map(this::getJobRunStatus)
-                    .orElse(JobRunState.UNFINISHED);
+                    .orElse(null);
         } catch (final IOException | ClassNotFoundException | ApiException e) {
             logger.warn(
-                    "Got exception when trying to query the status of {}. Treating as running.",
+                    "Got exception when trying to query the status of {}. Treating as running (return null).",
                     jobName,
                     e);
-            return JobRunState.BUSY;
+            return null;
         }
     }
 
-    private @NotNull JobRunState getJobRunStatus(final V1JobStatus status) {
+    private @NotNull JobRunState getJobRunStatus(final V1Job job) {
+        final var status = job.getStatus();
         if (requireNonNullElse(status.getActive(), 0) > 0) {
             return JobRunState.BUSY;
         }
@@ -185,17 +185,19 @@ public class KubernetesJobRunner implements JobRunner {
             return JobRunState.ERROR;
         }
         if (requireNonNullElse(status.getSucceeded(), 0) > 0) {
-            // TODO: We may not conclude that it actually completed its task
-            //  successfully but at the moment there is no way of knowing,
-            //  so this may lead to false negatives!
+            logger.info(
+                    "The job {} has concluded with status {}, it did exit successfully, "
+                            + "but is unknown if it finished its task successfully.",
+                    Optional.ofNullable(job.getMetadata())
+                            .map(V1ObjectMeta::getName)
+                            .orElse("[No name found]"),
+                    status);
             return JobRunState.DONE;
         }
         if (requireNonNullElse(status.getReady(), 1) == 0) {
             return JobRunState.SCHEDULED;
         }
-        // TODO: The current assumption is that once a job is ready it will never lose its status as
-        //  'ready' or 'active' or 'succeeded' or 'failed'
-        return JobRunState.UNFINISHED;
+        return null;
     }
 
     @Nullable
