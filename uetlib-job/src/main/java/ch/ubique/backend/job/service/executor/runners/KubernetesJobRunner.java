@@ -164,7 +164,6 @@ public class KubernetesJobRunner implements JobRunner {
             return batchApi.listNamespacedJob(namespace).execute().getItems().stream()
                     .filter(job -> jobName.equals(jobName(job)))
                     .findFirst()
-                    .map(V1Job::getStatus)
                     .map(this::getJobRunStatus)
                     .orElse(null);
         } catch (final IOException | ClassNotFoundException | ApiException e) {
