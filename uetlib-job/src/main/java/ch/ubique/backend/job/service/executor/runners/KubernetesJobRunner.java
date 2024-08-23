@@ -36,8 +36,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Service
 @Profile("!job-run")
@@ -48,8 +46,6 @@ public class KubernetesJobRunner implements JobRunner {
     private final ApplicationContext applicationContext;
     private final JobDataService jobDataService;
 
-    private final ExecutorService jobWatcherExecutor;
-
     private final String namespace;
     private final String currentPodName;
 
@@ -58,8 +54,6 @@ public class KubernetesJobRunner implements JobRunner {
         namespace = getCurrentKubernetesNamespace();
         currentPodName = getCurrentPodName();
         jobDataService = applicationContext.getBean(JobDataService.class);
-
-        jobWatcherExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     private static String getCurrentKubernetesNamespace() {
@@ -171,7 +165,7 @@ public class KubernetesJobRunner implements JobRunner {
                     "Got exception when trying to query the status of {}. Treating as running (return null).",
                     jobName,
                     e);
-            return null;
+            return JobRunState.BUSY;
         }
     }
 
