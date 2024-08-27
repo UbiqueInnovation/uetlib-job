@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.definitions.RegisteredJobDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 
@@ -10,7 +11,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.env.Environment;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.web.client.RestTemplate;
 
@@ -30,9 +30,15 @@ public class BackendLibJobBaseConfig {
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
-            final Environment environment) {
+            // bean registeredJobDefinitions is registered programmatically
+            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+                    final RegisteredJobDefinitions registeredJobDefinitions) {
         final var jobService =
-                new JobService(jobDataService, applicationContext, classLoaderService, environment);
+                new JobService(
+                        jobDataService,
+                        applicationContext,
+                        classLoaderService,
+                        registeredJobDefinitions);
         jobService.init();
         return jobService;
     }
@@ -43,7 +49,10 @@ public class BackendLibJobBaseConfig {
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
-            final Environment environment) {
-        return new JobService(jobDataService, applicationContext, classLoaderService, environment);
+            // bean registeredJobDefinitions is registered programmatically
+            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+                    final RegisteredJobDefinitions registeredJobDefinitions) {
+        return new JobService(
+                jobDataService, applicationContext, classLoaderService, registeredJobDefinitions);
     }
 }

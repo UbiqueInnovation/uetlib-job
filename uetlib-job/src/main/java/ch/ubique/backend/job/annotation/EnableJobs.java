@@ -3,6 +3,7 @@ package ch.ubique.backend.job.annotation;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 
+import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
 
 import java.lang.annotation.*;
@@ -16,6 +17,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
+@Import(RegisteredJobRegistrar.class)
 public @interface EnableJobs {
     /** Alias for {@link #basePackages} */
     @AliasFor("basePackages")

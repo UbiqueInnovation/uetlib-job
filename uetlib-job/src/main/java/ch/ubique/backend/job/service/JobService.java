@@ -6,8 +6,8 @@ import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
-import ch.ubique.backend.job.annotation.EnableJobs;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.definitions.RegisteredJobDefinitions;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -19,7 +19,6 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
-import ch.ubique.backend.storage.annotations.EnableAnnotationUtils;
 
 import com.pivovarit.function.ThrowingFunction;
 
@@ -30,10 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.annotation.MergedAnnotations;
-import org.springframework.core.env.Environment;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.ClassUtils;
 
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -48,17 +44,17 @@ public class JobService {
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
-    private final Environment environment;
+    private final RegisteredJobDefinitions registeredJobDefinitions;
 
     public JobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
-            final Environment environment) {
+            final RegisteredJobDefinitions registeredJobDefinitions) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
-        this.environment = environment;
+        this.registeredJobDefinitions = registeredJobDefinitions;
     }
 
     /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
@@ -67,48 +63,22 @@ public class JobService {
         registerAllJobs();
     }
 
-    private Set<Class<?>> findAllRegisteredJobClasses() {
-        final var mergedAnnotationsSearch =
-                MergedAnnotations.search(MergedAnnotations.SearchStrategy.TYPE_HIERARCHY)
-                        .withEnclosingClasses(
-                                clazz ->
-                                        !ClassUtils.isInnerClass(clazz)
-                                                && !ClassUtils.isStaticClass(clazz));
-        final var enableJobsClass =
-                EnableAnnotationUtils.findSingletonEnableClass(
-                        applicationContext, EnableJobs.class);
-
-        final var enableJobsAnnotation =
-                mergedAnnotationsSearch.from(enableJobsClass).get(EnableJobs.class).synthesize();
-
-        final var storageClasses =
-                EnableAnnotationUtils.findAllClassesBy(
-                        enableJobsAnnotation.jobs(),
-                        enableJobsAnnotation.basePackages(),
-                        enableJobsAnnotation.basePackageClasses(),
-                        enableJobsClass.getPackageName(),
-                        RegisteredJob.class);
-
-        return EnableAnnotationUtils.filterClassesByProfileEnabled(
-                environment, mergedAnnotationsSearch, storageClasses);
-    }
-
     private void registerAllJobs() {
-        final var jobClasses = findAllRegisteredJobClasses();
-        logger.info("Found {} annotated with {}.", jobClasses, RegisteredJob.class);
+        final var registeredJobClasses = registeredJobDefinitions.registeredJobClasses();
+        logger.info("Found {} annotated with {}.", registeredJobClasses, RegisteredJob.class);
 
-        for (final var cls : jobClasses) {
+        for (final var registeredJobClass : registeredJobClasses) {
             try {
-                final var jobClass = cls.asSubclass(Job.class);
+                final var jobClass = registeredJobClass.asSubclass(Job.class);
                 jobDataService.findOrInsertJob(jobClass);
                 logger.info("Registered {}.", jobClass);
             } catch (final ClassCastException e) {
                 throw new ClassCastException(
                         MessageFormat.format(
                                 "Job class {0} annotated with @{1} must implement {2}",
-                                cls.getCanonicalName(),
+                                registeredJobClass.getCanonicalName(),
                                 RegisteredJob.class.getCanonicalName(),
-                                Job.class));
+                                Job.class.getCanonicalName()));
             }
         }
 
@@ -116,7 +86,7 @@ public class JobService {
         for (final var job : jobDataService.findJobs()) {
             try {
                 final var jobClass = getJobClass(job.canonicalClassName());
-                if (!jobClasses.contains(jobClass)) {
+                if (!registeredJobClasses.contains(jobClass)) {
                     // The class exists, but was not discovered by findAllRegisteredJobClasses()
                     // This could e.g. be the case if @EnableJobs does not include this job
                     logger.warn("{} is not part of the job classes. Removing database entry.", job);
