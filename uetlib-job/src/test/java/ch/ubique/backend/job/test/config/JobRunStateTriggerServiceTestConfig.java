@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.test.config;
 
-import ch.ubique.backend.job.definitions.RegisteredJobDefinitions;
+import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
 
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.context.annotation.Bean;

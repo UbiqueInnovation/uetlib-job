@@ -1,30 +1,41 @@
 package ch.ubique.backend.job.annotation;
 
+import static ch.ubique.backend.storage.annotations.utils.EnableAnnotationUtils.classForName;
+import static ch.ubique.backend.storage.annotations.utils.EnableAnnotationUtils.getBasePackages;
+
 import ch.ubique.backend.job.RegisteredJob;
-import ch.ubique.backend.job.definitions.RegisteredJobDefinitions;
 import ch.ubique.backend.storage.annotations.utils.EnableAnnotationUtils;
 
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.EnvironmentAware;
+import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.ClassUtils;
 
 import java.text.MessageFormat;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class RegisteredJobRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+class RegisteredJobRegistrar
+        implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
     private static final Logger logger = LoggerFactory.getLogger(RegisteredJobRegistrar.class);
 
+    private ResourceLoader resourceLoader;
     private Environment environment;
 
     private static @NotNull Class<?> loadEnableJobsClass(
@@ -70,31 +81,49 @@ public class RegisteredJobRegistrar implements ImportBeanDefinitionRegistrar, En
                 importingClassMetadata.getAnnotations().get(EnableJobs.class).synthesize();
 
         final var registeredJobClasses =
-                findAllRegisteredJobClasses(
-                        enableJobsClass, enableJobsAnnotation, mergedAnnotationsSearch);
+                findAllRegisteredJobClasses(enableJobsClass, enableJobsAnnotation);
 
         logger.info("found registeredJobClasses {}", registeredJobClasses);
 
         final var beanDefinitionBuilder =
-                BeanDefinitionBuilder.rootBeanDefinition(RegisteredJobDefinitions.class).addConstructorArgValue(registeredJobClasses);
+                BeanDefinitionBuilder.rootBeanDefinition(RegisteredJobDefinitions.class)
+                        .addConstructorArgValue(registeredJobClasses);
         beanFactory.registerBeanDefinition(
                 "registeredJobDefinitions", beanDefinitionBuilder.getBeanDefinition());
     }
 
     private Set<Class<?>> findAllRegisteredJobClasses(
-            final Class<?> enableJobsClass,
-            final EnableJobs enableJobsAnnotation,
-            final MergedAnnotations.Search mergedAnnotationsSearch) {
-        final var storageClasses =
-                EnableAnnotationUtils.findAllClassesBy(
-                        enableJobsAnnotation.jobs(),
-                        enableJobsAnnotation.basePackages(),
-                        enableJobsAnnotation.basePackageClasses(),
-                        enableJobsClass.getPackageName(),
-                        RegisteredJob.class);
+            final Class<?> enableJobsClass, final EnableJobs enableJobsAnnotation) {
+        final var candidateComponents = new LinkedHashSet<BeanDefinition>();
+        final var storages = enableJobsAnnotation.jobs();
+        if (org.apache.commons.lang3.ArrayUtils.isEmpty(storages)) {
+            final var scanner =
+                    EnableAnnotationUtils.getScanner(
+                            environment, resourceLoader, RegisteredJob.class);
+            final var basePackages =
+                    getBasePackages(
+                            enableJobsAnnotation.basePackages(),
+                            enableJobsAnnotation.basePackageClasses(),
+                            enableJobsClass.getPackageName());
+            for (final var basePackage : basePackages) {
+                candidateComponents.addAll(scanner.findCandidateComponents(basePackage));
+            }
+        } else {
+            for (final var storageClass : storages) {
+                candidateComponents.add(new AnnotatedGenericBeanDefinition(storageClass));
+            }
+        }
 
-        return EnableAnnotationUtils.filterClassesByProfileEnabled(
-                environment, mergedAnnotationsSearch, storageClasses);
+        return candidateComponents.stream()
+                .filter(AnnotatedBeanDefinition.class::isInstance)
+                .map(AnnotatedBeanDefinition.class::cast)
+                .map(beanDefinition -> classForName(beanDefinition.getBeanClassName()))
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    @Override
+    public void setResourceLoader(final @NotNull ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
     }
 
     @Override
