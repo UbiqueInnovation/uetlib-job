@@ -17,7 +17,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @Profile("!job-run")
@@ -34,7 +33,9 @@ public class JobStateWatcher {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(
+            cron =
+                    "${ch.ubique.backend.job.job-state-watcher.check-jobs-running.cron:0 */5 * * * ?}")
     public void checkIfJobsAreRunning() {
         logger.info("Checking if jobs are running");
         final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING_STATES);
