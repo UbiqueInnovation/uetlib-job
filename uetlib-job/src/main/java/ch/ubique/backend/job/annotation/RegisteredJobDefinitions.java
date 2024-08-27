@@ -1,6 +1,4 @@
-package ch.ubique.backend.job.definitions;
-
-import ch.ubique.backend.job.annotation.RegisteredJobRegistrar;
+package ch.ubique.backend.job.annotation;
 
 import java.util.Set;
 

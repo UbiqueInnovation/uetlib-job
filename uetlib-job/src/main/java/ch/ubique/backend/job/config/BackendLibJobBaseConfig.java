@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.definitions.RegisteredJobDefinitions;
+import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 
