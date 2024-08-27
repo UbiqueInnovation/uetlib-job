@@ -14,9 +14,9 @@ import ch.ubique.backend.job.model.JobRunStateTransition;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.backend.job.service.JobService;
-import ch.ubique.backend.job.service.config.JobRunStateTriggerServiceTestConfig;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.storage.JobRunStorage;
+import ch.ubique.backend.job.test.config.JobRunStateTriggerServiceTestConfig;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,13 +35,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 class JobRunStateTriggerServiceTest {
 
     @MockBean private JobDataService jobDataService;
-
     @MockBean private ClassLoaderService classLoaderService;
-
     @MockBean private BuildProperties buildProperties;
-
     @MockBean private Environment environment;
-
     @MockBean private JobRunStorage jobRunStorage;
 
     @SpyBean private JobService jobService;
@@ -52,7 +48,7 @@ class JobRunStateTriggerServiceTest {
     }
 
     @Test
-    void test() throws ClassNotFoundException {
+    void testJobRunStateTriggers() throws ClassNotFoundException {
 
         doReturn(CleanupJob.class).when(jobService).getJobClass(anyInt());
 

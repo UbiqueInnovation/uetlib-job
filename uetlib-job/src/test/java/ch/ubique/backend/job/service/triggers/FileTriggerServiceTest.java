@@ -8,6 +8,7 @@ import static java.util.Map.ofEntries;
 import static java.util.stream.Collectors.*;
 
 import ch.ubique.backend.core.regex.SerializableMatchResult;
+import ch.ubique.backend.job.test.config.FileTriggerServiceTestConfig;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;

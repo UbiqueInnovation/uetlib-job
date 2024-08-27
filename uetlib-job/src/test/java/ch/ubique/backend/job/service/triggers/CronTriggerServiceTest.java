@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ch.ubique.backend.core.utils.TimeUtils;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
@@ -19,8 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 class CronTriggerServiceTest {
 
     private final CronTriggerService triggerService =
-            new CronTriggerService("UTC", taskScheduler());
+            new CronTriggerService(TimeUtils.ZONE_NAME_UTC, taskScheduler());
 
+    @SuppressWarnings("unchecked")
     private static TaskScheduler taskScheduler() {
         final var taskScheduler = mock(TaskScheduler.class);
         when(taskScheduler.schedule(Mockito.any(), (Trigger) Mockito.any()))

@@ -14,12 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@ActiveProfiles({"test", "postgres"})
 class JobServiceDatabaseTest extends BaseJobDatabaseTest {
 
     @MockBean private JobRunStorage jobRunStorage;
