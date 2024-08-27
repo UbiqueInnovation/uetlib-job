@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.config;
+package ch.ubique.backend.job.test.config;
 
 import ch.ubique.backend.job.annotation.EnableJobs;
 

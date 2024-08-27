@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.config;
+package ch.ubique.backend.job.test.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;

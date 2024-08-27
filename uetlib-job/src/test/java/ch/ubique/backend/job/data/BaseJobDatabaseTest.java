@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.data;
 
-import ch.ubique.backend.job.config.JobServiceConfig;
-import ch.ubique.backend.job.config.TestcontainerConfig;
+import ch.ubique.backend.job.test.config.JobServiceConfig;
+import ch.ubique.backend.job.test.config.TestcontainerConfig;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
