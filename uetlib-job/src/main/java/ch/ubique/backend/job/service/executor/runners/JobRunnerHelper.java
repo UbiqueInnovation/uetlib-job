@@ -20,9 +20,7 @@ public class JobRunnerHelper {
     static void run(
             final Job job, final JobService jobService, final JobRunContext initialContext) {
         final var jobRunContext = prepareRun(jobService, initialContext);
-        final var state = runJob(job, jobRunContext);
-
-        updateJobRunState(jobService, jobRunContext, state);
+        runJob(job, jobRunContext, jobService);
     }
 
     static JobRunContext prepareRun(
@@ -38,15 +36,20 @@ public class JobRunnerHelper {
         return jobRunContext;
     }
 
-    static JobRunState runJob(final Job job, final JobRunContext jobRunContext) {
+    static void runJob(
+            final Job job, final JobRunContext jobRunContext, final JobService jobService) {
         try {
             logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
             final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job, state);
-            return state;
+            updateJobRunState(jobService, jobRunContext, state);
+        } catch (final InterruptedException e) {
+            logger.info("Job {} interrupted", job);
+            updateJobRunState(jobService, jobRunContext, JobRunState.UNFINISHED);
+            Thread.currentThread().interrupt();
         } catch (final Exception e) {
             logger.error("Exception running job: ", e);
-            return JobRunState.ERROR;
+            updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
         }
     }
 

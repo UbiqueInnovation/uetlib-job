@@ -44,16 +44,22 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+    public synchronized boolean submit(
+            final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
         if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
         }
 
         final var executorService = getExecutorService(runnerGroup);
+        final var jobRunId = jobRunContext.jobRun().id();
         final var future =
-                executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
-        futuresByJobRun.put(jobRunContext.jobRun().id(), future);
+                executorService.submit(
+                        () -> {
+                            JobRunnerHelper.run(job, jobService, jobRunContext);
+                            futuresByJobRun.remove(jobRunId);
+                        });
+        futuresByJobRun.put(jobRunId, future);
         return true;
     }
 
@@ -67,8 +73,17 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean isRunning(@NotNull final JobRun jobRun) {
-        return futuresByJobRun.containsKey(jobRun.id());
+    public boolean isRunning(final @NotNull JobRun jobRun) {
+        final var future = futuresByJobRun.get(jobRun.id());
+        if (future == null) {
+            return false;
+        }
+        if (future.isDone()) {
+            futuresByJobRun.remove(jobRun.id());
+            return false;
+        }
+        // Not done yet -> job is running
+        return true;
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
