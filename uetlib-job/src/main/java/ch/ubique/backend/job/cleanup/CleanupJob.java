@@ -74,8 +74,13 @@ public class CleanupJob implements Job {
     }
 
     private @NotNull JobRunState cleanJobRuns() {
-        final var successList = jobDataService.findJobs().stream().map(this::cleanJob).toList();
-        final var hasWarnings = successList.stream().anyMatch(success -> !success);
+        var hasWarnings = false;
+        for (final var job : jobDataService.findJobs()) {
+            final var success = cleanJob(job);
+            if (!success) {
+                hasWarnings = true;
+            }
+        }
         if (hasWarnings) {
             logger.info("Got Warnings will cleaning. Please check your cleanup properties.");
         }
