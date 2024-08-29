@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.cleanup;
 
-import static ch.ubique.backend.core.executor.VirtualThreadUtils.mapAll;
-
 import ch.ubique.backend.core.executor.VirtualThreadUtils;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
@@ -26,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Set;
 
 @RegisteredJob
@@ -76,7 +75,7 @@ public class CleanupJob implements Job {
     }
 
     private @NotNull JobRunState cleanJobRuns() {
-        final var successList = mapAll(this::cleanJob, jobDataService.findJobs());
+        final var successList = jobDataService.findJobs().stream().map(this::cleanJob).toList();
         final var hasWarnings = successList.stream().anyMatch(success -> !success);
         if (hasWarnings) {
             logger.info("Got Warnings will cleaning. Please check your cleanup properties.");
@@ -104,7 +103,10 @@ public class CleanupJob implements Job {
         final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
 
         logger.debug("Cleaning {} runs for job {}", cleanableRuns.size(), job);
-        VirtualThreadUtils.forEach(run -> cleanRun(job, run), cleanableRuns);
+        VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);
+
+        // Clean log files for all cleanable runs
+        cleanLogs(cleanableRuns);
 
         // Delete job runs - cascades to delete job run input files, too
         jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
@@ -122,38 +124,36 @@ public class CleanupJob implements Job {
         return true;
     }
 
-    private void cleanRun(final JobClassAndId job, final JobRun cleanableRun) {
+    /** Attempts to delete all stored input files of a job run */
+    private void cleanInputFiles(final JobClassAndId job, final JobRun run) {
         try {
-            cleanInputFiles(job, cleanableRun);
+            // Clean all files in directory of job run
+            final var dirDidExist =
+                    jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
+            if (dirDidExist) {
+                logger.debug(
+                        "Deleted run input file directory [jobId: {}; runId: {}]",
+                        job.id(),
+                        run.id());
+            } else {
+                logger.debug(
+                        "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
+                                + " {}]",
+                        job.id(),
+                        run.id());
+            }
         } catch (final IOException e) {
             logger.info(
                     "Failed to delete run input files for job {} and run {}",
                     job.id(),
-                    cleanableRun.id(),
+                    run.id(),
                     e);
-        }
-
-        cleanLogs(cleanableRun);
-    }
-
-    /** Attempts to delete all stored input files of a job run */
-    private void cleanInputFiles(final JobClassAndId job, final JobRun run) throws IOException {
-        // Clean all files in directory of job run
-        final var dirDidExist = jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
-        if (dirDidExist) {
-            logger.debug(
-                    "Deleted run input file directory [jobId: {}; runId: {}]", job.id(), run.id());
-        } else {
-            logger.debug(
-                    "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
-                            + " {}]",
-                    job.id(),
-                    run.id());
         }
     }
 
     /** Deletes all logs for the specified run */
-    private void cleanLogs(final JobRun run) {
-        jobDataService.deleteLogsForJobRunId(run.id());
+    private void cleanLogs(final Collection<JobRun> runs) {
+        final var runIds = runs.stream().map(JobRun::id).toList();
+        jobDataService.deleteLogsForJobRunIds(runIds);
     }
 }
