@@ -241,18 +241,22 @@ public class JobDataService {
             final int jobRunId,
             @NotNull final JobRunState jobRunState,
             @NotNull final Instant finishedAt) {
-        jobRunRepository
-                .findById(jobRunId)
-                .map(
-                        entity -> {
-                            entity.setFinishedAt(finishedAt);
-                            entity.addJobRunStateTransition(
-                                    new JobRunStateTransitionEmbeddable(jobRunState, finishedAt));
-                            return jobRunRepository.save(entity);
-                        })
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No JobRunEntity with id {} found", jobRunId));
+        final var jobRunEntity =
+                jobRunRepository
+                        .findById(jobRunId)
+                        .orElseThrow(
+                                ResourceNotFoundException.supplierWithMessage(
+                                        "No JobRunEntity with id {} found", jobRunId));
+
+        if (jobRunEntity.finishedAt() != null) {
+            // Already finished, do not modify
+            return;
+        }
+
+        jobRunEntity.setFinishedAt(finishedAt);
+        jobRunEntity.addJobRunStateTransition(
+                new JobRunStateTransitionEmbeddable(jobRunState, finishedAt));
+        jobRunRepository.save(jobRunEntity);
     }
 
     @Transactional

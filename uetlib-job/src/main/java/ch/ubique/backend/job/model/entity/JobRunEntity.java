@@ -126,4 +126,8 @@ public class JobRunEntity {
             final JobRunStateTransitionEmbeddable jobRunStateEmbeddableTransition) {
         jobRunStateTransitions.add(jobRunStateEmbeddableTransition);
     }
+
+    public @PastOrPresent Instant finishedAt() {
+        return finishedAt;
+    }
 }
