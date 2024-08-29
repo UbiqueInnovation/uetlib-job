@@ -3,10 +3,10 @@ package ch.ubique.backend.job.data.repository;
 import ch.ubique.backend.job.model.entity.LoggingEventEntity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.stream.Stream;
 
 @Repository
@@ -23,5 +23,6 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
             nativeQuery = true)
     Stream<LoggingEventEntity> findByJobRunId(int jobRunId, long skipLines, int pageSize);
 
-    void deleteAllByJobRunIdIn(Collection<Integer> jobRunIds);
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    void deleteAllByJobRunId(int jobRunId);
 }
