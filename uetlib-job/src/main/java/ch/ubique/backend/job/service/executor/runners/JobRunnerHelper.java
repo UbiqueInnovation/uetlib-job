@@ -5,11 +5,13 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.service.JobService;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public class JobRunnerHelper {
 
@@ -43,13 +45,16 @@ public class JobRunnerHelper {
             final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job, state);
             updateJobRunState(jobService, jobRunContext, state);
-        } catch (final InterruptedException e) {
-            logger.info("Job {} interrupted", job);
-            updateJobRunState(jobService, jobRunContext, JobRunState.UNFINISHED);
-            Thread.currentThread().interrupt();
         } catch (final Exception e) {
-            logger.error("Exception running job: ", e);
-            updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
+            final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
+            if (rootCause instanceof InterruptedException) {
+                logger.info("Job {} interrupted", job);
+                updateJobRunState(jobService, jobRunContext, JobRunState.UNFINISHED);
+                Thread.currentThread().interrupt();
+            } else {
+                logger.error("Exception running job: ", e);
+                updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
+            }
         }
     }
 
