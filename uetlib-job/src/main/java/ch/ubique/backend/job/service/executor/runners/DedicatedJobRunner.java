@@ -38,7 +38,8 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+    public synchronized boolean submit(
+            final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
         if (future != null) {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;
@@ -59,11 +60,11 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public boolean isRunning(@NotNull final JobRun jobRun) {
+    public boolean isRunning(final @NotNull JobRun jobRun) {
         if (activeJobRun == null) {
             return false;
         }
-        return activeJobRun.id() == jobRun.id();
+        return activeJobRun.id() == jobRun.id() && !future.isDone();
     }
 
     public void awaitCompletion() {
