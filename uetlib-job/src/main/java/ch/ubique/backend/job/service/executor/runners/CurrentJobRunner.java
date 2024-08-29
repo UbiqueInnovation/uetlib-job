@@ -54,9 +54,14 @@ public final class CurrentJobRunner implements JobRunner {
         }
 
         final var executorService = getExecutorService(runnerGroup);
+        final var jobRunId = jobRunContext.jobRun().id();
         final var future =
-                executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
-        futuresByJobRun.put(jobRunContext.jobRun().id(), future);
+                executorService.submit(
+                        () -> {
+                            JobRunnerHelper.run(job, jobService, jobRunContext);
+                            futuresByJobRun.remove(jobRunId);
+                        });
+        futuresByJobRun.put(jobRunId, future);
         return true;
     }
 
@@ -71,8 +76,22 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(@NotNull final JobRun jobRun) {
-        return futuresByJobRun.containsKey(jobRun.id()) ? JobRunState.BUSY : null;
+    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
+        final var future = futuresByJobRun.get(jobRun.id());
+        if (future == null) {
+            return null;
+        }
+        if (future.isDone()) {
+            futuresByJobRun.remove(jobRun.id());
+            return switch (future.state()) {
+                case SUCCESS -> JobRunState.DONE;
+                case CANCELLED -> JobRunState.UNFINISHED;
+                case FAILED -> JobRunState.ERROR;
+                case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
+            };
+        }
+        // Not done yet -> job is running
+        return JobRunState.BUSY;
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
