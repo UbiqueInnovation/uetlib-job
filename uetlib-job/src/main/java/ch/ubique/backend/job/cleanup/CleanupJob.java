@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Set;
 
 @RegisteredJob
@@ -87,6 +86,8 @@ public class CleanupJob implements Job {
      * @return true if cleaning was possible without any warnings
      */
     private boolean cleanJob(final JobClassAndId job) {
+        logger.info("Starting cleaning of {}.", job.canonicalClassName());
+
         final JobProperties jobProperties;
         try {
             jobProperties = jobService.getProperties(job);
@@ -102,11 +103,8 @@ public class CleanupJob implements Job {
 
         final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
 
-        logger.debug("Cleaning {} runs for job {}", cleanableRuns.size(), job);
+        logger.info("Cleaning input files for {} runs.", cleanableRuns.size());
         VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);
-
-        // Clean log files for all cleanable runs
-        cleanLogs(cleanableRuns);
 
         // Delete job runs - cascades to delete job run input files, too
         jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
@@ -149,11 +147,5 @@ public class CleanupJob implements Job {
                     run.id(),
                     e);
         }
-    }
-
-    /** Deletes all logs for the specified run */
-    private void cleanLogs(final Collection<JobRun> runs) {
-        final var runIds = runs.stream().map(JobRun::id).toList();
-        jobDataService.deleteLogsForJobRunIds(runIds);
     }
 }
