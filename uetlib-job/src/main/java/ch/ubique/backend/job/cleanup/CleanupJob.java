@@ -106,11 +106,13 @@ public class CleanupJob implements Job {
         logger.info("Cleaning input files for {} runs.", cleanableRuns.size());
         VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);
 
-        // Delete job runs - cascades to delete job run input files, too
+        // Delete job runs - cascades to delete job run input files and logs too
+        logger.info("Removing job runs from database. Delete cascades for logs and inputs too.");
         jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
 
         // Delete job database submissions that are already submitted - cascades to delete job
         // run input files, too
+        logger.info("Deleting database submissions from database.");
         jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
 
         logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
