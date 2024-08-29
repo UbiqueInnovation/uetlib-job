@@ -370,12 +370,7 @@ public class JobDataService {
 
     @Transactional
     public void deleteLogsForJobRunId(final int jobRunId) {
-        loggingEventRepository.deleteAllByJobRunIdIn(List.of(jobRunId));
-    }
-
-    @Transactional
-    public void deleteLogsForJobRunIds(final Collection<Integer> jobRunIds) {
-        loggingEventRepository.deleteAllByJobRunIdIn(jobRunIds);
+        loggingEventRepository.deleteAllByJobRunId(jobRunId);
     }
 
     @Transactional
