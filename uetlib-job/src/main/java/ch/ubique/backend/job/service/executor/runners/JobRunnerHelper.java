@@ -22,20 +22,20 @@ public class JobRunnerHelper {
     static void run(
             final Job job, final JobService jobService, final JobRunContext initialContext) {
         final var jobRunContext = prepareRun(jobService, initialContext);
+        final var previousContextMap = MDC.getCopyOfContextMap();
+        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
         runJob(job, jobRunContext, jobService);
+        MDC.setContextMap(previousContextMap);
     }
 
     static JobRunContext prepareRun(
             final JobService jobService, final JobRunContext initialContext) {
         final var startedJobRun = jobService.startJobRun(initialContext.jobRun(), Instant.now());
-        final var jobRunContext =
-                new JobRunContext(
-                        initialContext.job(),
-                        startedJobRun,
-                        initialContext.arguments(),
-                        initialContext.properties());
-        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
-        return jobRunContext;
+        return new JobRunContext(
+                initialContext.job(),
+                startedJobRun,
+                initialContext.arguments(),
+                initialContext.properties());
     }
 
     static void runJob(
@@ -69,6 +69,5 @@ public class JobRunnerHelper {
             final JobRunState state) {
         final var transitionedAt = Instant.now();
         jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
-        MDC.remove("jobRunId");
     }
 }

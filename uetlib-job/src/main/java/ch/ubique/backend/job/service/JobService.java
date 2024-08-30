@@ -246,6 +246,11 @@ public class JobService {
                     jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
                     return null;
                 });
+        logger.debug(
+                "Job run {} transitioned to state {} at time {}.",
+                jobRun.id(),
+                state,
+                transitionedAt);
     }
 
     public Collection<Job> getAllJobs() {
