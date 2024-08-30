@@ -7,6 +7,8 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
+import jakarta.transaction.Transactional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -33,6 +35,7 @@ public class JobStateWatcher {
     }
 
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
+    @Transactional
     public void checkIfJobsAreRunning() {
         logger.info("Checking if jobs are running");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
