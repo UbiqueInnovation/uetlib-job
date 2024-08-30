@@ -257,6 +257,9 @@ public class JobDataService {
         if (isFinishedState) {
             // Set finished at
             jobRunEntity.setFinishedAt(transitionedAt);
+        } else {
+            // Make sure finished at is not set
+            jobRunEntity.setFinishedAt(null);
         }
 
         // Add state transition
