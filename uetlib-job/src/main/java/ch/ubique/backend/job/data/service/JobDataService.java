@@ -198,7 +198,7 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobRun updateJobRun(
+    public JobRun updateJobRunRunnerKeyAndArguments(
             @NotNull final JobRun jobRun,
             @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
@@ -237,10 +237,10 @@ public class JobDataService {
     }
 
     @Transactional
-    public void finishJobRun(
+    public void updateJobRunState(
             final int jobRunId,
-            @NotNull final JobRunState jobRunState,
-            @NotNull final Instant finishedAt) {
+            final @NotNull JobRunState jobRunState,
+            final @NotNull Instant transitionedAt) {
         final var jobRunEntity =
                 jobRunRepository
                         .findById(jobRunId)
@@ -248,34 +248,23 @@ public class JobDataService {
                                 ResourceNotFoundException.supplierWithMessage(
                                         "No JobRunEntity with id {} found", jobRunId));
 
-        if (jobRunEntity.finishedAt() != null) {
+        final var isFinishedState = !jobRunState.isRunning();
+        if (jobRunEntity.finishedAt() != null && isFinishedState) {
             // Already finished, do not modify
             return;
         }
 
-        jobRunEntity.setFinishedAt(finishedAt);
-        jobRunEntity.addJobRunStateTransition(
-                new JobRunStateTransitionEmbeddable(jobRunState, finishedAt));
-        jobRunRepository.save(jobRunEntity);
-    }
+        if (isFinishedState) {
+            // Set finished at
+            jobRunEntity.setFinishedAt(transitionedAt);
+        }
 
-    @Transactional
-    public void updateJobRunState(
-            final int jobRunId,
-            @NotNull final JobRunState jobRunState,
-            @NotNull final Instant transitionedAt) {
-        jobRunRepository
-                .findById(jobRunId)
-                .map(
-                        entity -> {
-                            entity.addJobRunStateTransition(
-                                    new JobRunStateTransitionEmbeddable(
-                                            jobRunState, transitionedAt));
-                            return jobRunRepository.save(entity);
-                        })
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No JobRunEntity with id {} found", jobRunId));
+        // Add state transition
+        jobRunEntity.addJobRunStateTransition(
+                new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
+
+        // Save
+        jobRunRepository.save(jobRunEntity);
     }
 
     @Transactional(readOnly = true)
