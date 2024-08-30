@@ -65,18 +65,20 @@ public class JobExecutorService {
         final var jobRunContext = createContext(job, runId, selectedJobRunnerKey, arguments);
         final var runner = jobRunners.get(selectedJobRunnerKey);
 
-        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
+        final var jobRun = jobRunContext.jobRun();
+        final var previousContextMap = MDC.getCopyOfContextMap();
+        MDC.put("jobRunId", String.valueOf(jobRun.id()));
 
         final var scheduled = tryToSchedule(runner, job, jobRunContext);
 
         if (scheduled) {
             logger.info("Job {} successfully scheduled", job);
         } else {
+            jobService.updateJobRunState(jobRun, JobRunState.ERROR, Instant.now());
             logger.error("Job {} could not be scheduled", job);
-            jobService.updateJobRunState(jobRunContext.jobRun(), JobRunState.ERROR, Instant.now());
         }
 
-        MDC.remove("jobRunId");
+        MDC.setContextMap(previousContextMap);
     }
 
     private boolean tryToSchedule(
