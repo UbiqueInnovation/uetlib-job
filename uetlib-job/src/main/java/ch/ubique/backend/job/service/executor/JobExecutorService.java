@@ -73,7 +73,7 @@ public class JobExecutorService {
             logger.info("Job {} successfully scheduled", job);
         } else {
             logger.error("Job {} could not be scheduled", job);
-            jobService.finishJobRun(jobRunContext.jobRun(), JobRunState.ERROR, Instant.now());
+            jobService.updateJobRunState(jobRunContext.jobRun(), JobRunState.ERROR, Instant.now());
         }
 
         MDC.remove("jobRunId");

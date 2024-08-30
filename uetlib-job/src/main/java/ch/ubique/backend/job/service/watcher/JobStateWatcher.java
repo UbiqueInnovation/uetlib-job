@@ -39,7 +39,7 @@ public class JobStateWatcher {
         for (final var jobRun : running) {
             if (!isRunning(jobRun)) {
                 logger.info("{} is not running.", jobRun);
-                jobService.finishJobRun(jobRun, JobRunState.UNFINISHED, Instant.now());
+                jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
                 logger.info("Set job run {} to unfinished.", jobRun.id());
             }
         }

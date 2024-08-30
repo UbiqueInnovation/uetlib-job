@@ -68,11 +68,7 @@ public class JobRunnerHelper {
             final JobRunContext jobRunContext,
             final JobRunState state) {
         final var transitionedAt = Instant.now();
-        if (state.isRunning()) {
-            jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
-        } else {
-            jobService.finishJobRun(jobRunContext.jobRun(), state, transitionedAt);
-        }
+        jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
         MDC.remove("jobRunId");
     }
 }

@@ -212,17 +212,17 @@ public class JobService {
             @NotNull final JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
-                .map(jobRun -> updateJobIfNeeded(jobRun, runnerKey, arguments))
+                .map(jobRun -> setRunnerKeyAndArguments(jobRun, runnerKey, arguments))
                 .orElseGet(() -> createNewJobRun(job, runnerKey, arguments));
     }
 
-    private JobRun updateJobIfNeeded(
+    private JobRun setRunnerKeyAndArguments(
             final JobRun jobRun, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
         if (jobRun.runnerKey() == runnerKey
                 && Objects.equals(arguments, jobRun.jobRunArguments())) {
             return jobRun;
         }
-        return jobDataService.updateJobRun(jobRun, runnerKey, arguments);
+        return jobDataService.updateJobRunRunnerKeyAndArguments(jobRun, runnerKey, arguments);
     }
 
     public JobRun getJobRun(final int runId) {
@@ -235,17 +235,6 @@ public class JobService {
 
     public JobRun startJobRun(@NotNull final JobRun jobRun, @NotNull final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
-    }
-
-    public void finishJobRun(
-            @NotNull final JobRun jobRun,
-            @NotNull final JobRunState finalState,
-            @NotNull final Instant finishedAt) {
-        retryTemplate.execute(
-                c -> {
-                    jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
-                    return null;
-                });
     }
 
     public void updateJobRunState(
@@ -274,7 +263,7 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        finishJobRun(jobRun, UNFINISHED, Instant.now());
+        updateJobRunState(jobRun, UNFINISHED, Instant.now());
         return true;
     }
 
