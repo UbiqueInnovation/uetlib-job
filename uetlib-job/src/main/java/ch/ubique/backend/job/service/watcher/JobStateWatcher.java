@@ -7,8 +7,6 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import jakarta.transaction.Transactional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -35,12 +33,19 @@ public class JobStateWatcher {
     }
 
     @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
-    @Transactional
     public void checkIfJobsAreRunning() {
         logger.info("Checking if jobs are running");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
-            if (!isRunning(jobRun)) {
+            final var isRunning = isRunning(jobRun);
+            final var currentRunnerKey = jobService.getJobRun(jobRun.id()).runnerKey();
+            final var runnerChanged = currentRunnerKey != jobRun.runnerKey();
+            if (runnerChanged) {
+                logger.info(
+                        "Runner changed from {} to {}. Ignoring run.",
+                        jobRun.runnerKey(),
+                        currentRunnerKey);
+            } else if (!isRunning) {
                 logger.info("{} is not running.", jobRun);
                 jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
                 logger.info("Set job run {} to unfinished.", jobRun.id());
