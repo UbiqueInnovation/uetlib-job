@@ -39,15 +39,20 @@ public class JobStateWatcher {
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
             final var state = findJobRunState(jobRun);
-            if (state.isEmpty()) {
+            final var currentRunnerKey = jobService.getJobRun(jobRun.id()).runnerKey();
+            final var runnerChanged = currentRunnerKey != jobRun.runnerKey();
+            if (runnerChanged) {
+                logger.info(
+                        "Runner changed from {} to {}. Ignoring run.",
+                        jobRun.runnerKey(),
+                        currentRunnerKey);
+            } else if (state.isEmpty()) {
                 logger.info("Could not find job state, treating as UNFINISHED.");
-                jobService.finishJobRun(jobRun, JobRunState.UNFINISHED, Instant.now());
-                continue;
-            }
-            if (!state.get().isRunning()) {
+                jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
+            } else if (!state.get().isRunning()) {
                 logger.info("{} is not running.", jobRun);
-                jobService.finishJobRun(jobRun, state.get(), Instant.now());
-                logger.info("Set job run {} to {}.", jobRun.id(), state);
+                jobService.updateJobRunState(jobRun, state.get(), Instant.now());
+                logger.info("Set job run {} to {}.", jobRun.id(), state.get());
             }
         }
     }

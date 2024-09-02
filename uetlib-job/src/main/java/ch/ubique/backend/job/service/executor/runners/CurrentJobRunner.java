@@ -6,11 +6,14 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
 import jakarta.annotation.Nullable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -99,12 +102,18 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private ThreadPoolExecutor createExecutorService(final RunnerGroup runnerGroup) {
+        final var nameFormat =
+                runnerGroup.threadPoolSize() == 1
+                        ? runnerGroup.identifier()
+                        : runnerGroup.identifier() + "-%d";
+        final var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
         return new ThreadPoolExecutor(
                 runnerGroup.threadPoolSize(),
                 runnerGroup.threadPoolSize(),
                 0,
                 TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>());
+                new LinkedBlockingQueue<>(),
+                namedThreadFactory);
     }
 
     private boolean isRunnerGroupAllowed(final Job job, final RunnerGroup runnerGroup) {

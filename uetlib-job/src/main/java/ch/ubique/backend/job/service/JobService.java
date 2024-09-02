@@ -221,17 +221,17 @@ public class JobService {
             final @NotNull JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
-                .map(jobRun -> updateJobIfNeeded(jobRun, runnerKey, arguments))
+                .map(jobRun -> setRunnerKeyAndArguments(jobRun, runnerKey, arguments))
                 .orElseGet(() -> createNewJobRun(job, runnerKey, arguments));
     }
 
-    private JobRun updateJobIfNeeded(
+    private JobRun setRunnerKeyAndArguments(
             final JobRun jobRun, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
         if (jobRun.runnerKey() == runnerKey
                 && Objects.equals(arguments, jobRun.jobRunArguments())) {
             return jobRun;
         }
-        return jobDataService.updateJobRun(jobRun, runnerKey, arguments);
+        return jobDataService.updateJobRunRunnerKeyAndArguments(jobRun, runnerKey, arguments);
     }
 
     public JobRun getJobRun(final int runId) {
@@ -246,17 +246,6 @@ public class JobService {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
     }
 
-    public void finishJobRun(
-            final @NotNull JobRun jobRun,
-            final @NotNull JobRunState finalState,
-            final @NotNull Instant finishedAt) {
-        retryTemplate.execute(
-                c -> {
-                    jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
-                    return null;
-                });
-    }
-
     public void updateJobRunState(
             final @NotNull JobRun jobRun,
             final @NotNull JobRunState state,
@@ -266,6 +255,11 @@ public class JobService {
                     jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
                     return null;
                 });
+        logger.debug(
+                "Job run {} transitioned to state {} at time {}.",
+                jobRun.id(),
+                state,
+                transitionedAt);
     }
 
     public Collection<Job> getAllJobs() {
@@ -283,7 +277,7 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        finishJobRun(jobRun, UNFINISHED, Instant.now());
+        updateJobRunState(jobRun, UNFINISHED, Instant.now());
         return true;
     }
 
