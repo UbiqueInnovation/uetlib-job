@@ -34,9 +34,13 @@ public class JobRunStateTransitionEntity {
     @Column(name = "transitioned_at", nullable = false, updatable = false)
     private Instant transitionedAt;
 
+    @Column(name = "transitioned_by", nullable = true, updatable = false)
+    private String transitionedBy;
+
     protected JobRunStateTransitionEntity() {}
 
     public JobRunStateTransition toJobRunStateTransition() {
-        return new JobRunStateTransition(id, jobRun.toJobRun(), state, transitionedAt);
+        return new JobRunStateTransition(
+                id, jobRun.toJobRun(), state, transitionedAt, transitionedBy);
     }
 }

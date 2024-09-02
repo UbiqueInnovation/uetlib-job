@@ -27,12 +27,18 @@ public class JobRunStateTransitionEmbeddable {
     @Column(name = "transitioned_at", nullable = false, updatable = false)
     private Instant transitionedAt;
 
+    @Column(name = "transitioned_by", nullable = true, updatable = false)
+    private String transitionedBy;
+
     protected JobRunStateTransitionEmbeddable() {}
 
     public JobRunStateTransitionEmbeddable(
-            final @NotNull JobRunState state, final @NotNull Instant transitionedAt) {
+            final @NotNull JobRunState state,
+            final @NotNull Instant transitionedAt,
+            final String transitionedBy) {
         this.state = state;
         this.transitionedAt = transitionedAt;
+        this.transitionedBy = transitionedBy;
     }
 
     public @NotNull JobRunState state() {
