@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -11,4 +12,5 @@ public record JobRunStateTransition(
         @Positive int id,
         @NotNull @Valid JobRun jobRun,
         @NotNull JobRunState state,
-        @NotNull @PastOrPresent Instant transitionedAt) {}
+        @NotNull @PastOrPresent Instant transitionedAt,
+        @Nullable String transitionBy) {}

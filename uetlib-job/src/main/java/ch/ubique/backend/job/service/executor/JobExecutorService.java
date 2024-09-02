@@ -74,7 +74,11 @@ public class JobExecutorService {
         if (scheduled) {
             logger.info("Job {} successfully scheduled", job);
         } else {
-            jobService.updateJobRunState(jobRun, JobRunState.ERROR, Instant.now());
+            jobService.updateJobRunState(
+                    jobRun,
+                    JobRunState.ERROR,
+                    Instant.now(),
+                    "JobExecutorService#submit -> Could not be scheduled");
             logger.error("Job {} could not be scheduled", job);
         }
 

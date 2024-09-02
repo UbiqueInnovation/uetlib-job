@@ -166,3 +166,7 @@ create index if not exists fk_idx_job_run_input_job_run_id on t_job_run_input (f
 create index if not exists fk_idx_job_run_state_transition_job_run_id on t_job_run_state_transition (fk_job_run_id);
 create index if not exists fk_idx_job_trigger_job_id on t_job_trigger (fk_job_id);
 create index if not exists fk_idx_k8s_jobs_job_run_id on t_k8s_jobs (fk_job_run_id);
+
+-- 2.5.0
+ALTER TABLE t_job_run_state_transition
+    ADD COLUMN transitioned_by VARCHAR(1024);
