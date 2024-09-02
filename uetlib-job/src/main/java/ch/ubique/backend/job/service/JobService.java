@@ -279,7 +279,8 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        updateJobRunState(jobRun, UNFINISHED, Instant.now(), "JobService#cancel");
+        updateJobRunState(
+                jobRun, UNFINISHED, Instant.now(), getClass().getCanonicalName() + "#cancel");
         return true;
     }
 
