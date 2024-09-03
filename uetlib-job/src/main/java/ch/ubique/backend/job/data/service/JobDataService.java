@@ -248,6 +248,12 @@ public class JobDataService {
                                 ResourceNotFoundException.supplierWithMessage(
                                         "No JobRunEntity with id {} found", jobRunId));
 
+        if (jobRunEntity.finishedAt() != null && jobRunEntity.latestState().isRunning()) {
+            // finishedAt should not be set for jobs in Running state
+            jobRunEntity.setFinishedAt(null);
+            jobRunRepository.save(jobRunEntity);
+        }
+
         final var isFinishedState = !jobRunState.isRunning();
         if (jobRunEntity.finishedAt() != null && isFinishedState) {
             // Already finished, do not modify
