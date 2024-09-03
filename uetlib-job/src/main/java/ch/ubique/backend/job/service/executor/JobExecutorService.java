@@ -78,7 +78,7 @@ public class JobExecutorService {
                     jobRun,
                     JobRunState.ERROR,
                     Instant.now(),
-                    "JobExecutorService#submit -> Could not be scheduled");
+                    getClass().getCanonicalName() + "#submit -> Could not be scheduled");
             logger.error("Job {} could not be scheduled", job);
         }
 

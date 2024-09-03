@@ -44,7 +44,11 @@ public class JobRunnerHelper {
             logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
             final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job, state);
-            updateJobRunState(jobService, jobRunContext, state, "JobRunnerHelper#runJob -> try");
+            updateJobRunState(
+                    jobService,
+                    jobRunContext,
+                    state,
+                    JobRunnerHelper.class.getCanonicalName() + "#runJob -> try");
         } catch (final Exception e) {
             final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
             if (rootCause instanceof InterruptedException) {
@@ -53,7 +57,8 @@ public class JobRunnerHelper {
                         jobService,
                         jobRunContext,
                         JobRunState.UNFINISHED,
-                        "JobRunnerHelper#runJob -> catch InterruptedException");
+                        JobRunnerHelper.class.getCanonicalName()
+                                + "#runJob -> catch InterruptedException");
                 Thread.currentThread().interrupt();
             } else {
                 logger.error("Exception running job: ", e);
@@ -61,7 +66,8 @@ public class JobRunnerHelper {
                         jobService,
                         jobRunContext,
                         JobRunState.ERROR,
-                        "JobRunnerHelper#runJob -> catch other Exception");
+                        JobRunnerHelper.class.getCanonicalName()
+                                + "#runJob -> catch other Exception");
             }
         }
     }
