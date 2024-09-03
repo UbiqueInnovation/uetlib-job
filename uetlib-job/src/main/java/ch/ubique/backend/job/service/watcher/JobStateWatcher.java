@@ -52,14 +52,16 @@ public class JobStateWatcher {
                         jobRun,
                         JobRunState.UNFINISHED,
                         Instant.now(),
-                        "JobStateWatcher#checkIfJobsAreRunning -> state is empty");
+                        getClass().getCanonicalName() + "#checkIfJobsAreRunning -> state is empty");
             } else if (!state.get().isRunning()) {
                 logger.info("{} is not running.", jobRun);
                 jobService.updateJobRunState(
                         jobRun,
                         state.get(),
                         Instant.now(),
-                        "JobStateWatcher#checkIfJobsAreRunning -> state is " + state.get());
+                        getClass().getCanonicalName()
+                                + "#checkIfJobsAreRunning -> state is "
+                                + state.get());
                 logger.info("Set job run {} to {}.", jobRun.id(), state.get());
             }
         }
