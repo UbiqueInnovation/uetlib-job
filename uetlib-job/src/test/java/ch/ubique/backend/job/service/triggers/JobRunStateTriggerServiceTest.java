@@ -109,7 +109,7 @@ class JobRunStateTriggerServiceTest {
                                 .toJobRun(),
                         JobRunState.DONE,
                         jobRunFinishedAt,
-                        "JobRunStateTriggerServiceTest#test");
+                        getClass().getCanonicalName() + "#test");
         doReturn(List.of(jobRunDoneStateTransition))
                 .when(jobDataService)
                 .findJobRunStateTransitionsSince(any());
