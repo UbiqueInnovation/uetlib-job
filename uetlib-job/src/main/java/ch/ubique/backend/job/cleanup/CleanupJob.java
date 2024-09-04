@@ -65,32 +65,40 @@ public class CleanupJob implements Job {
 
     @Override
     public @NotNull JobRunState run(final JobRunContext jobRunContext) {
-
-        final var cleanJobRunsState = cleanJobRuns();
-        if (cleanJobRunsState != JobRunState.DONE) {
-            return cleanJobRunsState;
-        }
-
-        return clearUnknownJobProperties();
+        clearUnknownJobProperties();
+        return cleanJobRuns();
     }
 
-    private @NotNull JobRunState clearUnknownJobProperties() {
+    private void clearUnknownJobProperties() {
         jobDataService.clearUnknownJobProperties();
-        return JobRunState.DONE;
     }
 
     private @NotNull JobRunState cleanJobRuns() {
-        VirtualThreadUtils.forEach(this::cleanJob, jobDataService.findJobs());
-        return JobRunState.DONE;
+        var hasWarnings = false;
+        for (final var job : jobDataService.findJobs()) {
+            final var success = cleanJob(job);
+            if (!success) {
+                hasWarnings = true;
+            }
+        }
+        if (hasWarnings) {
+            logger.info("Got Warnings will cleaning. Please check your cleanup properties.");
+        }
+        return hasWarnings ? JobRunState.WARNING : JobRunState.DONE;
     }
 
-    private void cleanJob(final JobClassAndId job) {
+    /**
+     * @return true if cleaning was possible without any warnings
+     */
+    private boolean cleanJob(final JobClassAndId job) {
+        logger.info("Starting cleaning of {}.", job.canonicalClassName());
+
         final JobProperties jobProperties;
         try {
             jobProperties = jobService.getProperties(job);
         } catch (final ClassNotFoundException e) {
-            logger.info("Failed to instantiate job {}, not need to clean: ", job, e);
-            return;
+            logger.info("Failed to instantiate job {}, no need to clean: ", job, e);
+            return true;
         }
 
         // Get cleanup properties
@@ -100,51 +108,51 @@ public class CleanupJob implements Job {
 
         final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
 
-        logger.info("Cleaning {} runs for job {}", cleanableRuns.size(), job);
-        VirtualThreadUtils.forEach(run -> cleanRun(job, run), cleanableRuns);
+        logger.info("Cleaning input files for {} runs.", cleanableRuns.size());
+        VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);
 
-        // Delete job runs - cascades to delete job run input files, too
+        // Delete job runs - cascades to delete job run input files and logs too
+        logger.info("Removing job runs from database. Delete cascades for logs and inputs too.");
         jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
 
         // Delete job database submissions that are already submitted - cascades to delete job
         // run input files, too
+        logger.info("Deleting database submissions from database.");
         jobDataService.deleteJobRunDatabaseSubmissionsByJobId(job.id());
 
         logger.info("Cleaned {} runs for job {}", cleanableRuns.size(), job);
+
+        if (cleanableRuns.size() >= chunkSize) {
+            logger.info("Chunk size used up for {}. There might still be more runs to clean.", job);
+            return false;
+        }
+        return true;
     }
 
-    private void cleanRun(final JobClassAndId job, final JobRun cleanableRun) {
+    /** Attempts to delete all stored input files of a job run */
+    private void cleanInputFiles(final JobClassAndId job, final JobRun run) {
         try {
-            cleanInputFiles(job, cleanableRun);
+            // Clean all files in directory of job run
+            final var dirDidExist =
+                    jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
+            if (dirDidExist) {
+                logger.debug(
+                        "Deleted run input file directory [jobId: {}; runId: {}]",
+                        job.id(),
+                        run.id());
+            } else {
+                logger.debug(
+                        "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
+                                + " {}]",
+                        job.id(),
+                        run.id());
+            }
         } catch (final IOException e) {
             logger.info(
                     "Failed to delete run input files for job {} and run {}",
                     job.id(),
-                    cleanableRun.id(),
+                    run.id(),
                     e);
         }
-
-        cleanLogs(cleanableRun);
-    }
-
-    /** Attempts to delete all stored input files of a job run */
-    private void cleanInputFiles(final JobClassAndId job, final JobRun run) throws IOException {
-        // Clean all files in directory of job run
-        final var dirDidExist = jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
-        if (dirDidExist) {
-            logger.debug(
-                    "Deleted run input file directory [jobId: {}; runId: {}]", job.id(), run.id());
-        } else {
-            logger.debug(
-                    "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
-                            + " {}]",
-                    job.id(),
-                    run.id());
-        }
-    }
-
-    /** Deletes all logs for the specified run */
-    private void cleanLogs(final JobRun run) {
-        jobDataService.deleteLogsForJobRunId(run.id());
     }
 }

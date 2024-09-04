@@ -198,7 +198,7 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobRun updateJobRun(
+    public JobRun updateJobRunRunnerKeyAndArguments(
             @NotNull final JobRun jobRun,
             @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
@@ -237,41 +237,43 @@ public class JobDataService {
     }
 
     @Transactional
-    public void finishJobRun(
-            final int jobRunId,
-            @NotNull final JobRunState jobRunState,
-            @NotNull final Instant finishedAt) {
-        jobRunRepository
-                .findById(jobRunId)
-                .map(
-                        entity -> {
-                            entity.setFinishedAt(finishedAt);
-                            entity.addJobRunStateTransition(
-                                    new JobRunStateTransitionEmbeddable(jobRunState, finishedAt));
-                            return jobRunRepository.save(entity);
-                        })
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No JobRunEntity with id {} found", jobRunId));
-    }
-
-    @Transactional
     public void updateJobRunState(
             final int jobRunId,
-            @NotNull final JobRunState jobRunState,
-            @NotNull final Instant transitionedAt) {
-        jobRunRepository
-                .findById(jobRunId)
-                .map(
-                        entity -> {
-                            entity.addJobRunStateTransition(
-                                    new JobRunStateTransitionEmbeddable(
-                                            jobRunState, transitionedAt));
-                            return jobRunRepository.save(entity);
-                        })
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No JobRunEntity with id {} found", jobRunId));
+            final @NotNull JobRunState jobRunState,
+            final @NotNull Instant transitionedAt) {
+        final var jobRunEntity =
+                jobRunRepository
+                        .findById(jobRunId)
+                        .orElseThrow(
+                                ResourceNotFoundException.supplierWithMessage(
+                                        "No JobRunEntity with id {} found", jobRunId));
+
+        if (jobRunEntity.finishedAt() != null && jobRunEntity.latestState().isRunning()) {
+            // finishedAt should not be set for jobs in Running state
+            jobRunEntity.setFinishedAt(null);
+            jobRunRepository.save(jobRunEntity);
+        }
+
+        final var isFinishedState = !jobRunState.isRunning();
+        if (jobRunEntity.finishedAt() != null && isFinishedState) {
+            // Already finished, do not modify
+            return;
+        }
+
+        if (isFinishedState) {
+            // Set finished at
+            jobRunEntity.setFinishedAt(transitionedAt);
+        } else {
+            // Make sure finished at is not set
+            jobRunEntity.setFinishedAt(null);
+        }
+
+        // Add state transition
+        jobRunEntity.addJobRunStateTransition(
+                new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
+
+        // Save
+        jobRunRepository.save(jobRunEntity);
     }
 
     @Transactional(readOnly = true)
@@ -370,7 +372,7 @@ public class JobDataService {
 
     @Transactional
     public void deleteLogsForJobRunId(final int jobRunId) {
-        loggingEventRepository.deleteLogsForJobRunId(jobRunId);
+        loggingEventRepository.deleteAllByJobRunId(jobRunId);
     }
 
     @Transactional

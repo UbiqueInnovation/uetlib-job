@@ -8,6 +8,8 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 
 import jakarta.annotation.Nullable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -31,7 +33,9 @@ public final class DedicatedJobRunner implements JobRunner {
 
     public DedicatedJobRunner(final JobService jobService) {
         this.jobService = jobService;
-        this.executorService = Executors.newSingleThreadExecutor();
+        final var threadFactory =
+                new ThreadFactoryBuilder().setNameFormat("dedicated-job-runner").build();
+        this.executorService = Executors.newSingleThreadExecutor(threadFactory);
     }
 
     @Override
@@ -63,11 +67,22 @@ public final class DedicatedJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(@NotNull final JobRun jobRun) {
+    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
         if (activeJobRun == null) {
             return null;
         }
-        return activeJobRun.id() == jobRun.id() ? JobRunState.BUSY : null;
+        if (activeJobRun.id() != jobRun.id()) {
+            return null;
+        }
+        if (!future.isDone()) {
+            return JobRunState.BUSY;
+        }
+        return switch (future.state()) {
+            case SUCCESS -> JobRunState.DONE;
+            case CANCELLED -> JobRunState.UNFINISHED;
+            case FAILED -> JobRunState.ERROR;
+            case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
+        };
     }
 
     public void awaitCompletion() {
