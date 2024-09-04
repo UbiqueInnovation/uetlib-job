@@ -6,8 +6,8 @@ import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
-import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
+import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.MessageFormat;
@@ -41,6 +42,7 @@ public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
+    private final RetryTemplate retryTemplate;
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
@@ -55,6 +57,7 @@ public class JobService {
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
         this.registeredJobDefinitions = registeredJobDefinitions;
+        this.retryTemplate = RetryTemplate.builder().maxAttempts(10).noBackoff().build();
     }
 
     /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
@@ -187,17 +190,17 @@ public class JobService {
             final @NotNull JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
-                .map(jobRun -> updateJobIfNeeded(jobRun, runnerKey, arguments))
+                .map(jobRun -> setRunnerKeyAndArguments(jobRun, runnerKey, arguments))
                 .orElseGet(() -> createNewJobRun(job, runnerKey, arguments));
     }
 
-    private JobRun updateJobIfNeeded(
+    private JobRun setRunnerKeyAndArguments(
             final JobRun jobRun, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
         if (jobRun.runnerKey() == runnerKey
                 && Objects.equals(arguments, jobRun.jobRunArguments())) {
             return jobRun;
         }
-        return jobDataService.updateJobRun(jobRun, runnerKey, arguments);
+        return jobDataService.updateJobRunRunnerKeyAndArguments(jobRun, runnerKey, arguments);
     }
 
     public JobRun getJobRun(final int runId) {
@@ -212,18 +215,20 @@ public class JobService {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
     }
 
-    public void finishJobRun(
-            final @NotNull JobRun jobRun,
-            final @NotNull JobRunState finalState,
-            final @NotNull Instant finishedAt) {
-        jobDataService.finishJobRun(jobRun.id(), finalState, finishedAt);
-    }
-
     public void updateJobRunState(
             final @NotNull JobRun jobRun,
             final @NotNull JobRunState state,
             final @NotNull Instant transitionedAt) {
-        jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
+        retryTemplate.execute(
+                c -> {
+                    jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
+                    return null;
+                });
+        logger.debug(
+                "Job run {} transitioned to state {} at time {}.",
+                jobRun.id(),
+                state,
+                transitionedAt);
     }
 
     public Collection<Job> getAllJobs() {
@@ -241,7 +246,7 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        jobDataService.finishJobRun(jobRun.id(), UNFINISHED, Instant.now());
+        updateJobRunState(jobRun, UNFINISHED, Instant.now());
         return true;
     }
 
@@ -250,5 +255,9 @@ public class JobService {
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()
                 .orElseThrow();
+    }
+
+    public Collection<JobRun> findJobRunsByStates(final Collection<JobRunState> states) {
+        return jobDataService.findJobRunByStates(states);
     }
 }

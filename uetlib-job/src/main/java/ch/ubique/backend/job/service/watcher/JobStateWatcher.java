@@ -1,10 +1,10 @@
 package ch.ubique.backend.job.service.watcher;
 
 import ch.ubique.backend.core.utils.MapCollectors;
-import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
 import org.slf4j.Logger;
@@ -24,12 +24,11 @@ public class JobStateWatcher {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final JobDataService jobDataService;
+    private final JobService jobService;
     private final Map<JobRunnerKey, JobRunner> jobRunners;
 
-    public JobStateWatcher(
-            final JobDataService jobDataService, final Collection<JobRunner> jobRunners) {
-        this.jobDataService = jobDataService;
+    public JobStateWatcher(final JobService jobService, final Collection<JobRunner> jobRunners) {
+        this.jobService = jobService;
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
@@ -38,18 +37,23 @@ public class JobStateWatcher {
                     "${ch.ubique.backend.job.job-state-watcher.check-jobs-running.cron:0 */5 * * * ?}")
     public void checkIfJobsAreRunning() {
         logger.info("Checking if jobs are running");
-        final var running = jobDataService.findJobRunByStates(JobRunState.RUNNING_STATES);
+        final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
             final var state = findJobRunState(jobRun);
-            if (state.isEmpty()) {
+            final var currentRunnerKey = jobService.getJobRun(jobRun.id()).runnerKey();
+            final var runnerChanged = currentRunnerKey != jobRun.runnerKey();
+            if (runnerChanged) {
+                logger.info(
+                        "Runner changed from {} to {}. Ignoring run.",
+                        jobRun.runnerKey(),
+                        currentRunnerKey);
+            } else if (state.isEmpty()) {
                 logger.info("Could not find job state, treating as UNFINISHED.");
-                jobDataService.finishJobRun(jobRun.id(), JobRunState.UNFINISHED, Instant.now());
-                continue;
-            }
-            if (!state.get().isRunning()) {
+                jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
+            } else if (!state.get().isRunning()) {
                 logger.info("{} is not running.", jobRun);
-                jobDataService.finishJobRun(jobRun.id(), state.get(), Instant.now());
-                logger.info("Set job run {} to {}.", jobRun.id(), state);
+                jobService.updateJobRunState(jobRun, state.get(), Instant.now());
+                logger.info("Set job run {} to {}.", jobRun.id(), state.get());
             }
         }
     }

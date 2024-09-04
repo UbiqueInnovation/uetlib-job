@@ -5,11 +5,13 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.service.JobService;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public class JobRunnerHelper {
 
@@ -20,33 +22,39 @@ public class JobRunnerHelper {
     static void run(
             final Job job, final JobService jobService, final JobRunContext initialContext) {
         final var jobRunContext = prepareRun(jobService, initialContext);
-        final var state = runJob(job, jobRunContext);
-
-        updateJobRunState(jobService, jobRunContext, state);
+        final var previousContextMap = MDC.getCopyOfContextMap();
+        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
+        runJob(job, jobRunContext, jobService);
+        MDC.setContextMap(previousContextMap);
     }
 
     static JobRunContext prepareRun(
             final JobService jobService, final JobRunContext initialContext) {
         final var startedJobRun = jobService.startJobRun(initialContext.jobRun(), Instant.now());
-        final var jobRunContext =
-                new JobRunContext(
-                        initialContext.job(),
-                        startedJobRun,
-                        initialContext.arguments(),
-                        initialContext.properties());
-        MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
-        return jobRunContext;
+        return new JobRunContext(
+                initialContext.job(),
+                startedJobRun,
+                initialContext.arguments(),
+                initialContext.properties());
     }
 
-    static JobRunState runJob(final Job job, final JobRunContext jobRunContext) {
+    static void runJob(
+            final Job job, final JobRunContext jobRunContext, final JobService jobService) {
         try {
             logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
             final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job, state);
-            return state;
+            updateJobRunState(jobService, jobRunContext, state);
         } catch (final Exception e) {
-            logger.error("Exception running job: ", e);
-            return JobRunState.ERROR;
+            final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
+            if (rootCause instanceof InterruptedException) {
+                logger.info("Job {} interrupted", job);
+                updateJobRunState(jobService, jobRunContext, JobRunState.UNFINISHED);
+                Thread.currentThread().interrupt();
+            } else {
+                logger.error("Exception running job: ", e);
+                updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
+            }
         }
     }
 
@@ -60,11 +68,6 @@ public class JobRunnerHelper {
             final JobRunContext jobRunContext,
             final JobRunState state) {
         final var transitionedAt = Instant.now();
-        if (state.isRunning()) {
-            jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
-        } else {
-            jobService.finishJobRun(jobRunContext.jobRun(), state, transitionedAt);
-        }
-        MDC.remove("jobRunId");
+        jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
     }
 }

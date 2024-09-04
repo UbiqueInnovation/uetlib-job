@@ -24,6 +24,5 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
     Stream<LoggingEventEntity> findByJobRunId(int jobRunId, long skipLines, int pageSize);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(value = "delete from logging_event where job_run_id = :jobRunId", nativeQuery = true)
-    void deleteLogsForJobRunId(int jobRunId);
+    void deleteAllByJobRunId(int jobRunId);
 }

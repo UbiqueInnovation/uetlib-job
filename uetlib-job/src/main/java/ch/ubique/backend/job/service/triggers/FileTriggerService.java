@@ -3,6 +3,8 @@ package ch.ubique.backend.job.service.triggers;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -23,7 +25,9 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     private final FileTriggerWatcher fileTriggerWatcher;
 
     public FileTriggerService(final FileTriggerWatcher fileTriggerWatcher) {
-        this.executorService = Executors.newSingleThreadExecutor();
+        final var threadFactory =
+                new ThreadFactoryBuilder().setNameFormat("file-trigger-service").build();
+        this.executorService = Executors.newSingleThreadExecutor(threadFactory);
         this.fileTriggerWatcher = fileTriggerWatcher;
         executorService.execute(fileTriggerWatcher::watch);
     }

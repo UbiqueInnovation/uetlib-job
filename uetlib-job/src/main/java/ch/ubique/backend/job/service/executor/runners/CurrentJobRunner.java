@@ -6,11 +6,14 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
 import jakarta.annotation.Nullable;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -54,9 +57,14 @@ public final class CurrentJobRunner implements JobRunner {
         }
 
         final var executorService = getExecutorService(runnerGroup);
+        final var jobRunId = jobRunContext.jobRun().id();
         final var future =
-                executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
-        futuresByJobRun.put(jobRunContext.jobRun().id(), future);
+                executorService.submit(
+                        () -> {
+                            JobRunnerHelper.run(job, jobService, jobRunContext);
+                            futuresByJobRun.remove(jobRunId);
+                        });
+        futuresByJobRun.put(jobRunId, future);
         return true;
     }
 
@@ -71,8 +79,22 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(@NotNull final JobRun jobRun) {
-        return futuresByJobRun.containsKey(jobRun.id()) ? JobRunState.BUSY : null;
+    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
+        final var future = futuresByJobRun.get(jobRun.id());
+        if (future == null) {
+            return null;
+        }
+        if (future.isDone()) {
+            futuresByJobRun.remove(jobRun.id());
+            return switch (future.state()) {
+                case SUCCESS -> JobRunState.DONE;
+                case CANCELLED -> JobRunState.UNFINISHED;
+                case FAILED -> JobRunState.ERROR;
+                case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
+            };
+        }
+        // Not done yet -> job is running
+        return JobRunState.BUSY;
     }
 
     private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
@@ -80,12 +102,18 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private ThreadPoolExecutor createExecutorService(final RunnerGroup runnerGroup) {
+        final var nameFormat =
+                runnerGroup.threadPoolSize() == 1
+                        ? runnerGroup.identifier()
+                        : runnerGroup.identifier() + "-%d";
+        final var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
         return new ThreadPoolExecutor(
                 runnerGroup.threadPoolSize(),
                 runnerGroup.threadPoolSize(),
                 0,
                 TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>());
+                new LinkedBlockingQueue<>(),
+                namedThreadFactory);
     }
 
     private boolean isRunnerGroupAllowed(final Job job, final RunnerGroup runnerGroup) {
