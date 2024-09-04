@@ -19,11 +19,9 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
-import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
-import org.springframework.util.ClassUtils;
 
 import java.text.MessageFormat;
 import java.util.LinkedHashSet;
@@ -68,15 +66,7 @@ class RegisteredJobRegistrar
     private void registerRegisteredJobClassesBeanDefinition(
             final @NotNull DefaultListableBeanFactory beanFactory,
             final @NotNull AnnotationMetadata importingClassMetadata) {
-        final var mergedAnnotationsSearch =
-                MergedAnnotations.search(MergedAnnotations.SearchStrategy.TYPE_HIERARCHY)
-                        .withEnclosingClasses(
-                                clazz ->
-                                        !ClassUtils.isInnerClass(clazz)
-                                                && !ClassUtils.isStaticClass(clazz));
-
         final var enableJobsClass = loadEnableJobsClass(importingClassMetadata);
-
         final var enableJobsAnnotation =
                 importingClassMetadata.getAnnotations().get(EnableJobs.class).synthesize();
 
