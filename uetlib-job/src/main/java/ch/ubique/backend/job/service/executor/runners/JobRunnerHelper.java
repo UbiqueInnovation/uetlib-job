@@ -44,30 +44,16 @@ public class JobRunnerHelper {
             logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
             final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job, state);
-            updateJobRunState(
-                    jobService,
-                    jobRunContext,
-                    state,
-                    JobRunnerHelper.class.getCanonicalName() + "#runJob -> try");
+            updateJobRunState(jobService, jobRunContext, state);
         } catch (final Exception e) {
             final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
             if (rootCause instanceof InterruptedException) {
                 logger.info("Job {} interrupted", job);
-                updateJobRunState(
-                        jobService,
-                        jobRunContext,
-                        JobRunState.UNFINISHED,
-                        JobRunnerHelper.class.getCanonicalName()
-                                + "#runJob -> catch InterruptedException");
+                updateJobRunState(jobService, jobRunContext, JobRunState.UNFINISHED);
                 Thread.currentThread().interrupt();
             } else {
                 logger.error("Exception running job: ", e);
-                updateJobRunState(
-                        jobService,
-                        jobRunContext,
-                        JobRunState.ERROR,
-                        JobRunnerHelper.class.getCanonicalName()
-                                + "#runJob -> catch other Exception");
+                updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
             }
         }
     }
@@ -80,13 +66,8 @@ public class JobRunnerHelper {
     static void updateJobRunState(
             final JobService jobService,
             final JobRunContext jobRunContext,
-            final JobRunState state,
-            final String transitionedBy) {
+            final JobRunState state) {
         final var transitionedAt = Instant.now();
-        jobService.updateJobRunState(
-                jobRunContext.jobRun(),
-                state,
-                transitionedAt,
-                "JobRunnerHelper#updateJobRunState -> " + transitionedBy);
+        jobService.updateJobRunState(jobRunContext.jobRun(), state, transitionedAt);
     }
 }

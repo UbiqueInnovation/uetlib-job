@@ -249,12 +249,10 @@ public class JobService {
     public void updateJobRunState(
             final @NotNull JobRun jobRun,
             final @NotNull JobRunState state,
-            final @NotNull Instant transitionedAt,
-            final String transitionedBy) {
+            final @NotNull Instant transitionedAt) {
         retryTemplate.execute(
                 c -> {
-                    jobDataService.updateJobRunState(
-                            jobRun.id(), state, transitionedAt, transitionedBy);
+                    jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
                     return null;
                 });
         logger.debug(
@@ -279,8 +277,7 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        updateJobRunState(
-                jobRun, UNFINISHED, Instant.now(), getClass().getCanonicalName() + "#cancel");
+        updateJobRunState(jobRun, UNFINISHED, Instant.now());
         return true;
     }
 

@@ -158,7 +158,3 @@ ALTER TABLE logging_event
     ADD INDEX (timestmp);
 ALTER TABLE logging_event_exception
     ADD INDEX (i);
-
--- 2.5.0
-ALTER TABLE t_job_run_state_transition
-    ADD COLUMN transitioned_by VARCHAR(1024);
