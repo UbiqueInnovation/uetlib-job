@@ -227,10 +227,7 @@ public class JobDataService {
                         entity -> {
                             entity.setStartedAt(startedAt);
                             entity.addJobRunStateTransition(
-                                    new JobRunStateTransitionEmbeddable(
-                                            jobRunState,
-                                            startedAt,
-                                            getClass().getCanonicalName() + "#startJobRun"));
+                                    new JobRunStateTransitionEmbeddable(jobRunState, startedAt));
                             return jobRunRepository.save(entity);
                         })
                 .orElseThrow(
@@ -243,8 +240,7 @@ public class JobDataService {
     public void updateJobRunState(
             final int jobRunId,
             final @NotNull JobRunState jobRunState,
-            final @NotNull Instant transitionedAt,
-            final String transitionedBy) {
+            final @NotNull Instant transitionedAt) {
         final var jobRunEntity =
                 jobRunRepository
                         .findById(jobRunId)
@@ -274,10 +270,7 @@ public class JobDataService {
 
         // Add state transition
         jobRunEntity.addJobRunStateTransition(
-                new JobRunStateTransitionEmbeddable(
-                        jobRunState,
-                        transitionedAt,
-                        getClass().getCanonicalName() + "#updateJobRunState -> " + transitionedBy));
+                new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
 
         // Save
         jobRunRepository.save(jobRunEntity);
@@ -408,10 +401,7 @@ public class JobDataService {
         final var jobRunEntity =
                 new JobRunEntity(jobId, jobVersion, runnerKey, scheduledAt, null, arguments);
         jobRunEntity.addJobRunStateTransition(
-                new JobRunStateTransitionEmbeddable(
-                        JobRunState.SCHEDULED,
-                        scheduledAt,
-                        getClass().getCanonicalName() + "#createJobRun"));
+                new JobRunStateTransitionEmbeddable(JobRunState.SCHEDULED, scheduledAt));
         return jobRunRepository.save(jobRunEntity).toJobRun();
     }
 

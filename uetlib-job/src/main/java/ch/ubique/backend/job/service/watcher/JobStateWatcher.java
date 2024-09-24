@@ -48,20 +48,10 @@ public class JobStateWatcher {
                         currentRunnerKey);
             } else if (state.isEmpty()) {
                 logger.info("Could not find job state, treating as UNFINISHED.");
-                jobService.updateJobRunState(
-                        jobRun,
-                        JobRunState.UNFINISHED,
-                        Instant.now(),
-                        getClass().getCanonicalName() + "#checkIfJobsAreRunning -> state is empty");
+                jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
             } else if (!state.get().isRunning()) {
                 logger.info("{} is not running.", jobRun);
-                jobService.updateJobRunState(
-                        jobRun,
-                        state.get(),
-                        Instant.now(),
-                        getClass().getCanonicalName()
-                                + "#checkIfJobsAreRunning -> state is "
-                                + state.get());
+                jobService.updateJobRunState(jobRun, state.get(), Instant.now());
                 logger.info("Set job run {} to {}.", jobRun.id(), state.get());
             }
         }

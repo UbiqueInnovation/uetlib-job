@@ -84,12 +84,7 @@ class JobRunStateTriggerServiceTest {
                         new JobRunArguments());
 
         final var jobRunScheduledStateTransition =
-                new JobRunStateTransition(
-                        1,
-                        jobRun,
-                        JobRunState.SCHEDULED,
-                        jobRunStartedAt,
-                        getClass().getCanonicalName() + "#test");
+                new JobRunStateTransition(1, jobRun, JobRunState.SCHEDULED, jobRunStartedAt);
         doReturn(List.of(jobRunScheduledStateTransition))
                 .when(jobDataService)
                 .findJobRunStateTransitionsSince(any());
@@ -108,8 +103,7 @@ class JobRunStateTriggerServiceTest {
                                 .finishedAt(jobRunFinishedAt)
                                 .toJobRun(),
                         JobRunState.DONE,
-                        jobRunFinishedAt,
-                        getClass().getCanonicalName() + "#test");
+                        jobRunFinishedAt);
         doReturn(List.of(jobRunDoneStateTransition))
                 .when(jobDataService)
                 .findJobRunStateTransitionsSince(any());
