@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.Set;
 
-final class IntPropertyDefinition extends JobPropertyDefinition<Integer> {
+public final class IntPropertyDefinition extends JobPropertyDefinition<Integer> {
 
     @SuppressWarnings("NullableProblems")
     IntPropertyDefinition(

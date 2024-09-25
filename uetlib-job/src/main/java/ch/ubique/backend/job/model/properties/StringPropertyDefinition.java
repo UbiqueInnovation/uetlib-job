@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.Set;
 
-final class StringPropertyDefinition extends JobPropertyDefinition<String> {
+public final class StringPropertyDefinition extends JobPropertyDefinition<String> {
 
     @SuppressWarnings("NullableProblems")
     StringPropertyDefinition(
