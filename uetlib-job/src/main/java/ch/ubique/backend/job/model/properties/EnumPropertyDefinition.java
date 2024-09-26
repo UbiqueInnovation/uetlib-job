@@ -8,7 +8,7 @@ import org.apache.commons.lang3.EnumUtils;
 import java.util.Objects;
 import java.util.Set;
 
-final class EnumPropertyDefinition<T extends Enum<T>> extends JobPropertyDefinition<T> {
+final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropertyDefinition<T> {
 
     private final Class<T> enumClass;
 
