@@ -144,7 +144,7 @@ public final class JobPropertyDefinitions {
                     false,
                     1000,
                     null);
-    public static final EnumPropertyDefinition<JobManualTriggerMode> JOB_MANUAL_TRIGGER_MODE =
+    public static final JobPropertyDefinition<JobManualTriggerMode> JOB_MANUAL_TRIGGER_MODE =
             new EnumPropertyDefinition<>(
                     "JOB_MANUAL_TRIGGER_MODE",
                     "Whether the job can be executed manually from the interface, or replayed with"
