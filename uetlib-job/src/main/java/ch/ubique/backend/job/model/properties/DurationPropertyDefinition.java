@@ -8,7 +8,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 
 import java.time.Duration;
 
-public final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
+final class DurationPropertyDefinition extends JobPropertyDefinition<Duration> {
 
     @SuppressWarnings("NullableProblems")
     public DurationPropertyDefinition(
