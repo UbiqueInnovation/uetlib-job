@@ -14,7 +14,7 @@ import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.Set;
 
-final class GenericPropertyDefinition<T> extends JobPropertyDefinition<T> {
+final class GenericPropertyDefinition<T> extends AbstractJobPropertyDefinition<T> {
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperUtils.objectMapper();
 
