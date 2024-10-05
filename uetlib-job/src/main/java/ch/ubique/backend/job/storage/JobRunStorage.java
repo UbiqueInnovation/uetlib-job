@@ -7,9 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.io.IOException;
 import java.io.InputStream;
 
-@Storage(
-        clientQualifier = "jobRunStorageClient",
-        codeGenerationType = CodeGenerationType.IMPLEMENTATION)
+@Storage(clientQualifier = "jobRunStorageClient", codeGenerationType = CodeGenerationType.ALL)
 public interface JobRunStorage {
 
     @OutputMapping(path = "{jobName}/{runId}/{fileName}.gz")
