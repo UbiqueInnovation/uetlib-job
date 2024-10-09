@@ -85,7 +85,7 @@ class RegisteredJobRegistrar
     private Set<Class<?>> findAllRegisteredJobClasses(
             final Class<?> enableJobsClass, final EnableJobs enableJobsAnnotation) {
         final var candidateComponents = new LinkedHashSet<BeanDefinition>();
-        final var storages = enableJobsAnnotation.jobs();
+        final var jobs = enableJobsAnnotation.jobs();
         if (org.apache.commons.lang3.ArrayUtils.isEmpty(storages)) {
             final var scanner =
                     EnableAnnotationUtils.getScanner(
