@@ -46,27 +46,24 @@ public class JobService {
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
     private final ClassLoaderService classLoaderService;
-    private final RegisteredJobDefinitions registeredJobDefinitions;
 
     public JobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService,
-            final RegisteredJobDefinitions registeredJobDefinitions) {
+            final ClassLoaderService classLoaderService) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
-        this.registeredJobDefinitions = registeredJobDefinitions;
         this.retryTemplate = RetryTemplate.builder().maxAttempts(10).noBackoff().build();
     }
 
     /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
     @Transactional
-    public void init() {
-        registerAllJobs();
+    public void init(final RegisteredJobDefinitions registeredJobDefinitions) {
+        registerAllJobs(registeredJobDefinitions);
     }
 
-    private void registerAllJobs() {
+    private void registerAllJobs(final RegisteredJobDefinitions registeredJobDefinitions) {
         final var registeredJobClasses = registeredJobDefinitions.registeredJobClasses();
         logger.info("Found {} annotated with {}.", registeredJobClasses, RegisteredJob.class);
 
