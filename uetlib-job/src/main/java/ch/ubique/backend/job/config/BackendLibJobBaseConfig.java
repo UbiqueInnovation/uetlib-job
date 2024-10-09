@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.config;
 
-import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
+import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 
@@ -24,22 +24,18 @@ public class BackendLibJobBaseConfig {
         return restTemplateBuilder.build();
     }
 
+    /** bean registeredJobDefinitions is registered programmatically in RegisteredJobRegistrar */
     @Bean("jobService")
     @Profile("!job-run")
     JobService jobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
-            // bean registeredJobDefinitions is registered programmatically
             @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
                     final RegisteredJobDefinitions registeredJobDefinitions) {
         final var jobService =
-                new JobService(
-                        jobDataService,
-                        applicationContext,
-                        classLoaderService,
-                        registeredJobDefinitions);
-        jobService.init();
+                new JobService(jobDataService, applicationContext, classLoaderService);
+        jobService.init(registeredJobDefinitions);
         return jobService;
     }
 
@@ -48,11 +44,7 @@ public class BackendLibJobBaseConfig {
     JobService jobServiceForJobRun(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService,
-            // bean registeredJobDefinitions is registered programmatically
-            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-                    final RegisteredJobDefinitions registeredJobDefinitions) {
-        return new JobService(
-                jobDataService, applicationContext, classLoaderService, registeredJobDefinitions);
+            final ClassLoaderService classLoaderService) {
+        return new JobService(jobDataService, applicationContext, classLoaderService);
     }
 }
