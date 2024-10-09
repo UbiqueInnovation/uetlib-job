@@ -38,9 +38,8 @@ class RegisteredJobRegistrar
 
     private static @NotNull Class<?> loadEnableJobsClass(
             final @NotNull AnnotationMetadata importingClassMetadata) {
-        final Class<?> enableJobsClass;
         try {
-            enableJobsClass = Class.forName(importingClassMetadata.getClassName());
+            return Class.forName(importingClassMetadata.getClassName());
         } catch (final ClassNotFoundException e) {
             throw new IllegalStateException(
                     MessageFormat.format(
@@ -48,7 +47,6 @@ class RegisteredJobRegistrar
                             importingClassMetadata.getClassName(), EnableJobs.class),
                     e);
         }
-        return enableJobsClass;
     }
 
     @Override
@@ -85,8 +83,8 @@ class RegisteredJobRegistrar
     private Set<Class<?>> findAllRegisteredJobClasses(
             final Class<?> enableJobsClass, final EnableJobs enableJobsAnnotation) {
         final var candidateComponents = new LinkedHashSet<BeanDefinition>();
-        final var storages = enableJobsAnnotation.jobs();
-        if (org.apache.commons.lang3.ArrayUtils.isEmpty(storages)) {
+        final var jobs = enableJobsAnnotation.jobs();
+        if (org.apache.commons.lang3.ArrayUtils.isEmpty(jobs)) {
             final var scanner =
                     EnableAnnotationUtils.getScanner(
                             environment, resourceLoader, RegisteredJob.class);
@@ -99,8 +97,8 @@ class RegisteredJobRegistrar
                 candidateComponents.addAll(scanner.findCandidateComponents(basePackage));
             }
         } else {
-            for (final var storageClass : storages) {
-                candidateComponents.add(new AnnotatedGenericBeanDefinition(storageClass));
+            for (final var jobClass : jobs) {
+                candidateComponents.add(new AnnotatedGenericBeanDefinition(jobClass));
             }
         }
 
