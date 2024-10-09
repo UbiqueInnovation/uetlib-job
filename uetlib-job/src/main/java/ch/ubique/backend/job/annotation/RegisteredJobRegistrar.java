@@ -40,7 +40,7 @@ class RegisteredJobRegistrar
             final @NotNull AnnotationMetadata importingClassMetadata) {
         final Class<?> enableJobsClass;
         try {
-            enableJobsClass = Class.forName(importingClassMetadata.getClassName());
+            return Class.forName(importingClassMetadata.getClassName());
         } catch (final ClassNotFoundException e) {
             throw new IllegalStateException(
                     MessageFormat.format(
