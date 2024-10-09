@@ -38,7 +38,6 @@ class RegisteredJobRegistrar
 
     private static @NotNull Class<?> loadEnableJobsClass(
             final @NotNull AnnotationMetadata importingClassMetadata) {
-        final Class<?> enableJobsClass;
         try {
             return Class.forName(importingClassMetadata.getClassName());
         } catch (final ClassNotFoundException e) {
@@ -48,7 +47,6 @@ class RegisteredJobRegistrar
                             importingClassMetadata.getClassName(), EnableJobs.class),
                     e);
         }
-        return enableJobsClass;
     }
 
     @Override
