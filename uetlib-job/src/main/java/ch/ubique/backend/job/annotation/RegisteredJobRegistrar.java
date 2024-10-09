@@ -86,7 +86,7 @@ class RegisteredJobRegistrar
             final Class<?> enableJobsClass, final EnableJobs enableJobsAnnotation) {
         final var candidateComponents = new LinkedHashSet<BeanDefinition>();
         final var jobs = enableJobsAnnotation.jobs();
-        if (org.apache.commons.lang3.ArrayUtils.isEmpty(storages)) {
+        if (org.apache.commons.lang3.ArrayUtils.isEmpty(jobs)) {
             final var scanner =
                     EnableAnnotationUtils.getScanner(
                             environment, resourceLoader, RegisteredJob.class);
@@ -99,8 +99,8 @@ class RegisteredJobRegistrar
                 candidateComponents.addAll(scanner.findCandidateComponents(basePackage));
             }
         } else {
-            for (final var storageClass : storages) {
-                candidateComponents.add(new AnnotatedGenericBeanDefinition(storageClass));
+            for (final var jobClass : jobs) {
+                candidateComponents.add(new AnnotatedGenericBeanDefinition(jobClass));
             }
         }
 
