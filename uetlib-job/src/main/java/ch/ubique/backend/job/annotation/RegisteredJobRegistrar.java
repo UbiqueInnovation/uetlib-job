@@ -53,9 +53,12 @@ class RegisteredJobRegistrar
     public void registerBeanDefinitions(
             final @NotNull AnnotationMetadata importingClassMetadata,
             final @NotNull BeanDefinitionRegistry registry) {
-        //        if (!environment.matchesProfiles("!job-run")) {
-        //            return;
-        //        }
+        // This would be a problem if this RegisteredJobDefinitions gets created if the profile
+        // job-run is active, but
+        // it is not needed, so we skip it
+        if (environment.matchesProfiles("job-run")) {
+            return;
+        }
 
         registerRegisteredJobClassesBeanDefinition(
                 (DefaultListableBeanFactory) registry, importingClassMetadata);
