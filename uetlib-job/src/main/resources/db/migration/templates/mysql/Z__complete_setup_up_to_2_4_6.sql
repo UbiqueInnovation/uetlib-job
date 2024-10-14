@@ -27,7 +27,7 @@ create table t_job_run
     created_at        timestamp              not null,
     updated_at        timestamp              not null,
     started_at        timestamp              not null,
-    finished_at       timestamp,
+    finished_at       timestamp              null,
     job_run_arguments json,
     index (started_at)
 ) charset = utf8mb4;
@@ -112,7 +112,7 @@ create table t_job_run_database_submission
     fk_job_id                             integer                not null references t_job (pk_job_id) on delete cascade on update cascade,
     created_at                            timestamp              not null,
     updated_at                            timestamp              not null,
-    executed_at                           timestamp,
+    executed_at                           timestamp              null,
     job_run_database_submission_arguments json                   not null
 ) charset = utf8mb4;
 

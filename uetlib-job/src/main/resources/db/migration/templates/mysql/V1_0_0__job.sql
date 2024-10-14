@@ -20,7 +20,7 @@ create table t_job_run
     job_version   integer                not null,
     state         text                   not null,
     started_at    timestamp              not null,
-    finished_at   timestamp
+    finished_at   timestamp              null
 ) charset = utf8mb4;
 
 create index idx_finished_at on t_job_run (finished_at);

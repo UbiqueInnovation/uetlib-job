@@ -10,9 +10,9 @@ create table t_k8s_jobs
 
 -- Add columns for t_job
 ALTER TABLE t_job
-    ADD COLUMN created_at TIMESTAMP;
+    ADD COLUMN created_at TIMESTAMP null;
 ALTER TABLE t_job
-    ADD COLUMN updated_at TIMESTAMP;
+    ADD COLUMN updated_at TIMESTAMP null;
 UPDATE t_job
 SET created_at = NOW()
 WHERE true;
@@ -26,9 +26,9 @@ ALTER TABLE t_job
 
 -- Add columns for t_job_run
 ALTER TABLE t_job_run
-    ADD COLUMN created_at TIMESTAMP;
+    ADD COLUMN created_at TIMESTAMP null;
 ALTER TABLE t_job_run
-    ADD COLUMN updated_at TIMESTAMP;
+    ADD COLUMN updated_at TIMESTAMP null;
 UPDATE t_job_run
 SET created_at = started_at,
     updated_at = COALESCE(finished_at, started_at)
@@ -40,9 +40,9 @@ ALTER TABLE t_job_run
 
 -- Add columns for t_job_run_input
 ALTER TABLE t_job_run_input
-    ADD COLUMN created_at TIMESTAMP;
+    ADD COLUMN created_at TIMESTAMP null;
 ALTER TABLE t_job_run_input
-    ADD COLUMN updated_at TIMESTAMP;
+    ADD COLUMN updated_at TIMESTAMP null;
 UPDATE t_job_run_input
 SET created_at = NOW()
 WHERE true;
@@ -56,9 +56,9 @@ ALTER TABLE t_job_run_input
 
 -- Add columns for t_job_properties
 ALTER TABLE t_job_properties
-    ADD COLUMN created_at TIMESTAMP;
+    ADD COLUMN created_at TIMESTAMP null;
 ALTER TABLE t_job_properties
-    ADD COLUMN updated_at TIMESTAMP;
+    ADD COLUMN updated_at TIMESTAMP null;
 UPDATE t_job_properties
 SET created_at = NOW()
 WHERE true;
@@ -72,9 +72,9 @@ ALTER TABLE t_job_properties
 
 -- Add columns for t_job_trigger
 ALTER TABLE t_job_trigger
-    ADD COLUMN created_at TIMESTAMP;
+    ADD COLUMN created_at TIMESTAMP null;
 ALTER TABLE t_job_trigger
-    ADD COLUMN updated_at TIMESTAMP;
+    ADD COLUMN updated_at TIMESTAMP null;
 UPDATE t_job_trigger
 SET created_at = NOW()
 WHERE true;
@@ -90,7 +90,7 @@ ALTER TABLE t_job_trigger
 ALTER TABLE t_job_run_database_submission
     RENAME COLUMN submitted_at TO created_at;
 ALTER TABLE t_job_run_database_submission
-    ADD COLUMN updated_at TIMESTAMP;
+    ADD COLUMN updated_at TIMESTAMP null;
 UPDATE t_job_run_database_submission
 SET updated_at = COALESCE(executed_at, created_at)
 WHERE true;
