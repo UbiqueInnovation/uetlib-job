@@ -33,7 +33,8 @@ public record JobRun(
         return new ModifiableJobRun(this);
     }
 
-    public static class ModifiableJobRun {
+    public static final class ModifiableJobRun {
+
         private int id;
         private int jobId;
         private int jobVersion;
