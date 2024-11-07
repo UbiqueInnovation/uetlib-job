@@ -91,7 +91,10 @@ public class JobRunEntity {
     }
 
     public JobRunState latestState() {
-        return jobRunStateTransitions.getFirst().state();
+        return jobRunStateTransitions.stream()
+                .findFirst()
+                .map(JobRunStateTransitionEmbeddable::state)
+                .orElse(JobRunState.NONE);
     }
 
     public JobRun toJobRun() {
