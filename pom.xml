@@ -2,34 +2,48 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>backend-jvm-lib</artifactId>
-        <groupId>ch.ubique</groupId>
-        <version>3.0.0-SNAPSHOT</version>
-    </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>backend-jvm-lib-job</artifactId>
+    <parent>
+        <groupId>ch.ubique</groupId>
+        <artifactId>uetlib-bom</artifactId>
+        <version>1.0.0-alpha.15</version>
+    </parent>
+
+    <artifactId>uetlib-job</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <ch.ubique.uetlib.test.version>1.0.0-alpha.13</ch.ubique.uetlib.test.version>
+
+        <!-- Sonar-->
+        <sonar.projectName>uetlib-job</sonar.projectName>
+        <sonar.coverage.module>uetlib-job</sonar.coverage.module>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-storage</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-storage-spring</artifactId>
+            <version>1.0.0-alpha.3</version>
         </dependency>
 
         <!-- Monitoring -->
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-monitoring</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-monitoring</artifactId>
+            <version>1.0.0-alpha.2</version>
         </dependency>
 
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-db</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-db</artifactId>
+            <version>1.0.0-alpha.5</version>
         </dependency>
 
         <!-- Command line args parsing -->
@@ -86,29 +100,34 @@
             <version>5.9.4</version>
         </dependency>
 
+        <dependency>
+            <groupId>ch.qos.logback.db</groupId>
+            <artifactId>logback-classic-db</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-testcontainers</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-test</artifactId>
+            <version>${ch.ubique.uetlib.test.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-testcontainers-mariadb</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-testcontainers-mariadb</artifactId>
+            <version>${ch.ubique.uetlib.test.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-testcontainers-postgresql</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-testcontainers-postgresql</artifactId>
+            <version>${ch.ubique.uetlib.test.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>backend-jvm-lib-testcontainers-mysql</artifactId>
-            <version>${project.version}</version>
+            <artifactId>uetlib-testcontainers-mysql</artifactId>
+            <version>${ch.ubique.uetlib.test.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -144,6 +163,60 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <excludes>
+                                <!-- All these Tests are run once per database, see executions below. -->
+                                <!-- All other tests are run once, without a database -->
+                                <exclude>**/*DatabaseTest.java</exclude>
+                                <argLine>-Dspring.profiles.active=test</argLine>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>postgres-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/*DatabaseTest.java</include>
+                            </includes>
+                            <argLine>-Dspring.profiles.active=test,postgres</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>mysql-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/*DatabaseTest.java</include>
+                            </includes>
+                            <argLine>-Dspring.profiles.active=test,mysql</argLine>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>mariadb-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/*DatabaseTest.java</include>
+                            </includes>
+                            <argLine>-Dspring.profiles.active=test,mariadb</argLine>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Plugin to allow lazy-fetching an entity attribute using @Basic(fetch = FetchType.LAZY) -->
             <plugin>
                 <groupId>org.hibernate.orm.tooling</groupId>
