@@ -27,7 +27,7 @@ public class JobEntity {
     private String canonicalClassName;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
@@ -52,5 +52,21 @@ public class JobEntity {
     public JobEntity with(final String canonicalClassName) {
         this.canonicalClassName = canonicalClassName;
         return this;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(final Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(final Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
