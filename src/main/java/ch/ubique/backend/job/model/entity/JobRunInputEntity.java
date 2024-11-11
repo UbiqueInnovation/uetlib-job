@@ -35,7 +35,7 @@ public class JobRunInputEntity implements JobRunInput {
     private String hash;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
@@ -88,5 +88,21 @@ public class JobRunInputEntity implements JobRunInput {
     @Override
     public void setHash(final String hash) {
         this.hash = hash;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(final Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(final Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

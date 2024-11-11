@@ -62,7 +62,7 @@ public class JobRunEntity {
     private JobRunArguments jobRunArguments;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
@@ -132,5 +132,21 @@ public class JobRunEntity {
 
     public @PastOrPresent Instant finishedAt() {
         return finishedAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(final Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(final Instant createdAt) {
+        this.createdAt = createdAt;
     }
 }
