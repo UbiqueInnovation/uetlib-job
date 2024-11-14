@@ -1,10 +1,10 @@
 package ch.ubique.backend.job.annotation;
 
-import static ch.ubique.backend.storage.annotations.utils.EnableAnnotationUtils.classForName;
-import static ch.ubique.backend.storage.annotations.utils.EnableAnnotationUtils.getBasePackages;
+import static ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils.classForName;
+import static ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils.getBasePackages;
 
 import ch.ubique.backend.job.RegisteredJob;
-import ch.ubique.backend.storage.annotations.utils.EnableAnnotationUtils;
+import ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils;
 
 import jakarta.validation.constraints.NotNull;
 
