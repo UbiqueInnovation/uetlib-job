@@ -7,7 +7,7 @@
     <parent>
         <groupId>ch.ubique</groupId>
         <artifactId>uetlib-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.0.0-rc.1</version>
     </parent>
 
     <artifactId>uetlib-job</artifactId>
@@ -19,7 +19,7 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <ch.ubique.uetlib.test.version>2.0.0-SNAPSHOT</ch.ubique.uetlib.test.version>
+        <ch.ubique.uetlib.testcontainers.version>1.0.0-rc.1</ch.ubique.uetlib.testcontainers.version>
 
         <!-- Sonar-->
         <sonar.projectName>uetlib-job</sonar.projectName>
@@ -29,27 +29,27 @@
     <dependencies>
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>uetlib-storage-spring</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <artifactId>uetlib-storage-spring-boot</artifactId>
+            <version>1.0.0-rc.1</version>
         </dependency>
 
         <!-- Monitoring -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-monitoring</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.0.0-rc.1</version>
         </dependency>
 
         <dependency>
             <groupId>ch.ubique</groupId>
-            <artifactId>uetlib-spring-security</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <artifactId>uetlib-spring-boot-security</artifactId>
+            <version>1.0.0-rc.1</version>
         </dependency>
 
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-db</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.0.0-rc.1</version>
         </dependency>
 
         <!-- Command line args parsing -->
@@ -120,25 +120,25 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-test</artifactId>
-            <version>${ch.ubique.uetlib.test.version}</version>
+            <version>1.0.0-rc.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
-            <version>${ch.ubique.uetlib.test.version}</version>
+            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
-            <version>${ch.ubique.uetlib.test.version}</version>
+            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
-            <version>${ch.ubique.uetlib.test.version}</version>
+            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
 
