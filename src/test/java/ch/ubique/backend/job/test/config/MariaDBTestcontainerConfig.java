@@ -14,6 +14,6 @@ public class MariaDBTestcontainerConfig extends BaseDatabaseTestcontainerConfig 
     @Bean
     @ServiceConnection
     MariaDBContainer<?> mariaDBContainer() {
-        return new MariaDBContainer<>(DockerImageName.parse("mariadb:11"));
+        return new MariaDBContainer<>(DockerImageName.parse("mariadb:11.5"));
     }
 }
