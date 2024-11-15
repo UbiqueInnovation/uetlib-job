@@ -14,6 +14,6 @@ public class PostgresqlTestcontainerConfig extends BaseDatabaseTestcontainerConf
     @Bean
     @ServiceConnection
     PostgreSQLContainer<?> postgresDBContainer() {
-        return new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"));
+        return new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"));
     }
 }
