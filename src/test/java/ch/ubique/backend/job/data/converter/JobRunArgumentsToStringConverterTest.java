@@ -11,6 +11,7 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -62,7 +63,7 @@ class JobRunArgumentsToStringConverterTest {
     }
 
     @Test
-    void testConvertFileTriggerContextToDatabaseColumn() {
+    void testConvertFileTriggerContextToDatabaseColumn() throws JsonProcessingException {
         final var testFileName = "AAAA-BBBB-CCCC-DDDD.txt";
         final var matcher = TEST_PATTERN.matcher(testFileName);
         assertTrue(matcher.matches());
@@ -78,9 +79,11 @@ class JobRunArgumentsToStringConverterTest {
                         null);
         final var dbData =
                 jobRunArgumentsToStringConverter.convertToDatabaseColumn(jobRunArguments);
+        final var expected =
+                "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"type\":\"FILE\",\"watchedPath\":\"file:///tmp/\"}}";
         assertEquals(
-                "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"type\":\"FILE\",\"watchedPath\":\"file:///tmp/\"}}",
-                dbData);
+                objectMapperOrdered.readValue(expected, Object.class),
+                objectMapperOrdered.readValue(dbData, Object.class));
     }
 
     @Test
