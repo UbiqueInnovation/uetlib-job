@@ -38,6 +38,9 @@ public abstract class KubernetesJob implements Job {
         if (job instanceof final KubernetesJob kubernetesJob) {
             return kubernetesJob;
         }
+        if (job instanceof final CustomKubernetesJobCreator customKubernetesJobCreator) {
+            return customKubernetesJobCreator.createKubernetesJob(applicationContext);
+        }
         return new KubernetesJobWrapper(applicationContext, job);
     }
 
