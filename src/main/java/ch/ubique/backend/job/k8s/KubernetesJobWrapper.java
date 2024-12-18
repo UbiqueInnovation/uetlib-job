@@ -28,6 +28,10 @@ public class KubernetesJobWrapper extends KubernetesJob {
     @Override
     protected Collection<V1Container> containers(
             final KubernetesJobRunContext kubernetesJobRunContext) {
+        return Set.of(mainContainer(kubernetesJobRunContext));
+    }
+
+    protected V1Container mainContainer(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentPodContainer = getCurrentPodContainer(kubernetesJobRunContext);
 
         final var args =
@@ -52,20 +56,19 @@ public class KubernetesJobWrapper extends KubernetesJob {
             args.add(additionalData.getClass().getCanonicalName());
         }
 
-        return Set.of(
-                new V1Container()
-                        .name("job-image")
-                        .image(currentPodContainer.getImage())
-                        .args(args)
-                        .env(currentPodContainer.getEnv())
-                        .addEnvItem(additionalJavaOptsEnvVar(kubernetesJobRunContext))
-                        .envFrom(currentPodContainer.getEnvFrom())
-                        .volumeMounts(currentPodContainer.getVolumeMounts())
-                        .imagePullPolicy(currentPodContainer.getImagePullPolicy())
-                        .resources(resources(kubernetesJobRunContext)));
+        return new V1Container()
+                .name("job-image")
+                .image(currentPodContainer.getImage())
+                .args(args)
+                .env(currentPodContainer.getEnv())
+                .addEnvItem(additionalJavaOptsEnvVar(kubernetesJobRunContext))
+                .envFrom(currentPodContainer.getEnvFrom())
+                .volumeMounts(currentPodContainer.getVolumeMounts())
+                .imagePullPolicy(currentPodContainer.getImagePullPolicy())
+                .resources(resources(kubernetesJobRunContext));
     }
 
-    private static V1Container getCurrentPodContainer(
+    protected static V1Container getCurrentPodContainer(
             final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentPod =
                 requireNonNull(kubernetesJobRunContext.kubernetesContext().currentPod());
@@ -75,8 +78,8 @@ public class KubernetesJobWrapper extends KubernetesJob {
         if (currentPodSpec.getContainers().size() != 1) {
             throw new IllegalArgumentException(
                     "Expected current importer pod to have exactly one container. This is a"
-                        + " simplification of the current implementation. If needed, you can modify"
-                        + " this code to drop this restriction.");
+                            + " simplification of the current implementation. If needed, you can modify"
+                            + " this code to drop this restriction.");
         }
 
         return currentPodSpec.getContainers().getFirst();
