@@ -17,6 +17,13 @@ public interface JobRunStorage {
             @StoragePathVariable String fileName)
             throws IOException;
 
+    @InputMapping(path = "{jobName}/{runId}/{fileName}.gz")
+    InputStream loadJobRunInput(
+            @StoragePathVariable String jobName,
+            @StoragePathVariable String runId,
+            @StoragePathVariable String fileName)
+            throws IOException;
+
     @DeleteMapping(path = "{jobName}/{runId}", recursive = true)
     boolean deleteJobRunDirectory(
             @StoragePathVariable String jobName, @StoragePathVariable String runId)

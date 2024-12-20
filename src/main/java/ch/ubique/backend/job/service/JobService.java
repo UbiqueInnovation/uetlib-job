@@ -172,6 +172,14 @@ public class JobService {
         return getJobClass(jobDataService.findJobById(jobId).orElseThrow().canonicalClassName());
     }
 
+    public Optional<Class<? extends Job>> getJobClassMaybe(final int jobId) {
+        try {
+            return Optional.of(getJobClass(jobId));
+        } catch (final ClassNotFoundException e) {
+            return Optional.empty();
+        }
+    }
+
     private JobRun createNewJobRun(
             final @NotNull Job job,
             final @NotNull JobRunnerKey runnerKey,
@@ -200,8 +208,12 @@ public class JobService {
         return jobDataService.updateJobRunRunnerKeyAndArguments(jobRun, runnerKey, arguments);
     }
 
+    public Optional<JobRun> getJobRunMaybe(final int runId) {
+        return jobDataService.findJobRunById(runId);
+    }
+
     public JobRun getJobRun(final int runId) {
-        return jobDataService.findJobRunById(runId).orElseThrow();
+        return getJobRunMaybe(runId).orElseThrow();
     }
 
     public Optional<JobRun> getLastJobRun(final int jobId) {
