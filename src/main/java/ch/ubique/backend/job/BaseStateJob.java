@@ -3,7 +3,10 @@ package ch.ubique.backend.job;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
+import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.files.JobFile;
+import ch.ubique.backend.job.files.JobWithFiles;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
@@ -15,6 +18,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -26,7 +32,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
-public abstract class BaseStateJob<T> implements Job {
+public abstract class BaseStateJob<T> implements JobWithFiles {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -113,6 +119,22 @@ public abstract class BaseStateJob<T> implements Job {
     @Nullable
     protected JobRunnerKey runnerForProcessing() {
         return null;
+    }
+
+    @Override
+    public Collection<JobFile> jobRunFiles(final JobRun jobRun) {
+        final boolean hasStateJson =
+                jobDataService
+                        .findJobRunById(jobRun.id())
+                        .map(JobRun::latestState)
+                        .map(state -> !state.isRunning() && state != JobRunState.SKIPPED)
+                        .orElse(false);
+        if (!hasStateJson) {
+            return List.of();
+        }
+        return List.of(
+                new JobFile(
+                        "state.json", InputStreamProvider.of(() -> getStateInputStream(jobRun))));
     }
 
     @Override
@@ -219,9 +241,7 @@ public abstract class BaseStateJob<T> implements Job {
     @Nullable
     private T loadState(@NotNull final JobRun jobRun) {
         logger.info("Loading state of run {}.", jobRun.id());
-        try (final var inputStream =
-                jobRunStorage.loadJobRunState(getClass().getSimpleName(), jobRun.readableId())) {
-
+        try (final var inputStream = getStateInputStream(jobRun)) {
             final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
             logger.info("Resolved state {}.", previousState);
             return previousState;
@@ -229,6 +249,10 @@ public abstract class BaseStateJob<T> implements Job {
             logger.warn("Could not load state for run {}.", jobRun.id(), e);
             return null;
         }
+    }
+
+    private InputStream getStateInputStream(final JobRun jobRun) throws IOException {
+        return jobRunStorage.loadJobRunState(getClass().getSimpleName(), jobRun.readableId());
     }
 
     @Nullable

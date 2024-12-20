@@ -1,8 +1,11 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.core.file.ByteFile;
+import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.files.JobFile;
+import ch.ubique.backend.job.files.JobWithFiles;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
@@ -10,6 +13,8 @@ import com.pivovarit.function.exception.WrappedException;
 
 import jakarta.validation.constraints.NotNull;
 
+import java.io.InputStream;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -23,7 +28,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class BaseInputJob<T> implements Job {
+public abstract class BaseInputJob<T> implements JobWithFiles {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -79,6 +84,17 @@ public abstract class BaseInputJob<T> implements Job {
     protected DataAndInput<T> loadInputsRecovery(final Exception e) {
         logger.warn("Loading data failed even after retry and backoff:", e);
         return null;
+    }
+
+    @Override
+    public Collection<JobFile> jobRunFiles(final JobRun jobRun) {
+        if (!isInputFileUploadEnabled()) {
+            return List.of();
+        }
+
+        return jobDataService.findJobRunInputs(jobRun.id()).stream()
+                .map(input -> toJobFile(jobRun, input))
+                .toList();
     }
 
     /**
@@ -203,6 +219,12 @@ public abstract class BaseInputJob<T> implements Job {
                 file.getFileName());
     }
 
+    private InputStream loadJobRunInput(final JobRun jobRun, final JobRunInput input)
+            throws IOException {
+        return jobRunStorage.loadJobRunInput(
+                getClass().getSimpleName(), jobRun.readableId(), input.getName());
+    }
+
     private boolean isJobVersionDifferent(final JobClassAndId job) {
         final var lastRun = latestSuccessfulRun(job);
         return lastRun.isEmpty() || version() != lastRun.get().jobVersion();
@@ -274,5 +296,10 @@ public abstract class BaseInputJob<T> implements Job {
                                         run.startedAt(),
                                         jobDataService.findJobRunInputs(run.id()).stream()
                                                 .collect(Collectors.toUnmodifiableSet())));
+    }
+
+    private @NotNull JobFile toJobFile(final JobRun jobRun, final JobRunInput input) {
+        return new JobFile(
+                input.getName(), InputStreamProvider.of(() -> loadJobRunInput(jobRun, input)));
     }
 }

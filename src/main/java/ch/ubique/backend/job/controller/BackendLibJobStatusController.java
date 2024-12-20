@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
+import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
 import ch.ubique.backend.job.model.response.StringResponse;
 import ch.ubique.backend.job.model.response.SuccessResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
@@ -14,8 +15,10 @@ import ch.ubique.backend.job.service.controller.JobControllerService;
 import jakarta.validation.Valid;
 
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -151,6 +154,22 @@ public class BackendLibJobStatusController {
     @PostMapping("/run/{jobRunId}/cancel")
     public SuccessResponse cancelJobRun(@PathVariable final int jobRunId) {
         return jobControllerService.cancelJobRun(jobRunId);
+    }
+
+    @GetMapping("/run/{jobRunId}/files")
+    public JobRunFileListResponse listFiles(@PathVariable final int jobRunId) {
+        return jobControllerService.listFiles(jobRunId);
+    }
+
+    @GetMapping(
+            value = "/run/{jobRunId}/files/{path}",
+            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<InputStreamResource> getFile(
+            @PathVariable final int jobRunId, @PathVariable final String path) {
+        return jobControllerService
+                .getFile(jobRunId, path)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/job/{jobIdOrClassName}/replay_run/{jobRunId}")

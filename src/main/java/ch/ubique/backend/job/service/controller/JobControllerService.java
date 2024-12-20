@@ -3,10 +3,14 @@ package ch.ubique.backend.job.service.controller;
 import static java.util.function.Function.identity;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
+import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
+import ch.ubique.backend.job.files.JobFile;
+import ch.ubique.backend.job.files.JobWithFiles;
 import ch.ubique.backend.job.model.JobClassAndId;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
@@ -18,6 +22,7 @@ import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.response.SuccessResponse;
+import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
@@ -37,6 +42,7 @@ import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
@@ -79,7 +85,7 @@ public class JobControllerService {
     }
 
     private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
-        final var list = new ArrayList<JobProperty<?>>(properties.values().size());
+        final var list = new ArrayList<JobProperty<?>>(properties.size());
         for (final var entry : properties.entrySet()) {
             list.add(
                     JobPropertyDefinitions.get(entry.getKey())
@@ -446,5 +452,41 @@ public class JobControllerService {
         final var message = success ? "Job run cancelled." : "Job run could not be cancelled";
         logger.info(message);
         return new SuccessResponse(success, message);
+    }
+
+    public JobRunFileListResponse listFiles(final int jobRunId) {
+        return new JobRunFileListResponse(getJobFiles(jobRunId).map(JobFile::path).toList());
+    }
+
+    public Optional<InputStreamResource> getFile(final int jobRunId, final String path) {
+        return getJobFiles(jobRunId)
+                .filter(file -> file.path().equals(path))
+                .findFirst()
+                .map(JobFile::inputStreamProvider)
+                .flatMap(ThrowingFunction.lifted(InputStreamProvider::inputStream))
+                .map(InputStreamResource::new);
+    }
+
+    private Stream<JobFile> getJobFiles(final int jobRunId) {
+        return jobService.getJobRunMaybe(jobRunId).stream().flatMap(this::getJobFiles);
+    }
+
+    private Stream<JobFile> getJobFiles(final JobRun jobRun) {
+        return instantiateJob(jobRun)
+                .map(this::jobWithFiles)
+                .map(job -> job.jobRunFiles(jobRun))
+                .stream()
+                .flatMap(Collection::stream);
+    }
+
+    private Optional<Job> instantiateJob(final JobRun jobRun) {
+        return jobService.getJobClassMaybe(jobRun.jobId()).map(jobService::instantiateJob);
+    }
+
+    private JobWithFiles jobWithFiles(final Job job) {
+        if (job instanceof final JobWithFiles jobWithFiles) {
+            return jobWithFiles;
+        }
+        return null;
     }
 }
