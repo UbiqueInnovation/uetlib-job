@@ -148,7 +148,7 @@ public class JobControllerService {
                         job ->
                                 jobDataService
                                         .findLatestJobRun(job.id())
-                                        .map(JobRunInfo::from)
+                                        .map(this::createJobRunInfo)
                                         .orElse(null))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(JobRunInfo::jobId, identity()));
@@ -193,13 +193,17 @@ public class JobControllerService {
         final var fromToRange = getFromToRangeOptional(from, to);
         final var jobRunsPage =
                 jobDataService.findJobRuns(pageable, selectedJobIdList, state, fromToRange);
-        final var jobRuns = jobRunsPage.stream().map(JobRunInfo::from).toList();
+        final var jobRuns = jobRunsPage.stream().map(this::createJobRunInfo).toList();
         return new JobRunInfosContainer(
                 jobRuns,
                 jobsById,
                 jobRunsPage.isFirst(),
                 jobRunsPage.isLast(),
                 jobRunsPage.getTotalPages());
+    }
+
+    private JobRunInfo createJobRunInfo(final JobRun jobRun) {
+        return JobRunInfo.from(jobRun, hasFiles(jobRun));
     }
 
     private List<Integer> getJobIdIncludeList(
@@ -301,7 +305,7 @@ public class JobControllerService {
                                 ResourceNotFoundException.supplierWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
         final var jobInfo = jobInfo(jobById(jobRun.jobId()));
-        return JobRunInfoContainer.from(jobRun, jobInfo);
+        return JobRunInfoContainer.from(createJobRunInfo(jobRun), jobInfo);
     }
 
     public JobInfo jobInfo(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
@@ -465,6 +469,10 @@ public class JobControllerService {
                 .map(JobFile::inputStreamProvider)
                 .flatMap(ThrowingFunction.lifted(InputStreamProvider::inputStream))
                 .map(InputStreamResource::new);
+    }
+
+    private boolean hasFiles(final JobRun jobRun) {
+        return getJobFiles(jobRun).findAny().isPresent();
     }
 
     private Stream<JobFile> getJobFiles(final int jobRunId) {

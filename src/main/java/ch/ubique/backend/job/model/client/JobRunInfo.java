@@ -21,9 +21,10 @@ public record JobRunInfo(
         @NotNull JobRunState state,
         @NotNull @PastOrPresent Instant startedAt,
         @PastOrPresent Instant finishedAt,
-        @NotNull String duration) {
+        @NotNull String duration,
+        boolean hasFiles) {
 
-    public static JobRunInfo from(final JobRun jobRun) {
+    public static JobRunInfo from(final JobRun jobRun, final boolean hasFiles) {
         return new JobRunInfo(
                 jobRun.id(),
                 jobRun.jobId(),
@@ -31,6 +32,7 @@ public record JobRunInfo(
                 jobRun.latestState(),
                 jobRun.startedAt(),
                 jobRun.finishedAt(),
-                StringFormattingUtils.formatDuration(jobRun.startedAt(), jobRun.finishedAt()));
+                StringFormattingUtils.formatDuration(jobRun.startedAt(), jobRun.finishedAt()),
+                hasFiles);
     }
 }

@@ -127,7 +127,7 @@ public abstract class BaseStateJob<T> implements JobWithFiles {
                 jobDataService
                         .findJobRunById(jobRun.id())
                         .map(JobRun::latestState)
-                        .map(state -> !state.isRunning() && state != JobRunState.SKIPPED)
+                        .map(state -> state != JobRunState.SKIPPED && hasStateForRun(jobRun))
                         .orElse(false);
         if (!hasStateJson) {
             return List.of();
