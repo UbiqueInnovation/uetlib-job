@@ -25,25 +25,15 @@ public interface JobRunStorage {
             @StoragePathVariable String fileName)
             throws IOException;
 
+    @InputMapping(path = "{jobName}/{runId}/{fileName}.gz")
+    boolean jobRunInputExists(
+            @StoragePathVariable String jobName,
+            @StoragePathVariable String runId,
+            @StoragePathVariable String fileName)
+            throws IOException;
+
     @DeleteMapping(path = "{jobName}/{runId}", recursive = true)
     boolean deleteJobRunDirectory(
-            @StoragePathVariable String jobName, @StoragePathVariable String runId)
-            throws IOException;
-
-    @OutputMapping(path = "{jobName}/{runId}/state.json")
-    void saveJobRunState(
-            @StorageObject Object output,
-            @StoragePathVariable String jobName,
-            @StoragePathVariable String runId)
-            throws IOException;
-
-    @InputMapping(path = "{jobName}/{runId}/state.json")
-    InputStream loadJobRunState(
-            @StoragePathVariable String jobName, @StoragePathVariable String runId)
-            throws IOException;
-
-    @ExistsMapping(path = "{jobName}/{runId}/state.json")
-    boolean jobRunStateExists(
             @StoragePathVariable String jobName, @StoragePathVariable String runId)
             throws IOException;
 }

@@ -81,6 +81,14 @@ public class JobRunInputManager {
                 inputDeclaration.path());
     }
 
+    public boolean exists(final JobRunInputDeclaration inputDeclaration) throws IOException {
+        final var jobSimpleName = getJobSimpleName(inputDeclaration);
+        return jobRunStorage.jobRunInputExists(
+                jobSimpleName,
+                JobRun.readableId(inputDeclaration.jobRunId()),
+                inputDeclaration.path());
+    }
+
     private String getJobSimpleName(final JobRunInputDeclaration inputDeclaration) {
         final var jobId = jobDataService.findJobRunById(inputDeclaration.jobRunId()).orElseThrow();
         final var job = jobDataService.findJobById(jobId.id()).orElseThrow();

@@ -3,14 +3,15 @@ package ch.ubique.backend.job;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
-import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.files.JobFile;
 import ch.ubique.backend.job.files.JobRunFileProvider;
+import ch.ubique.backend.job.files.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
-import ch.ubique.backend.job.storage.JobRunStorage;
+import ch.ubique.backend.storage.output.JsonOutput;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,24 +29,25 @@ import org.springframework.retry.annotation.Retryable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
+    private static final String STATE_PATH = "state.json";
+
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;
+    private final JobRunInputManager jobRunInputManager;
     private final ObjectMapper objectMapper;
     private final JobExecutorService jobExecutorService;
 
     protected BaseStateJob(@NotNull final ApplicationContext applicationContext) {
-        jobRunStorage = applicationContext.getBean(JobRunStorage.class);
         jobDataService = applicationContext.getBean(JobDataService.class);
         objectMapper = applicationContext.getBean(ObjectMapper.class);
         jobExecutorService = applicationContext.getBean(JobExecutorService.class);
+        jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
     }
 
     @Override
@@ -123,18 +125,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
     @Override
     public Collection<JobFile> jobRunFiles(final JobRun jobRun) {
-        final boolean hasStateJson =
-                jobDataService
-                        .findJobRunById(jobRun.id())
-                        .map(JobRun::latestState)
-                        .map(state -> state != JobRunState.SKIPPED && hasStateForRun(jobRun))
-                        .orElse(false);
-        if (!hasStateJson) {
-            return List.of();
-        }
-        return List.of(
-                new JobFile(
-                        "state.json", InputStreamProvider.of(() -> getStateInputStream(jobRun))));
+        return jobRunInputManager.getAllJobRunFiles(jobRun.jobId());
     }
 
     @Override
@@ -228,8 +219,9 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
     private void saveState(final T state, final JobRunContext jobRunContext) throws IOException {
         logger.info("Saving state {}.", state);
-        final var readableId = jobRunContext.jobRun().readableId();
-        jobRunStorage.saveJobRunState(state, getClass().getSimpleName(), readableId);
+        final var inputDeclaration = stateInputDeclaration(jobRunContext.jobRun());
+        final var output = new JsonOutput<>(state, objectMapper);
+        jobRunInputManager.save(inputDeclaration, output);
     }
 
     @Nullable
@@ -252,7 +244,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
     }
 
     private InputStream getStateInputStream(final JobRun jobRun) throws IOException {
-        return jobRunStorage.loadJobRunState(getClass().getSimpleName(), jobRun.readableId());
+        return jobRunInputManager.createInputStream(stateInputDeclaration(jobRun));
     }
 
     @Nullable
@@ -265,10 +257,14 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
     private boolean hasStateForRun(final JobRun jobRun) {
         try {
-            return jobRunStorage.jobRunStateExists(getClass().getSimpleName(), jobRun.readableId());
+            return jobRunInputManager.exists(stateInputDeclaration(jobRun));
         } catch (final IOException e) {
             logger.warn("Could not query if state for run {} exists.", jobRun.id(), e);
             return false;
         }
+    }
+
+    private JobRunInputDeclaration stateInputDeclaration(final JobRun jobRun) {
+        return new JobRunInputDeclaration(jobRun.id(), STATE_PATH);
     }
 }
