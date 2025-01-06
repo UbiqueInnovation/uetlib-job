@@ -5,7 +5,7 @@ import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.files.JobFile;
-import ch.ubique.backend.job.files.JobWithFiles;
+import ch.ubique.backend.job.files.JobRunFileProvider;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class BaseInputJob<T> implements JobWithFiles {
+public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 

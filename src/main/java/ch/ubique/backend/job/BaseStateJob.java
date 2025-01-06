@@ -6,7 +6,7 @@ import static java.util.Objects.requireNonNullElse;
 import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.files.JobFile;
-import ch.ubique.backend.job.files.JobWithFiles;
+import ch.ubique.backend.job.files.JobRunFileProvider;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
-public abstract class BaseStateJob<T> implements JobWithFiles {
+public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
