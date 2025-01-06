@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record JobRunInputDeclaration(int jobRunId, @NotBlank String path, @NotBlank String hash) {
 
-    public JobRunInputDeclaration(final String path, final int jobRunId) {
+    public JobRunInputDeclaration(final int jobRunId, final String path) {
         this(jobRunId, path, "[no-hash]");
     }
 
