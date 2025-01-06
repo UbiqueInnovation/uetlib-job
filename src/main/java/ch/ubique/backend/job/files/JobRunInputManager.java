@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import org.springframework.stereotype.Service;
 
+@Service
 public class JobRunInputManager {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -32,6 +34,11 @@ public class JobRunInputManager {
             throws IOException {
         saveToStorage(inputDeclaration, output);
         saveToDatabase(inputDeclaration);
+    }
+
+    public void saveToDatabase(final Collection<JobRunInputDeclaration> inputDeclarations) {
+        logger.info("Saving {} inputs to database.", inputDeclarations.size());
+        jobDataService.insertJobRunInput(inputDeclarations);
     }
 
     public void saveToDatabase(final JobRunInputDeclaration inputDeclaration) {

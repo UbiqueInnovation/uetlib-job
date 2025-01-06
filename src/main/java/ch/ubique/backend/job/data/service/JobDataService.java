@@ -301,6 +301,12 @@ public class JobDataService {
         jobRunInputRepository.save(JobRunInputEntity.from(inputDeclaration));
     }
 
+    @Transactional
+    public void insertJobRunInput(final Collection<JobRunInputDeclaration> inputDeclarations) {
+        jobRunInputRepository.saveAll(
+                inputDeclarations.stream().map(JobRunInputEntity::from).toList());
+    }
+
     @Transactional(readOnly = true)
     public Collection<JobRunInput> findJobRunInputs(final int runId) {
         return jobRunInputRepository.findAllByRunId(runId);
