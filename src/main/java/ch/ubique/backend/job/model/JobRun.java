@@ -26,7 +26,11 @@ public record JobRun(
     }
 
     public String readableId() {
-        return String.format("Run_%06d", id());
+        return readableId(id);
+    }
+
+    public static String readableId(final int id) {
+        return String.format("Run_%06d", id);
     }
 
     public ModifiableJobRun modify() {

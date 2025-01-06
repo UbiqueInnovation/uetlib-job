@@ -7,6 +7,7 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
+import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.*;
@@ -293,6 +294,11 @@ public class JobDataService {
     @Transactional
     public void insertJobRunInput(final JobRun jobRun, final ByteFile input) {
         jobRunInputRepository.save(JobRunInputEntity.from(jobRun, input));
+    }
+
+    @Transactional
+    public void insertJobRunInput(final JobRunInputDeclaration inputDeclaration) {
+        jobRunInputRepository.save(JobRunInputEntity.from(inputDeclaration));
     }
 
     @Transactional(readOnly = true)

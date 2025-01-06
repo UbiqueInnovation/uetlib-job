@@ -1,20 +1,20 @@
 package ch.ubique.backend.job;
 
 import ch.ubique.backend.core.file.ByteFile;
-import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.files.JobFile;
 import ch.ubique.backend.job.files.JobRunFileProvider;
+import ch.ubique.backend.job.files.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.storage.JobRunStorage;
+import ch.ubique.backend.storage.output.ByteOutput;
 
 import com.pivovarit.function.exception.WrappedException;
 
 import jakarta.validation.constraints.NotNull;
 
-import java.io.InputStream;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -24,6 +24,7 @@ import org.springframework.retry.annotation.Retryable;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,14 +33,14 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;
+    private final JobRunInputManager jobRunInputManager;
 
     private JobRunContext jobRunContext;
 
     protected BaseInputJob(@NotNull final ApplicationContext applicationContext) {
-        jobRunStorage = applicationContext.getBean(JobRunStorage.class);
         jobDataService = applicationContext.getBean(JobDataService.class);
+        jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
     }
 
     @Override
@@ -91,10 +92,7 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
         if (!isInputFileUploadEnabled()) {
             return List.of();
         }
-
-        return jobDataService.findJobRunInputs(jobRun.id()).stream()
-                .map(input -> toJobFile(jobRun, input))
-                .toList();
+        return jobRunInputManager.getAllJobRunFiles(jobRun.id());
     }
 
     /**
@@ -109,6 +107,7 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
      * Per default, input files are uploaded to the {@link JobRunStorage}. By overwriting this
      * method, you can disable this feature.
      */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     protected boolean isInputFileUploadEnabled() {
         return true;
     }
@@ -193,10 +192,9 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
     }
 
     private void saveRunInputsToDatabase(final Collection<ByteFile> inputs, final JobRun jobRun) {
-        for (final var input : inputs) {
-            logger.info("Saving input {} to database.", input.getFileName());
-            jobDataService.insertJobRunInput(jobRun, input);
-        }
+        inputs.stream()
+                .map(input -> JobRunInputDeclaration.from(jobRun, input))
+                .forEach(jobRunInputManager::saveToDatabase);
     }
 
     private void uploadInputFiles(final Collection<ByteFile> inputFiles, final JobRun jobRun)
@@ -207,22 +205,9 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
 
         for (final var file : inputFiles) {
             logger.info("Saving job run input file {}.", file.getFileName());
-            saveJobRunInput(file, jobRun);
+            jobRunInputManager.saveToStorage(
+                    JobRunInputDeclaration.from(jobRun, file), new ByteOutput(file.getBytes()));
         }
-    }
-
-    private void saveJobRunInput(final ByteFile file, final JobRun jobRun) throws IOException {
-        jobRunStorage.saveJobRunInput(
-                file.getBytes(),
-                getClass().getSimpleName(),
-                jobRun.readableId(),
-                file.getFileName());
-    }
-
-    private InputStream loadJobRunInput(final JobRun jobRun, final JobRunInput input)
-            throws IOException {
-        return jobRunStorage.loadJobRunInput(
-                getClass().getSimpleName(), jobRun.readableId(), input.getName());
     }
 
     private boolean isJobVersionDifferent(final JobClassAndId job) {
@@ -296,10 +281,5 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
                                         run.startedAt(),
                                         jobDataService.findJobRunInputs(run.id()).stream()
                                                 .collect(Collectors.toUnmodifiableSet())));
-    }
-
-    private @NotNull JobFile toJobFile(final JobRun jobRun, final JobRunInput input) {
-        return new JobFile(
-                input.getName(), InputStreamProvider.of(() -> loadJobRunInput(jobRun, input)));
     }
 }

@@ -7,7 +7,9 @@ import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.files.JobFile;
 import ch.ubique.backend.job.files.JobRunFileProvider;
+import ch.ubique.backend.job.files.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.storage.JobRunStorage;
@@ -38,6 +40,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
     private final JobRunStorage jobRunStorage;
     private final JobDataService jobDataService;
+    private final JobRunInputManager jobRunInputManager;
     private final ObjectMapper objectMapper;
     private final JobExecutorService jobExecutorService;
 
@@ -46,6 +49,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
         jobDataService = applicationContext.getBean(JobDataService.class);
         objectMapper = applicationContext.getBean(ObjectMapper.class);
         jobExecutorService = applicationContext.getBean(JobExecutorService.class);
+        jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
     }
 
     @Override
@@ -228,8 +232,10 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
 
     private void saveState(final T state, final JobRunContext jobRunContext) throws IOException {
         logger.info("Saving state {}.", state);
-        final var readableId = jobRunContext.jobRun().readableId();
+        final var jobRun = jobRunContext.jobRun();
+        final var readableId = jobRun.readableId();
         jobRunStorage.saveJobRunState(state, getClass().getSimpleName(), readableId);
+        jobRunInputManager.saveToDatabase(new JobRunInputDeclaration("state.json", jobRun.id()));
     }
 
     @Nullable

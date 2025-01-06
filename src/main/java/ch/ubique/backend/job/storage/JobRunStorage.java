@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.storage;
 
 import ch.ubique.backend.storage.annotations.*;
+import ch.ubique.backend.storage.output.Output;
 import ch.ubique.backend.storage.spring.annotations.Storage;
 
 import java.io.IOException;
@@ -11,7 +12,7 @@ public interface JobRunStorage {
 
     @OutputMapping(path = "{jobName}/{runId}/{fileName}.gz")
     void saveJobRunInput(
-            @StorageObject byte[] output,
+            @StorageObject Output output,
             @StoragePathVariable String jobName,
             @StoragePathVariable String runId,
             @StoragePathVariable String fileName)
