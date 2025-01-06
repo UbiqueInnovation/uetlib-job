@@ -162,12 +162,12 @@ public class BackendLibJobStatusController {
     }
 
     @GetMapping(
-            value = "/run/{jobRunId}/files/{path}",
+            value = "/run/{jobRunId}/files/{*path}",
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<InputStreamResource> getFile(
             @PathVariable final int jobRunId, @PathVariable final String path) {
         return jobControllerService
-                .getFile(jobRunId, path)
+                .getFile(jobRunId, path.replaceFirst("^/", ""))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
