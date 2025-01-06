@@ -4,6 +4,7 @@ import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
 
+import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -47,6 +48,14 @@ public class JobRunInputEntity implements JobRunInput {
         input.setRunId(jobRun.id());
         input.setName(file.getFileName());
         input.setHash(file.getFileHash());
+        return input;
+    }
+
+    public static JobRunInputEntity from(final JobRunInputDeclaration declaration) {
+        final var input = new JobRunInputEntity();
+        input.setRunId(declaration.jobRunId());
+        input.setName(declaration.path());
+        input.setHash(declaration.hash());
         return input;
     }
 
