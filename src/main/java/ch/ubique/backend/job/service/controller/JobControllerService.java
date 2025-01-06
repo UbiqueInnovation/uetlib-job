@@ -8,7 +8,7 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
 import ch.ubique.backend.job.files.JobFile;
-import ch.ubique.backend.job.files.JobWithFiles;
+import ch.ubique.backend.job.files.JobRunFileProvider;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -481,8 +481,8 @@ public class JobControllerService {
 
     private Stream<JobFile> getJobFiles(final JobRun jobRun) {
         return instantiateJob(jobRun)
-                .map(this::jobWithFiles)
-                .map(job -> job.jobRunFiles(jobRun))
+                .map(this::jobRunFileProvider)
+                .map(fileProvider -> fileProvider.jobRunFiles(jobRun))
                 .stream()
                 .flatMap(Collection::stream);
     }
@@ -491,9 +491,9 @@ public class JobControllerService {
         return jobService.getJobClassMaybe(jobRun.jobId()).map(jobService::instantiateJob);
     }
 
-    private JobWithFiles jobWithFiles(final Job job) {
-        if (job instanceof final JobWithFiles jobWithFiles) {
-            return jobWithFiles;
+    private JobRunFileProvider jobRunFileProvider(final Job job) {
+        if (job instanceof final JobRunFileProvider jobRunFileProvider) {
+            return jobRunFileProvider;
         }
         return null;
     }
