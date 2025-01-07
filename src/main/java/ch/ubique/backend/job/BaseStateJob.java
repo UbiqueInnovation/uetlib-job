@@ -4,9 +4,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.files.JobFile;
-import ch.ubique.backend.job.files.JobRunFileProvider;
-import ch.ubique.backend.job.files.JobRunInputManager;
+import ch.ubique.backend.job.inputs.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -28,13 +26,12 @@ import org.springframework.retry.annotation.Retryable;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 
-public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
+public abstract class BaseStateJob<T> implements Job {
 
-    private static final String STATE_PATH = "state.json";
+    protected static final String STATE_PATH = "state.json";
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -69,6 +66,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
             backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
     @NotNull
+    @SuppressWarnings("java:S112")
     protected abstract T getLatestState(JobRunContext jobRunContext) throws Exception;
 
     /**
@@ -76,6 +74,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
      * throws an exception after maxAttempts and backoff have run out.
      */
     @Recover
+    @SuppressWarnings("java:S112")
     protected T getLatestStateRecovery(final Exception e) throws Exception {
         logger.warn("Loading data failed even after retry and backoff.");
         throw e;
@@ -107,6 +106,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
     @NotNull
+    @SuppressWarnings("java:S112")
     protected abstract JobRunState processState(T latestState, @NotNull JobRunContext jobRunContext)
             throws Exception;
 
@@ -121,11 +121,6 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
     @Nullable
     protected JobRunnerKey runnerForProcessing() {
         return null;
-    }
-
-    @Override
-    public Collection<JobFile> jobRunFiles(final JobRun jobRun) {
-        return jobRunInputManager.getAllJobRunFiles(jobRun.jobId());
     }
 
     @Override
@@ -244,7 +239,7 @@ public abstract class BaseStateJob<T> implements Job, JobRunFileProvider {
     }
 
     private InputStream getStateInputStream(final JobRun jobRun) throws IOException {
-        return jobRunInputManager.createInputStream(stateInputDeclaration(jobRun));
+        return jobRunInputManager.getJobRunInput(stateInputDeclaration(jobRun));
     }
 
     @Nullable

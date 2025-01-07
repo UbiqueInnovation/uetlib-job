@@ -3,9 +3,7 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.files.JobFile;
-import ch.ubique.backend.job.files.JobRunFileProvider;
-import ch.ubique.backend.job.files.JobRunInputManager;
+import ch.ubique.backend.job.inputs.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.storage.JobRunStorage;
@@ -24,12 +22,11 @@ import org.springframework.retry.annotation.Retryable;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
+public abstract class BaseInputJob<T> implements Job {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -72,6 +69,7 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
             maxAttempts = 10,
             backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
             listeners = "defaultRetryListener")
+    @SuppressWarnings("java:S112")
     protected abstract DataAndInput<T> loadInputs() throws Exception;
 
     /**
@@ -87,20 +85,13 @@ public abstract class BaseInputJob<T> implements Job, JobRunFileProvider {
         return null;
     }
 
-    @Override
-    public Collection<JobFile> jobRunFiles(final JobRun jobRun) {
-        if (!isInputFileUploadEnabled()) {
-            return List.of();
-        }
-        return jobRunInputManager.getAllJobRunFiles(jobRun.id());
-    }
-
     /**
      * This method is called once the data is loaded and can be used to consume the input data.
      *
      * @param data the data returned by {@link BaseInputJob#loadInputs()}
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
+    @SuppressWarnings("java:S112")
     protected abstract JobRunState processInputs(T data) throws Exception;
 
     /**

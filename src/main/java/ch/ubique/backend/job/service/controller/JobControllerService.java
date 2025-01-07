@@ -3,12 +3,11 @@ package ch.ubique.backend.job.service.controller;
 import static java.util.function.Function.identity;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
-import ch.ubique.backend.job.files.JobFile;
-import ch.ubique.backend.job.files.JobRunFileProvider;
+import ch.ubique.backend.job.inputs.JobRunInputManager;
+import ch.ubique.backend.job.inputs.JobRunInputProvider;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -68,6 +67,7 @@ public class JobControllerService {
     private final TriggerCoordinatorService triggerCoordinatorService;
     private final JobDataService jobDataService;
     private final JobManualTriggerService jobManualTriggerService;
+    private final JobRunInputManager jobRunInputManager;
 
     public JobControllerService(
             final JobDataService jobDataService,
@@ -75,13 +75,15 @@ public class JobControllerService {
             final JobExecutorService jobExecutorService,
             final CronTriggerService cronTriggerService,
             final TriggerCoordinatorService triggerCoordinatorService,
-            final JobManualTriggerService jobManualTriggerService) {
+            final JobManualTriggerService jobManualTriggerService,
+            final JobRunInputManager jobRunInputManager) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
         this.cronTriggerService = cronTriggerService;
         this.triggerCoordinatorService = triggerCoordinatorService;
         this.jobManualTriggerService = jobManualTriggerService;
+        this.jobRunInputManager = jobRunInputManager;
     }
 
     private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
@@ -459,42 +461,43 @@ public class JobControllerService {
     }
 
     public JobRunFileListResponse listFiles(final int jobRunId) {
-        return new JobRunFileListResponse(getJobFiles(jobRunId).map(JobFile::path).toList());
+        return new JobRunFileListResponse(jobRunInputManager.getDeclaredInputPaths(jobRunId));
     }
 
     public Optional<InputStreamResource> getFile(final int jobRunId, final String path) {
-        return getJobFiles(jobRunId)
-                .filter(file -> file.path().equals(path))
+        return jobRunInputProvider(jobRunId)
+                .flatMap(inputProvider -> getFile(jobRunId, path, inputProvider));
+    }
+
+    private Optional<InputStreamResource> getFile(
+            final int jobRunId, final String path, final JobRunInputProvider inputProvider) {
+        return jobRunInputManager.getInputDeclarations(jobRunId).stream()
+                .filter(input -> input.path().equals(path))
                 .findFirst()
-                .map(JobFile::inputStreamProvider)
-                .flatMap(ThrowingFunction.lifted(InputStreamProvider::inputStream))
+                .flatMap(ThrowingFunction.lifted(inputProvider::getJobRunInput))
                 .map(InputStreamResource::new);
     }
 
     private boolean hasFiles(final JobRun jobRun) {
-        return getJobFiles(jobRun).findAny().isPresent();
+        return jobRunInputManager.hasDeclaredInputs(jobRun.id());
     }
 
-    private Stream<JobFile> getJobFiles(final int jobRunId) {
-        return jobService.getJobRunMaybe(jobRunId).stream().flatMap(this::getJobFiles);
+    private Optional<Job> instantiateJob(final int jobRunId) {
+        return jobDataService
+                .findJobRunById(jobRunId)
+                .map(JobRun::jobId)
+                .flatMap(jobService::getJobClassMaybe)
+                .map(jobService::instantiateJob);
     }
 
-    private Stream<JobFile> getJobFiles(final JobRun jobRun) {
-        return instantiateJob(jobRun)
-                .map(this::jobRunFileProvider)
-                .map(fileProvider -> fileProvider.jobRunFiles(jobRun))
-                .stream()
-                .flatMap(Collection::stream);
+    private Optional<JobRunInputProvider> jobRunInputProvider(final int jobRunId) {
+        return instantiateJob(jobRunId).map(this::jobRunInputProvider);
     }
 
-    private Optional<Job> instantiateJob(final JobRun jobRun) {
-        return jobService.getJobClassMaybe(jobRun.jobId()).map(jobService::instantiateJob);
-    }
-
-    private JobRunFileProvider jobRunFileProvider(final Job job) {
-        if (job instanceof final JobRunFileProvider jobRunFileProvider) {
-            return jobRunFileProvider;
+    private JobRunInputProvider jobRunInputProvider(final Job job) {
+        if (job instanceof final JobRunInputProvider jobRunInputProvider) {
+            return jobRunInputProvider;
         }
-        return null;
+        return jobRunInputManager;
     }
 }
