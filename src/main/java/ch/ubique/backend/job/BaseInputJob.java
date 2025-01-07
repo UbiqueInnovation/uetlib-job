@@ -3,7 +3,7 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.inputs.JobRunInputManager;
+import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.storage.JobRunStorage;
