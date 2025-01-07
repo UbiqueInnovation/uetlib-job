@@ -1,6 +1,5 @@
-package ch.ubique.backend.job.files;
+package ch.ubique.backend.job.inputs;
 
-import ch.ubique.backend.core.io.InputStreamProvider;
 import ch.ubique.backend.core.utils.ArrayUtils;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
@@ -17,7 +16,7 @@ import java.util.Collection;
 import org.springframework.stereotype.Service;
 
 @Service
-public class JobRunInputManager {
+public class JobRunInputManager implements JobRunInputProvider {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -56,23 +55,22 @@ public class JobRunInputManager {
                 inputDeclaration.path());
     }
 
-    public Collection<JobRunInputDeclaration> getDeclarations(final int jobRunId) {
+    public Collection<String> getDeclaredInputPaths(final int jobRunId) {
+        return getInputDeclarations(jobRunId).stream().map(JobRunInputDeclaration::path).toList();
+    }
+
+    public Collection<JobRunInputDeclaration> getInputDeclarations(final int jobRunId) {
         return jobDataService.findJobRunInputs(jobRunId).stream()
                 .map(JobRunInputDeclaration::from)
                 .toList();
     }
 
-    public Collection<JobFile> getAllJobRunFiles(final int jobRunId) {
-        return getDeclarations(jobRunId).stream().map(this::createJobFile).toList();
+    public boolean hasDeclaredInputs(final int jobRunId) {
+        return !jobDataService.findJobRunInputs(jobRunId).isEmpty();
     }
 
-    public JobFile createJobFile(final JobRunInputDeclaration inputDeclaration) {
-        return new JobFile(
-                inputDeclaration.path(),
-                InputStreamProvider.of(() -> createInputStream(inputDeclaration)));
-    }
-
-    public InputStream createInputStream(final JobRunInputDeclaration inputDeclaration)
+    @Override
+    public InputStream getJobRunInput(final JobRunInputDeclaration inputDeclaration)
             throws IOException {
         final var jobSimpleName = getJobSimpleName(inputDeclaration);
         return jobRunStorage.loadJobRunInput(
@@ -90,8 +88,8 @@ public class JobRunInputManager {
     }
 
     private String getJobSimpleName(final JobRunInputDeclaration inputDeclaration) {
-        final var jobId = jobDataService.findJobRunById(inputDeclaration.jobRunId()).orElseThrow();
-        final var job = jobDataService.findJobById(jobId.id()).orElseThrow();
+        final var jobRun = jobDataService.findJobRunById(inputDeclaration.jobRunId()).orElseThrow();
+        final var job = jobDataService.findJobById(jobRun.jobId()).orElseThrow();
         return ArrayUtils.lastElement(job.canonicalClassName().split("\\."));
     }
 }
