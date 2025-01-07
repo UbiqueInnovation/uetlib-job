@@ -25,7 +25,7 @@ public interface JobRunStorage {
             @StoragePathVariable String fileName)
             throws IOException;
 
-    @InputMapping(path = "{jobName}/{runId}/{fileName}.gz")
+    @ExistsMapping(path = "{jobName}/{runId}/{fileName}.gz")
     boolean jobRunInputExists(
             @StoragePathVariable String jobName,
             @StoragePathVariable String runId,
