@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.inputs;
+package ch.ubique.backend.job.service.inputs;
 
 import ch.ubique.backend.core.utils.ArrayUtils;
 import ch.ubique.backend.job.data.service.JobDataService;
