@@ -19,7 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run")
+@Profile("!job-run & !disable-triggers")
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
@@ -55,10 +55,14 @@ public class TriggerCoordinatorService {
             final var instance = jobService.instantiateJob(jobClass);
             final var triggers = getTriggers(instance);
             for (final var trigger : triggers) {
-                getTriggerService(trigger.definition())
-                        .onStartup(trigger.id(), trigger.definition(), runnable(jobClass));
+                onStartup(trigger, jobClass);
             }
         }
+    }
+
+    protected void onStartup(final Trigger trigger, final Class<? extends Job> jobClass) {
+        getTriggerService(trigger.definition())
+                .onStartup(trigger.id(), trigger.definition(), runnable(jobClass));
     }
 
     public void createTrigger(
