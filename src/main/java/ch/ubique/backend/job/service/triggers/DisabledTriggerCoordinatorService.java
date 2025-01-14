@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 @Service
-@Profile("!job-run & disable-triggers")
+@Profile("!job-run & job-disable-triggers")
 public class DisabledTriggerCoordinatorService extends TriggerCoordinatorService {
 
     private static final Logger logger =
