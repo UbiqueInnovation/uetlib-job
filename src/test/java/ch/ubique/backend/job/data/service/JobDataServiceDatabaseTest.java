@@ -8,16 +8,16 @@ import ch.ubique.backend.job.data.BaseJobDatabaseTest;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobRunStateTransition;
-
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
+
 import jakarta.validation.constraints.NotNull;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SuppressWarnings("DataFlowIssue")
 class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {

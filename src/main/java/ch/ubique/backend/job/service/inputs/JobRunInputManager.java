@@ -47,7 +47,7 @@ public class JobRunInputManager implements JobRunInputProvider {
 
     public void saveToStorage(final JobRunInputDeclaration inputDeclaration, final Output output)
             throws IOException {
-        logger.info("Saving to {} storage.", inputDeclaration);
+        logger.info("Saving {} to storage.", inputDeclaration);
         jobRunStorage.saveJobRunInput(
                 output.gZip(),
                 getJobSimpleName(inputDeclaration),
@@ -66,7 +66,7 @@ public class JobRunInputManager implements JobRunInputProvider {
     }
 
     public boolean hasDeclaredInputs(final int jobRunId) {
-        return !jobDataService.findJobRunInputs(jobRunId).isEmpty();
+        return jobDataService.hasJobRunInputs(jobRunId);
     }
 
     @Override

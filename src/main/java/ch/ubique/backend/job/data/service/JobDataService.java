@@ -313,6 +313,11 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public boolean hasJobRunInputs(final int runId) {
+        return jobRunInputRepository.existsByRunId(runId);
+    }
+
+    @Transactional(readOnly = true)
     public Collection<LoggingEvent> findLogsForJobRun(
             final int jobRunId, final long skipLines, final int pageSize) {
         return loggingEventRepository

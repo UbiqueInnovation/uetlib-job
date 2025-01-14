@@ -16,6 +16,8 @@ public interface JobRunInputRepository extends JpaRepository<JobRunInputEntity, 
 
     List<JobRunInput> findAllByRunId(final Integer runId);
 
+    boolean existsByRunId(final Integer runId);
+
     @Transactional
     @Modifying
     @Query(
