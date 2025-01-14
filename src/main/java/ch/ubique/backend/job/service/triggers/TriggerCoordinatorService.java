@@ -19,7 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run & !disable-triggers")
+@Profile("!job-run & !job-disable-triggers")
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
