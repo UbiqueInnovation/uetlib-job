@@ -183,9 +183,8 @@ public abstract class BaseInputJob<T> implements Job {
     }
 
     private void saveRunInputsToDatabase(final Collection<ByteFile> inputs, final JobRun jobRun) {
-        inputs.stream()
-                .map(input -> JobRunInputDeclaration.from(jobRun, input))
-                .forEach(jobRunInputManager::saveToDatabase);
+        jobRunInputManager.saveToDatabase(
+                inputs.stream().map(input -> JobRunInputDeclaration.from(jobRun, input)).toList());
     }
 
     private void uploadInputFiles(final Collection<ByteFile> inputFiles, final JobRun jobRun)
