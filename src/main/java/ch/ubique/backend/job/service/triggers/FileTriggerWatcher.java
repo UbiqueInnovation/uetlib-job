@@ -38,7 +38,7 @@ public class FileTriggerWatcher {
     void watch() {
         logger.info("Starting to watch for file events.");
 
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             final var key = waitForNextWatchKey();
             if (key == null) {
                 return;
