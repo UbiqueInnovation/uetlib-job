@@ -49,9 +49,10 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     public void close() {
         executorService.shutdown();
         try {
+            logger.debug("awaiting termination of executorService");
             final var successfulTermination = executorService.awaitTermination(5, TimeUnit.SECONDS);
             if (!successfulTermination) {
-                logger.info(
+                logger.debug(
                         "executorService failed to terminate successfully before timeout elapsed");
             }
         } catch (final InterruptedException e) {
