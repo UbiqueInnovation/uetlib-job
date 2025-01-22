@@ -21,15 +21,15 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     private static final Logger logger = LoggerFactory.getLogger(FileTriggerService.class);
 
-    private final ExecutorService executorService;
+    private final ExecutorService fileTriggerWatcherExecutorService;
     private final FileTriggerWatcher fileTriggerWatcher;
 
     public FileTriggerService(final FileTriggerWatcher fileTriggerWatcher) {
         final var threadFactory =
                 new ThreadFactoryBuilder().setNameFormat("file-trigger-service").build();
-        this.executorService = Executors.newSingleThreadExecutor(threadFactory);
+        this.fileTriggerWatcherExecutorService = Executors.newSingleThreadExecutor(threadFactory);
         this.fileTriggerWatcher = fileTriggerWatcher;
-        executorService.execute(fileTriggerWatcher::watch);
+        fileTriggerWatcherExecutorService.execute(fileTriggerWatcher::watch);
     }
 
     @Override
@@ -47,18 +47,21 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     @Override
     public void close() {
-        executorService.shutdown();
+        logger.info("Shutting down file trigger watcher");
+        fileTriggerWatcherExecutorService.shutdown();
         try {
-            final var successfulTermination = executorService.awaitTermination(5, TimeUnit.SECONDS);
+            final var successfulTermination =
+                    fileTriggerWatcherExecutorService.awaitTermination(5, TimeUnit.SECONDS);
             if (!successfulTermination) {
                 logger.info(
-                        "Failed to shutdown successfully before timeout elapsed, will force shutting down executorService");
-                executorService.shutdownNow(); // Forcibly interrupts threads if needed
+                        "Failed to shutdown file trigger watcher successfully before timeout elapsed, will force shutting down executorService");
+                fileTriggerWatcherExecutorService
+                        .shutdownNow(); // Forcibly interrupts threads if needed
             }
         } catch (final InterruptedException e) {
             logger.info(
-                    "Interrupted while awaiting termination, will force shutting down executorService");
-            executorService.shutdownNow(); // Ensure threads are forcibly stopped
+                    "Interrupted while awaiting termination of file trigger watcher, will force shutting down executorService");
+            fileTriggerWatcherExecutorService.shutdownNow(); // Ensure threads are forcibly stopped
             Thread.currentThread().interrupt();
         }
     }
