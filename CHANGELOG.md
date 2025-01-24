@@ -9,6 +9,11 @@
   - Implement `JobRunInputProvider` in your Job if you want to customize the loading of input files. 
 - Disable triggers by activating the `job-disable-triggers` profile.
 
+### Fixes
+
+- Properly shutdown executor service in `FileTriggerService`
+- Renamed DB migrations 
+
 ## 1.0.0
 
 First release. The code was moved
