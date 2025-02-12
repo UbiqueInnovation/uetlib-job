@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -10,7 +11,10 @@ import jakarta.validation.constraints.NotNull;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRunArguments(
-        boolean forceRun, @NotNull @Valid TriggerContext triggerContext, @Nullable Object additionalData) {
+        boolean forceRun,
+        @NotNull @Valid TriggerContext triggerContext,
+        @Nullable ReplayContext replayContext,
+        @Nullable Object additionalData) {
 
     public static JobRunArguments DEFAULT = new JobRunArguments(false);
 
@@ -24,5 +28,17 @@ public record JobRunArguments(
 
     public JobRunArguments(final boolean forceRun, @Nullable final Object additionalData) {
         this(forceRun, new EmptyTriggerContext(), additionalData);
+    }
+
+    public JobRunArguments(
+            final boolean forceRun,
+            final TriggerContext triggerContext,
+            final Object additionalData) {
+        this(forceRun, triggerContext, null, additionalData);
+    }
+
+    @JsonIgnore
+    public JobRunArguments withReplayContext(final ReplayContext replayContext) {
+        return new JobRunArguments(forceRun, triggerContext, replayContext, additionalData);
     }
 }
