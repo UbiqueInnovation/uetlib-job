@@ -1,9 +1,13 @@
 package ch.ubique.backend.job.model;
 
+import ch.ubique.backend.job.model.converters.ObjectWithTypeSerializer;
+import ch.ubique.backend.job.model.converters.ObjectWithTypeDeserializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +18,10 @@ public record JobRunArguments(
         boolean forceRun,
         @NotNull @Valid TriggerContext triggerContext,
         @Nullable ReplayContext replayContext,
-        @Nullable Object additionalData) {
+        @Nullable
+                @JsonSerialize(using = ObjectWithTypeSerializer.class)
+                @JsonDeserialize(using = ObjectWithTypeDeserializer.class)
+                Object additionalData) {
 
     public static JobRunArguments DEFAULT = new JobRunArguments(false);
 
