@@ -48,11 +48,9 @@ public class JobRunEntity {
     @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
     private JobRunnerKey runnerKey;
 
-    @PastOrPresent
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
-    @PastOrPresent
     @Column(name = "finished_at")
     private Instant finishedAt;
 
@@ -76,18 +74,12 @@ public class JobRunEntity {
             @PositiveOrZero final int jobVersion,
             @NotNull final JobRunnerKey runnerKey,
             @NotNull @PastOrPresent final Instant startedAt,
-            @PastOrPresent final Instant finishedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.jobVersion = jobVersion;
         this.runnerKey = runnerKey;
         this.startedAt = startedAt;
-        this.finishedAt = finishedAt;
         this.jobRunArguments = jobRunArguments;
-    }
-
-    public JobRunEntity with(final JobRun jobRun) {
-        return this;
     }
 
     public JobRunState latestState() {

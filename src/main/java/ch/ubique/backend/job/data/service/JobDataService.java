@@ -11,6 +11,7 @@ import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.*;
+import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -416,7 +417,7 @@ public class JobDataService {
             final JobRunArguments arguments) {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =
-                new JobRunEntity(jobId, jobVersion, runnerKey, scheduledAt, null, arguments);
+                new JobRunEntity(jobId, jobVersion, runnerKey, scheduledAt, arguments);
         jobRunEntity.addJobRunStateTransition(
                 new JobRunStateTransitionEmbeddable(JobRunState.SCHEDULED, scheduledAt));
         return jobRunRepository.save(jobRunEntity).toJobRun();
