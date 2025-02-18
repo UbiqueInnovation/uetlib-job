@@ -328,6 +328,14 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public Collection<LoggingEvent> findAllLogsForJobRun(final int jobRunId) {
+        return loggingEventRepository
+                .findAllByJobRunId(jobRunId, Sort.by("timestamp"))
+                .map(LoggingEventEntity::toLoggingEvent)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Collection<JobProperty<Object>> getProperties(final int jobId) {
         return jobPropertyRepository
                 .findAllByJobId(jobId)
