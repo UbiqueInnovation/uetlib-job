@@ -1,11 +1,8 @@
 package ch.ubique.backend.job.config;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.WebSocketException;
-import ch.ubique.backend.job.logging.LogLineAccumulator;
 
+import ch.ubique.backend.job.logging.service.LogService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +17,6 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,26 +27,16 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger =
             LoggerFactory.getLogger(BackendLibJobWebSocketHandler.class);
-    private static final int PAGE_SIZE = 5000;
 
     private final ObjectMapper objectMapper;
-    private final JobDataService jobDataService;
-
-    private final PatternLayoutEncoder patternLayoutEncoder;
+    private final LogService logService;
 
     private final Map<String, ActiveSession> activeSessions = new ConcurrentHashMap<>();
 
     public BackendLibJobWebSocketHandler(
-            final ObjectMapper objectMapper, final JobDataService jobDataService) {
+            final ObjectMapper objectMapper, final LogService logsService) {
         this.objectMapper = objectMapper;
-        this.jobDataService = jobDataService;
-        patternLayoutEncoder = new PatternLayoutEncoder();
-        patternLayoutEncoder.setPattern(
-                "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint}"
-                        + " %clr([%15.15t]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m");
-        patternLayoutEncoder.setCharset(StandardCharsets.UTF_8);
-        patternLayoutEncoder.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
-        patternLayoutEncoder.start();
+        this.logService = logsService;
     }
 
     @Override
@@ -79,7 +65,7 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         final var session = activeSession.session();
         final var jobRunId = activeSession.jobRunId();
         final var counter = activeSession.counter();
-        final var accumulatedLogLines = getAccumulatedLogLines(jobRunId, counter.get());
+        final var accumulatedLogLines = logService.logs(jobRunId, counter.get());
         if (accumulatedLogLines.lines() == 0) {
             return;
         }
@@ -96,23 +82,6 @@ public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
         } catch (final IOException e) {
             throw new WebSocketException(e);
         }
-    }
-
-    private LogLineAccumulator.AccumulatedLogLines getAccumulatedLogLines(
-            final Integer jobRunId, final long skipLines) {
-        final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        loggerContext.getLogger("ROOT").getAppender("console");
-
-        return jobDataService
-                .findLogsForJobRun(jobRunId, skipLines, BackendLibJobWebSocketHandler.PAGE_SIZE)
-                .stream()
-                .map(patternLayoutEncoder::encode)
-                .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
-                .reduce(
-                        new LogLineAccumulator(),
-                        LogLineAccumulator::accumulate,
-                        LogLineAccumulator::combine)
-                .collectLog();
     }
 
     record LogRequestMessage(int jobRunId) {}

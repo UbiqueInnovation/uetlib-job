@@ -1,9 +1,5 @@
 package ch.ubique.backend.job.logging;
 
-import ch.ubique.backend.core.validator.NullOrNotBlank;
-
-import jakarta.validation.constraints.PositiveOrZero;
-
 import org.apache.commons.lang3.StringUtils;
 
 public class LogLineAccumulator {
@@ -27,6 +23,4 @@ public class LogLineAccumulator {
     public AccumulatedLogLines collectLog() {
         return new AccumulatedLogLines(lines, StringUtils.stripToNull(logBuilder.toString()));
     }
-
-    public record AccumulatedLogLines(@PositiveOrZero int lines, @NullOrNotBlank String log) {}
 }
