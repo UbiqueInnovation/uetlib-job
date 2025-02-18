@@ -1,12 +1,12 @@
-package ch.ubique.backend.job.logging.service;
+package ch.ubique.backend.job.service.logs;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.logging.AccumulatedLogLines;
+
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 @Service
-public class LogService extends TextWebSocketHandler {
+public class LogService {
 
     private static final int PAGE_SIZE = 5000;
 
