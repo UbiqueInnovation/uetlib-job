@@ -9,7 +9,9 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
@@ -35,8 +37,7 @@ public class TriggerCoordinatorService {
             final JobDataService jobDataService,
             final JobService jobService,
             final JobExecutorService jobExecutorService,
-            final Collection<TriggerService<?>> triggerServices)
-            throws ClassNotFoundException {
+            final Collection<TriggerService<?>> triggerServices) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
@@ -44,10 +45,9 @@ public class TriggerCoordinatorService {
                 triggerServices.stream()
                         .collect(
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
-
-        onStartup();
     }
 
+    @EventListener(ApplicationReadyEvent.class)
     private void onStartup() throws ClassNotFoundException {
         logger.info("Evaluating triggers of all jobs");
         for (final var job : jobDataService.findJobs()) {
