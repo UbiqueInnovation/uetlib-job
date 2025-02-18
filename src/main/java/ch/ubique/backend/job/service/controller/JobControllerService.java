@@ -6,8 +6,7 @@ import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
-import ch.ubique.backend.job.service.inputs.JobRunInputManager;
-import ch.ubique.backend.job.service.inputs.JobRunInputProvider;
+import ch.ubique.backend.job.logging.service.LogService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -28,6 +27,8 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.JobManualTriggerService;
+import ch.ubique.backend.job.service.inputs.JobRunInputManager;
+import ch.ubique.backend.job.service.inputs.JobRunInputProvider;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
@@ -68,6 +69,7 @@ public class JobControllerService {
     private final JobDataService jobDataService;
     private final JobManualTriggerService jobManualTriggerService;
     private final JobRunInputManager jobRunInputManager;
+    private final LogService logService;
 
     public JobControllerService(
             final JobDataService jobDataService,
@@ -76,7 +78,8 @@ public class JobControllerService {
             final CronTriggerService cronTriggerService,
             final TriggerCoordinatorService triggerCoordinatorService,
             final JobManualTriggerService jobManualTriggerService,
-            final JobRunInputManager jobRunInputManager) {
+            final JobRunInputManager jobRunInputManager,
+            final LogService logService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
@@ -84,6 +87,7 @@ public class JobControllerService {
         this.triggerCoordinatorService = triggerCoordinatorService;
         this.jobManualTriggerService = jobManualTriggerService;
         this.jobRunInputManager = jobRunInputManager;
+        this.logService = logService;
     }
 
     private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
@@ -499,5 +503,9 @@ public class JobControllerService {
             return jobRunInputProvider;
         }
         return jobRunInputManager;
+    }
+
+    public String logs(final int jobRunId) {
+        return Objects.requireNonNullElse(logService.logs(jobRunId).log(), "No logs found.");
     }
 }

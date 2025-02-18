@@ -156,6 +156,11 @@ public class BackendLibJobStatusController {
         return jobControllerService.cancelJobRun(jobRunId);
     }
 
+    @GetMapping("/run/{jobRunId}/logs")
+    public String logs(@PathVariable final int jobRunId) {
+        return jobControllerService.logs(jobRunId);
+    }
+
     @GetMapping("/run/{jobRunId}/files")
     public JobRunFileListResponse listFiles(@PathVariable final int jobRunId) {
         return jobControllerService.listFiles(jobRunId);
