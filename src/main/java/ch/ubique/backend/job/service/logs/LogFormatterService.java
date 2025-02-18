@@ -1,21 +1,20 @@
-package ch.ubique.backend.job.logging.service;
+package ch.ubique.backend.job.service.logs;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-
-import ch.ubique.backend.job.logging.LogLineAccumulator;
 import ch.ubique.backend.job.logging.AccumulatedLogLines;
+import ch.ubique.backend.job.logging.LogLineAccumulator;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.stream.Stream;
 
 @Service
-public class LogFormatterService extends TextWebSocketHandler {
+public class LogFormatterService {
 
     private final PatternLayoutEncoder patternLayoutEncoder;
 
