@@ -3,6 +3,10 @@ package ch.ubique.backend.job.service.executor;
 import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.executer.JobSubmissionResult;
+import ch.ubique.backend.job.model.executer.JobSubmissionStatus;
+import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
+import ch.ubique.backend.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -34,17 +38,17 @@ public class JobExecutorService {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    public void submit(@NotNull final Class<? extends Job> jobClass) {
-        submit(jobClass, null);
+    public JobSubmissionResult submit(@NotNull final Class<? extends Job> jobClass) {
+        return submit(jobClass, null);
     }
 
-    public void submit(
+    public JobSubmissionResult submit(
             @NotNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments) {
-        submit(jobClass, arguments, null, null);
+        return submit(jobClass, arguments, null, null);
     }
 
-    public void submit(
+    public JobSubmissionResult submit(
             @NotNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
@@ -57,7 +61,7 @@ public class JobExecutorService {
                 job.allowParallelRuns() || (isForceRun && job.forceRunOverridesAllowParallelRuns());
         if (!allowParallelScheduling && isCurrentlyRunning(job) && !isSameAsLastRun(job, runId)) {
             logger.info("Job is already running and parallel runs are disallowed.");
-            return;
+            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
         }
 
         logger.info("{} submitted to executor.", jobClass);
@@ -71,14 +75,16 @@ public class JobExecutorService {
 
         final var scheduled = tryToSchedule(runner, job, jobRunContext);
 
-        if (scheduled) {
-            logger.info("Job {} successfully scheduled", job);
-        } else {
+        if (!scheduled) {
             jobService.updateJobRunState(jobRun, JobRunState.ERROR, Instant.now());
             logger.error("Job {} could not be scheduled", job);
+            MDC.setContextMap(previousContextMap);
+            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.FAILED);
         }
 
+        logger.info("Job {} successfully scheduled", job);
         MDC.setContextMap(previousContextMap);
+        return new SuccessfulSubmissionResult(runner.key(), jobRunContext);
     }
 
     private boolean tryToSchedule(
