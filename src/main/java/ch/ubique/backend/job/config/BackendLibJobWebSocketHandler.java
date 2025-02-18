@@ -2,7 +2,7 @@ package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.exception.WebSocketException;
 
-import ch.ubique.backend.job.logging.service.LogService;
+import ch.ubique.backend.job.service.logs.LogService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.constraints.NotNull;
