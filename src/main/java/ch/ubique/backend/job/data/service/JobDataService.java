@@ -20,6 +20,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -146,7 +147,7 @@ public class JobDataService {
 
     private Predicate buildJobRunsPredicate(
             final List<Integer> jobIds,
-            final JobRunState state,
+            final Collection<JobRunState> states,
             final Optional<Range<Instant>> dateTimeRange,
             final Root<JobRunLatestStateViewEntity> root,
             final CriteriaBuilder criteriaBuilder) {
@@ -158,8 +159,8 @@ public class JobDataService {
             predicates.add(jobIdInConstraint);
         }
 
-        if (state != null) {
-            predicates.add(criteriaBuilder.equal(root.get("latestState"), state));
+        if (CollectionUtils.isNotEmpty(states)) {
+            predicates.add(root.get("latestState").in(states));
         }
 
         if (dateTimeRange.isPresent()) {
@@ -176,13 +177,13 @@ public class JobDataService {
     public Page<JobRun> findJobRuns(
             final Pageable pageable,
             @NotNull final List<Integer> includeJobIds,
-            final JobRunState state,
+            final Collection<JobRunState> states,
             final Optional<Range<Instant>> fromToRange) {
         return jobRunLatestStateViewRepository
                 .findAll(
                         (root, query, criteriaBuilder) ->
                                 buildJobRunsPredicate(
-                                        includeJobIds, state, fromToRange, root, criteriaBuilder),
+                                        includeJobIds, states, fromToRange, root, criteriaBuilder),
                         pageable)
                 .map(JobRunLatestStateViewEntity::toJobRun);
     }
