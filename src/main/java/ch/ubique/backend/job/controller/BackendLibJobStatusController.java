@@ -77,7 +77,7 @@ public class BackendLibJobStatusController {
             @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
             @RequestParam(required = false) final Instant from,
             @RequestParam(required = false) final Instant to,
-            @RequestParam(required = false) final JobRunState state)
+            @RequestParam(required = false, defaultValue = "") final Collection<JobRunState> state)
             throws ClassNotFoundException {
         return jobControllerService.findJobRuns(
                 toPageableWithDefaultDirection(page, perPage, orderBy, directions),

@@ -185,7 +185,7 @@ public class JobControllerService {
      */
     public JobRunInfosContainer findJobRuns(
             final Pageable pageable,
-            final JobRunState state,
+            final Collection<JobRunState> states,
             @NotNull final Collection<String> includeJobNamesOrIds,
             @NotNull final Collection<String> excludeJobNamesOrIds,
             @Nullable final Instant from,
@@ -198,7 +198,7 @@ public class JobControllerService {
                 getJobIdIncludeList(includeJobNamesOrIds, excludeJobNamesOrIds);
         final var fromToRange = getFromToRangeOptional(from, to);
         final var jobRunsPage =
-                jobDataService.findJobRuns(pageable, selectedJobIdList, state, fromToRange);
+                jobDataService.findJobRuns(pageable, selectedJobIdList, states, fromToRange);
         final var jobRuns = jobRunsPage.stream().map(this::createJobRunInfo).toList();
         return new JobRunInfosContainer(
                 jobRuns,
