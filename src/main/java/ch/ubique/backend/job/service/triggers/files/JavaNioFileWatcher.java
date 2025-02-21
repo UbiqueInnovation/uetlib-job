@@ -41,7 +41,7 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
     }
 
     public void watch() {
-        logger.info("Starting to watch for file events.");
+        logger.debug("Starting to watch for file events.");
 
         while (!Thread.currentThread().isInterrupted()) {
             final var key = waitForNextWatchKey();
@@ -63,7 +63,9 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
         try {
             return watchService.take();
         } catch (final InterruptedException e) {
-            logger.warn("File watcher was interrupted", e);
+            if (!fileTriggerWatcherExecutorService.isShutdown()) {
+                logger.warn("File watcher was interrupted", e);
+            }
             Thread.currentThread().interrupt();
             return null;
         }
@@ -71,7 +73,7 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
 
     private void checkForMatchingTriggerDefinitions(final WatchKey key) {
         final var watchedPath = watchedPaths.get(key);
-        logger.info("Watched path: {}", watchedPath);
+        logger.debug("Watched path: {}", watchedPath);
 
         for (final var event : key.pollEvents()) {
             if (logger.isInfoEnabled()) {
@@ -81,7 +83,7 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
                                 .append("count", event.count())
                                 .append("context", event.context())
                                 .toString();
-                logger.info("Got event: {}", eventToString);
+                logger.debug("Got event: {}", eventToString);
                 if (!(event.context() instanceof final Path eventContextPath)) {
                     // not a path (can happen for eventKind OVERFLOW) so surely that does not match
                     return;
@@ -119,19 +121,19 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
 
     @Override
     public void close() {
-        logger.info("Shutting down file trigger watcher");
+        logger.debug("Shutting down file trigger watcher");
         fileTriggerWatcherExecutorService.shutdown();
         try {
             final var successfulTermination =
                     fileTriggerWatcherExecutorService.awaitTermination(5, TimeUnit.SECONDS);
             if (!successfulTermination) {
-                logger.info(
+                logger.debug(
                         "Failed to shutdown file trigger watcher successfully before timeout elapsed, will force shutting down executorService");
                 fileTriggerWatcherExecutorService
                         .shutdownNow(); // Forcibly interrupts threads if needed
             }
         } catch (final InterruptedException e) {
-            logger.info(
+            logger.debug(
                     "Interrupted while awaiting termination of file trigger watcher, will force shutting down executorService");
             fileTriggerWatcherExecutorService.shutdownNow(); // Ensure threads are forcibly stopped
             Thread.currentThread().interrupt();

@@ -32,17 +32,20 @@ public final class InotifyFileWatcher implements FileWatcher, InotifyEventListen
         this.pathsByWatchDescriptor = new ConcurrentHashMap<>();
         NativeInotify.loadLibrary(null);
         this.inotify = new Inotify();
+        logger.info("Initialized InotifyFileWatcher.");
     }
 
     @Override
     public void watchPath(final Path path) {
         if (pathsByWatchDescriptor.containsValue(path)) {
+            logger.debug("Path {} already watched.", path);
             return;
         }
         try {
             final var watchDescriptor = inotify.addWatch(path.toString(), Event.All);
             inotify.addListener(watchDescriptor, this);
             pathsByWatchDescriptor.put(watchDescriptor, path);
+            logger.debug("Added listener for {}, watchDescriptor={}.", path, watchDescriptor);
         } catch (final InotifyException e) {
             throw new UncheckedException(e);
         }
@@ -50,10 +53,15 @@ public final class InotifyFileWatcher implements FileWatcher, InotifyEventListen
 
     @Override
     public void filesystemEventOccurred(final InotifyEvent event) {
+        logger.debug("Got {}", event);
         final var watchDescriptor = event.getSource();
         final var watchedPath = pathsByWatchDescriptor.get(watchDescriptor);
         final var filePath = event.getName();
         final var eventType = FileChangeEvent.fromInotifyEvent(event);
+        if (eventType == FileChangeEvent.UNKNOWN) {
+            logger.debug("Event {} mapped to {}.", event, eventType);
+            return;
+        }
         if (filePath == null) {
             logger.debug("No file associated with event {}", event);
             return;

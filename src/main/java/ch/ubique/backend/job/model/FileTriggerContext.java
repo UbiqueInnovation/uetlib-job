@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.core.regex.SerializableMatchResult;
+import ch.ubique.backend.core.utils.RegexUtil;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.service.triggers.files.FileWatcherEvent;
 
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
+import java.util.regex.Matcher;
 
 /**
  * @param watchedPath Path where the event was triggered
@@ -23,9 +25,11 @@ public record FileTriggerContext(
         @NotNull @Valid SerializableMatchResult matchResult)
         implements TriggerContext {
 
-    public static FileTriggerContext from(
-            final FileWatcherEvent event, final SerializableMatchResult matchResult) {
+    public static FileTriggerContext from(final FileWatcherEvent event, final Matcher fileMatcher) {
         return new FileTriggerContext(
-                event.watchedPath(), event.type(), event.filePath().toString(), matchResult);
+                event.watchedPath(),
+                event.type(),
+                event.filePath().toString(),
+                RegexUtil.toSerializableMatchResult(fileMatcher));
     }
 }
