@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.1.2
+## 1.1.3
 
 ### New Features
 
@@ -13,9 +13,16 @@
 
 - `TriggerCoordinatorService.onStartup` was called too early
 
+## 1.1.2
+
+- Updated `uetlib-parent` and `uetlib-storage-spring-boot` dependencies
+- `JobRunArguments.additionalData` serialization and deserialization with the original object type
+- Added `ReplayContext` to `JobRunArguments`
+
 ## 1.1.1
 
-- Updated `uetlib` dependencies
+- Updated `uetlib-storage-spring-boot` dependency
+- Removed `@PastOrPresent` validation from `JobRunEntity` 
 
 ## 1.1.0
 
