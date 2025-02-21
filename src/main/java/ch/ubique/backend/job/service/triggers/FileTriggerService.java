@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service.triggers;
 
-import ch.ubique.backend.core.utils.RegexUtil;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
@@ -11,6 +10,7 @@ import ch.ubique.backend.job.service.triggers.files.JavaNioFileWatcher;
 import ch.ubique.backend.job.service.triggers.files.RegisteredFileTrigger;
 
 import com.den_4.inotify_java.exceptions.InotifyException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -76,39 +76,34 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     }
 
     private void onEvent(final FileWatcherEvent event) {
+        logger.debug("Got {}", event);
         registeredFileTriggers
                 .values()
-                .forEach(
-                        registeredFileTrigger -> {
-                            final var fileMatcher =
-                                    fileMatcher(registeredFileTrigger.fileTrigger(), event);
-                            if (fileMatcher == null || !fileMatcher.matches()) {
-                                // no match
-                                return;
-                            }
-
-                            final var matchResult =
-                                    RegexUtil.toSerializableMatchResult(fileMatcher);
-                            final var fileTriggerContext =
-                                    FileTriggerContext.from(event, matchResult);
-                            consumeJobRunArgument(registeredFileTrigger, fileTriggerContext);
-                        });
+                .forEach(registeredFileTrigger -> onEvent(event, registeredFileTrigger));
     }
 
-    void consumeJobRunArgument(
-            final RegisteredFileTrigger registeredFileTrigger,
-            final FileTriggerContext fileTriggerContext) {
-        final var jobRunArguments = new JobRunArguments(false, fileTriggerContext, null);
-        registeredFileTrigger.consumer().accept(jobRunArguments);
-    }
-
-    private Matcher fileMatcher(final FileTrigger trigger, final FileWatcherEvent event) {
-        if (event.type() != trigger.changeEvent()
-                || !event.watchedPath().equals(Path.of(trigger.folder()))) {
-            // event type or watchPath does not match
-            return null;
+    private void onEvent(final FileWatcherEvent event, final RegisteredFileTrigger trigger) {
+        final var fileMatcher = fileMatcher(trigger, event);
+        if (fileMatcher == null) {
+            return;
         }
-        return trigger.fileRegex().matcher(event.filePath().toString());
+        final var fileTriggerContext = FileTriggerContext.from(event, fileMatcher);
+        final var jobRunArguments = new JobRunArguments(false, fileTriggerContext, null);
+        logger.debug("Calling consumer for {}", trigger.fileTrigger());
+        trigger.consumer().accept(jobRunArguments);
+    }
+
+    private Matcher fileMatcher(final RegisteredFileTrigger trigger, final FileWatcherEvent event) {
+        final var fileTrigger = trigger.fileTrigger();
+        if (event.type() != fileTrigger.changeEvent()
+                || !event.watchedPath().equals(Path.of(fileTrigger.folder()))) {
+            return null; // event type or watchPath does not match
+        }
+        final var matcher = fileTrigger.fileRegex().matcher(event.filePath().toString());
+        if (!matcher.matches()) {
+            return null; // file regex does not match
+        }
+        return matcher;
     }
 
     private static void ensureDirectoryExists(final Path path) {
