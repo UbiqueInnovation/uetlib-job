@@ -1,14 +1,12 @@
 package ch.ubique.backend.job.service.triggers;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static java.util.stream.Collectors.*;
 
-import ch.ubique.backend.core.regex.SerializableMatchResult;
-import ch.ubique.backend.job.test.config.FileTriggerServiceTestConfig;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
@@ -16,39 +14,29 @@ import ch.ubique.backend.job.model.triggers.FileTrigger;
 import org.apache.commons.collections4.bag.HashBag;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Triple;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-@SpringBootTest(classes = FileTriggerServiceTestConfig.class)
 class FileTriggerServiceTest {
-
-    @Autowired private FileTriggerService fileTriggerService;
-
-    @SpyBean private FileTriggerWatcher fileTriggerWatcher;
-
-    @BeforeEach
-    void beforeEach() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     @SuppressWarnings("java:S2925")
     void testFilesTriggered() throws IOException, InterruptedException {
-        final var triggered = new HashBag<FileTrigger>();
+
+        final var fileTriggerService = Mockito.spy(new FileTriggerService());
+
+        final var triggered = new ArrayList<FileTrigger>();
+        final var fileTriggerContexts = new ArrayList<FileTriggerContext>();
         final var tempDir = Files.createTempDirectory(null);
 
         final var anyFileCreated =
@@ -60,14 +48,20 @@ class FileTriggerServiceTest {
                         Pattern.compile("(?<fileName>test)(?<fileExtension>\\.txt)"),
                         FileChangeEvent.ENTRY_DELETED);
 
-        final var registeredFileTriggerCaptor =
-                ArgumentCaptor.forClass(RegisteredFileTrigger.class);
-        final var fileTriggerContextCaptor = ArgumentCaptor.forClass(FileTriggerContext.class);
-
         fileTriggerService.addTrigger(
-                0, anyFileCreated, jobRunArguments -> triggered.add(anyFileCreated));
+                0,
+                anyFileCreated,
+                jobRunArguments -> {
+                    triggered.add(anyFileCreated);
+                    fileTriggerContexts.add((FileTriggerContext) jobRunArguments.triggerContext());
+                });
         fileTriggerService.addTrigger(
-                1, testTxtFileDeleted, jobRunArguments -> triggered.add(testTxtFileDeleted));
+                1,
+                testTxtFileDeleted,
+                jobRunArguments -> {
+                    triggered.add(testTxtFileDeleted);
+                    fileTriggerContexts.add((FileTriggerContext) jobRunArguments.triggerContext());
+                });
 
         // CREATE FILES
 
@@ -79,17 +73,13 @@ class FileTriggerServiceTest {
 
         // TEST INVOCATIONS
 
-        verify(fileTriggerWatcher, times(3))
-                .consumeJobRunArgument(
-                        registeredFileTriggerCaptor.capture(), fileTriggerContextCaptor.capture());
+        var registeredFileTriggerCaptorValues = triggered.stream().toList();
+        assertEquals(3, triggered.size());
+        assertEquals(anyFileCreated, triggered.getFirst());
+        assertEquals(anyFileCreated, triggered.get(1));
+        assertEquals(anyFileCreated, triggered.get(2));
 
-        var registeredFileTriggerCaptorValues = registeredFileTriggerCaptor.getAllValues();
-        assertEquals(3, registeredFileTriggerCaptorValues.size());
-        assertEquals(anyFileCreated, registeredFileTriggerCaptorValues.get(0).fileTrigger());
-        assertEquals(anyFileCreated, registeredFileTriggerCaptorValues.get(1).fileTrigger());
-        assertEquals(anyFileCreated, registeredFileTriggerCaptorValues.get(2).fileTrigger());
-
-        var fileTriggerContextCaptorValues = fileTriggerContextCaptor.getAllValues();
+        var fileTriggerContextCaptorValues = fileTriggerContexts.stream().toList();
         assertEquals(3, fileTriggerContextCaptorValues.size());
         assertInstanceOf(FileTriggerContext.class, fileTriggerContextCaptorValues.get(0));
         assertInstanceOf(FileTriggerContext.class, fileTriggerContextCaptorValues.get(1));
@@ -105,11 +95,9 @@ class FileTriggerServiceTest {
                                 fileTriggerContext ->
                                         Triple.of(
                                                 fileTriggerContext.matchResult().groupCount(),
-                                                ((SerializableMatchResult)
-                                                                fileTriggerContext.matchResult())
-                                                        .groups(),
-                                                ((SerializableMatchResult)
-                                                                fileTriggerContext.matchResult())
+                                                fileTriggerContext.matchResult().groups(),
+                                                fileTriggerContext
+                                                        .matchResult()
                                                         .namedGroupValues()))
                         .collect(toSet()));
 
@@ -123,22 +111,17 @@ class FileTriggerServiceTest {
 
         // TEST INVOCATIONS
 
-        verify(fileTriggerWatcher, times(4))
-                .consumeJobRunArgument(
-                        registeredFileTriggerCaptor.capture(), fileTriggerContextCaptor.capture());
-
         // only the new values
         registeredFileTriggerCaptorValues =
-                registeredFileTriggerCaptor.getAllValues().stream()
+                triggered.stream()
                         .filter(Predicate.not(registeredFileTriggerCaptorValues::contains))
                         .toList();
         assertEquals(1, registeredFileTriggerCaptorValues.size());
-        assertEquals(
-                testTxtFileDeleted, registeredFileTriggerCaptorValues.getFirst().fileTrigger());
+        assertEquals(testTxtFileDeleted, registeredFileTriggerCaptorValues.getFirst());
 
         // only the new values
         fileTriggerContextCaptorValues =
-                fileTriggerContextCaptor.getAllValues().stream()
+                fileTriggerContexts.stream()
                         .filter(Predicate.not(fileTriggerContextCaptorValues::contains))
                         .toList();
         assertEquals(1, fileTriggerContextCaptorValues.size());
@@ -157,21 +140,20 @@ class FileTriggerServiceTest {
                                 fileTriggerContext ->
                                         Triple.of(
                                                 fileTriggerContext.matchResult().groupCount(),
-                                                ((SerializableMatchResult)
-                                                                fileTriggerContext.matchResult())
-                                                        .groups(),
-                                                ((SerializableMatchResult)
-                                                                fileTriggerContext.matchResult())
+                                                fileTriggerContext.matchResult().groups(),
+                                                fileTriggerContext
+                                                        .matchResult()
                                                         .namedGroupValues()))
                         .collect(toSet()));
 
         assertEquals(
                 ofEntries(entry("fileName", "test"), entry("fileExtension", ".txt")),
-                ((SerializableMatchResult) fileTriggerContextCaptorValues.getFirst().matchResult())
-                        .namedGroupValues());
+                fileTriggerContextCaptorValues.getFirst().matchResult().namedGroupValues());
 
-        assertEquals(3, triggered.getCount(anyFileCreated));
-        assertEquals(1, triggered.getCount(testTxtFileDeleted));
+        final var bag = new HashBag<FileTrigger>();
+        bag.addAll(triggered);
+        assertEquals(3, bag.getCount(anyFileCreated));
+        assertEquals(1, bag.getCount(testTxtFileDeleted));
 
         FileUtils.deleteDirectory(tempDir.toFile());
     }

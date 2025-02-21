@@ -1,0 +1,73 @@
+package ch.ubique.backend.job.service.triggers.files;
+
+import ch.ubique.backend.job.model.triggers.FileChangeEvent;
+
+import com.den_4.inotify_java.EventQueueFull;
+import com.den_4.inotify_java.Inotify;
+import com.den_4.inotify_java.InotifyEvent;
+import com.den_4.inotify_java.InotifyEventListener;
+import com.den_4.inotify_java.NativeInotify;
+import com.den_4.inotify_java.enums.Event;
+import com.den_4.inotify_java.exceptions.InotifyException;
+
+import org.apache.commons.lang3.exception.UncheckedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+
+public final class InotifyFileWatcher implements FileWatcher, InotifyEventListener {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private final Inotify inotify;
+    private final Consumer<FileWatcherEvent> onEvent;
+    private final Map<Integer, Path> pathsByWatchDescriptor;
+
+    public InotifyFileWatcher(final Consumer<FileWatcherEvent> onEvent) throws InotifyException {
+        this.onEvent = onEvent;
+        this.pathsByWatchDescriptor = new ConcurrentHashMap<>();
+        NativeInotify.loadLibrary(null);
+        this.inotify = new Inotify();
+    }
+
+    @Override
+    public void watchPath(final Path path) {
+        if (pathsByWatchDescriptor.containsValue(path)) {
+            return;
+        }
+        try {
+            final var watchDescriptor = inotify.addWatch(path.toString(), Event.All);
+            inotify.addListener(watchDescriptor, this);
+            pathsByWatchDescriptor.put(watchDescriptor, path);
+        } catch (final InotifyException e) {
+            throw new UncheckedException(e);
+        }
+    }
+
+    @Override
+    public void filesystemEventOccurred(final InotifyEvent event) {
+        final var watchDescriptor = event.getSource();
+        final var watchedPath = pathsByWatchDescriptor.get(watchDescriptor);
+        final var filePath = event.getName();
+        final var eventType = FileChangeEvent.fromInotifyEvent(event);
+        if (filePath == null) {
+            logger.debug("No file associated with event {}", event);
+            return;
+        }
+        onEvent.accept(new FileWatcherEvent(watchedPath, Path.of(filePath), eventType));
+    }
+
+    @Override
+    public void queueFull(final EventQueueFull eventQueueFull) {
+        logger.warn("Inotify queue full: {}", eventQueueFull);
+    }
+
+    @Override
+    public void close() {
+        inotify.destroy();
+    }
+}
