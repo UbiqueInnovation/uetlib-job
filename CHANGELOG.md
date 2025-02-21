@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.1.4
+
+### New Features
+
+- File Triggers are now watched by Inotify if available.
+
 ## 1.1.3
 
 ### New Features
@@ -22,7 +28,7 @@
 ## 1.1.1
 
 - Updated `uetlib-storage-spring-boot` dependency
-- Removed `@PastOrPresent` validation from `JobRunEntity` 
+- Removed `@PastOrPresent` validation from `JobRunEntity`
 
 ## 1.1.0
 
