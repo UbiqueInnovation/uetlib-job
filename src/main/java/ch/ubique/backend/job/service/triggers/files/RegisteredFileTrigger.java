@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service.triggers;
+package ch.ubique.backend.job.service.triggers.files;
 
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
@@ -7,5 +7,5 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.function.Consumer;
 
-record RegisteredFileTrigger(
+public record RegisteredFileTrigger(
         @NotNull FileTrigger fileTrigger, @NotNull Consumer<JobRunArguments> consumer) {}
