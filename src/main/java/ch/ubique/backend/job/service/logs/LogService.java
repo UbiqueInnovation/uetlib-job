@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class LogService {
 
-    private static final int PAGE_SIZE = 5000;
-
     private final LogFormatterService logFormatterService;
     private final JobDataService jobDataService;
 
@@ -25,7 +23,7 @@ public class LogService {
     }
 
     public AccumulatedLogLines logs(final int jobRunId, final long skipLines) {
-        final var events = jobDataService.findLogsForJobRun(jobRunId, skipLines, PAGE_SIZE);
+        final var events = jobDataService.findLogsForJobRun(jobRunId, skipLines);
         return logFormatterService.accumulatedLogLines(events);
     }
 }
