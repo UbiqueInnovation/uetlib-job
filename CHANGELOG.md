@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.1.5
+
+### Improvements
+
+- Improved performance of reading log, by reducing number of DB queries from `n` to `1`, where `n`
+  is the number of log lines.
+
 ## 1.1.4
 
 ### New Features
