@@ -320,18 +320,28 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Collection<LoggingEvent> findLogsForJobRun(
-            final int jobRunId, final long skipLines, final int pageSize) {
-        return loggingEventRepository
-                .findByJobRunId(jobRunId, skipLines, pageSize)
-                .map(LoggingEventEntity::toLoggingEvent)
-                .toList();
+    public Collection<LoggingEvent> findLogsForJobRun(final int jobRunId, final long skipLines) {
+        return fetchLoggingEvents(jobRunId, (int) skipLines);
     }
 
     @Transactional(readOnly = true)
     public Collection<LoggingEvent> findAllLogsForJobRun(final int jobRunId) {
-        return loggingEventRepository
-                .findAllByJobRunId(jobRunId, Sort.by("timestamp"))
+        return fetchLoggingEvents(jobRunId, 0);
+    }
+
+    private List<LoggingEvent> fetchLoggingEvents(final int jobRunId, final int skipLines) {
+        final var criteria = entityManager.getCriteriaBuilder();
+        final var query = criteria.createQuery(LoggingEventEntity.class);
+        final var root = query.from(LoggingEventEntity.class);
+        root.fetch("eventExceptions", JoinType.LEFT);
+        query.select(root)
+                .where(criteria.equal(root.get("jobRunId"), jobRunId))
+                .orderBy(criteria.asc(root.get("timestamp")));
+
+        return entityManager
+                .createQuery(query)
+                .setFirstResult(skipLines)
+                .getResultStream()
                 .map(LoggingEventEntity::toLoggingEvent)
                 .toList();
     }
