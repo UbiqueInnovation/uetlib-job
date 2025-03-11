@@ -234,23 +234,32 @@ public class JobDBAppender extends DBAppenderBase<ILoggingEvent> {
     }
 
     /**
-     * Add an exception statement either as a batch or execute immediately if batch updates are not
-     * supported.
+     * Add one or multiple exception statements either as a batch or execute immediately if batch
+     * updates are not supported.
+     *
+     * @return the next {@code i} (statement line index)
      */
-    void updateExceptionStatement(
+    short updateExceptionStatement(
             final PreparedStatement exceptionStatement,
             final String txt,
             final short i,
             final long eventId)
             throws SQLException {
-        exceptionStatement.setLong(1, eventId);
-        exceptionStatement.setShort(2, i);
-        exceptionStatement.setString(3, txt);
-        if (cnxSupportsBatchUpdates) {
-            exceptionStatement.addBatch();
-        } else {
-            exceptionStatement.execute();
+        final var lineMaxLen = 253;
+        final var requiredRows = (short) Math.ceil(txt.length() / (double) lineMaxLen);
+        for (short j = 0; j < requiredRows; j++) {
+            exceptionStatement.setLong(1, eventId);
+            exceptionStatement.setShort(2, (short) (i + j));
+            final var textStart = j * lineMaxLen;
+            final var textEnd = Math.min(txt.length(), textStart + lineMaxLen);
+            exceptionStatement.setString(3, txt.substring(textStart, textEnd) + "\\");
+            if (cnxSupportsBatchUpdates) {
+                exceptionStatement.addBatch();
+            } else {
+                exceptionStatement.execute();
+            }
         }
+        return (short) (i + requiredRows);
     }
 
     short buildExceptionStatement(
@@ -262,8 +271,9 @@ public class JobDBAppender extends DBAppenderBase<ILoggingEvent> {
 
         final var buf = new StringBuilder();
         ThrowableProxyUtil.subjoinFirstLine(buf, tp);
-        updateExceptionStatement(insertExceptionStatement, buf.toString(), baseIndex, eventId);
-        baseIndex++;
+        baseIndex =
+                updateExceptionStatement(
+                        insertExceptionStatement, buf.toString(), baseIndex, eventId);
 
         final var commonFrames = tp.getCommonFrames();
         final var stepArray = tp.getStackTraceElementProxyArray();
@@ -271,17 +281,18 @@ public class JobDBAppender extends DBAppenderBase<ILoggingEvent> {
             final var sb = new StringBuilder();
             sb.append(CoreConstants.TAB);
             ThrowableProxyUtil.subjoinSTEP(sb, stepArray[i]);
-            updateExceptionStatement(insertExceptionStatement, sb.toString(), baseIndex, eventId);
-            baseIndex++;
+            baseIndex =
+                    updateExceptionStatement(
+                            insertExceptionStatement, sb.toString(), baseIndex, eventId);
         }
 
         if (commonFrames > 0) {
-            updateExceptionStatement(
-                    insertExceptionStatement,
-                    CoreConstants.TAB + "... " + commonFrames + " common frames omitted",
-                    baseIndex,
-                    eventId);
-            baseIndex++;
+            baseIndex =
+                    updateExceptionStatement(
+                            insertExceptionStatement,
+                            CoreConstants.TAB + "... " + commonFrames + " common frames omitted",
+                            baseIndex,
+                            eventId);
         }
 
         return baseIndex;
