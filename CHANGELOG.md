@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.1.6
+
+### Improvements
+
+- `JobDBAppender` for exceptions does no longer throw an error for lines `>254` chars.
+
 ## 1.1.5
 
 ### Improvements
