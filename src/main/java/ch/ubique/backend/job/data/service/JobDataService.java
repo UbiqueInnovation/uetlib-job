@@ -538,4 +538,12 @@ public class JobDataService {
                 .map(JobRunStateTransitionEntity::toJobRunStateTransition)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public Instant findMostRecentLoggingEventTimestamp(final int jobRunId) {
+        return loggingEventRepository
+                .findFirstByJobRunIdOrderByTimestampDesc(jobRunId)
+                .toLoggingEvent()
+                .getInstant();
+    }
 }
