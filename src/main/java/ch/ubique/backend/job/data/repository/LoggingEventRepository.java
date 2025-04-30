@@ -11,4 +11,6 @@ public interface LoggingEventRepository extends JpaRepository<LoggingEventEntity
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     void deleteAllByJobRunId(int jobRunId);
+
+    LoggingEventEntity findFirstByJobRunIdOrderByTimestampDesc(int jobRunId);
 }
