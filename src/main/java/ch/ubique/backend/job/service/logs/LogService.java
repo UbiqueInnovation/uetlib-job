@@ -3,6 +3,7 @@ package ch.ubique.backend.job.service.logs;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.logging.AccumulatedLogLines;
 
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,5 +26,9 @@ public class LogService {
     public AccumulatedLogLines logs(final int jobRunId, final long skipLines) {
         final var events = jobDataService.findLogsForJobRun(jobRunId, skipLines);
         return logFormatterService.accumulatedLogLines(events);
+    }
+
+    public Instant mostRecentLogTimestamp(final int jobRunId) {
+        return jobDataService.findMostRecentLoggingEventTimestamp(jobRunId);
     }
 }

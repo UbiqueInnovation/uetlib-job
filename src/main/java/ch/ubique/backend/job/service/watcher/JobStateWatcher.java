@@ -6,6 +6,9 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
+import ch.ubique.backend.job.service.logs.LogService;
+
+import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,10 +16,10 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @Profile("!job-run")
@@ -25,10 +28,15 @@ public class JobStateWatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final JobService jobService;
+    private final LogService logService;
     private final Map<JobRunnerKey, JobRunner> jobRunners;
 
-    public JobStateWatcher(final JobService jobService, final Collection<JobRunner> jobRunners) {
+    public JobStateWatcher(
+            final JobService jobService,
+            final LogService logService,
+            final Collection<JobRunner> jobRunners) {
         this.jobService = jobService;
+        this.logService = logService;
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
@@ -36,35 +44,60 @@ public class JobStateWatcher {
             cron =
                     "${ch.ubique.backend.job.job-state-watcher.check-jobs-running.cron:0 */5 * * * ?}")
     public void checkIfJobsAreRunning() {
-        logger.info("Checking if jobs are running");
+        logger.debug("Checking if jobs are running");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
-            final var state = findJobRunState(jobRun);
-            final var currentRunnerKey = jobService.getJobRun(jobRun.id()).runnerKey();
-            final var runnerChanged = currentRunnerKey != jobRun.runnerKey();
-            if (runnerChanged) {
-                logger.info(
-                        "Runner changed from {} to {}. Ignoring run.",
-                        jobRun.runnerKey(),
-                        currentRunnerKey);
-            } else if (state.isEmpty()) {
-                logger.info("Could not find job state, treating as UNFINISHED.");
-                jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
-            } else if (!state.get().isRunning()) {
-                logger.info("{} is not running.", jobRun);
-                jobService.updateJobRunState(jobRun, state.get(), Instant.now());
-                logger.info("Set job run {} to {}.", jobRun.id(), state.get());
-            }
+            checkIfJobIsRunning(jobRun);
         }
     }
 
-    private Optional<JobRunState> findJobRunState(final JobRun jobRun) {
+    private void checkIfJobIsRunning(final JobRun jobRun) {
+
+        // Check if the runner has changed since the last check
+        final var currentRunnerKey = jobService.getJobRun(jobRun.id()).runnerKey();
+        final var runnerChanged = currentRunnerKey != jobRun.runnerKey();
+        if (runnerChanged) {
+            logger.debug(
+                    "Runner changed from {} to {}. Ignoring run.",
+                    jobRun.runnerKey(),
+                    currentRunnerKey);
+            return;
+        }
+
+        // Check if the job is still running
+        final var state = findJobRunState(jobRun);
+        logger.debug("Resolved state {} for run {}.", state, jobRun);
+        if (state.isRunning()) {
+            logger.debug("{} is still active and in state {}.", jobRun, state);
+            return;
+        }
+
+        // If the job still produced logs recently, we are not going to kill it
+        final var latestActivity = logService.mostRecentLogTimestamp(jobRun.id());
+        final var timeout = Duration.ofMinutes(1);
+        if (latestActivity.isAfter(Instant.now().minus(timeout))) {
+            logger.debug("Latest log activity of run {} is newer than {}.", jobRun, timeout);
+            return;
+        }
+
+        logger.debug("{} is not running.", jobRun);
+        jobService.updateJobRunState(jobRun, state, Instant.now());
+        logger.info("Set job run {} to {}.", jobRun.id(), state);
+    }
+
+    @NotNull
+    private JobRunState findJobRunState(final JobRun jobRun) {
         final var runnerKey = jobRun.runnerKey();
         final var runner = jobRunners.get(runnerKey);
         if (runner == null) {
-            logger.info("No runner found for {}", runnerKey);
-            return Optional.of(JobRunState.UNFINISHED);
+            logger.info("No runner found for {}.", runnerKey);
+            return JobRunState.UNFINISHED;
         }
-        return Optional.ofNullable(runner.resolveJobRunState(jobRun));
+        final var resolvedState = runner.resolveJobRunState(jobRun);
+        if (resolvedState == null) {
+            logger.info("Could not resolve job state.");
+            return JobRunState.UNFINISHED;
+        }
+        return resolvedState;
     }
 }

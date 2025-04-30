@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.1.7
+
+### Improvements
+
+- Jobs that produced log outputs within the last minute are never set to unfinished.
+  This should improve the ability to run multiple replicas.
+
 ## 1.1.6
 
 ### Improvements
