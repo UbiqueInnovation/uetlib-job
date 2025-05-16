@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.k8s;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
@@ -11,6 +12,8 @@ import com.pivovarit.function.exception.WrappedException;
 
 import io.kubernetes.client.openapi.models.V1Container;
 
+import io.kubernetes.client.openapi.models.V1EnvVar;
+import java.util.stream.Collectors;
 import org.springframework.context.ApplicationContext;
 
 import java.util.*;
@@ -56,11 +59,17 @@ public class KubernetesJobWrapper extends KubernetesJob {
             args.add(additionalData.getClass().getCanonicalName());
         }
 
+        final var envVars = requireNonNullElse(currentPodContainer.getEnv(), List.<V1EnvVar>of());
+        final var filteredEnv =
+                envVars.stream()
+                        .filter(env -> !"ADDITIONAL_JAVA_OPTS".equals(env.getName()))
+                        .collect(Collectors.toCollection(ArrayList::new));
+
         return new V1Container()
                 .name("job-image")
                 .image(currentPodContainer.getImage())
                 .args(args)
-                .env(currentPodContainer.getEnv())
+                .env(filteredEnv)
                 .addEnvItem(additionalJavaOptsEnvVar(kubernetesJobRunContext))
                 .envFrom(currentPodContainer.getEnvFrom())
                 .volumeMounts(currentPodContainer.getVolumeMounts())
