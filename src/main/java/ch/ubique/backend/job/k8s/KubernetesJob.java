@@ -2,6 +2,7 @@ package ch.ubique.backend.job.k8s;
 
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.*;
 
 import ch.ubique.backend.job.Job;
@@ -18,6 +19,7 @@ import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.Config;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -163,11 +165,19 @@ public abstract class KubernetesJob implements Job {
     }
 
     protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
-        return kubernetesJobRunContext
-                .jobRunContext()
-                .properties()
-                .get(JobPropertyDefinitions.K8S_POD_LABELS)
-                .value();
+        final var labels = new HashMap<String, String>();
+        labels.put("app", appName());
+        labels.putAll(labelsFromProperties(kubernetesJobRunContext.jobRunContext()));
+        return labels;
+    }
+
+    private String appName() {
+        final var environment = applicationContext.getEnvironment();
+        return requireNonNull(environment.getProperty("spring.application.name"));
+    }
+
+    private static Map<String, String> labelsFromProperties(final JobRunContext jobRunContext) {
+        return jobRunContext.properties().get(JobPropertyDefinitions.K8S_POD_LABELS).value();
     }
 
     /**
