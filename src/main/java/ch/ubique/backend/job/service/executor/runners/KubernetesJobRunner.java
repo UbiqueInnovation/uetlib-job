@@ -169,21 +169,26 @@ public class KubernetesJobRunner implements JobRunner {
         }
     }
 
-    private @NotNull JobRunState getJobRunStatus(final V1Job job) {
+    private JobRunState getJobRunStatus(final V1Job job) {
+        final var jobName = jobName(job);
         final var status = job.getStatus();
+        if (status == null) {
+            logger.info("Could not get status for job {}.", jobName);
+            return null;
+        }
         if (requireNonNullElse(status.getActive(), 0) > 0) {
             return JobRunState.BUSY;
         }
-        if (requireNonNullElse(status.getFailed(), 0) > 0) {
+        final var maxRetries =
+                Optional.ofNullable(job.getSpec()).map(V1JobSpec::getBackoffLimit).orElse(0);
+        if (requireNonNullElse(status.getFailed(), 0) > maxRetries) {
             return JobRunState.ERROR;
         }
         if (requireNonNullElse(status.getSucceeded(), 0) > 0) {
             logger.info(
                     "The job {} has concluded with status {}, it did exit successfully, "
                             + "but is unknown if it finished its task successfully.",
-                    Optional.ofNullable(job.getMetadata())
-                            .map(V1ObjectMeta::getName)
-                            .orElse("[No name found]"),
+                    jobName,
                     status);
             return JobRunState.DONE;
         }
