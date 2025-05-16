@@ -114,7 +114,7 @@ public abstract class KubernetesJob implements Job {
                 .orElseGet(
                         () -> {
                             final var springApplicationName =
-                                    Objects.requireNonNull(
+                                    requireNonNull(
                                             applicationContext
                                                     .getEnvironment()
                                                     .getProperty("spring.application.name"));
@@ -140,7 +140,7 @@ public abstract class KubernetesJob implements Job {
                 .orElseGet(
                         () -> {
                             final var springApplicationName =
-                                    Objects.requireNonNull(
+                                    requireNonNull(
                                             applicationContext
                                                     .getEnvironment()
                                                     .getProperty("spring.application.name"));
@@ -214,7 +214,20 @@ public abstract class KubernetesJob implements Job {
 
         return new V1JobSpec()
                 .ttlSecondsAfterFinished((int) ttlAfterFinished.toSeconds())
-                .template(new V1PodTemplateSpec().spec(podSpec(kubernetesJobRunContext)));
+                .template(template(kubernetesJobRunContext));
+    }
+
+    protected V1PodTemplateSpec template(final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var template = new V1PodTemplateSpec().spec(podSpec(kubernetesJobRunContext));
+        template.setMetadata(podTemplateMetadata(kubernetesJobRunContext));
+        return template;
+    }
+
+    protected V1ObjectMeta podTemplateMetadata(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return new V1ObjectMeta()
+                .labels(labels(kubernetesJobRunContext))
+                .annotations(annotations(kubernetesJobRunContext));
     }
 
     protected String kubernetesJobName(final KubernetesJobRunContext kubernetesJobRunContext) {
