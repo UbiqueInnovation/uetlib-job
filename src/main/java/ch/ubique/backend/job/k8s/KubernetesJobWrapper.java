@@ -8,15 +8,16 @@ import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.CaseFormat;
 import com.pivovarit.function.exception.WrappedException;
 
 import io.kubernetes.client.openapi.models.V1Container;
-
 import io.kubernetes.client.openapi.models.V1EnvVar;
-import java.util.stream.Collectors;
+
 import org.springframework.context.ApplicationContext;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class KubernetesJobWrapper extends KubernetesJob {
 
@@ -75,6 +76,15 @@ public class KubernetesJobWrapper extends KubernetesJob {
                 .volumeMounts(currentPodContainer.getVolumeMounts())
                 .imagePullPolicy(currentPodContainer.getImagePullPolicy())
                 .resources(resources(kubernetesJobRunContext));
+    }
+
+    @Override
+    protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var labels = new HashMap<String, String>();
+        final var jobClassName = originalJob.getClass().getSimpleName();
+        labels.put("job", CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_HYPHEN, jobClassName));
+        labels.putAll(super.labels(kubernetesJobRunContext));
+        return labels;
     }
 
     protected static V1Container getCurrentPodContainer(
