@@ -23,6 +23,10 @@ public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T val
         return definition().key();
     }
 
+    public boolean isDefault() {
+        return value == null || definition.defaultValue().map(value::equals).orElse(false);
+    }
+
     public String encodedValue() {
         return Optional.ofNullable(value).map(definition::encode).orElse(null);
     }

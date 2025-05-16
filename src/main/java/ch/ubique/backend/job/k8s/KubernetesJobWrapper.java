@@ -60,22 +60,29 @@ public class KubernetesJobWrapper extends KubernetesJob {
             args.add(additionalData.getClass().getCanonicalName());
         }
 
-        final var envVars = requireNonNullElse(currentPodContainer.getEnv(), List.<V1EnvVar>of());
-        final var filteredEnv =
-                envVars.stream()
-                        .filter(env -> !"ADDITIONAL_JAVA_OPTS".equals(env.getName()))
-                        .collect(Collectors.toCollection(ArrayList::new));
+        final var container =
+                new V1Container()
+                        .name("job-image")
+                        .image(currentPodContainer.getImage())
+                        .args(args)
+                        .envFrom(currentPodContainer.getEnvFrom())
+                        .volumeMounts(currentPodContainer.getVolumeMounts())
+                        .imagePullPolicy(currentPodContainer.getImagePullPolicy())
+                        .resources(resources(kubernetesJobRunContext));
 
-        return new V1Container()
-                .name("job-image")
-                .image(currentPodContainer.getImage())
-                .args(args)
-                .env(filteredEnv)
-                .addEnvItem(additionalJavaOptsEnvVar(kubernetesJobRunContext))
-                .envFrom(currentPodContainer.getEnvFrom())
-                .volumeMounts(currentPodContainer.getVolumeMounts())
-                .imagePullPolicy(currentPodContainer.getImagePullPolicy())
-                .resources(resources(kubernetesJobRunContext));
+        final var envVars = requireNonNullElse(currentPodContainer.getEnv(), List.<V1EnvVar>of());
+        final var additionalJavaOptsEnvVar = additionalJavaOptsEnvVar(kubernetesJobRunContext);
+        if (additionalJavaOptsEnvVar == null) {
+            container.env(envVars);
+        } else {
+            final var filteredEnv =
+                    envVars.stream()
+                            .filter(env -> !"ADDITIONAL_JAVA_OPTS".equals(env.getName()))
+                            .collect(Collectors.toCollection(ArrayList::new));
+            container.env(filteredEnv).addEnvItem(additionalJavaOptsEnvVar);
+        }
+
+        return container;
     }
 
     @Override

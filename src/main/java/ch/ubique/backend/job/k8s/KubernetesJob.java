@@ -18,8 +18,9 @@ import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.Config;
 
+import jakarta.annotation.Nullable;
+
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -83,14 +84,15 @@ public abstract class KubernetesJob implements Job {
                 .spec(jobSpec(kubernetesJobRunContext));
     }
 
+    @Nullable
     public V1EnvVar additionalJavaOptsEnvVar(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        final var additionalJavaOpts =
-                kubernetesJobRunContext
-                        .jobRunContext()
-                        .properties()
-                        .get(JobPropertyDefinitions.K8S_ADDITIONAL_JAVA_OPTS)
-                        .value();
+        final var definition = JobPropertyDefinitions.K8S_ADDITIONAL_JAVA_OPTS;
+        final var property = kubernetesJobRunContext.jobRunContext().properties().get(definition);
+        final var additionalJavaOpts = property.value();
+        if (property.isDefault()) {
+            return null;
+        }
         return new V1EnvVar().name("ADDITIONAL_JAVA_OPTS").value(additionalJavaOpts);
     }
 
