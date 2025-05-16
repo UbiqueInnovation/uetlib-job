@@ -274,6 +274,7 @@ public abstract class KubernetesJob implements Job {
                         .volumes(volumes(kubernetesJobRunContext))
                         .nodeSelector(nodeSelector(kubernetesJobRunContext))
                         .tolerations(tolerations(kubernetesJobRunContext))
+                        .affinity(affinity(kubernetesJobRunContext))
                         .restartPolicy("Never");
 
         containers(kubernetesJobRunContext).forEach(podSpec::addContainersItem);
@@ -365,5 +366,9 @@ public abstract class KubernetesJob implements Job {
         final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
         final var limits = ofEntries(entry("memory", memoryRequests));
         return new V1ResourceRequirements().requests(requests).limits(limits);
+    }
+
+    protected V1Affinity affinity(final KubernetesJobRunContext kubernetesJobRunContext) {
+        return getCurrentPodSpec(kubernetesJobRunContext).map(V1PodSpec::getAffinity).orElse(null);
     }
 }
