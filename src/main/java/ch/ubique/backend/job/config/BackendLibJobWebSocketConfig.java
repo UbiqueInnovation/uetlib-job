@@ -22,7 +22,7 @@ public class BackendLibJobWebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
-        registry.addHandler(webSocketHandler, "/v1/live/logs").setAllowedOriginPatterns("*");
+        registry.addHandler(webSocketHandler, "/v1/status/live/logs").setAllowedOriginPatterns("*");
     }
 
     @Scheduled(fixedDelayString = "PT0.1S")
