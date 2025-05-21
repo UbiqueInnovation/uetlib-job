@@ -24,10 +24,10 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableWebSecurity
 @EnableMethodSecurity
 @ConditionalOnWebApplication
-public class BackendLibJobSecurityConfig {
+public class UetlibJobSecurityConfig {
 
     @Bean
-    public JwtDecoder backendLibJobStatusJwtDecoder(
+    public JwtDecoder uetlibJobStatusJwtDecoder(
             @Value("${ch.ubique.backend.job.interface.secret}") final String secret) {
         return NimbusJwtDecoder.withSecretKey(new SecretKeySpec(secret.getBytes(), "HmacSHA256"))
                 .macAlgorithm(MacAlgorithm.HS256)
@@ -38,8 +38,7 @@ public class BackendLibJobSecurityConfig {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain bearerFilterChain(
             final HttpSecurity http,
-            @Qualifier("backendLibJobStatusJwtDecoder")
-                    final JwtDecoder backendLibJobStatusJwtDecoder)
+            @Qualifier("uetlibJobStatusJwtDecoder") final JwtDecoder uetlibJobStatusJwtDecoder)
             throws Exception {
         http.securityMatcher("/v1/status/**")
                 .authorizeHttpRequests(
@@ -51,7 +50,7 @@ public class BackendLibJobSecurityConfig {
                                         .authenticated())
                 .oauth2ResourceServer(
                         customizer ->
-                                customizer.jwt(jwt -> jwt.decoder(backendLibJobStatusJwtDecoder)));
+                                customizer.jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder)));
 
         return http.build();
     }

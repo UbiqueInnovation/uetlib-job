@@ -12,7 +12,7 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 @Profile("!job-run")
 @ConditionalOnProperty("ch.ubique.backend.job.interface.heartbeat.endpoint")
-public class BackendLibJobMonitoringServiceConfig {
+public class UetlibJobMonitoringServiceConfig {
 
     @Bean
     MonitoringService monitoringService(

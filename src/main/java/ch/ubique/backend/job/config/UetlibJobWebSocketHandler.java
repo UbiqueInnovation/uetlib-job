@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.exception.WebSocketException;
-
 import ch.ubique.backend.job.service.logs.LogService;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.constraints.NotNull;
@@ -23,17 +23,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 @Profile("!job-run")
-public class BackendLibJobWebSocketHandler extends TextWebSocketHandler {
+public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(BackendLibJobWebSocketHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(UetlibJobWebSocketHandler.class);
 
     private final ObjectMapper objectMapper;
     private final LogService logService;
 
     private final Map<String, ActiveSession> activeSessions = new ConcurrentHashMap<>();
 
-    public BackendLibJobWebSocketHandler(
+    public UetlibJobWebSocketHandler(
             final ObjectMapper objectMapper, final LogService logsService) {
         this.objectMapper = objectMapper;
         this.logService = logsService;

@@ -7,9 +7,9 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
-import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
 import ch.ubique.backend.job.model.response.StringResponse;
 import ch.ubique.backend.job.model.response.SuccessResponse;
+import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
 
 import jakarta.validation.Valid;
@@ -37,11 +37,11 @@ import java.util.*;
             "http://localhost:3000"
         },
         allowedHeaders = {"Authorization", "Content-Type"})
-public class BackendLibJobStatusController {
+public class UetlibJobStatusController {
 
     private final JobControllerService jobControllerService;
 
-    public BackendLibJobStatusController(final JobControllerService jobControllerService) {
+    public UetlibJobStatusController(final JobControllerService jobControllerService) {
         this.jobControllerService = jobControllerService;
     }
 
