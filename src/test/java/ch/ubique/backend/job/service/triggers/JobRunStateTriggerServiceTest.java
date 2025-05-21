@@ -18,14 +18,11 @@ import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.job.test.config.JobRunStateTriggerServiceTestConfig;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.core.env.Environment;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,22 +31,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SpringBootTest(classes = JobRunStateTriggerServiceTestConfig.class)
 class JobRunStateTriggerServiceTest {
 
-    @MockBean private JobDataService jobDataService;
-    @MockBean private ClassLoaderService classLoaderService;
-    @MockBean private BuildProperties buildProperties;
-    @MockBean private Environment environment;
-    @MockBean private JobRunStorage jobRunStorage;
-
-    @SpyBean private JobService jobService;
-
-    @BeforeEach
-    void beforeEach() {
-        MockitoAnnotations.openMocks(this);
-    }
+    @MockitoBean private JobDataService jobDataService;
+    @MockitoBean private ClassLoaderService classLoaderService;
+    @MockitoBean private BuildProperties buildProperties;
+    @MockitoBean private Environment environment;
+    @MockitoBean private JobRunStorage jobRunStorage;
+    @MockitoBean private JobService jobService;
 
     @Test
     void testJobRunStateTriggers() throws ClassNotFoundException {
-
         doReturn(CleanupJob.class).when(jobService).getJobClass(anyInt());
 
         final var triggerService = new JobRunStateTriggerService(jobDataService, jobService);

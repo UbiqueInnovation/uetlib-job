@@ -9,28 +9,21 @@ import ch.ubique.backend.job.testjob.ProfileDisabledTestJob;
 import ch.ubique.backend.job.testjob.ProfileEnabledTestJob;
 import ch.ubique.backend.job.testjob.TestJob;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
 class JobServiceDatabaseTest extends BaseJobDatabaseTest {
 
-    @MockBean private JobRunStorage jobRunStorage;
+    @MockitoBean private JobRunStorage jobRunStorage;
 
-    @SpyBean private JobService jobService;
-
-    @BeforeEach
-    void beforeEach() {
-        MockitoAnnotations.openMocks(this);
-    }
+    @Autowired private JobService jobService;
 
     @Test
-    void testInstantiateJob() {
+    void testInstantiateJobNotEqualInstance() {
         final var job1 = jobService.instantiateJob(TestJob.class);
         final var job2 = jobService.instantiateJob(TestJob.class);
         assertNotEquals(job1, job2);
