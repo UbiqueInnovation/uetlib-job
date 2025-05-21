@@ -86,7 +86,7 @@
             </exclusions>
         </dependency>
 
-        <!-- Jobs need a database, to store registered jobs, runs, logs, ... -->
+        <!-- Jobs need a database to store registered jobs, runs, logs, ... -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -98,7 +98,7 @@
             </exclusions>
         </dependency>
 
-        <!-- Websockets, needed to send logs in real time to status interface -->
+        <!-- Websockets needed to send logs in real time to the status interface -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
