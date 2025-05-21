@@ -16,7 +16,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableRetry
-public class BackendLibJobBaseConfig {
+public class UetlibJobBaseConfig {
 
     @Bean
     @ConditionalOnMissingBean

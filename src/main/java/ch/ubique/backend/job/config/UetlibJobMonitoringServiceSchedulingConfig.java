@@ -14,12 +14,11 @@ import java.util.concurrent.TimeUnit;
 @EnableScheduling
 @Profile("!job-run")
 @ConditionalOnProperty("ch.ubique.backend.job.interface.heartbeat.endpoint")
-public class BackendLibJobMonitoringServiceSchedulingConfig {
+public class UetlibJobMonitoringServiceSchedulingConfig {
 
     private final MonitoringService monitoringService;
 
-    public BackendLibJobMonitoringServiceSchedulingConfig(
-            final MonitoringService monitoringService) {
+    public UetlibJobMonitoringServiceSchedulingConfig(final MonitoringService monitoringService) {
         this.monitoringService = monitoringService;
     }
 
