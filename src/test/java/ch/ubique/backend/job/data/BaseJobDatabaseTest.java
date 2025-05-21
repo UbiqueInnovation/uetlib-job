@@ -12,8 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Base test class for job service tests. Currently, only some queries are executed to check if the
- * sql syntax is valid on each database system.
+ * SQL syntax is valid on each database system.
  */
+// Comment-in to run these tests from within IntelliJ. These profiles are usually set for the tests
+// in the pom.xml
+// @ActiveProfiles({"test", "no-security", "postgres"})
 @Transactional
 @AutoConfigureTestEntityManager
 @EnableJpaRepositories(basePackages = "ch.ubique.backend.job.data.repository")
