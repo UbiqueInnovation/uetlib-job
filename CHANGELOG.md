@@ -2,7 +2,7 @@
 
 ## 1.2.0
 
-### Improvements
+### Breaking Changes
 
 - Status logs are now served from base path `/v1/status` to be protected under the security config.
   - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires implementing projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security config, e.g.:
