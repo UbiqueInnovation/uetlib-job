@@ -3,6 +3,7 @@ package ch.ubique.backend.job.service.watcher;
 import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
@@ -10,6 +11,7 @@ import ch.ubique.backend.job.service.logs.LogService;
 
 import jakarta.validation.constraints.NotNull;
 
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -72,9 +74,9 @@ public class JobStateWatcher {
             return;
         }
 
-        // If the job still produced logs recently, we are not going to kill it
+        // If the job still produced logs recently, we are not going to update its state
         final var latestActivity = logService.mostRecentLogTimestamp(jobRun.id());
-        final var timeout = Duration.ofMinutes(1);
+        final var timeout = latestActivityTimeout(jobRun);
         if (latestActivity.isAfter(Instant.now().minus(timeout))) {
             logger.debug("Latest log activity of run {} is newer than {}.", jobRun, timeout);
             return;
@@ -99,5 +101,23 @@ public class JobStateWatcher {
             return JobRunState.UNFINISHED;
         }
         return resolvedState;
+    }
+
+    private Duration latestActivityTimeout(final JobRun jobRun) {
+        final var runTimeLimit = getRunTimeLimit(jobRun);
+        return runTimeLimit.orElse(Duration.ZERO).dividedBy(10).plus(Duration.ofMinutes(1));
+    }
+
+    private Optional<Duration> getRunTimeLimit(final JobRun jobRun) {
+        try {
+            final var job = jobService.instantiateJob(jobRun.jobId());
+            return jobService
+                    .getProperties(job)
+                    .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
+                    .valueMaybe();
+        } catch (final ClassNotFoundException e) {
+            logger.info("Could not get run time limit for {}.", jobRun, e);
+            return Optional.empty();
+        }
     }
 }

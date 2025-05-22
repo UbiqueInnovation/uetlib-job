@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.1.8
+
+### Improvements
+
+- Improved jobs not being set to `UNFINISHED` if they still produced logs recently.
+
 ## 1.1.7
 
 ### Improvements
