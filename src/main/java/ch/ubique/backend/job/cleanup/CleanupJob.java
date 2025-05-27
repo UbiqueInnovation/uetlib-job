@@ -13,6 +13,7 @@ import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
+import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.storage.JobRunStorage;
@@ -50,7 +51,12 @@ public class CleanupJob implements Job {
 
     @Override
     public @NotNull JobTriggersConfig triggersConfig() {
-        return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
+        return JobTriggersConfig.fixed(
+                // Every day at 2am
+                new CronTrigger("0 0 2 * * ?"),
+                // re-run in state WARNING, which happens if not all runs are cleaned because the
+                // CHUNK_SIZE
+                new JobRunStateTrigger(CleanupJob.class, JobRunState.WARNING));
     }
 
     @Override
