@@ -83,7 +83,7 @@ public class JobStateWatcher {
                                 .get(JobPropertyDefinitions.MAX_DURATION_IN_SCHEDULED_STATE);
                 if (Duration.between(jobRun.startedAt(), Instant.now())
                         .minus(maxScheduledDuration.value())
-                        .isNegative()) {
+                        .isPositive()) {
                     jobService.cancel(jobRun);
                     logger.info(
                             "Job {} cancelled, was SCHEDULED too long on {} runner.",
