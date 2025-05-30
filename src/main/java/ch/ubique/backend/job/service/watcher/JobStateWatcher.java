@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.watcher;
 
 import ch.ubique.backend.core.utils.MapCollectors;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
@@ -11,7 +12,6 @@ import ch.ubique.backend.job.service.logs.LogService;
 
 import jakarta.validation.constraints.NotNull;
 
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Profile("!job-run")
@@ -69,6 +70,32 @@ public class JobStateWatcher {
         // Check if the job is still running
         final var state = findJobRunState(jobRun);
         logger.debug("Resolved state {} for run {}.", state, jobRun);
+        if (jobRun.runnerKey() == JobRunnerKey.DEDICATED_K8S_JOB
+                && state == JobRunState.SCHEDULED) {
+            try {
+                final var maxScheduledDuration =
+                        jobService
+                                .getProperties(
+                                        new JobClassAndId(
+                                                jobRun.jobId(),
+                                                jobService
+                                                        .getJobClass(jobRun.jobId())
+                                                        .getCanonicalName()))
+                                .get(JobPropertyDefinitions.MAX_DURATION_IN_SCHEDULED_STATE);
+                if (Duration.between(jobRun.startedAt(), Instant.now())
+                        .minus(maxScheduledDuration.value())
+                        .isNegative()) {
+                    jobService.cancel(jobRun);
+                    logger.info(
+                            "Job {} cancelled, was SCHEDULED too long on {} runner.",
+                            jobRun.jobId(),
+                            jobRun.runnerKey());
+                }
+            } catch (final ClassNotFoundException e) {
+                logger.info("Job class for {} not found.", jobRun.jobId());
+            }
+        }
+
         if (state.isRunning()) {
             logger.debug("{} is still active and in state {}.", jobRun, state);
             return;
