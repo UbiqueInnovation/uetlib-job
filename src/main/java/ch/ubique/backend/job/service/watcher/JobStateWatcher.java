@@ -73,14 +73,13 @@ public class JobStateWatcher {
         if (jobRun.runnerKey() == JobRunnerKey.DEDICATED_K8S_JOB
                 && state == JobRunState.SCHEDULED) {
             try {
+                final var jobClassAndId =
+                        new JobClassAndId(
+                                jobRun.jobId(),
+                                jobService.getJobClass(jobRun.jobId()).getCanonicalName());
                 final var maxScheduledDuration =
                         jobService
-                                .getProperties(
-                                        new JobClassAndId(
-                                                jobRun.jobId(),
-                                                jobService
-                                                        .getJobClass(jobRun.jobId())
-                                                        .getCanonicalName()))
+                                .getProperties(jobClassAndId)
                                 .get(JobPropertyDefinitions.MAX_DURATION_IN_SCHEDULED_STATE);
                 if (Duration.between(jobRun.startedAt(), Instant.now())
                         .minus(maxScheduledDuration.value())
