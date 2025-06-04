@@ -1,31 +1,38 @@
 # CHANGELOG
 
+## 1.2.1
+
+### Improvements
+
+- Rename `bearerFilterChain` in security config to `uetlibJobBearerFilterChain` to not clash with implementing projects.
+
 ## 1.2.0
 
 ### Breaking Changes
 
 - Status logs are now served from base path `/v1/status` to be protected under the security config.
-  - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires implementing projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security config, e.g.:
-    ```diff
-    - http.securityMatcher("/v1/status/**")
-    -       .authorizeHttpRequests(
-    -             authorize ->
-    -                   authorize
-    -                         .requestMatchers(HttpMethod.OPTIONS, statusEndpointPattern)
-    -                         .permitAll()
-    -                         .requestMatchers("/v1/status/**")
-    -                         .authenticated())
-    -       .oauth2ResourceServer(customizer -> customizer.jwt(withDefaults()));
-    ```
-    ```diff
-    - @Bean
-    - public JwtDecoder jwtDecoder(
-    -         @Value("${ch.ubique.backend.job.interface.secret}") final String secret) {
-    -     return NimbusJwtDecoder.withSecretKey(new SecretKeySpec(secret.getBytes(), "HmacSHA256"))
-    -             .macAlgorithm(MacAlgorithm.HS256)
-    -             .build();
-    - }
-    ```
+    - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires implementing
+      projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security config, e.g.:
+      ```diff
+      - http.securityMatcher("/v1/status/**")
+      -       .authorizeHttpRequests(
+      -             authorize ->
+      -                   authorize
+      -                         .requestMatchers(HttpMethod.OPTIONS, statusEndpointPattern)
+      -                         .permitAll()
+      -                         .requestMatchers("/v1/status/**")
+      -                         .authenticated())
+      -       .oauth2ResourceServer(customizer -> customizer.jwt(withDefaults()));
+      ```
+      ```diff
+      - @Bean
+      - public JwtDecoder jwtDecoder(
+      -         @Value("${ch.ubique.backend.job.interface.secret}") final String secret) {
+      -     return NimbusJwtDecoder.withSecretKey(new SecretKeySpec(secret.getBytes(), "HmacSHA256"))
+      -             .macAlgorithm(MacAlgorithm.HS256)
+      -             .build();
+      - }
+      ```
 
 ## 1.1.8
 
