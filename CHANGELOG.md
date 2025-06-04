@@ -2,12 +2,6 @@
 
 ## 1.2.1
 
-### Improvements
-
-- Rename `bearerFilterChain` in security config to `uetlibJobBearerFilterChain` to not clash with implementing projects.
-
-## 1.2.0
-
 ### Breaking Changes
 
 - Status logs are now served from base path `/v1/status` to be protected under the security config.
@@ -33,6 +27,59 @@
       -             .build();
       - }
       ```
+    - Additionally, you have to add a separate filter chain for the actuator endpoints. The following three filter
+      chains suffice for the minimal job module security config with no additional exposed endpoints:
+      ```
+      /** Probably keep this one as-is to have the swagger documentation adequately protected */
+      @Bean
+      public SecurityFilterChain swaggerFilterChain(final HttpSecurity http) throws Exception {
+          http.securityMatcher("/api-docs/**", "/api-docs*")
+                  .authorizeHttpRequests(
+                          customizer ->
+                                  customizer
+                                          .requestMatchers("/api-docs/**", "/api-docs*")
+                                          .hasRole(SWAGGER))
+                  .httpBasic(withDefaults());
+
+          return http.build();
+      }
+
+      /**
+       * Probably keep this one as-is to have only the necessary actuator endpoints exposed. The
+       * management server usually runs on a separate port anyway, but still ;)
+       */
+      @Bean
+      public SecurityFilterChain actuatorFilterChain(final HttpSecurity http) throws Exception {
+          // EndpointRequest.toAnyEndpoint() matches all /actuator endpoints
+          http.securityMatcher(EndpointRequest.toAnyEndpoint())
+                  .authorizeHttpRequests(
+                          customizer ->
+                                  customizer
+                                          .requestMatchers(
+                                                  HttpMethod.GET,
+                                                  "/actuator/health",
+                                                  "/actuator/health/**",
+                                                  "/actuator/prometheus")
+                                          .permitAll());
+
+          return http.build();
+      }
+
+      @Bean
+      public SecurityFilterChain fallbackFilterChain(final HttpSecurity http) throws Exception {
+          http.csrf(AbstractHttpConfigurer::disable);
+
+          http.authorizeHttpRequests(
+                  customizer ->
+                          customizer
+                                  .requestMatchers(HttpMethod.GET, "/v1/info", "/check")
+                                  .permitAll()
+                                  .anyRequest() // deny all others
+                                  .denyAll());
+
+          return http.build();
+      }
+      ```   
 
 ## 1.1.8
 
