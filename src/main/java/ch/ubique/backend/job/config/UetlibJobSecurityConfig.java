@@ -36,7 +36,7 @@ public class UetlibJobSecurityConfig {
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    public SecurityFilterChain bearerFilterChain(
+    public SecurityFilterChain uetlibJobBearerFilterChain(
             final HttpSecurity http,
             @Qualifier("uetlibJobStatusJwtDecoder") final JwtDecoder uetlibJobStatusJwtDecoder)
             throws Exception {
