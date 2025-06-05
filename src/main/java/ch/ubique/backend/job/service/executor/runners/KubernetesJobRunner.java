@@ -177,6 +177,9 @@ public class KubernetesJobRunner implements JobRunner {
             return null;
         }
         if (requireNonNullElse(status.getActive(), 0) > 0) {
+            if (status.getStartTime() == null || requireNonNullElse(status.getReady(), 1) == 0) {
+                return JobRunState.SCHEDULED;
+            }
             return JobRunState.BUSY;
         }
         final var maxRetries =
@@ -193,6 +196,7 @@ public class KubernetesJobRunner implements JobRunner {
             return JobRunState.DONE;
         }
         if (requireNonNullElse(status.getReady(), 1) == 0) {
+            // Maybe duplicate:
             return JobRunState.SCHEDULED;
         }
         return null;
