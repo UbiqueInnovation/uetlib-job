@@ -72,6 +72,8 @@
           http.authorizeHttpRequests(
                   customizer ->
                           customizer
+                                  .requestMatchers(HttpMethod.OPTIONS)
+                                  .permitAll()
                                   .requestMatchers(HttpMethod.GET, "/v1/info", "/check")
                                   .permitAll()
                                   .anyRequest() // deny all others
