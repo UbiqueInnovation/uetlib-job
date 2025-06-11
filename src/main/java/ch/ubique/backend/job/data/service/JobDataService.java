@@ -163,12 +163,13 @@ public class JobDataService {
             predicates.add(root.get("latestState").in(states));
         }
 
-        if (dateTimeRange.isPresent()) {
-            final var range = dateTimeRange.get();
-            predicates.add(
-                    criteriaBuilder.between(
-                            root.get("startedAt"), range.getMinimum(), range.getMaximum()));
-        }
+        dateTimeRange.ifPresent(
+                range ->
+                        predicates.add(
+                                criteriaBuilder.between(
+                                        root.get("startedAt"),
+                                        range.getMinimum(),
+                                        range.getMaximum())));
 
         return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }

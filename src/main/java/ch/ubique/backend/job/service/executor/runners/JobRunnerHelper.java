@@ -13,7 +13,7 @@ import org.slf4j.MDC;
 import java.time.Instant;
 import java.util.Objects;
 
-public class JobRunnerHelper {
+public final class JobRunnerHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JobRunnerHelper.class);
 
