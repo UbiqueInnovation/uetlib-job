@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.service.watcher;
 
 import ch.ubique.backend.core.utils.MapCollectors;
-import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
@@ -70,31 +69,6 @@ public class JobStateWatcher {
         // Check if the job is still running
         final var state = findJobRunState(jobRun);
         logger.debug("Resolved state {} for run {}.", state, jobRun);
-        if (jobRun.runnerKey() == JobRunnerKey.DEDICATED_K8S_JOB
-                && state == JobRunState.SCHEDULED) {
-            try {
-                final var jobClassAndId =
-                        new JobClassAndId(
-                                jobRun.jobId(),
-                                jobService.getJobClass(jobRun.jobId()).getCanonicalName());
-                final var maxScheduledDuration =
-                        jobService
-                                .getProperties(jobClassAndId)
-                                .get(JobPropertyDefinitions.MAX_DURATION_IN_SCHEDULED_STATE);
-                if (Duration.between(jobRun.startedAt(), Instant.now())
-                        .minus(maxScheduledDuration.value())
-                        .isPositive()) {
-                    jobService.cancel(jobRun);
-                    logger.info(
-                            "Job {} cancelled, was SCHEDULED too long on {} runner.",
-                            jobRun.jobId(),
-                            jobRun.runnerKey());
-                }
-            } catch (final ClassNotFoundException e) {
-                logger.info("Job class for {} not found.", jobRun.jobId());
-            }
-        }
-
         if (state.isRunning()) {
             logger.debug("{} is still active and in state {}.", jobRun, state);
             return;
