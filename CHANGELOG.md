@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.2.2
+## 1.2.3
 
 ### Breaking Changes
 
@@ -83,10 +83,6 @@
       }
       ```   
       
-### Improvements
-
-- Fix Jobs perceived as `BUSY` by `JobStateWatcher` when they were `Pending` on K8S, is now `SCHEDULED`.
-
 ## 1.1.8
 
 ### Improvements
