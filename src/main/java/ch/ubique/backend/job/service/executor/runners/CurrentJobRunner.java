@@ -6,14 +6,13 @@ import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 
-import jakarta.annotation.Nullable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -93,7 +92,7 @@ public final class CurrentJobRunner implements JobRunner {
                 case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
             };
         }
-        // Not done yet -> job is running
+        // Not done yet -> the job is running
         return JobRunState.BUSY;
     }
 
@@ -102,14 +101,18 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private ThreadPoolExecutor createExecutorService(final RunnerGroup runnerGroup) {
+        final var runnerGroupIdentifier = runnerGroup.identifier();
+        final var runnerGroupThreadPoolSize = runnerGroup.threadPoolSize();
+
         final var nameFormat =
-                runnerGroup.threadPoolSize() == 1
-                        ? runnerGroup.identifier()
-                        : runnerGroup.identifier() + "-%d";
+                runnerGroupThreadPoolSize == 1
+                        ? runnerGroupIdentifier
+                        : runnerGroupIdentifier + "-%d";
         final var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
+
         return new ThreadPoolExecutor(
-                runnerGroup.threadPoolSize(),
-                runnerGroup.threadPoolSize(),
+                runnerGroupThreadPoolSize,
+                runnerGroupThreadPoolSize,
                 0,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
@@ -117,15 +120,15 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private boolean isRunnerGroupAllowed(final Job job, final RunnerGroup runnerGroup) {
-        if (runnerGroup.allowedJobs().isEmpty()
-                || runnerGroup.allowedJobs().contains(job.getClass())) {
+        final var runnerGroupAllowedJobs = runnerGroup.allowedJobs();
+        if (runnerGroupAllowedJobs.isEmpty() || runnerGroupAllowedJobs.contains(job.getClass())) {
             return true;
         }
 
         logger.error(
                 "The runner group only allows the following job classes: {} but a job of the"
                         + " following class was provided:  {}",
-                runnerGroup.allowedJobs(),
+                runnerGroupAllowedJobs,
                 job.getClass());
         return false;
     }

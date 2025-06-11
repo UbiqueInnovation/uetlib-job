@@ -106,14 +106,13 @@ public class TriggerCoordinatorService {
         if (job.triggersConfig().isFixed()) {
             if (dbTriggerDefinitions.equals(new HashSet<>(job.triggersConfig().triggers()))) {
                 return dbTriggers;
-            } else {
-                // Fixed do not match db triggers -> Replace db triggers
-                jobDataService.deleteTriggerForJob(jobId);
-                return jobDataService.insertTriggers(jobId, job.triggersConfig().triggers());
             }
+            // Fixed do not match db triggers -> Replace db triggers
+            jobDataService.deleteTriggerForJob(jobId);
+            return jobDataService.insertTriggers(jobId, job.triggersConfig().triggers());
         }
 
-        // There are triggers present in database -> return them
+        // There are triggers present in the database -> return them
         if (!dbTriggers.isEmpty()) {
             return dbTriggers;
         }
