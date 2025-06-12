@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.3.0
+
+### Improvements
+
+- Latest uetlib dependencies with Spring Boot 3.5 support
+
 ## 1.2.3
 
 ### Breaking Changes
