@@ -11,9 +11,11 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.storage.output.JsonOutput;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
@@ -232,6 +234,9 @@ public abstract class BaseStateJob<T> implements Job {
             final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
             logger.info("Resolved state {}.", previousState);
             return previousState;
+        } catch (final JsonProcessingException e) {
+            logger.info("State json could not be parsed. Did the model change?", e);
+            return null;
         } catch (final Exception e) {
             logger.warn("Could not load state for run {}.", jobRun.id(), e);
             return null;
