@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.service.core;
 
+import ch.ubique.backend.job.Job;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,10 @@ public final class ClassLoaderService {
 
     public ClassLoaderService(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
+    }
+
+    public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {
+        return getClassForName(className, Job.class);
     }
 
     public Class<?> getClassForName(final String className) throws ClassNotFoundException {

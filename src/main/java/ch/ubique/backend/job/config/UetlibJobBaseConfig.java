@@ -2,12 +2,11 @@ package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
+import ch.ubique.backend.job.service.register.JobRegistrationService;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -25,26 +24,15 @@ public class UetlibJobBaseConfig {
     }
 
     /** bean registeredJobDefinitions is registered programmatically in RegisteredJobRegistrar */
-    @Bean("jobService")
+    @Bean
     @Profile("!job-run")
-    JobService jobService(
+    JobRegistrationService jobRegistrationService(
             final JobDataService jobDataService,
-            final ApplicationContext applicationContext,
             final ClassLoaderService classLoaderService,
-            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-                    final RegisteredJobDefinitions registeredJobDefinitions) {
-        final var jobService =
-                new JobService(jobDataService, applicationContext, classLoaderService);
-        jobService.init(registeredJobDefinitions);
-        return jobService;
-    }
-
-    @Bean("jobService")
-    @Profile("job-run")
-    JobService jobServiceForJobRun(
-            final JobDataService jobDataService,
-            final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService) {
-        return new JobService(jobDataService, applicationContext, classLoaderService);
+            final RegisteredJobDefinitions registeredJobDefinitions) {
+        final var jobRegistrationService =
+                new JobRegistrationService(jobDataService, classLoaderService);
+        jobRegistrationService.registerAllJobs(registeredJobDefinitions);
+        return jobRegistrationService;
     }
 }

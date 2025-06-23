@@ -5,8 +5,6 @@ import static ch.ubique.backend.job.model.JobRunState.UNFINISHED;
 import static java.util.Optional.ofNullable;
 
 import ch.ubique.backend.job.Job;
-import ch.ubique.backend.job.RegisteredJob;
-import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
@@ -30,14 +28,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.retry.support.RetryTemplate;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Service;
 
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Service
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
@@ -55,48 +53,6 @@ public class JobService {
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
         this.retryTemplate = RetryTemplate.builder().maxAttempts(10).noBackoff().build();
-    }
-
-    /** DO NOT CALL THIS METHOD WHEN PROFILE job-run IS SET, I.E. FOR DEDICATED JOBS */
-    @Transactional
-    public void init(final RegisteredJobDefinitions registeredJobDefinitions) {
-        registerAllJobs(registeredJobDefinitions);
-    }
-
-    private void registerAllJobs(final RegisteredJobDefinitions registeredJobDefinitions) {
-        final var registeredJobClasses = registeredJobDefinitions.registeredJobClasses();
-        logger.info("Found {} annotated with {}.", registeredJobClasses, RegisteredJob.class);
-
-        for (final var registeredJobClass : registeredJobClasses) {
-            try {
-                final var jobClass = registeredJobClass.asSubclass(Job.class);
-                jobDataService.findOrInsertJob(jobClass);
-                logger.info("Registered {}.", jobClass);
-            } catch (final ClassCastException e) {
-                throw new ClassCastException(
-                        MessageFormat.format(
-                                "Job class {0} annotated with @{1} must implement {2}",
-                                registeredJobClass.getCanonicalName(),
-                                RegisteredJob.class.getCanonicalName(),
-                                Job.class.getCanonicalName()));
-            }
-        }
-
-        // Check if all database entries still have a job associated with them. Remove them if not
-        for (final var job : jobDataService.findJobs()) {
-            try {
-                final var jobClass = getJobClass(job.canonicalClassName());
-                if (!registeredJobClasses.contains(jobClass)) {
-                    // The class exists, but was not discovered by findAllRegisteredJobClasses()
-                    // This could e.g. be the case if @EnableJobs does not include this job
-                    logger.warn("{} is not part of the job classes. Removing database entry.", job);
-                    jobDataService.deleteJob(job.id());
-                }
-            } catch (final ClassNotFoundException e) {
-                logger.warn("Could not find class for {}. Removing database entry.", job);
-                jobDataService.deleteJob(job.id());
-            }
-        }
     }
 
     public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {
