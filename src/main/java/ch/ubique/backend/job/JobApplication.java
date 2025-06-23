@@ -4,7 +4,6 @@ import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
-import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
@@ -21,7 +20,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
 
 @SuppressWarnings("unused")
-public class JobApplication {
+public final class JobApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(JobApplication.class);
 
@@ -61,7 +60,7 @@ public class JobApplication {
 
         try {
             final var jobClass =
-                    applicationContext.getBean(JobService.class).getJobClass(jobClassName);
+                    applicationContext.getBean(ClassLoaderService.class).getJobClass(jobClassName);
             applicationContext
                     .getBean(JobExecutorService.class)
                     .submit(
