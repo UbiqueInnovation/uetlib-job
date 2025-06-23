@@ -4,18 +4,17 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
+import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.storage.output.JsonOutput;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
