@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.config;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -26,19 +25,24 @@ import javax.crypto.spec.SecretKeySpec;
 @ConditionalOnWebApplication
 public class UetlibJobSecurityConfig {
 
-    @Bean
-    public JwtDecoder uetlibJobStatusJwtDecoder(
-            @Value("${ch.ubique.backend.job.interface.secret}") final String secret) {
-        return NimbusJwtDecoder.withSecretKey(new SecretKeySpec(secret.getBytes(), "HmacSHA256"))
+    private final String statusInterfaceSecret;
+
+    public UetlibJobSecurityConfig(
+            @Value("${ch.ubique.backend.job.interface.secret}")
+                    final String statusInterfaceSecret) {
+        this.statusInterfaceSecret = statusInterfaceSecret;
+    }
+
+    public JwtDecoder uetlibJobStatusJwtDecoder() {
+        return NimbusJwtDecoder.withSecretKey(
+                        new SecretKeySpec(statusInterfaceSecret.getBytes(), "HmacSHA256"))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
     }
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    public SecurityFilterChain uetlibJobBearerFilterChain(
-            final HttpSecurity http,
-            @Qualifier("uetlibJobStatusJwtDecoder") final JwtDecoder uetlibJobStatusJwtDecoder)
+    public SecurityFilterChain uetlibJobBearerFilterChain(final HttpSecurity http)
             throws Exception {
         http.securityMatcher("/v1/status/**")
                 .authorizeHttpRequests(
@@ -50,7 +54,7 @@ public class UetlibJobSecurityConfig {
                                         .authenticated())
                 .oauth2ResourceServer(
                         customizer ->
-                                customizer.jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder)));
+                                customizer.jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder())));
 
         return http.build();
     }
