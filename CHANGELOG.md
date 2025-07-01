@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.3.2
+
+### Improvements
+
+- Check level of all job checks can be configured using spring properties.
+
 ## 1.3.0
 
 ### Improvements
@@ -11,8 +17,10 @@
 ### Breaking Changes
 
 - Status logs are now served from base path `/v1/status` to be protected under the security config.
-    - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires implementing
-      projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security config, e.g.:
+    - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires
+      implementing
+      projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security
+      config, e.g.:
       ```diff
       - http.securityMatcher("/v1/status/**")
       -       .authorizeHttpRequests(
@@ -33,8 +41,10 @@
       -             .build();
       - }
       ```
-    - Additionally, you have to add a separate filter chain for the actuator endpoints. The following three filter
-      chains suffice for the minimal job module security config with no additional exposed endpoints:
+    - Additionally, you have to add a separate filter chain for the actuator endpoints. The
+      following three filter
+      chains suffice for the minimal job module security config with no additional exposed
+      endpoints:
       ```
       /** Probably keep this one as-is to have the swagger documentation adequately protected */
       @Bean
@@ -88,7 +98,7 @@
           return http.build();
       }
       ```   
-      
+
 ## 1.1.8
 
 ### Improvements

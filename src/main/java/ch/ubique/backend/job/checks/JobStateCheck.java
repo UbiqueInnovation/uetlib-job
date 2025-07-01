@@ -5,19 +5,30 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
+import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
 import java.util.Map;
 
 public abstract class JobStateCheck implements StatusCheck {
 
+    private final CheckLevel level;
     private final JobRunState stateToCheck;
 
     private final JobDataService jobDataService;
 
-    protected JobStateCheck(final JobRunState stateToCheck, final JobDataService jobDataService) {
+    protected JobStateCheck(
+            final CheckLevel level,
+            final JobRunState stateToCheck,
+            final JobDataService jobDataService) {
+        this.level = level;
         this.stateToCheck = stateToCheck;
         this.jobDataService = jobDataService;
+    }
+
+    @Override
+    public CheckLevel level() {
+        return level;
     }
 
     @Override

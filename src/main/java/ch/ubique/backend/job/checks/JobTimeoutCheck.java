@@ -7,10 +7,12 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
+import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +24,22 @@ import java.util.Optional;
 @Profile("!job-run")
 public class JobTimeoutCheck implements StatusCheck {
 
+    private final CheckLevel level;
     private final JobService jobService;
     private final JobDataService jobDataService;
 
-    public JobTimeoutCheck(JobService jobService, final JobDataService jobDataService) {
+    public JobTimeoutCheck(
+            @Value("${ch.ubique.backend.job.check.timeout:ERROR}") final CheckLevel level,
+            final JobService jobService,
+            final JobDataService jobDataService) {
+        this.level = level;
         this.jobService = jobService;
         this.jobDataService = jobDataService;
+    }
+
+    @Override
+    public CheckLevel level() {
+        return level;
     }
 
     @Override
@@ -64,7 +76,7 @@ public class JobTimeoutCheck implements StatusCheck {
                             .getProperties(job)
                             .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
                             .value();
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             return Optional.empty();
         }
 

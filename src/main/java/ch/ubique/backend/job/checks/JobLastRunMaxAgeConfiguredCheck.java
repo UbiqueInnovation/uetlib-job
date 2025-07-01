@@ -5,8 +5,10 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
+import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -14,10 +16,20 @@ import org.springframework.stereotype.Service;
 @Profile("!job-run")
 public class JobLastRunMaxAgeConfiguredCheck implements StatusCheck {
 
+    private final CheckLevel level;
     private final JobService jobService;
 
-    public JobLastRunMaxAgeConfiguredCheck(final JobService jobService) {
+    public JobLastRunMaxAgeConfiguredCheck(
+            @Value("${ch.ubique.backend.job.check.last-run-max-age-configured:ERROR}")
+                    final CheckLevel level,
+            final JobService jobService) {
+        this.level = level;
         this.jobService = jobService;
+    }
+
+    @Override
+    public CheckLevel level() {
+        return level;
     }
 
     @Override
