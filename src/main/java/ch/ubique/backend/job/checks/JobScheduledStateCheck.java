@@ -6,10 +6,12 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
+import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +21,19 @@ import java.util.Optional;
 @Profile("!job-run")
 public class JobScheduledStateCheck implements StatusCheck {
 
+    private final CheckLevel level;
     private final JobService jobService;
 
-    public JobScheduledStateCheck(final JobService jobService) {
+    public JobScheduledStateCheck(
+            @Value("${ch.ubique.backend.job.check.scheduled-state:ERROR}") final CheckLevel level,
+            final JobService jobService) {
+        this.level = level;
         this.jobService = jobService;
+    }
+
+    @Override
+    public CheckLevel level() {
+        return level;
     }
 
     @Override
