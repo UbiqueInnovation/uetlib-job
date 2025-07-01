@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.config;
 
+import ch.ubique.backend.job.websocket.WebSocketEchoSubProtocolInterceptor;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -22,7 +24,9 @@ public class UetlibJobWebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(final WebSocketHandlerRegistry registry) {
-        registry.addHandler(webSocketHandler, "/v1/status/live/logs").setAllowedOriginPatterns("*");
+        registry.addHandler(webSocketHandler, "/v1/status/live/logs")
+                .addInterceptors(new WebSocketEchoSubProtocolInterceptor())
+                .setAllowedOriginPatterns("*");
     }
 
     @Scheduled(fixedDelayString = "PT0.1S")

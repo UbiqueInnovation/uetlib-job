@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.config;
 
+import ch.ubique.backend.job.websocket.WebSocketSubProtocolBearerTokenResolver;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -54,7 +56,10 @@ public class UetlibJobSecurityConfig {
                                         .authenticated())
                 .oauth2ResourceServer(
                         customizer ->
-                                customizer.jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder())));
+                                customizer
+                                        .bearerTokenResolver(
+                                                new WebSocketSubProtocolBearerTokenResolver())
+                                        .jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder())));
 
         return http.build();
     }
