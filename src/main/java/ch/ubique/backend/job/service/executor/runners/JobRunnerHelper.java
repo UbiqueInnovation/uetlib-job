@@ -41,9 +41,9 @@ public final class JobRunnerHelper {
     static void runJob(
             final Job job, final JobRunContext jobRunContext, final JobService jobService) {
         try {
-            logger.info("Running job {} with jobRunContext {}", job, jobRunContext);
+            logger.info("Running {} with {}", job.getClass().getCanonicalName(), jobRunContext);
             final var state = job.run(jobRunContext);
-            logger.info("Job {} finished with state {}", job, state);
+            logger.info("Job {} finished with state {}", job.getClass().getCanonicalName(), state);
             updateJobRunState(jobService, jobRunContext, state);
         } catch (final Exception e) {
             final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
