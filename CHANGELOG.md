@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 1.3.4
+
+### Improvements
+
+- More concise logging
+
+## 1.3.4
+
+### Fixes
+
+- Fixed log security over websockets
+
 ## 1.3.2
 
 ### Improvements
