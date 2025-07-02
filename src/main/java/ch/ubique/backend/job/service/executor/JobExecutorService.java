@@ -82,7 +82,7 @@ public class JobExecutorService {
             return new UnsuccessfulSubmissionResult(JobSubmissionStatus.FAILED);
         }
 
-        logger.info("Job {} successfully scheduled", job);
+        logger.info("Job {} successfully scheduled", job.getClass().getCanonicalName());
         MDC.setContextMap(previousContextMap);
         return new SuccessfulSubmissionResult(runner.key(), jobRunContext);
     }
@@ -91,10 +91,10 @@ public class JobExecutorService {
             final JobRunner runner, final Job job, final JobRunContext jobRunContext) {
         try {
             logger.info(
-                    "Scheduling job {} with jobRunContext {} using runner {}",
-                    job,
+                    "Scheduling job {} with {} using {}",
+                    job.getClass().getCanonicalName(),
                     jobRunContext,
-                    runner.getClass());
+                    runner.getClass().getSimpleName());
             return runner.submit(job, jobRunContext);
         } catch (final Exception e) {
             logger.warn("Unhandled exception while trying to schedule job.", e);
