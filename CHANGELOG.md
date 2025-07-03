@@ -1,12 +1,19 @@
 # CHANGELOG
 
+## 1.3.5
+
+### Fixes
+
+- Added `-job` suffix to dedicated k8s-job `app`-label to avoid selectors for the main
+  app to also affect the job pods.
+
 ## 1.3.4
 
 ### Improvements
 
 - More concise logging
 
-## 1.3.4
+## 1.3.3
 
 ### Fixes
 

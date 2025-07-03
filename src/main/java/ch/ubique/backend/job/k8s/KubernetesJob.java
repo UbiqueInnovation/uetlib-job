@@ -175,7 +175,7 @@ public abstract class KubernetesJob implements Job {
 
     private String appName() {
         final var environment = applicationContext.getEnvironment();
-        return requireNonNull(environment.getProperty("spring.application.name"));
+        return requireNonNull(environment.getProperty("spring.application.name")) + "-job";
     }
 
     private static Map<String, String> labelsFromProperties(final JobRunContext jobRunContext) {
