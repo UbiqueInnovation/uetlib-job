@@ -34,7 +34,8 @@ import java.util.*;
         value = {
             "https://status.systems.ubique.ch",
             "https://status-dev.systems.ubique.ch",
-            "http://localhost:3000"
+            "http://localhost:3000",
+            "http://localhost:3001"
         },
         allowedHeaders = {"Authorization", "Content-Type"})
 public class UetlibJobStatusController {
