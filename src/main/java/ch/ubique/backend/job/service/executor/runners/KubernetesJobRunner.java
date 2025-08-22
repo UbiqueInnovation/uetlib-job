@@ -5,12 +5,12 @@ import static java.util.Objects.requireNonNull;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.k8s.KubernetesJob;
-import ch.ubique.backend.job.k8s.KubernetesService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.k8s.KubernetesService;
 import ch.ubique.backend.job.service.watcher.KubernetesJobWatcher;
 
 import io.kubernetes.client.openapi.ApiException;

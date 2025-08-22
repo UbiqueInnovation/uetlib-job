@@ -5,10 +5,10 @@ import static ch.ubique.backend.core.utils.MdcUtils.runnableWithContext;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
-import ch.ubique.backend.job.k8s.KubernetesService;
+import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.k8s.KubernetesService;
 
 import com.google.common.reflect.TypeToken;
 
@@ -46,12 +46,12 @@ public class KubernetesJobWatcher {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final KubernetesService kubernetesService;
     private final ExecutorService executorService;
-    private final JobService jobService;
+    private final JobDataService jobDataService;
 
     public KubernetesJobWatcher(
-            final KubernetesService kubernetesService, final JobService jobService) {
+            final KubernetesService kubernetesService, final JobDataService jobDataService) {
         this.kubernetesService = kubernetesService;
-        this.jobService = jobService;
+        this.jobDataService = jobDataService;
         final var threadFactory = Thread.ofVirtual().name("k8s-watcher-", 0).factory();
         this.executorService = Executors.newThreadPerTaskExecutor(threadFactory);
     }
@@ -72,7 +72,7 @@ public class KubernetesJobWatcher {
                 final var pods = getPods(jobName);
                 if (jobRunState != previousState) {
                     logger.info("Observed {} is now in state {}", jobName, jobRunState);
-                    jobService.updateJobRunState(jobRun, jobRunState, Instant.now());
+                    jobDataService.updateJobRunState(jobRun.id(), jobRunState, Instant.now());
                     if (!jobRunState.isRunning()) {
                         break;
                     }

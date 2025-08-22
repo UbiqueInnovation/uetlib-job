@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.k8s;
+package ch.ubique.backend.job.service.k8s;
 
 import static ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables.K8S_NAMESPACE;
 import static ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables.K8S_POD_NAME;
@@ -76,10 +76,6 @@ public class KubernetesService {
 
     public String currentNamespace() {
         return currentNamespace;
-    }
-
-    public String currentPodName() {
-        return currentPodName;
     }
 
     public @NotNull JobRunState getJobRunStatus(final V1Job job) {
