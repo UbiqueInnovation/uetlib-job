@@ -35,6 +35,11 @@ public class KubernetesJobWrapper extends KubernetesJob {
         return Set.of(mainContainer(kubernetesJobRunContext));
     }
 
+    @Override
+    public boolean watchJob() {
+        return false;
+    }
+
     protected V1Container mainContainer(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentPodContainer = getCurrentPodContainer(kubernetesJobRunContext);
 
