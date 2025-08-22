@@ -14,9 +14,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import io.kubernetes.client.custom.Quantity;
-import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.models.*;
-import io.kubernetes.client.util.Config;
 
 import jakarta.annotation.Nullable;
 
@@ -25,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import java.io.IOException;
 import java.util.*;
 
 public abstract class KubernetesJob implements Job {
@@ -57,10 +54,6 @@ public abstract class KubernetesJob implements Job {
                 .map(V1Pod::getSpec);
     }
 
-    public ApiClient apiClient() throws IOException {
-        return Config.defaultClient();
-    }
-
     @Override
     public final JobRunState run(final JobRunContext jobRunContext) throws Exception {
         final var jobRunnerKey =
@@ -82,6 +75,10 @@ public abstract class KubernetesJob implements Job {
         return new V1Job()
                 .metadata(jobMetadata(kubernetesJobRunContext))
                 .spec(jobSpec(kubernetesJobRunContext));
+    }
+
+    public boolean watchJob() {
+        return true;
     }
 
     @Nullable
