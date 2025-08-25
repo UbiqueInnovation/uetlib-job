@@ -84,7 +84,7 @@ public class JobExecutorService {
 
         logger.info("Job {} successfully scheduled", job.getClass().getCanonicalName());
         MDC.setContextMap(previousContextMap);
-        return new SuccessfulSubmissionResult(runner.key(), jobRunContext);
+        return new SuccessfulSubmissionResult(runner.key(), jobRunContext, jobRun.id());
     }
 
     private boolean tryToSchedule(
