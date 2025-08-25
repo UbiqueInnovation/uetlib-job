@@ -3,7 +3,9 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
 import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
@@ -18,6 +20,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 
 @SuppressWarnings("unused")
 public final class JobApplication {
@@ -56,34 +59,63 @@ public final class JobApplication {
                         .web(WebApplicationType.NONE)
                         .run(args);
 
-        final var jobClassName = jobToStartArgs.jobClassName();
+        final var exitCode = tryToRunJob(jobToStartArgs, applicationContext);
+        logger.info("Completed job, going to shut down");
+        SpringApplication.exit(applicationContext, () -> exitCode);
+        logger.info("Shutdown completed. Exit code {}", exitCode);
+        System.exit(exitCode);
+    }
 
+    private static int tryToRunJob(
+            final JobApplicationJobToStartArgs jobToStartArgs,
+            final ConfigurableApplicationContext applicationContext) {
         try {
-            final var jobClass =
-                    applicationContext.getBean(ClassLoaderService.class).getJobClass(jobClassName);
-            applicationContext
-                    .getBean(JobExecutorService.class)
-                    .submit(
-                            jobClass,
-                            new JobRunArguments(
-                                    jobToStartArgs.forceRun(),
-                                    getAdditionalData(jobToStartArgs, applicationContext)),
-                            jobToStartArgs.jobRunId(),
-                            JobRunnerKey.DEDICATED_K8S_JOB);
+            final var submissionResult =
+                    applicationContext
+                            .getBean(JobExecutorService.class)
+                            .submit(
+                                    applicationContext
+                                            .getBean(ClassLoaderService.class)
+                                            .getJobClass(jobToStartArgs.jobClassName()),
+                                    new JobRunArguments(
+                                            jobToStartArgs.forceRun(),
+                                            getAdditionalData(jobToStartArgs, applicationContext)),
+                                    jobToStartArgs.jobRunId(),
+                                    JobRunnerKey.DEDICATED_K8S_JOB);
+
+            if (!(submissionResult
+                    instanceof final SuccessfulSubmissionResult successfulSubmissionResult)) {
+                logger.info("Job run {} submission failed.", jobToStartArgs.jobRunId());
+                return 2;
+            }
 
             logger.info("Waiting for job to finish.");
             applicationContext.getBean(DedicatedJobRunner.class).awaitCompletion();
 
-            logger.info("Completed job, going to shut down");
+            final var jobRunId = successfulSubmissionResult.jobRunId();
+            return exitCodeFromJobRunState(applicationContext, jobRunId);
         } catch (final ClassNotFoundException e) {
             logger.error("The specified job or additional data class can not be found", e);
         } catch (final JsonProcessingException e) {
             logger.error("Could not deserialize additional data.", e);
         }
+        return 3;
+    }
 
-        final var exitCode = SpringApplication.exit(applicationContext);
-        logger.info("Shutdown completed. Exit code {}", exitCode);
-        System.exit(exitCode);
+    private static int exitCodeFromJobRunState(
+            final ConfigurableApplicationContext applicationContext, final int jobRunId) {
+        final var jobRunState =
+                applicationContext.getBean(JobService.class).getJobRun(jobRunId).latestState();
+        final var exitCode =
+                switch (jobRunState) {
+                    case DONE, SKIPPED -> 0;
+                    case WARNING, UNFINISHED -> 5;
+                    case ERROR -> 10;
+                    case NONE, BUSY, SCHEDULED -> 1;
+                };
+        logger.info(
+                "Job run {} finished with state {}, exit code {}", jobRunId, jobRunState, exitCode);
+        return exitCode;
     }
 
     private static Object getAdditionalData(
