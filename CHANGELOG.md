@@ -7,6 +7,10 @@
 - The job module can now watch state changes and logs of Kubernetes jobs. This is particularly
   useful for running arbitrary images as jobs.
 
+### Improvements
+
+- If a dedicated Kubernetes job fails, a non 0 exit code is used.
+
 ## 1.3.5
 
 ### Fixes
