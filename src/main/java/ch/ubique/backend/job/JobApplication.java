@@ -5,6 +5,7 @@ import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.runner.JobApplicationExitStatus;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
@@ -59,14 +60,14 @@ public final class JobApplication {
                         .web(WebApplicationType.NONE)
                         .run(args);
 
-        final var exitCode = tryToRunJob(jobToStartArgs, applicationContext);
+        final var exitCode = tryToRunJob(jobToStartArgs, applicationContext).exitCode();
         logger.info("Completed job, going to shut down");
         SpringApplication.exit(applicationContext, () -> exitCode);
         logger.info("Shutdown completed. Exit code {}", exitCode);
         System.exit(exitCode);
     }
 
-    private static int tryToRunJob(
+    private static JobApplicationExitStatus tryToRunJob(
             final JobApplicationJobToStartArgs jobToStartArgs,
             final ConfigurableApplicationContext applicationContext) {
         try {
@@ -86,7 +87,7 @@ public final class JobApplication {
             if (!(submissionResult
                     instanceof final SuccessfulSubmissionResult successfulSubmissionResult)) {
                 logger.info("Job run {} submission failed.", jobToStartArgs.jobRunId());
-                return 2;
+                return JobApplicationExitStatus.COULD_NOT_SCHEDULE;
             }
 
             logger.info("Waiting for job to finish.");
@@ -96,26 +97,34 @@ public final class JobApplication {
             return exitCodeFromJobRunState(applicationContext, jobRunId);
         } catch (final ClassNotFoundException e) {
             logger.error("The specified job or additional data class can not be found", e);
+            return JobApplicationExitStatus.JOB_NOT_FOUND;
         } catch (final JsonProcessingException e) {
             logger.error("Could not deserialize additional data.", e);
+            return JobApplicationExitStatus.BAD_ARGUMENTS;
+        } catch (final Exception e) {
+            logger.error("Unexpected exception.", e);
+            return JobApplicationExitStatus.UNCAUGHT_EXCEPTION;
         }
-        return 3;
     }
 
-    private static int exitCodeFromJobRunState(
+    private static JobApplicationExitStatus exitCodeFromJobRunState(
             final ConfigurableApplicationContext applicationContext, final int jobRunId) {
         final var jobRunState =
                 applicationContext.getBean(JobService.class).getJobRun(jobRunId).latestState();
-        final var exitCode =
+        final var exitStatus =
                 switch (jobRunState) {
-                    case DONE, SKIPPED -> 0;
-                    case WARNING, UNFINISHED -> 5;
-                    case ERROR -> 10;
-                    case NONE, BUSY, SCHEDULED -> 1;
+                    case DONE, SKIPPED -> JobApplicationExitStatus.SUCCESS;
+                    case WARNING, UNFINISHED -> JobApplicationExitStatus.JOB_WARNING;
+                    case ERROR -> JobApplicationExitStatus.JOB_ERROR;
+                    case NONE, BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
                 };
         logger.info(
-                "Job run {} finished with state {}, exit code {}", jobRunId, jobRunState, exitCode);
-        return exitCode;
+                "Job run {} finished with state {}. Exit status = {}, exit code = {}.",
+                jobRunId,
+                jobRunState,
+                exitStatus,
+                exitStatus.exitCode());
+        return exitStatus;
     }
 
     private static Object getAdditionalData(
