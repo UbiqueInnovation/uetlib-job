@@ -213,6 +213,7 @@ public abstract class KubernetesJob implements Job {
 
         return new V1JobSpec()
                 .ttlSecondsAfterFinished((int) ttlAfterFinished.toSeconds())
+                .backoffLimit(0)
                 .template(template(kubernetesJobRunContext));
     }
 
