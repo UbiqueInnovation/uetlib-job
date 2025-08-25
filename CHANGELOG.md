@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.4.0
+
+### New Features
+
+- The job module can now watch state changes and logs of Kubernetes jobs. This is particularly
+  useful for running arbitrary images as jobs.
+
 ## 1.3.5
 
 ### Fixes
