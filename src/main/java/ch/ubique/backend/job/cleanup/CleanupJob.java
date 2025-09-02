@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.cleanup;
 
 import ch.ubique.backend.core.executor.VirtualThreadUtils;
+import ch.ubique.backend.core.utils.StreamUtils;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -26,10 +27,13 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
 
+@SuppressWarnings("ClassCanBeRecord")
 @RegisteredJob
 public class CleanupJob implements Job {
 
     private static final Logger logger = LoggerFactory.getLogger(CleanupJob.class);
+
+    private static final int JPA_BATCH_CHUNK_SIZE = 20_000;
 
     private final JobRunStorage jobRunStorage;
     private final JobService jobService;
@@ -113,7 +117,8 @@ public class CleanupJob implements Job {
 
         // Delete job runs - cascades to delete job run input files and logs too
         logger.info("Removing job runs from database. Delete cascades for logs and inputs too.");
-        jobDataService.deleteJobRunByIds(cleanableRuns.stream().map(JobRun::id).toList());
+        StreamUtils.chunked(cleanableRuns.stream().map(JobRun::id), JPA_BATCH_CHUNK_SIZE)
+                .forEach(jobDataService::deleteJobRunByIds);
 
         // Delete job database submissions that are already submitted - cascades to delete job
         // run input files, too
