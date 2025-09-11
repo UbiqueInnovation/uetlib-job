@@ -169,7 +169,7 @@ public class UetlibJobStatusController {
         return jobControllerService.listFiles(jobRunId);
     }
 
-    @GetMapping("/run/{jobRunId}/all")
+    @GetMapping("/run/{jobRunId}/files/all")
     public ResponseEntity<StreamingResponseBody> getAllFiles(@PathVariable final int jobRunId) {
         return jobControllerService
                 .getAllFiles(jobRunId)
