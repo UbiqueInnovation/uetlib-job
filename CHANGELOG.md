@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.5.0
+
+### New Features
+
+- It is now possible to download a zip archive containing all files from a Job Run.
+
 ## 1.4.0
 
 ### New Features
