@@ -77,7 +77,8 @@ public class JobStateWatcher {
         // If the job still produced logs recently, we are not going to update its state
         final var latestActivity = logService.mostRecentLogTimestamp(jobRun.id());
         final var timeout = latestActivityTimeout(jobRun);
-        if (latestActivity.isAfter(Instant.now().minus(timeout))) {
+        if (latestActivity.isPresent()
+                && latestActivity.get().isAfter(Instant.now().minus(timeout))) {
             logger.debug("Latest log activity of run {} is newer than {}.", jobRun, timeout);
             return;
         }
