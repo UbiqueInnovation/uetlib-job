@@ -18,10 +18,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.time.Instant;
 import java.util.*;
@@ -165,6 +167,22 @@ public class UetlibJobStatusController {
     @GetMapping("/run/{jobRunId}/files")
     public JobRunFileListResponse listFiles(@PathVariable final int jobRunId) {
         return jobControllerService.listFiles(jobRunId);
+    }
+
+    @GetMapping("/run/{jobRunId}/all")
+    public ResponseEntity<StreamingResponseBody> getAllFiles(@PathVariable final int jobRunId) {
+        return jobControllerService
+                .getAllFiles(jobRunId)
+                .map(
+                        b ->
+                                ResponseEntity.ok()
+                                        .header(
+                                                HttpHeaders.CONTENT_DISPOSITION,
+                                                String.format(
+                                                        "attachment; filename=files_%d.zip",
+                                                        jobRunId))
+                                        .body(b))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping(

@@ -6,7 +6,6 @@ import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.ManualTriggerNotAllowedException;
-import ch.ubique.backend.job.service.logs.LogService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -29,6 +28,7 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.JobManualTriggerService;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.service.inputs.JobRunInputProvider;
+import ch.ubique.backend.job.service.logs.LogService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
@@ -38,6 +38,9 @@ import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +49,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -466,6 +470,31 @@ public class JobControllerService {
 
     public JobRunFileListResponse listFiles(final int jobRunId) {
         return new JobRunFileListResponse(jobRunInputManager.getDeclaredInputPaths(jobRunId));
+    }
+
+    public Optional<StreamingResponseBody> getAllFiles(final int jobRunId) {
+        final var allPaths = jobRunInputManager.getDeclaredInputPaths(jobRunId);
+        if (allPaths.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                out -> {
+                    try (final var zipOutput = new ZipArchiveOutputStream(out)) {
+                        for (final var path : allPaths) {
+                            final var resource = getFile(jobRunId, path);
+                            if (resource.isEmpty()) {
+                                continue;
+                            }
+                            try (final var is = resource.get().getInputStream()) {
+                                final var entry = new ZipArchiveEntry(path);
+                                zipOutput.putArchiveEntry(entry);
+                                IOUtils.copy(is, zipOutput);
+                                zipOutput.closeArchiveEntry();
+                            }
+                        }
+                        zipOutput.finish();
+                    }
+                });
     }
 
     public Optional<InputStreamResource> getFile(final int jobRunId, final String path) {
