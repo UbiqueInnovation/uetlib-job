@@ -541,10 +541,10 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Instant findMostRecentLoggingEventTimestamp(final int jobRunId) {
-        return loggingEventRepository
-                .findFirstByJobRunIdOrderByTimestampDesc(jobRunId)
-                .toLoggingEvent()
-                .getInstant();
+    public Optional<Instant> findMostRecentLoggingEventTimestamp(final int jobRunId) {
+        return Optional.ofNullable(
+                        loggingEventRepository.findFirstByJobRunIdOrderByTimestampDesc(jobRunId))
+                .map(LoggingEventEntity::toLoggingEvent)
+                .map(LoggingEvent::getInstant);
     }
 }
