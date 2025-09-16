@@ -81,7 +81,7 @@ public class TriggerCoordinatorService {
 
     public void deleteTrigger(final Trigger trigger) {
         removeTrigger(trigger);
-        jobDataService.deleteJob(trigger);
+        jobDataService.deleteTrigger(trigger);
         logger.info("Deleted trigger {}", trigger);
     }
 
