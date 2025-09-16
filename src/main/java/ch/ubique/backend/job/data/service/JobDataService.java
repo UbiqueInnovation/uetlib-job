@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.data.service;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
 import ch.ubique.backend.job.logging.LoggingEvent;
@@ -324,11 +323,6 @@ public class JobDataService {
         jobRunInputRepository.deleteAllByJobId(jobId);
         jobRunRepository.deleteAllByJobId(jobId);
         jobRepository.deleteById(jobId);
-    }
-
-    @Transactional
-    public void insertJobRunInput(final JobRun jobRun, final ByteFile input) {
-        jobRunInputRepository.save(JobRunInputEntity.from(jobRun, input));
     }
 
     @Transactional
