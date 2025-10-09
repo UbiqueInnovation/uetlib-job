@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.4.2
+
+### New Features
+
+- Added `JobRunInputManager.save(Map)` method, to save multiple job run inputs at once.
+
 ## 1.4.1
 
 ### New Features
