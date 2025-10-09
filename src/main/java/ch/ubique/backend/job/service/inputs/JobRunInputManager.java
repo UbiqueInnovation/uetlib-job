@@ -9,11 +9,12 @@ import ch.ubique.backend.storage.output.Output;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import org.springframework.stereotype.Service;
+import java.util.Map;
 
 @Service
 public class JobRunInputManager implements JobRunInputProvider {
@@ -33,6 +34,13 @@ public class JobRunInputManager implements JobRunInputProvider {
             throws IOException {
         saveToStorage(inputDeclaration, output);
         saveToDatabase(inputDeclaration);
+    }
+
+    public void save(final Map<JobRunInputDeclaration, Output> inputs) throws IOException {
+        for (final var entry : inputs.entrySet()) {
+            saveToStorage(entry.getKey(), entry.getValue());
+        }
+        saveToDatabase(inputs.keySet());
     }
 
     public void saveToDatabase(final Collection<JobRunInputDeclaration> inputDeclarations) {
