@@ -10,7 +10,7 @@ import java.io.InputStream;
 @Storage(clientQualifier = "jobRunStorageClient", codeGenerationType = CodeGenerationType.ALL)
 public interface JobRunStorage {
 
-    @OutputMapping(path = "{jobName}/{runId}/{fileName}.gz")
+    @OutputMapping(path = "{jobName}/{runId}/{fileName}")
     void saveJobRunInput(
             @StorageObject Output output,
             @StoragePathVariable String jobName,
@@ -18,14 +18,14 @@ public interface JobRunStorage {
             @StoragePathVariable String fileName)
             throws IOException;
 
-    @InputMapping(path = "{jobName}/{runId}/{fileName}.gz")
+    @InputMapping(path = "{jobName}/{runId}/{fileName}")
     InputStream loadJobRunInput(
             @StoragePathVariable String jobName,
             @StoragePathVariable String runId,
             @StoragePathVariable String fileName)
             throws IOException;
 
-    @ExistsMapping(path = "{jobName}/{runId}/{fileName}.gz")
+    @ExistsMapping(path = "{jobName}/{runId}/{fileName}")
     boolean jobRunInputExists(
             @StoragePathVariable String jobName,
             @StoragePathVariable String runId,

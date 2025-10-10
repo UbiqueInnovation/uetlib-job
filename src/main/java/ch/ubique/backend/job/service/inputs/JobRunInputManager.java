@@ -57,7 +57,7 @@ public class JobRunInputManager implements JobRunInputProvider {
             throws IOException {
         logger.info("Saving {} to storage.", inputDeclaration);
         jobRunStorage.saveJobRunInput(
-                output.gZip(),
+                output,
                 getJobSimpleName(inputDeclaration),
                 JobRun.readableId(inputDeclaration.jobRunId()),
                 inputDeclaration.path());
