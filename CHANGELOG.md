@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.4.3
+
+## Changes
+
+- JobRunStorage: use built in gzip handling instead of explicit gzip
+
 ## 1.4.2
 
 ### New Features
