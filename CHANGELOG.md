@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.4.4
+
+- Downgraded some log messages to debug
+
 ## 1.4.3
 
 ## Changes

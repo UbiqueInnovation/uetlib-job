@@ -44,18 +44,18 @@ public class JobRunInputManager implements JobRunInputProvider {
     }
 
     public void saveToDatabase(final Collection<JobRunInputDeclaration> inputDeclarations) {
-        logger.info("Saving {} inputs to database.", inputDeclarations.size());
+        logger.debug("Saving {} inputs to database.", inputDeclarations.size());
         jobDataService.insertJobRunInput(inputDeclarations);
     }
 
     public void saveToDatabase(final JobRunInputDeclaration inputDeclaration) {
-        logger.info("Saving {} to database.", inputDeclaration);
+        logger.debug("Saving {} to database.", inputDeclaration);
         jobDataService.insertJobRunInput(inputDeclaration);
     }
 
     public void saveToStorage(final JobRunInputDeclaration inputDeclaration, final Output output)
             throws IOException {
-        logger.info("Saving {} to storage.", inputDeclaration);
+        logger.debug("Saving {} to storage.", inputDeclaration);
         jobRunStorage.saveJobRunInput(
                 output,
                 getJobSimpleName(inputDeclaration),
