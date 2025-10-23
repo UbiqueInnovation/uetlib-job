@@ -1,15 +1,15 @@
 insert
-into t_job_run(fk_job_id, job_version, version_tag, started_at, finished_at, job_run_arguments,
+into t_job_run(fk_job_id, version_tag, started_at, finished_at, job_run_arguments,
                runner_key,
                created_at, updated_at)
-values (1, 0, '1.0.0', now() - interval 8 hour, null, '{}', 'CURRENT', now() - interval 9 hour,
+values (1, '1.0.0', now() - interval 8 hour, null, '{}', 'CURRENT', now() - interval 9 hour,
         now() - interval 9 hour),
-       (1, 0, '1.0.0', now() - interval 7 hour, null, '{}', 'CURRENT', now() - interval 8 hour,
+       (1, '1.0.0', now() - interval 7 hour, null, '{}', 'CURRENT', now() - interval 8 hour,
         now() - interval 6 hour),
-       (1, 0, '1.0.0', now() - interval 6 hour, now() - interval 2 hour, '{}', 'CURRENT',
+       (1, '1.0.0', now() - interval 6 hour, now() - interval 2 hour, '{}', 'CURRENT',
         now() - interval 7 hour,
         now() - interval 4 hour),
-       (1, 0, '1.0.0', now() - interval 5 hour, now() - interval 1 hour, '{}', 'CURRENT',
+       (1, '1.0.0', now() - interval 5 hour, now() - interval 1 hour, '{}', 'CURRENT',
         now() - interval 6 hour,
         now() - interval 4 hour);
 

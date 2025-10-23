@@ -154,7 +154,7 @@ public class JobService {
             final @NotNull JobRunnerKey runnerKey,
             final @NotNull JobRunArguments arguments) {
         final var jobId = getJobId(job.getClass());
-        return jobDataService.createJobRun(jobId, job.version(), versionTag, runnerKey, arguments);
+        return jobDataService.createJobRun(jobId, versionTag, runnerKey, arguments);
     }
 
     public JobRun getOrCreateJobRun(

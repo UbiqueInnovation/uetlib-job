@@ -14,7 +14,6 @@ import java.util.Objects;
 public record JobRun(
         int id,
         int jobId,
-        int jobVersion,
         @NotBlank String versionTag,
         @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
@@ -43,7 +42,6 @@ public record JobRun(
 
         private int id;
         private int jobId;
-        private int jobVersion;
         private final String versionTag;
         private Instant startedAt;
         private Instant finishedAt;
@@ -54,7 +52,6 @@ public record JobRun(
         private ModifiableJobRun(final JobRun jobRun) {
             this.id = jobRun.id;
             this.jobId = jobRun.jobId;
-            this.jobVersion = jobRun.jobVersion;
             this.versionTag = jobRun.versionTag;
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
@@ -70,11 +67,6 @@ public record JobRun(
 
         public ModifiableJobRun jobId(final int jobId) {
             this.jobId = jobId;
-            return this;
-        }
-
-        public ModifiableJobRun jobVersion(final int jobVersion) {
-            this.jobVersion = jobVersion;
             return this;
         }
 
@@ -107,7 +99,6 @@ public record JobRun(
             return new JobRun(
                     id,
                     jobId,
-                    jobVersion,
                     versionTag,
                     startedAt,
                     finishedAt,
