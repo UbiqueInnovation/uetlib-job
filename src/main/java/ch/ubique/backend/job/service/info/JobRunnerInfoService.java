@@ -1,13 +1,19 @@
 package ch.ubique.backend.job.service.info;
 
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.client.info.JobSystemRunnerGroupInfo;
+import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.CurrentJobRunner;
+import ch.ubique.backend.job.service.executor.runners.JobTaskWrapper;
 
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
@@ -20,20 +26,25 @@ import java.util.stream.Collectors;
 public class JobRunnerInfoService {
 
     private final CurrentJobRunner currentJobRunner;
+    private final JobService jobService;
 
-    public JobRunnerInfoService(CurrentJobRunner currentJobRunner) {
+    public JobRunnerInfoService(CurrentJobRunner currentJobRunner, JobService jobService) {
         this.currentJobRunner = currentJobRunner;
+        this.jobService = jobService;
     }
 
     public List<JobSystemRunnerGroupInfo> getRunnerGroupsInfo() {
+        Map<String, List<String>> configuredJobsByGroup = getConfiguredJobsByGroup();
+
         return currentJobRunner.getExecutorServices().entrySet().stream()
-                .map(this::createGroupInfo)
+                .map(entry -> createGroupInfo(entry, configuredJobsByGroup))
                 .sorted(Comparator.comparing(JobSystemRunnerGroupInfo::identifier))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private JobSystemRunnerGroupInfo createGroupInfo(
-            final java.util.Map.Entry<RunnerGroup, ThreadPoolExecutor> entry) {
+            final java.util.Map.Entry<RunnerGroup, ThreadPoolExecutor> entry,
+            final Map<String, List<String>> configuredJobsByGroup) {
         final RunnerGroup group = entry.getKey();
         final ThreadPoolExecutor executor = entry.getValue();
         final ExecutorStats stats = collectExecutorStats(executor);
@@ -42,9 +53,10 @@ public class JobRunnerInfoService {
                 group.identifier(),
                 group.threadPoolSize(),
                 getAllowedJobs(group),
+                configuredJobsByGroup.getOrDefault(group.identifier(), List.of()),
                 stats.busyThreads(),
                 stats.queueLength(),
-                null,
+                getQueueElements(executor),
                 stats.completedTaskCount(),
                 stats.largestPoolSize(),
                 stats.currentPoolSize());
@@ -60,7 +72,47 @@ public class JobRunnerInfoService {
     }
 
     private List<String> getAllowedJobs(final RunnerGroup group) {
-        return group.allowedJobs().stream().map(Class::getSimpleName).sorted().toList();
+        return group.allowedJobs().stream().map(Class::getCanonicalName).sorted().toList();
+    }
+
+    private Map<String, List<String>> getConfiguredJobsByGroup() {
+        return jobService.getAllJobs().stream()
+                .collect(
+                        Collectors.groupingBy(
+                                job ->
+                                        jobService
+                                                .getProperties(job)
+                                                .get(JobPropertyDefinitions.RUNNER_GROUP)
+                                                .value()
+                                                .identifier(),
+                                Collectors.mapping(
+                                        Job::getClass,
+                                        Collectors.mapping(
+                                                Class::getCanonicalName, Collectors.toList()))))
+                .entrySet()
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry -> entry.getValue().stream().sorted().toList()));
+    }
+
+    private List<String> getQueueElements(final ThreadPoolExecutor executor) {
+        // Get a snapshot of the queue
+        Runnable[] queuedTasksArray = executor.getQueue().toArray(new Runnable[0]);
+        List<Runnable> queuedTasks =
+                queuedTasksArray.length > 0 ? Arrays.stream(queuedTasksArray).toList() : List.of();
+
+        // Convert each Runnable to a string representation
+        return queuedTasks.stream().map(this::getTaskDescription).sorted().toList();
+    }
+
+    private String getTaskDescription(Runnable task) {
+        if (task instanceof JobTaskWrapper wrapper) {
+            return wrapper.toString();
+        }
+        // Fallback for unexpected task types
+        return task != null ? task.toString() : "Unknown Task";
     }
 
     private record ExecutorStats(

@@ -62,12 +62,8 @@ public final class CurrentJobRunner implements JobRunner {
 
         final var executorService = getExecutorService(runnerGroup);
         final var jobRunId = jobRunContext.jobRun().id();
-        final var future =
-                executorService.submit(
-                        () -> {
-                            JobRunnerHelper.run(job, jobService, jobRunContext);
-                            futuresByJobRun.remove(jobRunId);
-                        });
+        final var jobTask = new JobTaskWrapper(job, jobRunContext, jobService);
+        final var future = executorService.submit(jobTask);
         futuresByJobRun.put(jobRunId, future);
         return true;
     }
