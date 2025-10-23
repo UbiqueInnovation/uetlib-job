@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -30,6 +31,7 @@ public final class CurrentJobRunner implements JobRunner {
 
     private final Map<RunnerGroup, ThreadPoolExecutor> executorServices;
     private final Map<Integer, Future<?>> futuresByJobRun;
+    private final Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> queuedJobRuns;
 
     private final JobService jobService;
 
@@ -37,10 +39,15 @@ public final class CurrentJobRunner implements JobRunner {
         this.jobService = jobService;
         executorServices = new ConcurrentHashMap<>();
         futuresByJobRun = new ConcurrentHashMap<>();
+        queuedJobRuns = new ConcurrentHashMap<>();
     }
 
     public Map<RunnerGroup, ThreadPoolExecutor> getExecutorServices() {
         return Collections.unmodifiableMap(executorServices);
+    }
+
+    public Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> getQueuedJobRuns() {
+        return Collections.unmodifiableMap(queuedJobRuns);
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
@@ -62,8 +69,19 @@ public final class CurrentJobRunner implements JobRunner {
 
         final var executorService = getExecutorService(runnerGroup);
         final var jobRunId = jobRunContext.jobRun().id();
-        final var jobTask = new JobTaskWrapper(job, jobRunContext, jobService);
-        final var future = executorService.submit(jobTask);
+        final var queueItem =
+                new CurrentRunnerQueueItem(job.getClass(), jobRunContext.jobRun().id());
+        final var runnerGroupQueue =
+                queuedJobRuns.computeIfAbsent(
+                        runnerGroup, ignored -> new ConcurrentLinkedDeque<>());
+        runnerGroupQueue.add(queueItem);
+        final var future =
+                executorService.submit(
+                        () -> {
+                            runnerGroupQueue.remove(queueItem);
+                            JobRunnerHelper.run(job, jobService, jobRunContext);
+                            futuresByJobRun.remove(jobRunId);
+                        });
         futuresByJobRun.put(jobRunId, future);
         return true;
     }
