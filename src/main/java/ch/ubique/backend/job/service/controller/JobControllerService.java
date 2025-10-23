@@ -483,7 +483,7 @@ public class JobControllerService {
     public SuccessResponse acknowledgeJobRun(final int jobRunId) {
         final var jobRun = jobDataService.findJobRunById(jobRunId).orElseThrow();
         if (!jobRun.latestState().isAcknowledgeable()) {
-            return new SuccessResponse(false, "Job run state is not acknowledgable");
+            return new SuccessResponse(false, "Job run state is not acknowledgeable");
         }
         jobDataService.updateJobRunState(jobRunId, JobRunState.ACKNOWLEDGED, Instant.now());
         return new SuccessResponse(true, "Job run acknowledged.");
