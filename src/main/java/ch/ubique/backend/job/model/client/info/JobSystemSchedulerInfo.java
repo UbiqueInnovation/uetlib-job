@@ -6,4 +6,4 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.Collection;
 
 public record JobSystemSchedulerInfo(
-        @Valid @NotEmpty Collection<JobSystemSchedulerGroupInfo> groups) {}
+        @Valid @NotEmpty Collection<JobSystemRunnerGroupInfo> groups) {}

@@ -26,6 +26,7 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.JobManualTriggerService;
+import ch.ubique.backend.job.service.info.JobRunnerInfoService;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.service.inputs.JobRunInputProvider;
 import ch.ubique.backend.job.service.logs.LogService;
@@ -75,6 +76,8 @@ public class JobControllerService {
     private final JobRunInputManager jobRunInputManager;
     private final LogService logService;
 
+    private final JobRunnerInfoService jobRunnerInfoService;
+
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
@@ -83,7 +86,8 @@ public class JobControllerService {
             final TriggerCoordinatorService triggerCoordinatorService,
             final JobManualTriggerService jobManualTriggerService,
             final JobRunInputManager jobRunInputManager,
-            final LogService logService) {
+            final LogService logService,
+            final JobRunnerInfoService jobRunnerInfoService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
@@ -92,6 +96,7 @@ public class JobControllerService {
         this.jobManualTriggerService = jobManualTriggerService;
         this.jobRunInputManager = jobRunInputManager;
         this.logService = logService;
+        this.jobRunnerInfoService = jobRunnerInfoService;
     }
 
     private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
@@ -428,11 +433,7 @@ public class JobControllerService {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
                         new JobSystemCronInfo(cronTriggerService.getDefaultZoneId()),
-                        new JobSystemSchedulerInfo(getGroups())));
-    }
-
-    private List<JobSystemSchedulerGroupInfo> getGroups() {
-        return List.of();
+                        jobRunnerInfoService.getRunnerGroupsInfo()));
     }
 
     private Job getJobInstance(final String jobIdOrClassName) throws ClassNotFoundException {
