@@ -11,6 +11,7 @@ Retreat 2025 Edition
   The behavior can be controlled using the job properties.
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
+- Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
 
 ### Database migrations
 
