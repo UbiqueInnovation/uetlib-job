@@ -258,6 +258,13 @@ public class JobDataService {
             jobRunRepository.save(jobRunEntity);
         }
 
+        if(JobRunState.ACKNOWLEDGED == jobRunState && jobRunEntity.latestState().isAcknowledgeable()) {
+            // Add state transition
+            jobRunEntity.addJobRunStateTransition(
+                    new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
+            jobRunRepository.save(jobRunEntity);
+        }
+
         final var isFinishedState = !jobRunState.isRunning();
         if (jobRunEntity.finishedAt() != null && isFinishedState) {
             // Already finished, do not modify

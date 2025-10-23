@@ -159,6 +159,11 @@ public class UetlibJobStatusController {
         return jobControllerService.cancelJobRun(jobRunId);
     }
 
+    @PostMapping("/run/{jobRunId}/acknowledge")
+    public SuccessResponse acknowledgeJobRun(@PathVariable final int jobRunId) {
+        return jobControllerService.acknowledgeJobRun(jobRunId);
+    }
+
     @GetMapping("/run/{jobRunId}/logs")
     public String logs(@PathVariable final int jobRunId) {
         return jobControllerService.logs(jobRunId);

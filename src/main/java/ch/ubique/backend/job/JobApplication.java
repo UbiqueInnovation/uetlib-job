@@ -113,7 +113,7 @@ public final class JobApplication {
                 applicationContext.getBean(JobService.class).getJobRun(jobRunId).latestState();
         final var exitStatus =
                 switch (jobRunState) {
-                    case DONE, SKIPPED -> JobApplicationExitStatus.SUCCESS;
+                    case DONE, SKIPPED, ACKNOWLEDGED -> JobApplicationExitStatus.SUCCESS;
                     case WARNING, UNFINISHED -> JobApplicationExitStatus.JOB_WARNING;
                     case ERROR -> JobApplicationExitStatus.JOB_ERROR;
                     case NONE, BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
