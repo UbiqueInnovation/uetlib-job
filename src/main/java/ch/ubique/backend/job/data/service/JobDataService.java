@@ -16,6 +16,7 @@ import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -433,11 +434,12 @@ public class JobDataService {
     public JobRun createJobRun(
             @Positive final int jobId,
             @PositiveOrZero final int jobVersion,
+            @NotBlank final String versionTag,
             @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =
-                new JobRunEntity(jobId, jobVersion, runnerKey, scheduledAt, arguments);
+                new JobRunEntity(jobId, jobVersion, versionTag, runnerKey, scheduledAt, arguments);
         jobRunEntity.addJobRunStateTransition(
                 new JobRunStateTransitionEmbeddable(JobRunState.SCHEDULED, scheduledAt));
         return jobRunRepository.save(jobRunEntity).toJobRun();

@@ -44,6 +44,10 @@ public class JobRunEntity {
     @Column(name = "job_version", nullable = false)
     private Integer jobVersion;
 
+    @NotBlank
+    @Column(name = "version_tag", nullable = false)
+    private String versionTag;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
     private JobRunnerKey runnerKey;
@@ -72,11 +76,13 @@ public class JobRunEntity {
     public JobRunEntity(
             @Positive final int jobId,
             @PositiveOrZero final int jobVersion,
+            @NotBlank final String versionTag,
             @NotNull final JobRunnerKey runnerKey,
             @NotNull @PastOrPresent final Instant startedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.jobVersion = jobVersion;
+        this.versionTag = versionTag;
         this.runnerKey = runnerKey;
         this.startedAt = startedAt;
         this.jobRunArguments = jobRunArguments;
@@ -94,6 +100,7 @@ public class JobRunEntity {
                 id,
                 jobId,
                 jobVersion,
+                versionTag,
                 startedAt,
                 finishedAt,
                 latestState(),

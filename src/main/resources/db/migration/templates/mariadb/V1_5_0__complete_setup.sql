@@ -23,6 +23,7 @@ create table t_job_run
     pk_job_run_id     integer auto_increment not null primary key,
     fk_job_id         integer                not null references t_job (pk_job_id) on delete cascade on update cascade,
     job_version       integer                not null,
+    version_tag varchar(32) not null,
     runner_key        text                   not null,
     created_at        timestamp              not null,
     updated_at        timestamp              not null,
@@ -90,7 +91,7 @@ CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER auto_increment NOT NULL PRIMARY KEY,
     fk_job_id          INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               VARCHAR(100)           NOT NULL, -- MySQL requires a limit on keys / indices, whereas MariaDB does not
+    type               TEXT                   NOT NULL,
     trigger_definition JSON                   NOT NULL,
     created_at         timestamp              not null,
     updated_at         timestamp              not null
@@ -99,12 +100,8 @@ CREATE TABLE t_job_trigger
 CREATE INDEX idx_type ON t_job_trigger (type);
 CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
 
--- 2.1.2
-
 CREATE INDEX logging_event_job_run_id_index
     ON logging_event (job_run_id);
-
--- 2.3.0
 
 create table t_job_run_database_submission
 (
@@ -116,7 +113,6 @@ create table t_job_run_database_submission
     job_run_database_submission_arguments json                   not null
 ) charset = utf8mb4;
 
--- 2.4.0
 
 create table t_k8s_jobs
 (
@@ -125,9 +121,7 @@ create table t_k8s_jobs
     k8s_job_name   text                   not null,
     created_at     timestamp              not null,
     updated_at     timestamp              not null
-) charset = utf8mb4;
-
--- 2.4.1
+);
 
 CREATE TABLE t_job_run_state_transition
 (
@@ -149,7 +143,6 @@ SELECT tjr.*,
         LIMIT 1) AS latest_state
 from t_job_run tjr;
 
--- 2.4.6
 ALTER TABLE logging_event
     ADD CONSTRAINT fk_job_run_id
         FOREIGN KEY (job_run_id) REFERENCES t_job_run (pk_job_run_id)

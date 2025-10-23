@@ -26,6 +26,7 @@ import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
 
+    private final String versionTag;
     private final RetryTemplate retryTemplate;
     private final JobDataService jobDataService;
     private final ApplicationContext applicationContext;
@@ -48,11 +50,13 @@ public class JobService {
     public JobService(
             final JobDataService jobDataService,
             final ApplicationContext applicationContext,
-            final ClassLoaderService classLoaderService) {
+            final ClassLoaderService classLoaderService,
+            final BuildProperties buildProperties) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
         this.retryTemplate = RetryTemplate.builder().maxAttempts(10).noBackoff().build();
+        this.versionTag = buildProperties.getVersion();
     }
 
     public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {
@@ -150,7 +154,7 @@ public class JobService {
             final @NotNull JobRunnerKey runnerKey,
             final @NotNull JobRunArguments arguments) {
         final var jobId = getJobId(job.getClass());
-        return jobDataService.createJobRun(jobId, job.version(), runnerKey, arguments);
+        return jobDataService.createJobRun(jobId, job.version(), versionTag, runnerKey, arguments);
     }
 
     public JobRun getOrCreateJobRun(

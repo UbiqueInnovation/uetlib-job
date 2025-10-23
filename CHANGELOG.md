@@ -10,6 +10,7 @@ Retreat 2025 Edition
   run-time or schedule-time limit.
   The behavior can be controlled using the job properties.
 - Job Info endpoint now includes runner groups.
+- Job runs persist the version tag of the image that was used to run the job.
 
 ## 1.4.4
 

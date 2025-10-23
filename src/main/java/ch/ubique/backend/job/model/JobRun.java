@@ -4,6 +4,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Duration;
@@ -14,6 +15,7 @@ public record JobRun(
         int id,
         int jobId,
         int jobVersion,
+        @NotBlank String versionTag,
         @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
         @NotNull JobRunState latestState,
@@ -42,6 +44,7 @@ public record JobRun(
         private int id;
         private int jobId;
         private int jobVersion;
+        private final String versionTag;
         private Instant startedAt;
         private Instant finishedAt;
         private JobRunState state;
@@ -52,6 +55,7 @@ public record JobRun(
             this.id = jobRun.id;
             this.jobId = jobRun.jobId;
             this.jobVersion = jobRun.jobVersion;
+            this.versionTag = jobRun.versionTag;
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
             this.state = Objects.requireNonNull(jobRun.latestState);
@@ -104,6 +108,7 @@ public record JobRun(
                     id,
                     jobId,
                     jobVersion,
+                    versionTag,
                     startedAt,
                     finishedAt,
                     state,
