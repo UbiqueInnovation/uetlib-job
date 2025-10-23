@@ -1,5 +1,3 @@
--- 1.0.0
-
 create table t_job
 (
     pk_job_id  integer generated always as identity primary key,
@@ -22,6 +20,7 @@ create table t_job_run
 (
     pk_job_run_id     integer generated always as identity primary key,
     fk_job_id         integer                  not null references t_job (pk_job_id) on delete cascade on update cascade,
+    version_tag varchar not null,
     job_version       integer                  not null,
     runner_key        text                     not null,
     created_at        timestamp with time zone not null,
@@ -42,8 +41,6 @@ create table t_job_run_input
     created_at          timestamp with time zone not null,
     updated_at          timestamp with time zone not null
 );
-
--- 1.3.0
 
 CREATE TABLE logging_event
 (
@@ -83,8 +80,6 @@ CREATE TABLE logging_event_exception
     FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
--- 2.0.0
-
 CREATE TABLE t_job_trigger
 (
     pk_job_trigger_id  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -98,12 +93,8 @@ CREATE TABLE t_job_trigger
 CREATE INDEX idx_type ON t_job_trigger (type);
 CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
 
--- 2.1.2
-
 CREATE INDEX logging_event_job_run_id_index
     ON logging_event (job_run_id);
-
--- 2.3.0
 
 create table t_job_run_database_submission
 (
@@ -115,7 +106,6 @@ create table t_job_run_database_submission
     job_run_database_submission_arguments jsonb                    not null
 );
 
--- 2.4.0
 
 create table t_k8s_jobs
 (
@@ -126,8 +116,6 @@ create table t_k8s_jobs
     updated_at     timestamp with time zone not null
 );
 
--- 2.4.1
-
 create table t_job_run_state_transition
 (
     pk_job_run_state_transition_id integer generated always as identity primary key,
@@ -136,7 +124,6 @@ create table t_job_run_state_transition
     transitioned_at                timestamp with time zone not null
 );
 
--- 2.4.5
 create index idx_job_run_started_at on t_job_run (started_at);
 create index idx_job_run_state_transition_state on t_job_run_state_transition (state);
 create index idx_job_run_state_transition_transitioned_at on t_job_run_state_transition (transitioned_at);
@@ -151,7 +138,6 @@ select r.*,
         limit 1) as latest_state
 from t_job_run r;
 
--- 2.4.6
 alter table logging_event
     add constraint fk_job_run_id foreign key (job_run_id) references t_job_run (pk_job_run_id) on delete cascade on update cascade;
 create index fk_idx_logging_event_job_run_id on logging_event (job_run_id);

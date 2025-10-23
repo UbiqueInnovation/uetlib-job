@@ -22,6 +22,7 @@ public record JobRunInfo(
         @NotNull @PastOrPresent Instant startedAt,
         @PastOrPresent Instant finishedAt,
         @NotNull String duration,
+        @NotNull String versionTag,
         boolean hasFiles) {
 
     public static JobRunInfo from(final JobRun jobRun, final boolean hasFiles) {
@@ -33,6 +34,7 @@ public record JobRunInfo(
                 jobRun.startedAt(),
                 jobRun.finishedAt(),
                 StringFormattingUtils.formatDuration(jobRun.startedAt(), jobRun.finishedAt()),
+                jobRun.versionTag(),
                 hasFiles);
     }
 }

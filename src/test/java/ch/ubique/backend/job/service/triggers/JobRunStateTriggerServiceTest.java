@@ -63,6 +63,7 @@ class JobRunStateTriggerServiceTest {
                         1,
                         1,
                         1,
+                        "1.0.0",
                         jobRunStartedAt,
                         null,
                         JobRunState.SCHEDULED,

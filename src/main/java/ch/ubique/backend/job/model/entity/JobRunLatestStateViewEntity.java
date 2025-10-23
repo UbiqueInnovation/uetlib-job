@@ -32,6 +32,10 @@ public class JobRunLatestStateViewEntity {
     @Column(name = "job_version", nullable = false, insertable = false, updatable = false)
     private Integer jobVersion;
 
+    @NotBlank
+    @Column(name = "version_tag", nullable = false, insertable = false, updatable = false)
+    private String versionTag;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(
@@ -77,6 +81,7 @@ public class JobRunLatestStateViewEntity {
                 id,
                 jobId,
                 jobVersion,
+                versionTag,
                 startedAt,
                 finishedAt,
                 latestState,
