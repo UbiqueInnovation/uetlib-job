@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -27,7 +28,7 @@ public final class CurrentJobRunner implements JobRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrentJobRunner.class);
 
-    private final Map<RunnerGroup, ExecutorService> executorServices;
+    private final Map<RunnerGroup, ThreadPoolExecutor> executorServices;
     private final Map<Integer, Future<?>> futuresByJobRun;
 
     private final JobService jobService;
@@ -36,6 +37,10 @@ public final class CurrentJobRunner implements JobRunner {
         this.jobService = jobService;
         executorServices = new ConcurrentHashMap<>();
         futuresByJobRun = new ConcurrentHashMap<>();
+    }
+
+    public Map<RunnerGroup, ThreadPoolExecutor> getExecutorServices() {
+        return Collections.unmodifiableMap(executorServices);
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
@@ -96,7 +101,7 @@ public final class CurrentJobRunner implements JobRunner {
         return JobRunState.BUSY;
     }
 
-    private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
+    private ThreadPoolExecutor getExecutorService(final RunnerGroup runnerGroup) {
         return executorServices.computeIfAbsent(runnerGroup, this::createExecutorService);
     }
 
