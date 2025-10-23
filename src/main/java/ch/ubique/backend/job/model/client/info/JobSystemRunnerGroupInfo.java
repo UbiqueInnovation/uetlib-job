@@ -15,6 +15,8 @@ public record JobSystemRunnerGroupInfo(
         @NotBlank String identifier,
         @Positive int threadPoolSize,
         @NotNull List<String> allowedJobs,
+        @NotNull List<String> configuredJobs,
+
         // Thread pool executor
         int busyThreads,
         int queueLength,
