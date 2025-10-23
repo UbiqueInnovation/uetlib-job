@@ -12,6 +12,11 @@ Retreat 2025 Edition
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
 
+### Database migrations
+
+- You will need to add the database migration `update_uetlib_1_5_0.sql` to your
+  project.
+
 ### Breaking Changes
 
 - Removed `Job.version` in favor of version tag.
