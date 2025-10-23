@@ -12,6 +12,10 @@ Retreat 2025 Edition
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
 
+### Breaking Changes
+
+- Removed `Job.version` in favor of version tag.
+
 ## 1.4.4
 
 - Downgraded some log messages to debug

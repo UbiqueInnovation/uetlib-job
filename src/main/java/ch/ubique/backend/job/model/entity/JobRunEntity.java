@@ -40,10 +40,6 @@ public class JobRunEntity {
     @Column(name = "fk_job_id", nullable = false)
     private Integer jobId;
 
-    @PositiveOrZero
-    @Column(name = "job_version", nullable = false)
-    private Integer jobVersion;
-
     @NotBlank
     @Column(name = "version_tag", nullable = false)
     private String versionTag;
@@ -75,13 +71,11 @@ public class JobRunEntity {
 
     public JobRunEntity(
             @Positive final int jobId,
-            @PositiveOrZero final int jobVersion,
             @NotBlank final String versionTag,
             @NotNull final JobRunnerKey runnerKey,
             @NotNull @PastOrPresent final Instant startedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
-        this.jobVersion = jobVersion;
         this.versionTag = versionTag;
         this.runnerKey = runnerKey;
         this.startedAt = startedAt;
@@ -99,7 +93,6 @@ public class JobRunEntity {
         return new JobRun(
                 id,
                 jobId,
-                jobVersion,
                 versionTag,
                 startedAt,
                 finishedAt,

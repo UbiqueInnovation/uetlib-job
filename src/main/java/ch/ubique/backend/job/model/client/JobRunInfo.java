@@ -9,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.Instant;
 
@@ -17,7 +16,6 @@ import java.time.Instant;
 public record JobRunInfo(
         @Positive int id,
         @Positive int jobId,
-        @PositiveOrZero int jobVersion,
         @NotNull JobRunState state,
         @NotNull @PastOrPresent Instant startedAt,
         @PastOrPresent Instant finishedAt,
@@ -29,7 +27,6 @@ public record JobRunInfo(
         return new JobRunInfo(
                 jobRun.id(),
                 jobRun.jobId(),
-                jobRun.jobVersion(),
                 jobRun.latestState(),
                 jobRun.startedAt(),
                 jobRun.finishedAt(),

@@ -19,7 +19,6 @@ import jakarta.persistence.criteria.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
@@ -433,13 +432,12 @@ public class JobDataService {
     @Transactional
     public JobRun createJobRun(
             @Positive final int jobId,
-            @PositiveOrZero final int jobVersion,
             @NotBlank final String versionTag,
             @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =
-                new JobRunEntity(jobId, jobVersion, versionTag, runnerKey, scheduledAt, arguments);
+                new JobRunEntity(jobId, versionTag, runnerKey, scheduledAt, arguments);
         jobRunEntity.addJobRunStateTransition(
                 new JobRunStateTransitionEmbeddable(JobRunState.SCHEDULED, scheduledAt));
         return jobRunRepository.save(jobRunEntity).toJobRun();

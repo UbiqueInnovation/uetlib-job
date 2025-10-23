@@ -5,7 +5,7 @@ import java.util.Set;
 
 public record JobRunWithInputs(
         int id,
-        int jobVersion,
+        String versionTag,
         JobRunState state,
         Instant startetAt,
         Instant finishedAt,
