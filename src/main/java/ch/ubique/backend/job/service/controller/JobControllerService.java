@@ -19,8 +19,6 @@ import ch.ubique.backend.job.model.client.JobRunInfosContainer;
 import ch.ubique.backend.job.model.client.info.JobSystemCronInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
-import ch.ubique.backend.job.model.client.info.JobSystemSchedulerGroupInfo;
-import ch.ubique.backend.job.model.client.info.JobSystemSchedulerInfo;
 import ch.ubique.backend.job.model.client.triggers.JobTrigger;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
 import ch.ubique.backend.job.model.properties.JobProperty;
@@ -40,20 +38,12 @@ import ch.ubique.backend.job.service.inputs.JobRunInputProvider;
 import ch.ubique.backend.job.service.logs.LogService;
 import ch.ubique.backend.job.service.triggers.CronTriggerService;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
+
 import com.pivovarit.function.ThrowingFunction;
+
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
@@ -67,6 +57,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.text.MessageFormat;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Profile("!job-run")
