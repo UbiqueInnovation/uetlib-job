@@ -112,6 +112,15 @@ public class JobService {
         return instantiateJob(getJobClass(jobId));
     }
 
+    public Optional<Job> tryToInstantiateJob(final int jobId) {
+        try {
+            return Optional.of(instantiateJob(jobId));
+        } catch (final ClassNotFoundException e) {
+            logger.info("Class not found for {}.", jobId, e);
+            return Optional.empty();
+        }
+    }
+
     public int getJobId(final Class<? extends Job> jobClass) {
         return jobDataService.findOrInsertJob(jobClass).id();
     }
