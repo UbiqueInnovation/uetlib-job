@@ -6,11 +6,9 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.CurrentJobRunner;
-import ch.ubique.backend.job.service.executor.runners.JobTaskWrapper;
 
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +54,7 @@ public class JobRunnerInfoService {
                 configuredJobsByGroup.getOrDefault(group.identifier(), List.of()),
                 stats.busyThreads(),
                 stats.queueLength(),
-                getQueueElements(executor),
+                currentJobRunner.getQueuedJobRuns().get(entry.getKey()),
                 stats.completedTaskCount(),
                 stats.largestPoolSize(),
                 stats.currentPoolSize());
@@ -95,24 +93,6 @@ public class JobRunnerInfoService {
                         Collectors.toMap(
                                 Map.Entry::getKey,
                                 entry -> entry.getValue().stream().sorted().toList()));
-    }
-
-    private List<String> getQueueElements(final ThreadPoolExecutor executor) {
-        // Get a snapshot of the queue
-        Runnable[] queuedTasksArray = executor.getQueue().toArray(new Runnable[0]);
-        List<Runnable> queuedTasks =
-                queuedTasksArray.length > 0 ? Arrays.stream(queuedTasksArray).toList() : List.of();
-
-        // Convert each Runnable to a string representation
-        return queuedTasks.stream().map(this::getTaskDescription).sorted().toList();
-    }
-
-    private String getTaskDescription(Runnable task) {
-        if (task instanceof JobTaskWrapper wrapper) {
-            return wrapper.toString();
-        }
-        // Fallback for unexpected task types
-        return task != null ? task.toString() : "Unknown Task";
     }
 
     private record ExecutorStats(
