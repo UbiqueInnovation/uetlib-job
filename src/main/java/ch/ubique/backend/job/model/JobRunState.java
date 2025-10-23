@@ -1,9 +1,8 @@
 package ch.ubique.backend.job.model;
 
-import org.apache.commons.collections4.SetUtils;
-
 import java.util.Collection;
 import java.util.Set;
+import org.apache.commons.collections4.SetUtils;
 
 public enum JobRunState {
     BUSY,
@@ -13,9 +12,12 @@ public enum JobRunState {
     UNFINISHED,
     NONE,
     SKIPPED,
-    SCHEDULED;
+    SCHEDULED,
+    ACKNOWLEDGED;
 
     public static final Collection<JobRunState> RUNNING_STATES = Set.of(BUSY, SCHEDULED);
+    public static final Collection<JobRunState> ACKNOWLEDGEABLE_STATES = Set.of(ERROR, WARNING,
+            UNFINISHED, ACKNOWLEDGED);
 
     @SuppressWarnings("java:S2386")
     public static final Collection<JobRunState> ALL_EXCEPT_RUNNING_STATES =
@@ -27,5 +29,9 @@ public enum JobRunState {
 
     public boolean isRunning() {
         return RUNNING_STATES.contains(this);
+    }
+
+    public boolean isAcknowledgeable() {
+        return ACKNOWLEDGEABLE_STATES.contains(this);
     }
 }
