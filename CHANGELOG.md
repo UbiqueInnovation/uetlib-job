@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.5.0
+
+Retreat 2025 Edition
+
+### New Features
+
+- Added an option to kill jobs automatically after they exceeded their
+  run-time or schedule-time limit.
+  The behavior can be controlled using the job properties.
+
 ## 1.4.4
 
 - Downgraded some log messages to debug

@@ -49,6 +49,27 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofMinutes(15));
+
+    public static final JobPropertyDefinition<Boolean> KILL_JOBS_SCHEDULE_TIMEOUT =
+            new BooleanPropertyDefinition(
+                    "KILL_JOBS_SCHEDULE_TIMEOUT",
+                    "If enabled, jobs that are scheduled for too long will be killed. The timeout is defined by MAX_DURATION_IN_SCHEDULED_STATE.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false);
+    public static final JobPropertyDefinition<Boolean> KILL_JOBS_RUN_TIMEOUT =
+            new BooleanPropertyDefinition(
+                    "KILL_JOBS_RUN_TIMEOUT",
+                    "If enabled, jobs that are running for too long will be killed. The timeout is defined by RUN_TIME_LIMIT.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false);
+    public static final JobPropertyDefinition<Duration> KILL_GRACE_PERIOD =
+            new DurationPropertyDefinition(
+                    "KILL_GRACE_PERIOD",
+                    "Grace period after timeout before killing a job. This affects both KILL_JOBS_SCHEDULE_TIMEOUT and KILL_JOBS_RUN_TIMEOUT.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false,
+                    Duration.ofMinutes(5));
+
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(
                     "RUNNER",
