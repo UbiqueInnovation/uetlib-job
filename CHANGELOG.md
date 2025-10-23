@@ -9,6 +9,7 @@ Retreat 2025 Edition
 - Added an option to kill jobs automatically after they exceeded their
   run-time or schedule-time limit.
   The behavior can be controlled using the job properties.
+- Job Info endpoint now includes runner groups.
 
 ## 1.4.4
 
