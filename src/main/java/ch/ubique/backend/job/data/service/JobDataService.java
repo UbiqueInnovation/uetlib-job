@@ -1,10 +1,10 @@
 package ch.ubique.backend.job.data.service;
 
-import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
+import ch.ubique.backend.job.logging.LoggingEvent;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
@@ -24,6 +24,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -340,31 +341,20 @@ public class JobDataService {
         return jobRunInputRepository.existsByRunId(runId);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void insertLogEvent(
+            final int jobRunId, final Instant timestamp, final String formattedMessage) {
+        loggingEventRepository.save(new LoggingEventEntity(jobRunId, timestamp, formattedMessage));
+    }
+
     @Transactional(readOnly = true)
     public Collection<LoggingEvent> findLogsForJobRun(final int jobRunId, final long skipLines) {
-        return fetchLoggingEvents(jobRunId, (int) skipLines);
+        return loggingEventRepository.findByJobRunIdOrderByTimestampAsc(jobRunId, (int) skipLines);
     }
 
     @Transactional(readOnly = true)
     public Collection<LoggingEvent> findAllLogsForJobRun(final int jobRunId) {
-        return fetchLoggingEvents(jobRunId, 0);
-    }
-
-    private List<LoggingEvent> fetchLoggingEvents(final int jobRunId, final int skipLines) {
-        final var criteria = entityManager.getCriteriaBuilder();
-        final var query = criteria.createQuery(LoggingEventEntity.class);
-        final var root = query.from(LoggingEventEntity.class);
-        root.fetch("eventExceptions", JoinType.LEFT);
-        query.select(root)
-                .where(criteria.equal(root.get("jobRunId"), jobRunId))
-                .orderBy(criteria.asc(root.get("timestamp")));
-
-        return entityManager
-                .createQuery(query)
-                .setFirstResult(skipLines)
-                .getResultStream()
-                .map(LoggingEventEntity::toLoggingEvent)
-                .toList();
+        return loggingEventRepository.findByJobRunIdOrderByTimestampAsc(jobRunId, 0);
     }
 
     @Transactional(readOnly = true)
@@ -562,9 +552,8 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Optional<Instant> findMostRecentLoggingEventTimestamp(final int jobRunId) {
-        return Optional.ofNullable(
-                        loggingEventRepository.findFirstByJobRunIdOrderByTimestampDesc(jobRunId))
-                .map(LoggingEventEntity::toLoggingEvent)
-                .map(LoggingEvent::getInstant);
+        return loggingEventRepository
+                .findFirstByJobRunIdOrderByTimestampDesc(jobRunId)
+                .map(LoggingEventEntity::getTimestamp);
     }
 }

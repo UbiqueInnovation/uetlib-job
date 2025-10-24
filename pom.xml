@@ -118,11 +118,6 @@
             <artifactId>time4j-base</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>ch.qos.logback.db</groupId>
-            <artifactId>logback-classic-db</artifactId>
-        </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>ch.ubique</groupId>
