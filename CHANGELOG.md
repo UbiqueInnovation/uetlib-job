@@ -13,6 +13,8 @@ Retreat 2025 Edition
 - Job runs persist the version tag of the image that was used to run the job.
 - Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
 - Added `RetryTrigger` to enable retrying failed job runs with a constant backoff.
+- `JobStateCheck` can use new `StateCheckStrategy` for monitoring checks. The strategies can be set
+  as JobProperty for each Job.
 
 ### Database migrations
 

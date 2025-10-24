@@ -481,7 +481,6 @@ public class JobControllerService {
         return new SuccessResponse(success, message);
     }
 
-
     public SuccessResponse acknowledgeJobRun(final int jobRunId) {
         final var jobRun = jobDataService.findJobRunById(jobRunId).orElseThrow();
         if (!jobRun.latestState().isAcknowledgeable()) {

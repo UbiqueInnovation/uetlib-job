@@ -96,6 +96,17 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<JobRun> findAnyJobRunInStatesSince(
+            final int jobId, final Collection<JobRunState> states, final Instant after) {
+        if (states.isEmpty()) {
+            return Optional.empty();
+        }
+        return jobRunLatestStateViewRepository
+                .findAnyJobRunInStateSince(jobId, states, after)
+                .map(JobRunLatestStateViewEntity::toJobRun);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<JobRun> findLatestJobRunByStates(
             final int jobId, final Collection<JobRunState> states) {
         return jobRunLatestStateViewRepository
