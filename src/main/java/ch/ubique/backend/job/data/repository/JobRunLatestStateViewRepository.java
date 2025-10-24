@@ -1,9 +1,9 @@
 package ch.ubique.backend.job.data.repository;
 
-import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.entity.JobRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunLatestStateViewEntity;
+
+import jakarta.validation.constraints.NotEmpty;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -46,7 +46,19 @@ public interface JobRunLatestStateViewRepository
             select jrlsve
             from JobRunLatestStateViewEntity jrlsve
             where jrlsve.latestState in :latestStates""")
-    Stream<JobRunLatestStateViewEntity> findAllByLatestStateIn(Collection<JobRunState> latestStates);
+    Stream<JobRunLatestStateViewEntity> findAllByLatestStateIn(
+            Collection<JobRunState> latestStates);
+
+    @Query(
+            """
+                select r
+                from JobRunLatestStateViewEntity r
+                         join (select max(rl.id) as latest_id
+                               from JobRunLatestStateViewEntity rl
+                               group by rl.jobId) latest on r.id = latest.latest_id
+                where r.latestState in :states""")
+    Stream<JobRunLatestStateViewEntity> findLatestRunsForEachJobIfInState(
+            @NotEmpty Collection<JobRunState> states);
 
     @Query(
             """
@@ -57,6 +69,7 @@ public interface JobRunLatestStateViewRepository
                       and jrlsve.finishedAt is not null
                     order by jrlsve.finishedAt desc
                     limit 1""")
-    Optional<JobRunLatestStateViewEntity> findFirstByJobIdAndLatestStateAndFinishedAtIsNotNullOrderByFinishedAtDesc(
-            int jobId, JobRunState latestState);
+    Optional<JobRunLatestStateViewEntity>
+            findFirstByJobIdAndLatestStateAndFinishedAtIsNotNullOrderByFinishedAtDesc(
+                    int jobId, JobRunState latestState);
 }

@@ -12,6 +12,7 @@ Retreat 2025 Edition
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
 - Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
+- Added `RetryTrigger` to enable retrying failed job runs with a constant backoff.
 
 ### Database migrations
 

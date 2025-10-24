@@ -15,13 +15,13 @@ class RunOnStartupTriggerServiceTest {
     @Test
     void onStartup() {
         final var runCount = new AtomicInteger();
-        triggerService.onStartup(0, null, jobRunArguments -> runCount.incrementAndGet());
+        triggerService.onStartup(0, null, null, jobRunArguments -> runCount.incrementAndGet());
         assertEquals(1, runCount.get());
     }
 
     @Test
     void addTrigger() {
-        assertDoesNotThrow(() -> triggerService.addTrigger(0, null, null));
+        assertDoesNotThrow(() -> triggerService.addTrigger(0, null, null, null));
     }
 
     @Test

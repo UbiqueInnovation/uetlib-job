@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.service.JobService;
@@ -55,21 +56,22 @@ public class TriggerCoordinatorService {
             final var instance = jobService.instantiateJob(jobClass);
             final var triggers = getTriggers(instance);
             for (final var trigger : triggers) {
-                onStartup(trigger, jobClass);
+                onStartup(trigger, job, jobClass);
             }
         }
     }
 
-    protected void onStartup(final Trigger trigger, final Class<? extends Job> jobClass) {
+    protected void onStartup(
+            final Trigger trigger, final JobClassAndId job, final Class<? extends Job> jobClass) {
         getTriggerService(trigger.definition())
-                .onStartup(trigger.id(), trigger.definition(), runnable(jobClass));
+                .onStartup(trigger.id(), trigger.definition(), job, runnable(jobClass));
     }
 
     public void createTrigger(
             final Class<? extends Job> jobClass, final TriggerDefinition triggerDefinition) {
         final var jobId = jobService.getJobId(jobClass);
         final var trigger = jobDataService.insertTrigger(jobId, triggerDefinition);
-        addTrigger(jobClass, trigger);
+        addTrigger(jobId, jobClass, trigger);
     }
 
     public void deleteTrigger(final Trigger trigger) {
@@ -78,9 +80,14 @@ public class TriggerCoordinatorService {
         logger.info("Deleted trigger {}", trigger);
     }
 
-    public void addTrigger(final Class<? extends Job> jobClass, final Trigger trigger) {
+    public void addTrigger(
+            final int jobId, final Class<? extends Job> jobClass, final Trigger trigger) {
         getTriggerService(trigger.definition())
-                .addTrigger(trigger.id(), trigger.definition(), runnable(jobClass));
+                .addTrigger(
+                        trigger.id(),
+                        trigger.definition(),
+                        new JobClassAndId(jobId, jobClass.getCanonicalName()),
+                        runnable(jobClass));
         logger.info("Added trigger {}", trigger);
     }
 
@@ -123,7 +130,8 @@ public class TriggerCoordinatorService {
 
     public void updateTrigger(final Class<? extends Job> jobClass, final Trigger trigger) {
         removeTrigger(trigger);
-        addTrigger(jobClass, trigger);
+        final var jobId = jobService.getJobId(jobClass);
+        addTrigger(jobId, jobClass, trigger);
         jobDataService.saveTrigger(trigger);
     }
 

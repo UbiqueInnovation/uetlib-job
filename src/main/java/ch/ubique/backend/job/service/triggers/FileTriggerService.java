@@ -1,8 +1,10 @@
 package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.model.FileTriggerContext;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.triggers.files.FileWatcher;
 import ch.ubique.backend.job.service.triggers.files.FileWatcherEvent;
 import ch.ubique.backend.job.service.triggers.files.InotifyFileWatcher;
@@ -50,6 +52,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     public void addTrigger(
             final int triggerId,
             final FileTrigger triggerDefinition,
+            final JobClassAndId job,
             final Consumer<JobRunArguments> consumer) {
         registerFileTrigger(triggerId, triggerDefinition, consumer);
     }
@@ -88,7 +91,8 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
             return;
         }
         final var fileTriggerContext = FileTriggerContext.from(event, fileMatcher);
-        final var jobRunArguments = new JobRunArguments(false, fileTriggerContext, null);
+        final var jobRunArguments =
+                new JobRunArguments(false, TriggerType.FILE, fileTriggerContext, null, null);
         logger.debug("Calling consumer for {}", trigger.fileTrigger());
         trigger.consumer().accept(jobRunArguments);
     }

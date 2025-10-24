@@ -13,10 +13,12 @@ import jakarta.validation.constraints.NotNull;
 @JsonSubTypes({
     @JsonSubTypes.Type(value = EmptyTriggerContext.class, name = "EMPTY"),
     @JsonSubTypes.Type(value = FileTriggerContext.class, name = "FILE"),
+    @JsonSubTypes.Type(value = RetryTriggerContext.class, name = "RETRY"),
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public sealed interface TriggerContext permits EmptyTriggerContext, FileTriggerContext {
+public sealed interface TriggerContext
+        permits EmptyTriggerContext, FileTriggerContext, RetryTriggerContext {
     /**
      * Serialize the trigger context type in order to be able to deserialize it later based on its
      * type.

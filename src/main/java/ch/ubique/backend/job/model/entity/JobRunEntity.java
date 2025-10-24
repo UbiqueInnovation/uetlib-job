@@ -5,6 +5,7 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import jakarta.persistence.*;
 import jakarta.persistence.OrderBy;
@@ -48,6 +49,10 @@ public class JobRunEntity {
     @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
     private JobRunnerKey runnerKey;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trigger_type")
+    private TriggerType triggerType;
+
     @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
@@ -79,6 +84,7 @@ public class JobRunEntity {
         this.versionTag = versionTag;
         this.runnerKey = runnerKey;
         this.startedAt = startedAt;
+        this.triggerType = jobRunArguments.triggerType();
         this.jobRunArguments = jobRunArguments;
     }
 
@@ -86,7 +92,7 @@ public class JobRunEntity {
         return jobRunStateTransitions.stream()
                 .findFirst()
                 .map(JobRunStateTransitionEmbeddable::state)
-                .orElse(JobRunState.NONE);
+                .orElseThrow();
     }
 
     public JobRun toJobRun() {
@@ -98,6 +104,7 @@ public class JobRunEntity {
                 finishedAt,
                 latestState(),
                 runnerKey,
+                triggerType,
                 jobRunArguments);
     }
 

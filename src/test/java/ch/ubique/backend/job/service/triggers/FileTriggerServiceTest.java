@@ -51,6 +51,7 @@ class FileTriggerServiceTest {
         fileTriggerService.addTrigger(
                 0,
                 anyFileCreated,
+                null,
                 jobRunArguments -> {
                     triggered.add(anyFileCreated);
                     fileTriggerContexts.add((FileTriggerContext) jobRunArguments.triggerContext());
@@ -58,6 +59,7 @@ class FileTriggerServiceTest {
         fileTriggerService.addTrigger(
                 1,
                 testTxtFileDeleted,
+                null,
                 jobRunArguments -> {
                     triggered.add(testTxtFileDeleted);
                     fileTriggerContexts.add((FileTriggerContext) jobRunArguments.triggerContext());

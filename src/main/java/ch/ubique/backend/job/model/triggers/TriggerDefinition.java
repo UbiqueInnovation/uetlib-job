@@ -17,16 +17,19 @@ import jakarta.validation.constraints.NotNull;
     @JsonSubTypes.Type(value = FixedRateTrigger.class, name = "FIXED_RATE"),
     @JsonSubTypes.Type(value = JobRunStateTrigger.class, name = "JOB_RUN_STATE"),
     @JsonSubTypes.Type(value = DatabaseSubmissionTrigger.class, name = "DATABASE_SUBMISSION"),
+    @JsonSubTypes.Type(value = RetryTrigger.class, name = "RETRY"),
     @JsonSubTypes.Type(value = FileTrigger.class, name = "FILE")
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface TriggerDefinition
         permits CronTrigger,
-                RunOnStartupTrigger,
+                DatabaseSubmissionTrigger,
+                FileTrigger,
                 FixedRateTrigger,
                 JobRunStateTrigger,
-                DatabaseSubmissionTrigger,
-                FileTrigger {
+                RetryTrigger,
+                RunOnStartupTrigger {
+
     @NotNull
     @JsonProperty
     default TriggerType type() {

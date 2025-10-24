@@ -20,7 +20,6 @@ class JobClassAndIdRunStateTest {
                         JobRunState.DONE,
                         JobRunState.WARNING,
                         JobRunState.ERROR,
-                        JobRunState.NONE,
                         JobRunState.UNFINISHED,
                         JobRunState.ACKNOWLEDGED,
                         JobRunState.SKIPPED),
