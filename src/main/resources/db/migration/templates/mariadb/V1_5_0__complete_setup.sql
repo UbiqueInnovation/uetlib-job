@@ -22,8 +22,9 @@ create table t_job_run
 (
     pk_job_run_id     integer auto_increment not null primary key,
     fk_job_id         integer                not null references t_job (pk_job_id) on delete cascade on update cascade,
-    version_tag varchar(32) not null,
+    version_tag  varchar(32) not null,
     runner_key        text                   not null,
+    trigger_type varchar(32),
     created_at        timestamp              not null,
     updated_at        timestamp              not null,
     started_at        timestamp              not null,

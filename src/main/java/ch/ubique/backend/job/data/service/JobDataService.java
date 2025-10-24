@@ -111,6 +111,18 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public Collection<JobRun> findLatestRunsForEachJobIfInState(
+            final Collection<JobRunState> states) {
+        if (CollectionUtils.isEmpty(states)) {
+            throw new IllegalArgumentException("States must not be empty");
+        }
+        return jobRunLatestStateViewRepository
+                .findLatestRunsForEachJobIfInState(states)
+                .map(JobRunLatestStateViewEntity::toJobRun)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Collection<JobRunStateTransition> findJobRunStateTransitionsByJobRunId(
             final int jobRunId) {
         return jobRunStateTransitionRepository
@@ -258,7 +270,8 @@ public class JobDataService {
             jobRunRepository.save(jobRunEntity);
         }
 
-        if(JobRunState.ACKNOWLEDGED == jobRunState && jobRunEntity.latestState().isAcknowledgeable()) {
+        if (JobRunState.ACKNOWLEDGED == jobRunState
+                && jobRunEntity.latestState().isAcknowledgeable()) {
             // Add state transition
             jobRunEntity.addJobRunStateTransition(
                     new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));

@@ -1,11 +1,15 @@
 package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -19,6 +23,7 @@ public record JobRun(
         @Nullable Instant finishedAt,
         @NotNull JobRunState latestState,
         @NotNull JobRunnerKey runnerKey,
+        @Nullable TriggerType triggerType,
         @Nullable @Valid JobRunArguments jobRunArguments) {
 
     public Duration runDuration() {
@@ -38,6 +43,15 @@ public record JobRun(
         return new ModifiableJobRun(this);
     }
 
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+                .append("id", id)
+                .append("jobId", jobId)
+                .append("latestState", latestState)
+                .toString();
+    }
+
     public static final class ModifiableJobRun {
 
         private int id;
@@ -47,6 +61,7 @@ public record JobRun(
         private Instant finishedAt;
         private JobRunState state;
         private JobRunnerKey runnerKey;
+        private final TriggerType triggerType;
         private JobRunArguments jobRunArguments;
 
         private ModifiableJobRun(final JobRun jobRun) {
@@ -57,6 +72,7 @@ public record JobRun(
             this.finishedAt = jobRun.finishedAt;
             this.state = Objects.requireNonNull(jobRun.latestState);
             this.runnerKey = Objects.requireNonNull(jobRun.runnerKey);
+            this.triggerType = jobRun.triggerType;
             this.jobRunArguments = jobRun.jobRunArguments;
         }
 
@@ -104,6 +120,7 @@ public record JobRun(
                     finishedAt,
                     state,
                     runnerKey,
+                    triggerType,
                     jobRunArguments);
         }
     }

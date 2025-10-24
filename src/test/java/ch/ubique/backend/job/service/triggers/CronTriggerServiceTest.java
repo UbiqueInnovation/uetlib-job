@@ -34,7 +34,10 @@ class CronTriggerServiceTest {
     void onStartup() {
         final var runCount = new AtomicInteger();
         triggerService.onStartup(
-                0, new CronTrigger("0 0 2 * * ?"), jobRunArguments -> runCount.incrementAndGet());
+                0,
+                new CronTrigger("0 0 2 * * ?"),
+                null,
+                jobRunArguments -> runCount.incrementAndGet());
         assertEquals(0, runCount.get());
     }
 
@@ -43,7 +46,7 @@ class CronTriggerServiceTest {
         assertDoesNotThrow(
                 () ->
                         triggerService.addTrigger(
-                                0, new CronTrigger("0 0 2 * * ?"), jobRunArguments -> {}));
+                                0, new CronTrigger("0 0 2 * * ?"), null, jobRunArguments -> {}));
     }
 
     @Test

@@ -2,6 +2,7 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
+import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -80,6 +81,9 @@ public final class JobApplication {
                                             .getJobClass(jobToStartArgs.jobClassName()),
                                     new JobRunArguments(
                                             jobToStartArgs.forceRun(),
+                                            null,
+                                            new EmptyTriggerContext(),
+                                            null,
                                             getAdditionalData(jobToStartArgs, applicationContext)),
                                     jobToStartArgs.jobRunId(),
                                     JobRunnerKey.DEDICATED_K8S_JOB);
@@ -116,7 +120,7 @@ public final class JobApplication {
                     case DONE, SKIPPED, ACKNOWLEDGED -> JobApplicationExitStatus.SUCCESS;
                     case WARNING, UNFINISHED -> JobApplicationExitStatus.JOB_WARNING;
                     case ERROR -> JobApplicationExitStatus.JOB_ERROR;
-                    case NONE, BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
+                    case BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
                 };
         logger.info(
                 "Job run {} finished with state {}. Exit status = {}, exit code = {}.",
