@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -21,14 +22,26 @@ public interface JobRunLatestStateViewRepository
 
     @Query(
             """
+                select jrlsve
+                from JobRunLatestStateViewEntity jrlsve
+                where jrlsve.jobId = :jobId
+                  and jrlsve.latestState = :latestState
+                order by jrlsve.startedAt desc
+                limit 1""")
+    Optional<JobRunLatestStateViewEntity> findFirstByJobIdAndLatestStateOrderByStartedAtDesc(
+            int jobId, JobRunState latestState);
+
+    @Query(
+            """
                     select jrlsve
                     from JobRunLatestStateViewEntity jrlsve
                     where jrlsve.jobId = :jobId
-                      and jrlsve.latestState = :latestState
+                      and jrlsve.latestState in :latestState
+                      and jrlsve.startedAt >= :after
                     order by jrlsve.startedAt desc
                     limit 1""")
-    Optional<JobRunLatestStateViewEntity> findFirstByJobIdAndLatestStateOrderByStartedAtDesc(
-            int jobId, JobRunState latestState);
+    Optional<JobRunLatestStateViewEntity> findAnyJobRunInStateSince(
+            int jobId, Collection<JobRunState> latestState, Instant after);
 
     @Query(
             """
