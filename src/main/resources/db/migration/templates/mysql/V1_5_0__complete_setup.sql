@@ -45,45 +45,17 @@ create table t_job_run_input
     updated_at          timestamp              not null
 ) charset = utf8mb4;
 
--- 1.3.0
+-- logging
 
-CREATE TABLE logging_event
+create table t_logging_event
 (
-    timestmp          BIGINT       NOT NULL,
-    formatted_message TEXT         NOT NULL,
-    logger_name       VARCHAR(254) NOT NULL,
-    level_string      VARCHAR(254) NOT NULL,
-    thread_name       VARCHAR(254),
-    reference_flag    SMALLINT,
-    arg0              VARCHAR(254),
-    arg1              VARCHAR(254),
-    arg2              VARCHAR(254),
-    arg3              VARCHAR(254),
-    caller_filename   VARCHAR(254) NOT NULL,
-    caller_class      VARCHAR(254) NOT NULL,
-    caller_method     VARCHAR(254) NOT NULL,
-    caller_line       CHAR(4)      NOT NULL,
-    job_run_id        INTEGER      NOT NULL,
-    event_id          BIGINT auto_increment PRIMARY KEY
+    pk_logging_event_id integer auto_increment not null primary key,
+    fk_job_run_id       integer                not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    timestamp           timestamp              not null,
+    formatted_message   text                   not null
 ) charset = utf8mb4;
 
-CREATE TABLE logging_event_property
-(
-    event_id     BIGINT       NOT NULL,
-    mapped_key   VARCHAR(254) NOT NULL,
-    mapped_value VARCHAR(1024),
-    PRIMARY KEY (event_id, mapped_key),
-    FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
-) charset = utf8mb4;
-
-CREATE TABLE logging_event_exception
-(
-    event_id   BIGINT       NOT NULL,
-    i          SMALLINT     NOT NULL,
-    trace_line VARCHAR(254) NOT NULL,
-    PRIMARY KEY (event_id, i),
-    FOREIGN KEY (event_id) REFERENCES logging_event (event_id) ON UPDATE CASCADE ON DELETE CASCADE
-) charset = utf8mb4;
+create index idx_logging_event_job_run_id_timestamp on t_logging_event (fk_job_run_id, timestamp asc);
 
 -- 2.0.0
 
@@ -99,9 +71,6 @@ CREATE TABLE t_job_trigger
 
 CREATE INDEX idx_type ON t_job_trigger (type);
 CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
-
-CREATE INDEX logging_event_job_run_id_index
-    ON logging_event (job_run_id);
 
 create table t_job_run_database_submission
 (
@@ -142,12 +111,3 @@ SELECT tjr.*,
         ORDER BY tjrs.transitioned_at DESC, tjrs.pk_job_run_state_transition_id DESC
         LIMIT 1) AS latest_state
 from t_job_run tjr;
-
-ALTER TABLE logging_event
-    ADD CONSTRAINT fk_job_run_id
-        FOREIGN KEY (job_run_id) REFERENCES t_job_run (pk_job_run_id)
-            ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE logging_event
-    ADD INDEX (timestmp);
-ALTER TABLE logging_event_exception
-    ADD INDEX (i);

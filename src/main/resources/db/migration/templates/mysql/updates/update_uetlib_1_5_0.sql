@@ -17,3 +17,27 @@ SELECT tjr.*,
         ORDER BY tjrs.transitioned_at DESC, tjrs.pk_job_run_state_transition_id DESC
         LIMIT 1) AS latest_state
 from t_job_run tjr;
+
+-- simplify logging tables:
+
+create table t_logging_event
+(
+    pk_logging_event_id integer auto_increment not null primary key,
+    fk_job_run_id       integer                not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
+    timestamp           timestamp              not null,
+    formatted_message   text                   not null
+) charset = utf8mb4;
+
+create index idx_logging_event_job_run_id_timestamp on t_logging_event (fk_job_run_id, timestamp asc);
+
+begin;
+insert into t_logging_event (fk_job_run_id, timestamp, formatted_message)
+select job_run_id,
+       from_unixtime(timestmp / 1000),
+       formatted_message
+from logging_event;
+commit;
+
+drop table logging_event_exception;
+drop table logging_event_property;
+drop table logging_event;
