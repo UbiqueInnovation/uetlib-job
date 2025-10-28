@@ -31,6 +31,7 @@ public final class CurrentJobRunner implements JobRunner {
 
     private final Map<RunnerGroup, ThreadPoolExecutor> executorServices;
     private final Map<Integer, Future<?>> futuresByJobRun;
+    private final Map<Integer, RunnerGroup> runnerGroupByJobRun;
     private final Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> queuedJobRuns;
 
     private final JobService jobService;
@@ -39,6 +40,7 @@ public final class CurrentJobRunner implements JobRunner {
         this.jobService = jobService;
         executorServices = new ConcurrentHashMap<>();
         futuresByJobRun = new ConcurrentHashMap<>();
+        runnerGroupByJobRun = new ConcurrentHashMap<>();
         queuedJobRuns = new ConcurrentHashMap<>();
     }
 
@@ -69,6 +71,7 @@ public final class CurrentJobRunner implements JobRunner {
 
         final var executorService = getExecutorService(runnerGroup);
         final var jobRunId = jobRunContext.jobRun().id();
+        runnerGroupByJobRun.put(jobRunId, runnerGroup);
         final var queueItem =
                 new CurrentRunnerQueueItem(job.getClass(), jobRunContext.jobRun().id());
         final var runnerGroupQueue =
@@ -81,6 +84,7 @@ public final class CurrentJobRunner implements JobRunner {
                             runnerGroupQueue.remove(queueItem);
                             JobRunnerHelper.run(job, jobService, jobRunContext);
                             futuresByJobRun.remove(jobRunId);
+                            runnerGroupByJobRun.remove(jobRunId);
                         });
         futuresByJobRun.put(jobRunId, future);
         return true;
@@ -88,11 +92,18 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     public void cancel(final @NotNull JobRun jobRun) {
-        final var future = futuresByJobRun.get(jobRun.id());
+        final var runId = jobRun.id();
+        final var runnerGroup = runnerGroupByJobRun.get(runId);
+        final var future = futuresByJobRun.get(runId);
         if (future != null) {
             future.cancel(true);
-            futuresByJobRun.remove(jobRun.id());
         }
+        final var executorService = getExecutorService(runnerGroup);
+        executorService.purge(); // Remove canceled tasks from the queue
+
+        runnerGroupByJobRun.remove(runId);
+        futuresByJobRun.remove(runId);
+        queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
     }
 
     @Override
@@ -103,7 +114,6 @@ public final class CurrentJobRunner implements JobRunner {
             return null;
         }
         if (future.isDone()) {
-            futuresByJobRun.remove(jobRun.id());
             return switch (future.state()) {
                 case SUCCESS -> JobRunState.DONE;
                 case CANCELLED -> JobRunState.UNFINISHED;
