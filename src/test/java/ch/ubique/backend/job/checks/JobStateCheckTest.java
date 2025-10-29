@@ -9,6 +9,7 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
+import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -46,7 +47,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkFailWithStrategyCheckLatestSuccessful() throws ClassNotFoundException {
+    void checkFailWithStrategyCheckLatestRunFailed() throws ClassNotFoundException {
 
         final var stateCheckStrategy = StateCheckStrategy.CHECK_LATEST_SUCCESSFUL;
         mock(stateCheckStrategy);
@@ -62,14 +63,15 @@ class JobStateCheckTest {
         Mockito.when(jobService.getProperties(job))
                 .thenReturn(
                         new JobProperties(
-                                Set.of(
-                                        new JobProperty(
-                                                JobPropertyDefinitions.STATE_CHECK_STRATEGY,
-                                                stateCheckStrategy))));
+                                JobPropertiesConfig.fixed(
+                                                new JobProperty<>(
+                                                        JobPropertyDefinitions.STATE_CHECK_STRATEGY,
+                                                        stateCheckStrategy))
+                                        .properties()));
     }
 
     @Test
-    void checkPassWithStrategyCheckLatestSuccessful() throws ClassNotFoundException {
+    void checkPassWithStrategyCheckLatestRunFailed() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_LATEST_SUCCESSFUL);
         Mockito.when(
                         jobDataService.findLatestJobRunByStates(
@@ -80,7 +82,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkPassWithStrategyCheckAllSuccessful() throws ClassNotFoundException {
+    void checkPassWithStrategyCheckSomeRunFailed() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_ALL_SUCCESSFUL);
         Mockito.when(jobDataService.findLatestJobRunByState(job.id(), JobRunState.ERROR))
                 .thenReturn(Optional.empty());
@@ -89,7 +91,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkFailWithStrategyCheckAllSuccessful() throws ClassNotFoundException {
+    void checkFailWithStrategyCheckSomeRunFailed() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_ALL_SUCCESSFUL);
         Mockito.when(jobDataService.findLatestJobRunByState(job.id(), JobRunState.ERROR))
                 .thenReturn(mockJobRunWith(JobRunState.ERROR));
@@ -98,7 +100,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkPassWithStrategyCheckIntervalAllSuccessful() throws ClassNotFoundException {
+    void checkPassWithStrategyCheckSomeRunInIntervalFailed() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL);
         Mockito.when(
                         jobDataService.findAnyJobRunInStatesSince(
@@ -109,7 +111,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkFailWithStrategyCheckIntervalAllSuccessful() throws ClassNotFoundException {
+    void checkFailWithStrategyCheckSomeRunInIntervalFailed() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL);
         Mockito.when(
                         jobDataService.findAnyJobRunInStatesSince(
@@ -120,7 +122,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkPassWithStrategyCheckIntervalSomeSuccessful() throws ClassNotFoundException {
+    void checkPassWithStrategyCheckNoRunInIntervalSuccessful() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL);
         Mockito.when(
                         jobDataService.findAnyJobRunInStatesSince(
@@ -131,7 +133,7 @@ class JobStateCheckTest {
     }
 
     @Test
-    void checkFailWithStrategyCheckIntervalSomeSuccessful() throws ClassNotFoundException {
+    void checkFailWithStrategyCheckNoRunInIntervalSuccessful() throws ClassNotFoundException {
         mock(StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL);
         Mockito.when(
                         jobDataService.findAnyJobRunInStatesSince(
