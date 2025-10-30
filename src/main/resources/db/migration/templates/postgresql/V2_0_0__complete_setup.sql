@@ -2,6 +2,7 @@ create table t_job
 (
     pk_job_id  integer generated always as identity primary key,
     clazz      text                     not null,
+    enabled boolean not null default true,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null
 );
@@ -104,7 +105,7 @@ select r.*,
         from t_job_run_state_transition t
         where t.fk_job_run_id = r.pk_job_run_id
         order by t.transitioned_at desc, t.pk_job_run_state_transition_id desc
-           limit 1) as latest_state
+        limit 1) as latest_state
 from t_job_run r;
 
 create index fk_idx_job_properties_job_id on t_job_properties (fk_job_id);

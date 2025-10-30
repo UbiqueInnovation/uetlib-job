@@ -4,6 +4,7 @@ create table t_job
 (
     pk_job_id  integer auto_increment not null primary key,
     clazz      text                   not null,
+    enabled boolean not null default true,
     created_at timestamp              not null,
     updated_at timestamp              not null
 ) charset = utf8mb4;

@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
+import ch.ubique.backend.job.model.executer.JobSubmissionResult;
 import ch.ubique.backend.job.model.response.StringResponse;
 import ch.ubique.backend.job.model.response.SuccessResponse;
 import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
@@ -131,20 +132,29 @@ public class UetlibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/start")
-    public ResponseEntity<StringResponse> startJob(
+    public ResponseEntity<JobSubmissionResult> startJob(
             @PathVariable final String jobIdOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        try {
-            jobControllerService.startJobManual(jobIdOrClassName, forceRun);
-            return ResponseEntity.ok(new StringResponse("Job successfully started"));
-        } catch (final ManualTriggerNotAllowedException e) {
-            return ResponseEntity.badRequest()
-                    .body(
-                            new StringResponse(
-                                    "Job %s cannot be manually started."
-                                            .formatted(jobIdOrClassName)));
+        final var result = jobControllerService.startJobManual(jobIdOrClassName, forceRun);
+        if (result.status().isSuccess()) {
+            return ResponseEntity.ok(result);
         }
+        return ResponseEntity.badRequest().body(result);
+    }
+
+    @PostMapping("/job/{jobIdOrClassName}/enable")
+    public ResponseEntity<StringResponse> enable(@PathVariable final String jobIdOrClassName)
+            throws ClassNotFoundException {
+        jobControllerService.setEnabled(jobIdOrClassName, true);
+        return ResponseEntity.ok(new StringResponse("Job enabled"));
+    }
+
+    @PostMapping("/job/{jobIdOrClassName}/disable")
+    public ResponseEntity<StringResponse> disable(@PathVariable final String jobIdOrClassName)
+            throws ClassNotFoundException {
+        jobControllerService.setEnabled(jobIdOrClassName, false);
+        return ResponseEntity.ok(new StringResponse("Job disabled"));
     }
 
     @PostMapping("/job/start_all")
