@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service.triggers;
 
-import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FixedRateTrigger;
@@ -43,11 +42,7 @@ public class FixedRateTriggerService implements TriggerService<FixedRateTrigger>
                 () ->
                         consumer.accept(
                                 new JobRunArguments(
-                                        false,
-                                        TriggerType.FIXED_RATE,
-                                        new EmptyTriggerContext(),
-                                        null,
-                                        null));
+                                        false, TriggerType.FIXED_RATE, null, null, null));
         scheduledJobs.put(
                 triggerId, taskScheduler.scheduleAtFixedRate(runnable, startTime, period));
     }

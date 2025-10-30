@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service.triggers;
 
-import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.RunOnStartupTrigger;
@@ -22,9 +21,7 @@ public class StartupTriggerService implements TriggerService<RunOnStartupTrigger
             final JobClassAndId job,
             final Consumer<JobRunArguments> consumer) {
         // Just run it
-        consumer.accept(
-                new JobRunArguments(
-                        false, TriggerType.STARTUP, new EmptyTriggerContext(), null, null));
+        consumer.accept(new JobRunArguments(false, TriggerType.STARTUP, null, null, null));
     }
 
     @Override

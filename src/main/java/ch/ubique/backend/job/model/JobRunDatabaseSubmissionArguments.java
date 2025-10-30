@@ -15,10 +15,6 @@ public record JobRunDatabaseSubmissionArguments(boolean forceRun, @Nullable Obje
     @NotNull
     public JobRunArguments toJobRunArguments() {
         return new JobRunArguments(
-                forceRun,
-                TriggerType.DATABASE_SUBMISSION,
-                new EmptyTriggerContext(),
-                null,
-                additionalData);
+                forceRun, TriggerType.DATABASE_SUBMISSION, null, null, additionalData);
     }
 }
