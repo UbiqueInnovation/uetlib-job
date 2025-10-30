@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.5.0
+## 2.0.0
 
 Retreat 2025 Edition
 
@@ -18,7 +18,7 @@ Retreat 2025 Edition
 
 ### Database migrations
 
-- You will need to add the database migration `update_uetlib_1_5_0.sql` to your
+- You will need to add the database migration `update_uetlib_2_0_0.sql` to your
   project.
 
 ### Breaking Changes
