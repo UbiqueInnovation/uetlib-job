@@ -559,7 +559,7 @@ public class JobControllerService {
 
     public void setEnabled(final String jobIdOrClassName, final boolean isEnabled)
             throws ClassNotFoundException {
-        final var jobClass = jobService.getJobClass(jobIdOrClassName);
+        final var jobClass = getJobClass(jobIdOrClassName);
         jobService.setEnabled(jobClass, isEnabled);
     }
 }
