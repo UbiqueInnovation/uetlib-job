@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.data.converter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
@@ -61,6 +62,15 @@ class JobRunArgumentsToStringConverterTest {
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
         assertEquals(new RetryTriggerContext(0, 0, 0), jobRunArguments.triggerContext());
+    }
+
+    @Test
+    void testConvertUnknownType() {
+        final var dbData = "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\"}}";
+        final var jobRunArguments =
+                jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
+        assertTrue(jobRunArguments.forceRun());
+        assertNull(jobRunArguments.triggerContext());
     }
 
     @Test
