@@ -21,6 +21,7 @@ class JobClassAndIdRunStateTest {
                         JobRunState.WARNING,
                         JobRunState.ERROR,
                         JobRunState.UNFINISHED,
+                        JobRunState.CANCELLED,
                         JobRunState.ACKNOWLEDGED,
                         JobRunState.SKIPPED),
                 JobRunState.allExcept(JobRunState.RUNNING_STATES));

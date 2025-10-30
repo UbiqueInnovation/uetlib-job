@@ -117,7 +117,7 @@ public final class JobApplication {
         final var exitStatus =
                 switch (jobRunState) {
                     case DONE, SKIPPED, ACKNOWLEDGED -> JobApplicationExitStatus.SUCCESS;
-                    case WARNING, UNFINISHED -> JobApplicationExitStatus.JOB_WARNING;
+                    case WARNING, UNFINISHED, CANCELLED -> JobApplicationExitStatus.JOB_WARNING;
                     case ERROR -> JobApplicationExitStatus.JOB_ERROR;
                     case BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
                 };
