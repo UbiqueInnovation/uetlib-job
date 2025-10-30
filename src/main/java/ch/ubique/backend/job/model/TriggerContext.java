@@ -9,7 +9,8 @@ import jakarta.validation.constraints.NotNull;
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.EXISTING_PROPERTY,
-        property = "type")
+        property = "type",
+        defaultImpl = Void.class)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = FileTriggerContext.class, name = "FILE"),
     @JsonSubTypes.Type(value = RetryTriggerContext.class, name = "RETRY"),
