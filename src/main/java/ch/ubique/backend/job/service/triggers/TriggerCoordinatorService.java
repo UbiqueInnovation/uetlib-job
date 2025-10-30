@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
@@ -22,11 +24,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run & !job-disable-triggers")
+@Profile("!job-run")
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
 
+    private final boolean allTriggersDisabled;
     private final JobDataService jobDataService;
 
     private final JobService jobService;
@@ -38,7 +41,8 @@ public class TriggerCoordinatorService {
             final JobDataService jobDataService,
             final JobService jobService,
             final JobExecutorService jobExecutorService,
-            final Collection<TriggerService<?>> triggerServices) {
+            final Collection<TriggerService<?>> triggerServices,
+            final Environment environment) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
@@ -46,6 +50,7 @@ public class TriggerCoordinatorService {
                 triggerServices.stream()
                         .collect(
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
+        this.allTriggersDisabled = environment.acceptsProfiles(Profiles.of("job-disable-triggers"));
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -146,6 +151,12 @@ public class TriggerCoordinatorService {
     }
 
     private Consumer<JobRunArguments> runnable(final Class<? extends Job> jobClass) {
+        if (allTriggersDisabled) {
+            return jobRunArguments ->
+                    logger.info(
+                            "Job {} will not be submitted because all triggers are disabled by profile.",
+                            jobClass.getSimpleName());
+        }
         return jobRunArguments -> {
             logger.info("Submitting job {}", jobClass);
             jobExecutorService.submit(jobClass, jobRunArguments);

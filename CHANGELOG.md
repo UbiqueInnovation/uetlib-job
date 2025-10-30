@@ -15,6 +15,8 @@ Retreat 2025 Edition
 - Added `RetryTrigger` to enable retrying failed job runs with a constant backoff.
 - `JobStateCheck` can use new `StateCheckStrategy` for monitoring checks. The strategies can be set
   as JobProperty for each Job.
+- Added option to disable jobs. A disabled job will never be triggered and cannot be started unless
+  enabled again.
 
 ### Database migrations
 

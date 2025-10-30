@@ -21,6 +21,9 @@ import ch.ubique.backend.job.model.client.info.JobSystemInfo;
 import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTrigger;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
+import ch.ubique.backend.job.model.executer.JobSubmissionResult;
+import ch.ubique.backend.job.model.executer.JobSubmissionStatus;
+import ch.ubique.backend.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
@@ -262,10 +265,9 @@ public class JobControllerService {
 
     /**
      * @throws ClassNotFoundException If the job class could not be found for the given id or class
-     * @throws ManualTriggerNotAllowedException If the job does not allow manual execution
      */
-    public void startJobManual(final String jobIdOrClassName, final boolean forceRun)
-            throws ClassNotFoundException, ManualTriggerNotAllowedException {
+    public JobSubmissionResult startJobManual(final String jobIdOrClassName, final boolean forceRun)
+            throws ClassNotFoundException {
         final var jobClass = getJobClass(jobIdOrClassName);
         // Allowed manual execution?
         final var manualExecutionAllowed =
@@ -275,10 +277,9 @@ public class JobControllerService {
                                 .value()
                         == JobManualTriggerMode.NEW_RUN_ALLOWED;
         if (!manualExecutionAllowed) {
-            throw new ManualTriggerNotAllowedException(
-                    String.format("Job %s does not allow manual execution", jobClass));
+            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
         }
-        jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
+        return jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
     }
 
     public void replayJobRun(final String jobIdOrClassName)
@@ -313,14 +314,9 @@ public class JobControllerService {
     }
 
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
-
         final var jobs = jobDataService.findJobs();
         for (final var job : jobs) {
-            try {
-                startJobManual(job.canonicalClassName(), forceRun);
-            } catch (final ManualTriggerNotAllowedException e) {
-                // Ignore jobs that do not allow manual execution
-            }
+            startJobManual(job.canonicalClassName(), forceRun);
         }
     }
 
@@ -351,6 +347,7 @@ public class JobControllerService {
                 jobService.getId(job),
                 job.getClass().getSimpleName(),
                 job.getClass().getCanonicalName(),
+                jobService.isEnabled(jobClass),
                 cronExpression.orElse(null),
                 cronExpression.isPresent(),
                 cronExpression.map(CronExpression::isValidExpression).orElse(true),
@@ -558,5 +555,11 @@ public class JobControllerService {
 
     public String logs(final int jobRunId) {
         return Objects.requireNonNullElse(logService.logs(jobRunId).log(), "No logs found.");
+    }
+
+    public void setEnabled(final String jobIdOrClassName, final boolean isEnabled)
+            throws ClassNotFoundException {
+        final var jobClass = jobService.getJobClass(jobIdOrClassName);
+        jobService.setEnabled(jobClass, isEnabled);
     }
 }
