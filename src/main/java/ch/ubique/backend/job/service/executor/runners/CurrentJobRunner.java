@@ -97,16 +97,13 @@ public final class CurrentJobRunner implements JobRunner {
         if (future != null) {
             future.cancel(true);
         }
+        final var runnerGroup = runnerGroupByJobRun.get(runId);
+        if (runnerGroup != null) {
+            getExecutorService(runnerGroup).purge(); // Remove canceled tasks from the queue
+            queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
+        }
         runnerGroupByJobRun.remove(runId);
         futuresByJobRun.remove(runId);
-
-        final var runnerGroup = runnerGroupByJobRun.get(runId);
-        if (runnerGroup == null) {
-            return;
-        }
-        final var executorService = getExecutorService(runnerGroup);
-        executorService.purge(); // Remove canceled tasks from the queue
-        queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
     }
 
     @Override
