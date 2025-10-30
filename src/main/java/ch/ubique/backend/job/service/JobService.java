@@ -238,4 +238,12 @@ public class JobService {
     public Collection<JobRun> findJobRunsByStates(final Collection<JobRunState> states) {
         return jobDataService.findJobRunByStates(states);
     }
+
+    public boolean isEnabled(final Class<? extends Job> jobClass) {
+        return jobDataService.isEnabled(jobClass);
+    }
+
+    public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {
+        jobDataService.setEnabled(jobClass, isEnabled);
+    }
 }

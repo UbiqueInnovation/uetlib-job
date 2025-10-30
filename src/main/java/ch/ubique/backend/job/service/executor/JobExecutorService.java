@@ -54,6 +54,11 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
 
+        if (!jobService.isEnabled(jobClass)) {
+            logger.info("Job {} is disabled and will not be submitted.", jobClass);
+            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
+        }
+
         final var job = jobService.instantiateJob(jobClass);
         final var isForceRun =
                 Optional.ofNullable(arguments).map(JobRunArguments::forceRun).orElse(false);

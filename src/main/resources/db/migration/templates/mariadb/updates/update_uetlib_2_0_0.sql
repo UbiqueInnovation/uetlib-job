@@ -41,3 +41,7 @@ commit;
 drop table logging_event_exception;
 drop table logging_event_property;
 drop table logging_event;
+
+-- enable/disable jobs:
+alter table t_job
+    add column enabled boolean not null default true;

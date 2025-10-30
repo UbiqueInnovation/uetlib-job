@@ -26,6 +26,9 @@ public class JobEntity {
     @Column(name = "clazz", nullable = false)
     private String canonicalClassName;
 
+    @Column(name = "enabled", nullable = false)
+    private boolean enabled;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -52,6 +55,10 @@ public class JobEntity {
     public JobEntity with(final String canonicalClassName) {
         this.canonicalClassName = canonicalClassName;
         return this;
+    }
+
+    public void setEnabled(final boolean enabled) {
+        this.enabled = enabled;
     }
 
     public Instant getCreatedAt() {

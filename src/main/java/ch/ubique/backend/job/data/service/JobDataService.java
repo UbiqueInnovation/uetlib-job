@@ -567,4 +567,20 @@ public class JobDataService {
                 .findFirstByJobRunIdOrderByTimestampDesc(jobRunId)
                 .map(LoggingEventEntity::getTimestamp);
     }
+
+    @Transactional(readOnly = true)
+    public boolean isEnabled(final Class<? extends Job> jobClass) {
+        return jobRepository.existsByCanonicalClassNameAndEnabledTrue(jobClass.getCanonicalName());
+    }
+
+    @Transactional
+    public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {
+        jobRepository
+                .findByCanonicalClassName(jobClass.getCanonicalName())
+                .ifPresent(
+                        jobEntity -> {
+                            jobEntity.setEnabled(isEnabled);
+                            jobRepository.save(jobEntity);
+                        });
+    }
 }
