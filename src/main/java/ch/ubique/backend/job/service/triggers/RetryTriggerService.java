@@ -71,8 +71,8 @@ public class RetryTriggerService implements TriggerService<RetryTrigger> {
             return;
         }
 
-        final var retryContext = getOrCreateRetryTriggerContext(jobRun);
-        if (retryContext.retryCount() >= trigger.maxRetries()) {
+        final var retryContext = getOrCreateRetryTriggerContext(jobRun, trigger);
+        if (!retryContext.canBeRetried()) {
             logger.debug("Max retries for {} reached.", jobRun);
             return;
         }
@@ -84,12 +84,13 @@ public class RetryTriggerService implements TriggerService<RetryTrigger> {
                         false, TriggerType.RETRY, retryContext.increment(), null, null));
     }
 
-    private RetryTriggerContext getOrCreateRetryTriggerContext(final JobRun jobRun) {
+    private RetryTriggerContext getOrCreateRetryTriggerContext(
+            final JobRun jobRun, final RetryTrigger trigger) {
         final var args = jobRun.jobRunArguments();
         if (args != null && args.triggerContext() instanceof final RetryTriggerContext context) {
             return context;
         }
-        return new RetryTriggerContext(0, jobRun.id());
+        return new RetryTriggerContext(0, trigger.maxRetries(), jobRun.id());
     }
 
     private Duration age(final JobRun jobRun) {
