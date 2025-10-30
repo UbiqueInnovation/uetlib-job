@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service.triggers;
 
-import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
@@ -52,12 +51,7 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
         final Runnable runnable =
                 () ->
                         consumer.accept(
-                                new JobRunArguments(
-                                        false,
-                                        TriggerType.CRON,
-                                        new EmptyTriggerContext(),
-                                        null,
-                                        null));
+                                new JobRunArguments(false, TriggerType.CRON, null, null, null));
         scheduleCronTrigger(triggerId, triggerDefinition, runnable);
     }
 

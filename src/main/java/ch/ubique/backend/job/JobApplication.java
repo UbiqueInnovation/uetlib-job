@@ -2,7 +2,6 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
-import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
@@ -82,7 +81,7 @@ public final class JobApplication {
                                     new JobRunArguments(
                                             jobToStartArgs.forceRun(),
                                             null,
-                                            new EmptyTriggerContext(),
+                                            null,
                                             null,
                                             getAdditionalData(jobToStartArgs, applicationContext)),
                                     jobToStartArgs.jobRunId(),

@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -22,7 +21,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 public record JobRunArguments(
         boolean forceRun,
         @Nullable TriggerType triggerType,
-        @NotNull @Valid TriggerContext triggerContext,
+        @Nullable @Valid TriggerContext triggerContext,
         @Nullable ReplayContext replayContext,
         @Nullable
                 @JsonSerialize(using = ObjectWithTypeSerializer.class)
@@ -40,7 +39,7 @@ public record JobRunArguments(
     }
 
     public JobRunArguments(final boolean forceRun, @Nullable final Object additionalData) {
-        this(forceRun, null, new EmptyTriggerContext(), null, additionalData);
+        this(forceRun, null, null, null, additionalData);
     }
 
     @JsonIgnore
@@ -61,7 +60,7 @@ public record JobRunArguments(
         if (additionalData != null) {
             builder.append("additionalData", additionalData);
         }
-        if (!(triggerContext instanceof EmptyTriggerContext)) {
+        if (triggerContext != null) {
             builder.append("triggerContext", triggerContext);
         }
 

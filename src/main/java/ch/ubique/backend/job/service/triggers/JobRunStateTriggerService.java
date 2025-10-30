@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
@@ -94,11 +93,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                             logger.debug("Calling callback for {}.", entry.getValue());
                             consumer.accept(
                                     new JobRunArguments(
-                                            false,
-                                            TriggerType.JOB_RUN_STATE,
-                                            new EmptyTriggerContext(),
-                                            null,
-                                            null));
+                                            false, TriggerType.JOB_RUN_STATE, null, null, null));
                         });
     }
 

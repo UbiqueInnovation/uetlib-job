@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 import ch.ubique.backend.core.utils.RegexUtil;
-import ch.ubique.backend.job.model.EmptyTriggerContext;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.RetryTriggerContext;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.TriggerType;
@@ -49,18 +49,18 @@ class JobRunArgumentsToStringConverterTest {
         final var jobRunArguments = new JobRunArguments(true);
         final var dbData =
                 jobRunArgumentsToStringConverter.convertToDatabaseColumn(jobRunArguments);
-        assertEquals("{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\"}}", dbData);
+        assertEquals("{\"forceRun\":true}", dbData);
     }
 
     @Test
     void testConvertForceRunFromDatabaseColumn() {
         final var dbData =
-                "{\"forceRun\":true,\"triggerContext\":{\"type\":\"EMPTY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
+                "{\"forceRun\":true,\"triggerContext\":{\"type\":\"RETRY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
                         + " did I get here\"}";
         final var jobRunArguments =
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
-        assertEquals(new EmptyTriggerContext(), jobRunArguments.triggerContext());
+        assertEquals(new RetryTriggerContext(0, 0, 0), jobRunArguments.triggerContext());
     }
 
     @Test
