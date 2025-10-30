@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.service;
 
-import static ch.ubique.backend.job.model.JobRunState.UNFINISHED;
+import static ch.ubique.backend.job.model.JobRunState.CANCELLED;
 
 import static java.util.Optional.ofNullable;
 
@@ -224,7 +224,7 @@ public class JobService {
         final var jobRunner = jobRunner(jobRun);
         logger.info("Requesting {} to cancel job run {}.", jobRunner, jobRun);
         jobRunner.cancel(jobRun);
-        updateJobRunState(jobRun, UNFINISHED, Instant.now());
+        updateJobRunState(jobRun, CANCELLED, Instant.now());
         return true;
     }
 

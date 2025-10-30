@@ -12,6 +12,8 @@ Retreat 2025 Edition
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
 - Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
+- Added new `CANCELLED` state to differentiate between a run that was willfully canceled from a run
+  that could not complete (i.e. `UNFINISHED`).
 - Added `RetryTrigger` to enable retrying failed job runs with a constant backoff.
 - `JobStateCheck` can use new `StateCheckStrategy` for monitoring checks. The strategies can be set
   as JobProperty for each Job.

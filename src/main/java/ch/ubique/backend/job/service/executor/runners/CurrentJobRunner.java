@@ -116,7 +116,7 @@ public final class CurrentJobRunner implements JobRunner {
         if (future.isDone()) {
             return switch (future.state()) {
                 case SUCCESS -> JobRunState.DONE;
-                case CANCELLED -> JobRunState.UNFINISHED;
+                case CANCELLED -> JobRunState.CANCELLED;
                 case FAILED -> JobRunState.ERROR;
                 case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
             };
