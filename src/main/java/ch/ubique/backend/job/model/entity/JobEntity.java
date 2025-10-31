@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.model.entity;
 
+import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobClassAndId;
 
 import jakarta.persistence.Column;
@@ -37,43 +38,18 @@ public class JobEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public JobEntity() {}
-
-    public JobEntity(final String canonicalClassName) {
-        this.canonicalClassName = canonicalClassName;
-    }
-
-    public JobEntity(final JobClassAndId jobClassAndId) {
-        this.id = jobClassAndId.id();
-        this.canonicalClassName = jobClassAndId.canonicalClassName();
+    public static JobEntity forClass(final Class<? extends Job> jobClass) {
+        final var jobEntity = new JobEntity();
+        jobEntity.enabled = true;
+        jobEntity.canonicalClassName = jobClass.getCanonicalName();
+        return jobEntity;
     }
 
     public JobClassAndId toRecord() {
         return new JobClassAndId(id, canonicalClassName);
     }
 
-    public JobEntity with(final String canonicalClassName) {
-        this.canonicalClassName = canonicalClassName;
-        return this;
-    }
-
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(final Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(final Instant updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

@@ -221,7 +221,7 @@ public class JobDataService {
                 // uncomment the following line if you ever add additional fields to JobRunEntity
                 // apart from the canonical class name
                 // .map(entity -> jobRepository.save(entity.with(jobClassCanonicalName)))
-                .orElseGet(() -> jobRepository.save(new JobEntity(jobClassCanonicalName)))
+                .orElseGet(() -> jobRepository.save(JobEntity.forClass(jobClass)))
                 .toRecord();
     }
 
