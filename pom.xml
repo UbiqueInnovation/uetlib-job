@@ -19,31 +19,26 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <ch.ubique.uetlib.testcontainers.version>1.2.1</ch.ubique.uetlib.testcontainers.version>
-
         <!-- Sonar-->
-        <sonar.projectName>uetlib-job</sonar.projectName>
-        <sonar.coverage.module>uetlib-job</sonar.coverage.module>
+        <sonar.projectName>${project.artifactId}</sonar.projectName>
+        <sonar.coverage.module>${project.artifactId}</sonar.coverage.module>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-storage-spring-boot</artifactId>
-            <version>1.2.2</version>
         </dependency>
 
         <!-- Monitoring -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-monitoring</artifactId>
-            <version>1.2.0</version>
         </dependency>
 
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot-security</artifactId>
-            <version>1.4.10</version>
         </dependency>
 
         <dependency>
@@ -54,7 +49,6 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-db</artifactId>
-            <version>1.1.0</version>
         </dependency>
 
         <!-- inotify-java -->
@@ -122,25 +116,21 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-test</artifactId>
-            <version>1.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
-            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
-            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
-            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -182,6 +172,17 @@
         </repository>
     </repositories>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-self-bom</artifactId>
+                <version>1.2.37</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
