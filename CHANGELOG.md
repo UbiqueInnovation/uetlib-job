@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.0.1
+
+### Fixes
+
+- fix version of `io:kubernetes:client-java:24.0.0`
+
 ## 2.0.0
 
 Retreat 2025 Edition
