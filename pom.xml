@@ -182,7 +182,7 @@
             <dependency>
                 <groupId>ch.ubique</groupId>
                 <artifactId>uetlib-self-bom</artifactId>
-                <version>1.2.37</version>
+                <version>1.2.41</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
