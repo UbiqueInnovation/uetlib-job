@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.0.0
+
+### Improvements
+
+- Spring Boot 4 compatibility
+
 ## 2.0.1
 
 ### Fixes
