@@ -46,11 +46,16 @@ public class JobRegistrationService {
             }
         }
 
+        final var registeredJobCanonicalClassnames =
+                registeredJobDefinitions.registeredJobClasses().stream()
+                        .map(Class::getCanonicalName)
+                        .toList();
+
         // Check if all database entries still have a job associated with them. Remove them if not
         for (final var job : jobDataService.findJobs()) {
             try {
                 final var jobClass = classLoaderService.getJobClass(job.canonicalClassName());
-                if (!registeredJobClasses.contains(jobClass)) {
+                if (!registeredJobCanonicalClassnames.contains(jobClass.getCanonicalName())) {
                     // The class exists but was not discovered by findAllRegisteredJobClasses()
                     // This could e.g. be the case if @EnableJobs does not include this job
                     logger.warn("{} is not part of the job classes. Removing database entry.", job);
