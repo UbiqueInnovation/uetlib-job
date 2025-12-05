@@ -14,31 +14,24 @@
     <version>3.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <properties>
-        <java.version>25</java.version>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!-- Sonar-->
-        <sonar.projectName>${project.artifactId}</sonar.projectName>
-        <sonar.coverage.module>${project.artifactId}</sonar.coverage.module>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-storage-spring-boot</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <!-- Monitoring -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-monitoring</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot-security</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -47,8 +40,14 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-db</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <!-- inotify-java -->
@@ -121,21 +120,25 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-test</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
 
@@ -169,25 +172,6 @@
         </dependency>
     </dependencies>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>ch.ubique</groupId>
-                <artifactId>uetlib-self-bom</artifactId>
-                <version>2.0.0-SNAPSHOT</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>ch.ubique</groupId>
-                <artifactId>uetlib-bom</artifactId>
-                <version>2026.0.0-SNAPSHOT</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <repositories>
         <repository>
             <id>osgeo</id>
@@ -202,26 +186,21 @@
         </repository>
     </distributionManagement>
 
-    <scm>
-        <url>https://github.com/UbiqueInnovation/uetlib-job</url>
-    </scm>
-
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>4.0.0</version>
                 <executions>
                     <execution>
+                        <id>build-info</id>
                         <goals>
-                            <goal>
-                                build-info
-                            </goal>
+                            <goal>build-info</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -275,23 +254,10 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Plugin to allow lazy-fetching an entity attribute using @Basic(fetch = FetchType.LAZY) -->
-            <plugin>
-                <groupId>org.hibernate.orm.tooling</groupId>
-                <artifactId>hibernate-enhance-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <configuration>
-                            <failOnError>true</failOnError>
-                            <enableLazyInitialization>true</enableLazyInitialization>
-                        </configuration>
-                        <goals>
-                            <goal>enhance</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
+
+    <scm>
+        <url>https://github.com/UbiqueInnovation/uetlib-job</url>
+    </scm>
 </project>
