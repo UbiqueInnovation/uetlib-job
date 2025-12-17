@@ -4,6 +4,8 @@ import ch.ubique.backend.job.model.properties.JobProperties;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,10 +15,10 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRunContext(
-        @NotNull @Valid JobClassAndId job,
-        @NotNull @Valid JobRun jobRun,
-        @NotNull @Valid JobRunArguments arguments,
-        @NotNull @Valid JobProperties properties) {
+        @JsonProperty(required = true) @NotNull @Valid JobClassAndId job,
+        @JsonProperty(required = true) @NotNull @Valid JobRun jobRun,
+        @JsonProperty(required = true) @NotNull @Valid JobRunArguments arguments,
+        @JsonProperty(required = true) @NotNull @Valid JobProperties properties) {
 
     @Override
     public String toString() {
