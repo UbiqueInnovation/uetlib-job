@@ -25,7 +25,7 @@ public sealed interface TriggerContext permits FileTriggerContext, RetryTriggerC
      * @return the type of the trigger context
      */
     @NotNull
-    @JsonProperty
+    @JsonProperty(required = true)
     default TriggerType type() {
         return switch (this) {
             case final FileTriggerContext ignored -> TriggerType.FILE;

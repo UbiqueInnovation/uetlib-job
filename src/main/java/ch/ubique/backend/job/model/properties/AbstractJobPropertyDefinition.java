@@ -20,7 +20,7 @@ abstract sealed class AbstractJobPropertyDefinition<T> implements JobPropertyDef
                 IntPropertyDefinition,
                 StringPropertyDefinition {
 
-    @NotNull private final String key;
+    @NotBlank private final String key;
 
     @NotBlank private final String description;
 

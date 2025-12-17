@@ -6,6 +6,17 @@
 
 - Spring Boot 4 compatibility
 
+## 2.1.0
+
+### Improvements
+
+- Add response validation to `UetlibJobStatusController`. Configurable via
+  ```properties
+  ch.ubique.backend.spring.validation.response.fail.action=throw
+  ch.ubique.backend.spring.validation.response.fail.log-level=error
+  ```
+  Defaults to `log` and `warn`, respectively.
+
 ## 2.0.1
 
 ### Fixes
