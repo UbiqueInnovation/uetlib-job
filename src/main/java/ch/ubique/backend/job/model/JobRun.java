@@ -3,6 +3,10 @@ package ch.ubique.backend.job.model;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -15,14 +19,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRun(
-        int id,
-        int jobId,
-        @NotBlank String versionTag,
-        @NotNull Instant startedAt,
+        @JsonProperty(required = true) int id,
+        @JsonProperty(required = true) int jobId,
+        @JsonProperty(required = true) @NotBlank String versionTag,
+        @JsonProperty(required = true) @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
-        @NotNull JobRunState latestState,
-        @NotNull JobRunnerKey runnerKey,
+        @JsonProperty(required = true) @NotNull JobRunState latestState,
+        @JsonProperty(required = true) @NotNull JobRunnerKey runnerKey,
         @Nullable TriggerType triggerType,
         @Nullable @Valid JobRunArguments jobRunArguments) {
 

@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -19,7 +20,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRunArguments(
-        boolean forceRun,
+        @JsonProperty(required = true) boolean forceRun,
         @Nullable TriggerType triggerType,
         @Nullable @Valid TriggerContext triggerContext,
         @Nullable ReplayContext replayContext,
@@ -28,7 +29,7 @@ public record JobRunArguments(
                 @JsonDeserialize(using = ObjectWithTypeDeserializer.class)
                 Object additionalData) {
 
-    public static JobRunArguments DEFAULT = new JobRunArguments(false);
+    public static final JobRunArguments DEFAULT = new JobRunArguments(false);
 
     public JobRunArguments() {
         this(false);
