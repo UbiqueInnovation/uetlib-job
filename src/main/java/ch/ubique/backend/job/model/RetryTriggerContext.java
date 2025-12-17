@@ -3,9 +3,9 @@ package ch.ubique.backend.job.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record RetryTriggerContext(
-        @JsonProperty(required = true) int retryCount,
-        @JsonProperty(required = true) int maxRetries,
-        @JsonProperty(required = true) int originalJobRunId)
+        @JsonProperty(defaultValue = "0") int retryCount,
+        @JsonProperty(defaultValue = "0") int maxRetries,
+        @JsonProperty(defaultValue = "0") int originalJobRunId)
         implements TriggerContext {
 
     public RetryTriggerContext increment() {
