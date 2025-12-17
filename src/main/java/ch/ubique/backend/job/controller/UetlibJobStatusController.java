@@ -12,6 +12,7 @@ import ch.ubique.backend.job.model.response.StringResponse;
 import ch.ubique.backend.job.model.response.SuccessResponse;
 import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
 import ch.ubique.backend.job.service.controller.JobControllerService;
+import ch.ubique.backend.spring.validation.ValidateResponse;
 
 import jakarta.validation.Valid;
 
@@ -31,6 +32,7 @@ import java.util.*;
 
 @RestController
 @Validated
+@ValidateResponse
 @Profile("!job-run")
 @RequestMapping("/v1/status")
 @CrossOrigin(
