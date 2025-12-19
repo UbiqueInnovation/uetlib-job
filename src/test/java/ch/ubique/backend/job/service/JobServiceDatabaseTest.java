@@ -31,7 +31,6 @@ class JobServiceDatabaseTest extends BaseJobDatabaseTest {
 
     @Test
     void testGetAllJobs() {
-
         final var allInstantiatedJobClasses =
                 jobService.getAllJobs().stream()
                         .map(Job::getClass)
