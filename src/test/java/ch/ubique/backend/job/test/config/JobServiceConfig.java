@@ -1,6 +1,10 @@
 package ch.ubique.backend.job.test.config;
 
 import ch.ubique.backend.job.annotation.EnableJobs;
+import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
+import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.service.core.ClassLoaderService;
+import ch.ubique.backend.job.service.register.JobRegistrationService;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringBootConfiguration;
@@ -49,5 +53,18 @@ public class JobServiceConfig {
     @Bean
     TaskScheduler taskScheduler() {
         return new ThreadPoolTaskScheduler();
+    }
+
+    /** bean registeredJobDefinitions is registered programmatically in RegisteredJobRegistrar */
+    @Bean
+    JobRegistrationService jobRegistrationService(
+            final JobDataService jobDataService,
+            final ClassLoaderService classLoaderService,
+            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+                    final RegisteredJobDefinitions registeredJobDefinitions) {
+        final var jobRegistrationService =
+                new JobRegistrationService(jobDataService, classLoaderService);
+        jobRegistrationService.registerAllJobs(registeredJobDefinitions);
+        return jobRegistrationService;
     }
 }
