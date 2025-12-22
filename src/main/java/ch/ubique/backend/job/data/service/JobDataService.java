@@ -448,7 +448,7 @@ public class JobDataService {
         jobTriggerRepository
                 .findById(trigger.id())
                 .ifPresentOrElse(
-                        entity -> jobTriggerRepository.save(entity.with(trigger)),
+                        entity -> jobTriggerRepository.save(entity.update(trigger)),
                         () -> jobTriggerRepository.save(new JobTriggerEntity(trigger)));
     }
 
