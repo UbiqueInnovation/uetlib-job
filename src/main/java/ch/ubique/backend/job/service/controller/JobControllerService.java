@@ -393,10 +393,12 @@ public class JobControllerService {
             throws ClassNotFoundException {
         final var job = getJobInstance(jobIdOrClassName);
 
+        final var triggerIds = triggers.triggers().stream().map(JobTrigger::id).toList();
+
         // Delete triggers that are currently existing, but not present anymore
         final var existing = getJobTriggers(job);
         existing.triggers().stream()
-                .filter(trigger -> !triggers.triggers().contains(trigger))
+                .filter(trigger -> !triggerIds.contains(trigger.id()))
                 .map(trigger -> toTrigger(trigger, job))
                 .forEach(triggerCoordinatorService::deleteTrigger);
 
