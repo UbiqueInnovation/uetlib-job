@@ -6,6 +6,12 @@
 
 - Spring Boot 4 compatibility
 
+## 2.1.1
+
+### Fixes
+
+- Job triggers can be updated again, not just added or removed
+
 ## 2.1.0
 
 ### Improvements
@@ -52,6 +58,12 @@ Retreat 2025 Edition
 
 - Removed `Job.version` in favor of version tag.
 
+## 1.4.6
+
+### Fixes
+
+- Job triggers can be updated again, not just added or removed
+
 ## 1.4.4
 
 - Downgraded some log messages to debug
@@ -60,7 +72,7 @@ Retreat 2025 Edition
 
 ## Changes
 
-- JobRunStorage: use built in gzip handling instead of explicit gzip
+- `JobRunStorage`: use built-in gzip handling instead of explicit gzip
 
 ## 1.4.2
 
