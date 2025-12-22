@@ -80,6 +80,9 @@ public final class JobApplication {
                                             .getJobClass(jobToStartArgs.jobClassName()),
                                     new JobRunArguments(
                                             jobToStartArgs.forceRun(),
+                                            null,
+                                            null,
+                                            null,
                                             getAdditionalData(jobToStartArgs, applicationContext)),
                                     jobToStartArgs.jobRunId(),
                                     JobRunnerKey.DEDICATED_K8S_JOB);
@@ -113,10 +116,10 @@ public final class JobApplication {
                 applicationContext.getBean(JobService.class).getJobRun(jobRunId).latestState();
         final var exitStatus =
                 switch (jobRunState) {
-                    case DONE, SKIPPED -> JobApplicationExitStatus.SUCCESS;
-                    case WARNING, UNFINISHED -> JobApplicationExitStatus.JOB_WARNING;
+                    case DONE, SKIPPED, ACKNOWLEDGED -> JobApplicationExitStatus.SUCCESS;
+                    case WARNING, UNFINISHED, CANCELLED -> JobApplicationExitStatus.JOB_WARNING;
                     case ERROR -> JobApplicationExitStatus.JOB_ERROR;
-                    case NONE, BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
+                    case BUSY, SCHEDULED -> JobApplicationExitStatus.JOB_NOT_TERMINATED;
                 };
         logger.info(
                 "Job run {} finished with state {}. Exit status = {}, exit code = {}.",

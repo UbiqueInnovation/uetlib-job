@@ -16,8 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Set;
 
 @SuppressWarnings("DataFlowIssue")
 class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
@@ -33,6 +36,24 @@ class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
     @Test
     void testFindLogsForJobRun() {
         assertEquals(0, jobDataService.findLogsForJobRun(42, 0).size());
+    }
+
+    @Test
+    void testFindAnyJobRunInStatesSince() {
+        final var jobRun =
+                jobDataService.findAnyJobRunInStatesSince(
+                        1, Set.of(JobRunState.ERROR), Instant.now().minus(Duration.ofHours(6)));
+        assertTrue(jobRun.isPresent());
+
+        final var jobRun2 =
+                jobDataService.findAnyJobRunInStatesSince(
+                        1, Set.of(JobRunState.ERROR), Instant.now().minus(Duration.ofHours(5)));
+        assertTrue(jobRun2.isEmpty());
+
+        final var jobRun3 =
+                jobDataService.findAnyJobRunInStatesSince(
+                        1, Set.of(), Instant.now().minus(Duration.ofHours(24)));
+        assertTrue(jobRun3.isEmpty());
     }
 
     @Test

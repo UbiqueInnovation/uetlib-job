@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model;
 
+import ch.ubique.backend.job.model.triggers.TriggerType;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -12,6 +14,7 @@ public record JobRunDatabaseSubmissionArguments(boolean forceRun, @Nullable Obje
 
     @NotNull
     public JobRunArguments toJobRunArguments() {
-        return new JobRunArguments(forceRun, additionalData);
+        return new JobRunArguments(
+                forceRun, TriggerType.DATABASE_SUBMISSION, null, null, additionalData);
     }
 }

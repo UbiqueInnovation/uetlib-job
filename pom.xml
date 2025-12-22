@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>ch.ubique</groupId>
         <artifactId>uetlib-parent</artifactId>
-        <version>1.2.6</version>
+        <version>1.3.2</version>
     </parent>
 
     <artifactId>uetlib-job</artifactId>
-    <version>2.0.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -19,31 +19,31 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <ch.ubique.uetlib.testcontainers.version>1.2.1</ch.ubique.uetlib.testcontainers.version>
-
         <!-- Sonar-->
-        <sonar.projectName>uetlib-job</sonar.projectName>
-        <sonar.coverage.module>uetlib-job</sonar.coverage.module>
+        <sonar.projectName>${project.artifactId}</sonar.projectName>
+        <sonar.coverage.module>${project.artifactId}</sonar.coverage.module>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-storage-spring-boot</artifactId>
-            <version>1.2.2</version>
         </dependency>
 
         <!-- Monitoring -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-monitoring</artifactId>
-            <version>1.1.2</version>
         </dependency>
 
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot-security</artifactId>
-            <version>1.4.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.ubique</groupId>
+            <artifactId>uetlib-spring-boot-validation</artifactId>
         </dependency>
 
         <dependency>
@@ -54,14 +54,12 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-db</artifactId>
-            <version>1.1.0</version>
         </dependency>
 
         <!-- inotify-java -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>inotify</artifactId>
-            <version>2.0</version>
         </dependency>
 
         <!-- Command line args parsing -->
@@ -84,6 +82,12 @@
                     <artifactId>joda-time</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- explicitly required by io.kubernetes:client-java when upgrading okhttp v4 to v5 -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-jvm</artifactId>
         </dependency>
 
         <!-- Jobs need a database to store registered jobs, runs, logs, ... -->
@@ -118,34 +122,25 @@
             <artifactId>time4j-base</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>ch.qos.logback.db</groupId>
-            <artifactId>logback-classic-db</artifactId>
-        </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-test</artifactId>
-            <version>1.2.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
-            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
-            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
-            <version>${ch.ubique.uetlib.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -179,8 +174,49 @@
         </dependency>
     </dependencies>
 
+    <repositories>
+        <repository>
+            <id>osgeo</id>
+            <name>Open Source Geospatial Foundation Repository</name>
+            <url>https://repo.osgeo.org/repository/release/</url>
+        </repository>
+    </repositories>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-self-bom</artifactId>
+                <version>1.3.5</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-bom</artifactId>
+                <version>1.3.2</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>4.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>
+                                build-info
+                            </goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

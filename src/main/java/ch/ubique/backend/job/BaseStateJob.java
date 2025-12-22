@@ -196,17 +196,7 @@ public abstract class BaseStateJob<T> implements Job {
             return false;
         }
 
-        if (isJobVersionDifferent(jobRunContext.job())) {
-            logger.debug("The job version differs from the job version of the previous run.");
-            return false;
-        }
-
         return true;
-    }
-
-    private boolean isJobVersionDifferent(final JobClassAndId job) {
-        final var lastVersion = latestSuccessfulRun(job).map(JobRun::jobVersion).orElse(null);
-        return !Objects.equals(version(), lastVersion);
     }
 
     private Optional<JobRun> latestSuccessfulRun(final JobClassAndId job) {

@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -33,6 +34,7 @@ import java.io.IOException;
 
 @Service
 @Profile("!job-run")
+@Conditional(KubernetesAvailableConfigurationCondition.class)
 public class KubernetesService {
 
     private static final Logger logger = LoggerFactory.getLogger(KubernetesService.class);

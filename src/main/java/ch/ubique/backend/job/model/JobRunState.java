@@ -11,11 +11,16 @@ public enum JobRunState {
     WARNING,
     ERROR,
     UNFINISHED,
-    NONE,
+    CANCELLED,
     SKIPPED,
-    SCHEDULED;
+    SCHEDULED,
+    ACKNOWLEDGED;
 
     public static final Collection<JobRunState> RUNNING_STATES = Set.of(BUSY, SCHEDULED);
+    public static final Collection<JobRunState> PROBLEM_STATES =
+            Set.of(UNFINISHED, CANCELLED, WARNING, ERROR);
+    public static final Collection<JobRunState> SUCCESS_STATES =
+            Set.of(SKIPPED, ACKNOWLEDGED, DONE);
 
     @SuppressWarnings("java:S2386")
     public static final Collection<JobRunState> ALL_EXCEPT_RUNNING_STATES =
@@ -27,5 +32,17 @@ public enum JobRunState {
 
     public boolean isRunning() {
         return RUNNING_STATES.contains(this);
+    }
+
+    public boolean isSuccess() {
+        return SUCCESS_STATES.contains(this);
+    }
+
+    public boolean isProblem() {
+        return PROBLEM_STATES.contains(this);
+    }
+
+    public boolean isAcknowledgeable() {
+        return isProblem();
     }
 }

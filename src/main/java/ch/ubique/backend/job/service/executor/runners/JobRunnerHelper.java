@@ -49,7 +49,7 @@ public final class JobRunnerHelper {
             final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
             if (rootCause instanceof InterruptedException) {
                 logger.info("Job {} interrupted", job);
-                updateJobRunState(jobService, jobRunContext, JobRunState.UNFINISHED);
+                updateJobRunState(jobService, jobRunContext, JobRunState.CANCELLED);
                 Thread.currentThread().interrupt();
             } else {
                 logger.error("Exception running job: ", e);

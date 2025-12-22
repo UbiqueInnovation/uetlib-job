@@ -1,12 +1,17 @@
 insert
-into t_job_run(fk_job_id, job_version, started_at, finished_at, job_run_arguments, runner_key, created_at, updated_at)
-values (1, 0, now() - interval '8 hours', null, '{}', 'CURRENT', now() - interval '9 hours',
+into t_job_run(fk_job_id, version_tag, started_at, finished_at, job_run_arguments,
+               runner_key, created_at, updated_at)
+values (1, '1.0.0', now() - interval '8 hours', null, '{}', 'CURRENT',
+        now() - interval '9 hours',
         now() - interval '9 hours'),
-       (1, 0, now() - interval '7 hours', null, '{}', 'CURRENT', now() - interval '8 hours',
+       (1, '1.0.0', now() - interval '7 hours', null, '{}', 'CURRENT',
+        now() - interval '8 hours',
         now() - interval '6 hours'),
-       (1, 0, now() - interval '6 hours', now() - interval '2 hours', '{}', 'CURRENT', now() - interval '7 hours',
+       (1, '1.0.0', now() - interval '6 hours', now() - interval '2 hours', '{}', 'CURRENT',
+        now() - interval '7 hours',
         now() - interval '4 hours'),
-       (1, 0, now() - interval '5 hours', now() - interval '1 hours', '{}', 'CURRENT', now() - interval '6 hours',
+       (1, '1.0.0', now() - interval '5 hours', now() - interval '1 hours', '{}', 'CURRENT',
+        now() - interval '6 hours',
         now() - interval '4 hours');
 
 insert into t_job_run_state_transition(fk_job_run_id, state, transitioned_at)

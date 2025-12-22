@@ -10,6 +10,7 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.service.k8s.KubernetesAvailableConfigurationCondition;
 import ch.ubique.backend.job.service.k8s.KubernetesService;
 import ch.ubique.backend.job.service.watcher.KubernetesJobWatcher;
 
@@ -23,6 +24,7 @@ import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -32,6 +34,7 @@ import java.util.Optional;
 
 @Service
 @Profile("!job-run")
+@Conditional(KubernetesAvailableConfigurationCondition.class)
 public class KubernetesJobRunner implements JobRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(KubernetesJobRunner.class);

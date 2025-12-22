@@ -2,10 +2,20 @@ package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.core.utils.ArrayUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 
-public record JobClassAndId(int id, @NotBlank String canonicalClassName) {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record JobClassAndId(
+        @JsonProperty(required = true) int id,
+        @JsonProperty(required = true) @NotBlank String canonicalClassName) {
 
+    @JsonProperty(required = true)
+    @NotBlank
     public String name() {
         return ArrayUtils.lastElement(canonicalClassName.split("\\."));
     }

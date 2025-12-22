@@ -12,6 +12,7 @@ public enum TriggerType {
     FIXED_RATE(FixedRateTrigger.class),
     FILE(FileTrigger.class),
     JOB_RUN_STATE(JobRunStateTrigger.class),
+    RETRY(RetryTrigger.class),
     DATABASE_SUBMISSION(DatabaseSubmissionTrigger.class);
 
     private static final Map<Class<? extends TriggerDefinition>, TriggerType>
