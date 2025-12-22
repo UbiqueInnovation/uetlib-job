@@ -1,23 +1,35 @@
 package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.triggers.TriggerType;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRun(
-        int id,
-        int jobId,
-        int jobVersion,
-        @NotNull Instant startedAt,
+        @JsonProperty(required = true) int id,
+        @JsonProperty(required = true) int jobId,
+        @JsonProperty(required = true) @NotBlank String versionTag,
+        @JsonProperty(required = true) @NotNull Instant startedAt,
         @Nullable Instant finishedAt,
-        @NotNull JobRunState latestState,
-        @NotNull JobRunnerKey runnerKey,
+        @JsonProperty(required = true) @NotNull JobRunState latestState,
+        @JsonProperty(required = true) @NotNull JobRunnerKey runnerKey,
+        @Nullable TriggerType triggerType,
         @Nullable @Valid JobRunArguments jobRunArguments) {
 
     public Duration runDuration() {
@@ -37,25 +49,36 @@ public record JobRun(
         return new ModifiableJobRun(this);
     }
 
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
+                .append("id", id)
+                .append("jobId", jobId)
+                .append("latestState", latestState)
+                .toString();
+    }
+
     public static final class ModifiableJobRun {
 
         private int id;
         private int jobId;
-        private int jobVersion;
+        private final String versionTag;
         private Instant startedAt;
         private Instant finishedAt;
         private JobRunState state;
         private JobRunnerKey runnerKey;
+        private final TriggerType triggerType;
         private JobRunArguments jobRunArguments;
 
         private ModifiableJobRun(final JobRun jobRun) {
             this.id = jobRun.id;
             this.jobId = jobRun.jobId;
-            this.jobVersion = jobRun.jobVersion;
+            this.versionTag = jobRun.versionTag;
             this.startedAt = Objects.requireNonNull(jobRun.startedAt);
             this.finishedAt = jobRun.finishedAt;
             this.state = Objects.requireNonNull(jobRun.latestState);
             this.runnerKey = Objects.requireNonNull(jobRun.runnerKey);
+            this.triggerType = jobRun.triggerType;
             this.jobRunArguments = jobRun.jobRunArguments;
         }
 
@@ -66,11 +89,6 @@ public record JobRun(
 
         public ModifiableJobRun jobId(final int jobId) {
             this.jobId = jobId;
-            return this;
-        }
-
-        public ModifiableJobRun jobVersion(final int jobVersion) {
-            this.jobVersion = jobVersion;
             return this;
         }
 
@@ -103,11 +121,12 @@ public record JobRun(
             return new JobRun(
                     id,
                     jobId,
-                    jobVersion,
+                    versionTag,
                     startedAt,
                     finishedAt,
                     state,
                     runnerKey,
+                    triggerType,
                     jobRunArguments);
         }
     }

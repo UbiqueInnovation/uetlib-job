@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -27,8 +29,10 @@ public final class CurrentJobRunner implements JobRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrentJobRunner.class);
 
-    private final Map<RunnerGroup, ExecutorService> executorServices;
+    private final Map<RunnerGroup, ThreadPoolExecutor> executorServices;
     private final Map<Integer, Future<?>> futuresByJobRun;
+    private final Map<Integer, RunnerGroup> runnerGroupByJobRun;
+    private final Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> queuedJobRuns;
 
     private final JobService jobService;
 
@@ -36,6 +40,16 @@ public final class CurrentJobRunner implements JobRunner {
         this.jobService = jobService;
         executorServices = new ConcurrentHashMap<>();
         futuresByJobRun = new ConcurrentHashMap<>();
+        runnerGroupByJobRun = new ConcurrentHashMap<>();
+        queuedJobRuns = new ConcurrentHashMap<>();
+    }
+
+    public Map<RunnerGroup, ThreadPoolExecutor> getExecutorServices() {
+        return Collections.unmodifiableMap(executorServices);
+    }
+
+    public Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> getQueuedJobRuns() {
+        return Collections.unmodifiableMap(queuedJobRuns);
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
@@ -57,11 +71,20 @@ public final class CurrentJobRunner implements JobRunner {
 
         final var executorService = getExecutorService(runnerGroup);
         final var jobRunId = jobRunContext.jobRun().id();
+        runnerGroupByJobRun.put(jobRunId, runnerGroup);
+        final var queueItem =
+                new CurrentRunnerQueueItem(job.getClass(), jobRunContext.jobRun().id());
+        final var runnerGroupQueue =
+                queuedJobRuns.computeIfAbsent(
+                        runnerGroup, ignored -> new ConcurrentLinkedDeque<>());
+        runnerGroupQueue.add(queueItem);
         final var future =
                 executorService.submit(
                         () -> {
+                            runnerGroupQueue.remove(queueItem);
                             JobRunnerHelper.run(job, jobService, jobRunContext);
                             futuresByJobRun.remove(jobRunId);
+                            runnerGroupByJobRun.remove(jobRunId);
                         });
         futuresByJobRun.put(jobRunId, future);
         return true;
@@ -69,11 +92,18 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     public void cancel(final @NotNull JobRun jobRun) {
-        final var future = futuresByJobRun.get(jobRun.id());
+        final var runId = jobRun.id();
+        final var future = futuresByJobRun.get(runId);
         if (future != null) {
             future.cancel(true);
-            futuresByJobRun.remove(jobRun.id());
         }
+        final var runnerGroup = runnerGroupByJobRun.get(runId);
+        if (runnerGroup != null) {
+            getExecutorService(runnerGroup).purge(); // Remove canceled tasks from the queue
+            queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
+        }
+        runnerGroupByJobRun.remove(runId);
+        futuresByJobRun.remove(runId);
     }
 
     @Override
@@ -84,10 +114,9 @@ public final class CurrentJobRunner implements JobRunner {
             return null;
         }
         if (future.isDone()) {
-            futuresByJobRun.remove(jobRun.id());
             return switch (future.state()) {
                 case SUCCESS -> JobRunState.DONE;
-                case CANCELLED -> JobRunState.UNFINISHED;
+                case CANCELLED -> JobRunState.CANCELLED;
                 case FAILED -> JobRunState.ERROR;
                 case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
             };
@@ -96,7 +125,7 @@ public final class CurrentJobRunner implements JobRunner {
         return JobRunState.BUSY;
     }
 
-    private ExecutorService getExecutorService(final RunnerGroup runnerGroup) {
+    private ThreadPoolExecutor getExecutorService(final RunnerGroup runnerGroup) {
         return executorServices.computeIfAbsent(runnerGroup, this::createExecutorService);
     }
 

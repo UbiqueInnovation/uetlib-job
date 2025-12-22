@@ -10,11 +10,20 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.model.client.*;
 import ch.ubique.backend.job.model.client.JobInfo;
-import ch.ubique.backend.job.model.client.info.*;
+import ch.ubique.backend.job.model.client.JobInfosContainer;
+import ch.ubique.backend.job.model.client.JobPropertyInfo;
+import ch.ubique.backend.job.model.client.JobRunInfo;
+import ch.ubique.backend.job.model.client.JobRunInfoContainer;
+import ch.ubique.backend.job.model.client.JobRunInfosContainer;
+import ch.ubique.backend.job.model.client.info.JobSystemCronInfo;
+import ch.ubique.backend.job.model.client.info.JobSystemInfo;
+import ch.ubique.backend.job.model.client.info.JobSystemInfoResponse;
 import ch.ubique.backend.job.model.client.triggers.JobTrigger;
 import ch.ubique.backend.job.model.client.triggers.JobTriggers;
+import ch.ubique.backend.job.model.executer.JobSubmissionResult;
+import ch.ubique.backend.job.model.executer.JobSubmissionStatus;
+import ch.ubique.backend.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
@@ -26,6 +35,7 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.JobManualTriggerService;
+import ch.ubique.backend.job.service.info.JobRunnerInfoService;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.service.inputs.JobRunInputProvider;
 import ch.ubique.backend.job.service.logs.LogService;
@@ -53,7 +63,13 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -75,6 +91,8 @@ public class JobControllerService {
     private final JobRunInputManager jobRunInputManager;
     private final LogService logService;
 
+    private final JobRunnerInfoService jobRunnerInfoService;
+
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
@@ -83,7 +101,8 @@ public class JobControllerService {
             final TriggerCoordinatorService triggerCoordinatorService,
             final JobManualTriggerService jobManualTriggerService,
             final JobRunInputManager jobRunInputManager,
-            final LogService logService) {
+            final LogService logService,
+            final JobRunnerInfoService jobRunnerInfoService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
@@ -92,6 +111,7 @@ public class JobControllerService {
         this.jobManualTriggerService = jobManualTriggerService;
         this.jobRunInputManager = jobRunInputManager;
         this.logService = logService;
+        this.jobRunnerInfoService = jobRunnerInfoService;
     }
 
     private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
@@ -245,10 +265,9 @@ public class JobControllerService {
 
     /**
      * @throws ClassNotFoundException If the job class could not be found for the given id or class
-     * @throws ManualTriggerNotAllowedException If the job does not allow manual execution
      */
-    public void startJobManual(final String jobIdOrClassName, final boolean forceRun)
-            throws ClassNotFoundException, ManualTriggerNotAllowedException {
+    public JobSubmissionResult startJobManual(final String jobIdOrClassName, final boolean forceRun)
+            throws ClassNotFoundException {
         final var jobClass = getJobClass(jobIdOrClassName);
         // Allowed manual execution?
         final var manualExecutionAllowed =
@@ -258,10 +277,9 @@ public class JobControllerService {
                                 .value()
                         == JobManualTriggerMode.NEW_RUN_ALLOWED;
         if (!manualExecutionAllowed) {
-            throw new ManualTriggerNotAllowedException(
-                    String.format("Job %s does not allow manual execution", jobClass));
+            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
         }
-        jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
+        return jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
     }
 
     public void replayJobRun(final String jobIdOrClassName)
@@ -296,14 +314,9 @@ public class JobControllerService {
     }
 
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
-
         final var jobs = jobDataService.findJobs();
         for (final var job : jobs) {
-            try {
-                startJobManual(job.canonicalClassName(), forceRun);
-            } catch (final ManualTriggerNotAllowedException e) {
-                // Ignore jobs that do not allow manual execution
-            }
+            startJobManual(job.canonicalClassName(), forceRun);
         }
     }
 
@@ -334,6 +347,7 @@ public class JobControllerService {
                 jobService.getId(job),
                 job.getClass().getSimpleName(),
                 job.getClass().getCanonicalName(),
+                jobService.isEnabled(jobClass),
                 cronExpression.orElse(null),
                 cronExpression.isPresent(),
                 cronExpression.map(CronExpression::isValidExpression).orElse(true),
@@ -430,11 +444,7 @@ public class JobControllerService {
         return new JobSystemInfoResponse(
                 new JobSystemInfo(
                         new JobSystemCronInfo(cronTriggerService.getDefaultZoneId()),
-                        new JobSystemSchedulerInfo(getGroups())));
-    }
-
-    private List<JobSystemSchedulerGroupInfo> getGroups() {
-        return List.of();
+                        jobRunnerInfoService.getRunnerGroupsInfo()));
     }
 
     private Job getJobInstance(final String jobIdOrClassName) throws ClassNotFoundException {
@@ -468,6 +478,15 @@ public class JobControllerService {
         final var message = success ? "Job run cancelled." : "Job run could not be cancelled";
         logger.info(message);
         return new SuccessResponse(success, message);
+    }
+
+    public SuccessResponse acknowledgeJobRun(final int jobRunId) {
+        final var jobRun = jobDataService.findJobRunById(jobRunId).orElseThrow();
+        if (!jobRun.latestState().isAcknowledgeable()) {
+            return new SuccessResponse(false, "Job run state is not acknowledgeable");
+        }
+        jobDataService.updateJobRunState(jobRunId, JobRunState.ACKNOWLEDGED, Instant.now());
+        return new SuccessResponse(true, "Job run acknowledged.");
     }
 
     public JobRunFileListResponse listFiles(final int jobRunId) {
@@ -538,5 +557,11 @@ public class JobControllerService {
 
     public String logs(final int jobRunId) {
         return Objects.requireNonNullElse(logService.logs(jobRunId).log(), "No logs found.");
+    }
+
+    public void setEnabled(final String jobIdOrClassName, final boolean isEnabled)
+            throws ClassNotFoundException {
+        final var jobClass = getJobClass(jobIdOrClassName);
+        jobService.setEnabled(jobClass, isEnabled);
     }
 }

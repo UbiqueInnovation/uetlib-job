@@ -29,9 +29,9 @@ public record KubernetesPodToleration(
     public V1Toleration toV1Toleration() {
         return new V1Toleration()
                 .key(key)
-                .operator(operator.name())
+                .operator(operator != null ? operator.name() : null)
                 .value(value)
-                .effect(effect.name())
+                .effect(effect != null ? effect.name() : null)
                 .tolerationSeconds(tolerationSeconds);
     }
 

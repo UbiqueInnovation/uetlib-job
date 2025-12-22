@@ -1,5 +1,57 @@
 # CHANGELOG
 
+## 2.1.1
+
+### Fixes
+
+- Job triggers can be updated again, not just added or removed
+
+## 2.1.0
+
+### Improvements
+
+- Add response validation to `UetlibJobStatusController`. Configurable via
+  ```properties
+  ch.ubique.backend.spring.validation.response.fail.action=throw
+  ch.ubique.backend.spring.validation.response.fail.log-level=error
+  ```
+  Defaults to `log` and `warn`, respectively.
+
+## 2.0.1
+
+### Fixes
+
+- fix version of `io:kubernetes:client-java:24.0.0`
+
+## 2.0.0
+
+Retreat 2025 Edition
+
+### New Features
+
+- Added an option to kill jobs automatically after they exceeded their
+  run-time or schedule-time limit.
+  The behavior can be controlled using the job properties.
+- Job Info endpoint now includes runner groups.
+- Job runs persist the version tag of the image that was used to run the job.
+- Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
+- Added new `CANCELLED` state to differentiate between a run that was willfully canceled from a run
+  that could not complete (i.e. `UNFINISHED`).
+- Added `RetryTrigger` to enable retrying failed job runs with a constant backoff.
+- `JobStateCheck` can use new `StateCheckStrategy` for monitoring checks. The strategies can be set
+  as JobProperty for each Job.
+- Added option to disable jobs. A disabled job will never be triggered and cannot be started unless
+  enabled again.
+
+### Database migrations
+
+- You will need to add the database migration `update_uetlib_2_0_0.sql` to your
+  project.
+
+### Breaking Changes
+
+- Removed `Job.version` in favor of version tag.
+
 ## 1.4.6
 
 ### Fixes

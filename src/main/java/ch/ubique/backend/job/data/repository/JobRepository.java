@@ -21,4 +21,6 @@ public interface JobRepository extends JpaRepository<JobEntity, Integer> {
     Stream<JobEntity> findAllByIdInOrderById(Collection<Integer> id);
 
     Stream<JobEntity> findAllByIdNotInOrderById(Collection<Integer> id);
+
+    boolean existsByCanonicalClassNameAndEnabledTrue(String canonicalClassName);
 }

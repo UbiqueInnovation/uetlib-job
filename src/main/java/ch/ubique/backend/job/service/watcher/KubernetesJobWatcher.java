@@ -8,6 +8,7 @@ import static java.util.Optional.ofNullable;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.service.k8s.KubernetesAvailableConfigurationCondition;
 import ch.ubique.backend.job.service.k8s.KubernetesService;
 
 import com.google.common.reflect.TypeToken;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +43,7 @@ import java.util.concurrent.Executors;
 
 @Service
 @Profile("!job-run")
+@Conditional(KubernetesAvailableConfigurationCondition.class)
 public class KubernetesJobWatcher {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());

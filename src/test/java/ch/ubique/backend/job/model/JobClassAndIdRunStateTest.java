@@ -20,8 +20,9 @@ class JobClassAndIdRunStateTest {
                         JobRunState.DONE,
                         JobRunState.WARNING,
                         JobRunState.ERROR,
-                        JobRunState.NONE,
                         JobRunState.UNFINISHED,
+                        JobRunState.CANCELLED,
+                        JobRunState.ACKNOWLEDGED,
                         JobRunState.SKIPPED),
                 JobRunState.allExcept(JobRunState.RUNNING_STATES));
         assertEquals(
