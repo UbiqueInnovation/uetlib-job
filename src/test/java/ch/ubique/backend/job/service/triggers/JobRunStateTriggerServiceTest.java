@@ -13,6 +13,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobRunStateTransition;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.storage.JobRunStorage;
@@ -50,11 +51,13 @@ class JobRunStateTriggerServiceTest {
         triggerService.addTrigger(
                 1,
                 new JobRunStateTrigger(CleanupJob.class, JobRunState.DONE),
+                null,
                 jobRunArguments -> doneRunCount.incrementAndGet());
 
         triggerService.addTrigger(
                 2,
                 new JobRunStateTrigger(CleanupJob.class, JobRunState.SCHEDULED),
+                null,
                 jobRunArguments -> scheduledRunCount.incrementAndGet());
 
         final var jobRunStartedAt = Instant.now();
@@ -62,11 +65,12 @@ class JobRunStateTriggerServiceTest {
                 new JobRun(
                         1,
                         1,
-                        1,
+                        "1.0.0",
                         jobRunStartedAt,
                         null,
                         JobRunState.SCHEDULED,
                         JobRunnerKey.CURRENT,
+                        TriggerType.JOB_RUN_STATE,
                         new JobRunArguments());
 
         final var jobRunScheduledStateTransition =

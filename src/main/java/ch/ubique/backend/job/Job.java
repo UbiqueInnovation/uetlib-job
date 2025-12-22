@@ -9,18 +9,8 @@ import jakarta.validation.constraints.NotNull;
 
 public interface Job {
 
+    @SuppressWarnings("java:S112")
     JobRunState run(final JobRunContext jobRunContext) throws Exception;
-
-    /**
-     * The version is saved to the database for each job run. With this, we can track, what version
-     * of the job was used for a given run.
-     *
-     * <p>The version is used by the {@link BaseInputJob} to determine, whether the job itself has
-     * changed.
-     */
-    default int version() {
-        return 0;
-    }
 
     /** You can override this method to set initial or fixed properties for this job. */
     @NotNull

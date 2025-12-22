@@ -1,10 +1,9 @@
 package ch.ubique.backend.job.data.service;
 
-import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
-import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
+import ch.ubique.backend.job.logging.LoggingEvent;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
@@ -16,14 +15,15 @@ import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -95,6 +95,17 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<JobRun> findAnyJobRunInStatesSince(
+            final int jobId, final Collection<JobRunState> states, final Instant after) {
+        if (states.isEmpty()) {
+            return Optional.empty();
+        }
+        return jobRunLatestStateViewRepository
+                .findAnyJobRunInStateSince(jobId, states, after)
+                .map(JobRunLatestStateViewEntity::toJobRun);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<JobRun> findLatestJobRunByStates(
             final int jobId, final Collection<JobRunState> states) {
         return jobRunLatestStateViewRepository
@@ -106,6 +117,18 @@ public class JobDataService {
     public Collection<JobRun> findJobRunByStates(final Collection<JobRunState> states) {
         return jobRunLatestStateViewRepository
                 .findAllByLatestStateIn(states)
+                .map(JobRunLatestStateViewEntity::toJobRun)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobRun> findLatestRunsForEachJobIfInState(
+            final Collection<JobRunState> states) {
+        if (CollectionUtils.isEmpty(states)) {
+            throw new IllegalArgumentException("States must not be empty");
+        }
+        return jobRunLatestStateViewRepository
+                .findLatestRunsForEachJobIfInState(states)
                 .map(JobRunLatestStateViewEntity::toJobRun)
                 .toList();
     }
@@ -197,7 +220,7 @@ public class JobDataService {
                 // uncomment the following line if you ever add additional fields to JobRunEntity
                 // apart from the canonical class name
                 // .map(entity -> jobRepository.save(entity.with(jobClassCanonicalName)))
-                .orElseGet(() -> jobRepository.save(new JobEntity(jobClassCanonicalName)))
+                .orElseGet(() -> jobRepository.save(JobEntity.forClass(jobClass)))
                 .toRecord();
     }
 
@@ -258,6 +281,14 @@ public class JobDataService {
             jobRunRepository.save(jobRunEntity);
         }
 
+        if (JobRunState.ACKNOWLEDGED == jobRunState
+                && jobRunEntity.latestState().isAcknowledgeable()) {
+            // Add state transition
+            jobRunEntity.addJobRunStateTransition(
+                    new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
+            jobRunRepository.save(jobRunEntity);
+        }
+
         final var isFinishedState = !jobRunState.isRunning();
         if (jobRunEntity.finishedAt() != null && isFinishedState) {
             // Already finished, do not modify
@@ -295,11 +326,6 @@ public class JobDataService {
     }
 
     @Transactional
-    public void insertJobRunInput(final JobRun jobRun, final ByteFile input) {
-        jobRunInputRepository.save(JobRunInputEntity.from(jobRun, input));
-    }
-
-    @Transactional
     public void insertJobRunInput(final JobRunInputDeclaration inputDeclaration) {
         jobRunInputRepository.save(JobRunInputEntity.from(inputDeclaration));
     }
@@ -320,31 +346,20 @@ public class JobDataService {
         return jobRunInputRepository.existsByRunId(runId);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void insertLogEvent(
+            final int jobRunId, final Instant timestamp, final String formattedMessage) {
+        loggingEventRepository.save(new LoggingEventEntity(jobRunId, timestamp, formattedMessage));
+    }
+
     @Transactional(readOnly = true)
     public Collection<LoggingEvent> findLogsForJobRun(final int jobRunId, final long skipLines) {
-        return fetchLoggingEvents(jobRunId, (int) skipLines);
+        return loggingEventRepository.findByJobRunIdOrderByTimestampAsc(jobRunId, (int) skipLines);
     }
 
     @Transactional(readOnly = true)
     public Collection<LoggingEvent> findAllLogsForJobRun(final int jobRunId) {
-        return fetchLoggingEvents(jobRunId, 0);
-    }
-
-    private List<LoggingEvent> fetchLoggingEvents(final int jobRunId, final int skipLines) {
-        final var criteria = entityManager.getCriteriaBuilder();
-        final var query = criteria.createQuery(LoggingEventEntity.class);
-        final var root = query.from(LoggingEventEntity.class);
-        root.fetch("eventExceptions", JoinType.LEFT);
-        query.select(root)
-                .where(criteria.equal(root.get("jobRunId"), jobRunId))
-                .orderBy(criteria.asc(root.get("timestamp")));
-
-        return entityManager
-                .createQuery(query)
-                .setFirstResult(skipLines)
-                .getResultStream()
-                .map(LoggingEventEntity::toLoggingEvent)
-                .toList();
+        return loggingEventRepository.findByJobRunIdOrderByTimestampAsc(jobRunId, 0);
     }
 
     @Transactional(readOnly = true)
@@ -432,12 +447,12 @@ public class JobDataService {
     @Transactional
     public JobRun createJobRun(
             @Positive final int jobId,
-            @PositiveOrZero final int jobVersion,
+            @NotBlank final String versionTag,
             @NotNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =
-                new JobRunEntity(jobId, jobVersion, runnerKey, scheduledAt, arguments);
+                new JobRunEntity(jobId, versionTag, runnerKey, scheduledAt, arguments);
         jobRunEntity.addJobRunStateTransition(
                 new JobRunStateTransitionEmbeddable(JobRunState.SCHEDULED, scheduledAt));
         return jobRunRepository.save(jobRunEntity).toJobRun();
@@ -542,9 +557,24 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Optional<Instant> findMostRecentLoggingEventTimestamp(final int jobRunId) {
-        return Optional.ofNullable(
-                        loggingEventRepository.findFirstByJobRunIdOrderByTimestampDesc(jobRunId))
-                .map(LoggingEventEntity::toLoggingEvent)
-                .map(LoggingEvent::getInstant);
+        return loggingEventRepository
+                .findFirstByJobRunIdOrderByTimestampDesc(jobRunId)
+                .map(LoggingEventEntity::getTimestamp);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isEnabled(final Class<? extends Job> jobClass) {
+        return jobRepository.existsByCanonicalClassNameAndEnabledTrue(jobClass.getCanonicalName());
+    }
+
+    @Transactional
+    public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {
+        jobRepository
+                .findByCanonicalClassName(jobClass.getCanonicalName())
+                .ifPresent(
+                        jobEntity -> {
+                            jobEntity.setEnabled(isEnabled);
+                            jobRepository.save(jobEntity);
+                        });
     }
 }

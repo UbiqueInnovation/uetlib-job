@@ -5,6 +5,8 @@ import ch.ubique.backend.core.utils.RegexUtil;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.service.triggers.files.FileWatcherEvent;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -19,10 +21,10 @@ import java.util.regex.Matcher;
  * @param matchResult MatchResult the match result of the supplied file matcher regex
  */
 public record FileTriggerContext(
-        @NotNull Path watchedPath,
-        @NotNull FileChangeEvent fileChangeEvent,
-        @NotNull String fileName,
-        @NotNull @Valid SerializableMatchResult matchResult)
+        @JsonProperty(required = true) @NotNull Path watchedPath,
+        @JsonProperty(required = true) @NotNull FileChangeEvent fileChangeEvent,
+        @JsonProperty(required = true) @NotNull String fileName,
+        @JsonProperty(required = true) @NotNull @Valid SerializableMatchResult matchResult)
         implements TriggerContext {
 
     public static FileTriggerContext from(final FileWatcherEvent event, final Matcher fileMatcher) {

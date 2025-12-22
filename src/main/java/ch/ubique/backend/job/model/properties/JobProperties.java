@@ -14,4 +14,8 @@ public record JobProperties(@NotNull Collection<JobProperty<Object>> values) {
                 .map(p -> (JobProperty<T>) p)
                 .orElseGet(() -> definition.createProperty(null));
     }
+
+    public <T> T getValue(final JobPropertyDefinition<T> definition) {
+        return get(definition).value();
+    }
 }

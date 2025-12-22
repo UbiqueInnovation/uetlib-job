@@ -7,9 +7,9 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 
-import jakarta.annotation.Nullable;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -79,7 +79,7 @@ public final class DedicatedJobRunner implements JobRunner {
         }
         return switch (future.state()) {
             case SUCCESS -> JobRunState.DONE;
-            case CANCELLED -> JobRunState.UNFINISHED;
+            case CANCELLED -> JobRunState.CANCELLED;
             case FAILED -> JobRunState.ERROR;
             case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
         };

@@ -1,7 +1,9 @@
 package ch.ubique.backend.job.service.triggers;
 
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -44,8 +46,12 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
     public void addTrigger(
             final int triggerId,
             final CronTrigger triggerDefinition,
+            final JobClassAndId job,
             final Consumer<JobRunArguments> consumer) {
-        final Runnable runnable = () -> consumer.accept(new JobRunArguments());
+        final Runnable runnable =
+                () ->
+                        consumer.accept(
+                                new JobRunArguments(false, TriggerType.CRON, null, null, null));
         scheduleCronTrigger(triggerId, triggerDefinition, runnable);
     }
 

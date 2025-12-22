@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunDatabaseSubmission;
 import ch.ubique.backend.job.model.triggers.DatabaseSubmissionTrigger;
@@ -80,6 +81,7 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
     public void addTrigger(
             final int triggerId,
             final DatabaseSubmissionTrigger triggerDefinition,
+            final JobClassAndId job,
             final Consumer<JobRunArguments> consumer) {
         registeredTriggers.put(triggerId, triggerDefinition);
         triggerCallbacks.put(triggerId, consumer);

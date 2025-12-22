@@ -3,6 +3,7 @@ package ch.ubique.backend.job.model.properties;
 import ch.ubique.backend.job.model.k8s.KubernetesPodTolerations;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.properties.enums.StateCheckStrategy;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -12,7 +13,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,6 +53,40 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.MONITORING,
                     false,
                     Duration.ofMinutes(15));
+
+    public static final JobPropertyDefinition<Boolean> KILL_JOBS_SCHEDULE_TIMEOUT =
+            new BooleanPropertyDefinition(
+                    "KILL_JOBS_SCHEDULE_TIMEOUT",
+                    "If enabled, jobs that are scheduled for too long will be killed. The timeout is defined by MAX_DURATION_IN_SCHEDULED_STATE.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false);
+    public static final JobPropertyDefinition<Boolean> KILL_JOBS_RUN_TIMEOUT =
+            new BooleanPropertyDefinition(
+                    "KILL_JOBS_RUN_TIMEOUT",
+                    "If enabled, jobs that are running for too long will be killed. The timeout is defined by RUN_TIME_LIMIT.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false);
+    public static final JobPropertyDefinition<Duration> KILL_GRACE_PERIOD =
+            new DurationPropertyDefinition(
+                    "KILL_GRACE_PERIOD",
+                    "Grace period after timeout before killing a job. This affects both KILL_JOBS_SCHEDULE_TIMEOUT and KILL_JOBS_RUN_TIMEOUT.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false,
+                    Duration.ofMinutes(5));
+    public static final JobPropertyDefinition<StateCheckStrategy> STATE_CHECK_STRATEGY =
+            new EnumPropertyDefinition<>(
+                    "STATE_CHECK_STRATEGY",
+                    "Sets the monitoring strategy for the state checks of job runs.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    StateCheckStrategy.CHECK_LATEST_SUCCESSFUL);
+    public static final JobPropertyDefinition<Duration> STATE_CHECK_INTERVAL =
+            new DurationPropertyDefinition(
+                    "STATE_CHECK_INTERVAL",
+                    "Interval for STATE_CHECK_STRATEGY if an interval strategy is selected.",
+                    JobPropertyDefinitionGroup.MONITORING,
+                    false,
+                    Duration.ofHours(24));
+
     public static final JobPropertyDefinition<JobRunnerKey> RUNNER =
             new EnumPropertyDefinition<>(
                     "RUNNER",

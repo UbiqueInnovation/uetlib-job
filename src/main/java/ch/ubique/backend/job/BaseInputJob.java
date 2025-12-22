@@ -3,9 +3,9 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
 import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
+import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.storage.output.ByteOutput;
 
@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
@@ -30,6 +31,7 @@ public abstract class BaseInputJob<T> implements Job {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final String version;
     private final JobDataService jobDataService;
     private final JobRunInputManager jobRunInputManager;
 
@@ -38,6 +40,7 @@ public abstract class BaseInputJob<T> implements Job {
     protected BaseInputJob(@NotNull final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
+        version = applicationContext.getBean(BuildProperties.class).getVersion();
     }
 
     @Override
@@ -202,7 +205,7 @@ public abstract class BaseInputJob<T> implements Job {
 
     private boolean isJobVersionDifferent(final JobClassAndId job) {
         final var lastRun = latestSuccessfulRun(job);
-        return lastRun.isEmpty() || version() != lastRun.get().jobVersion();
+        return lastRun.isEmpty() || !version.equals(lastRun.get().versionTag());
     }
 
     private boolean areInputsEqual(
@@ -265,7 +268,7 @@ public abstract class BaseInputJob<T> implements Job {
                         run ->
                                 new JobRunWithInputs(
                                         run.id(),
-                                        run.jobVersion(),
+                                        run.versionTag(),
                                         run.latestState(),
                                         run.startedAt(),
                                         run.startedAt(),

@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.service.JobService;
@@ -12,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
@@ -21,11 +24,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run & !job-disable-triggers")
+@Profile("!job-run")
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
 
+    private final boolean allTriggersDisabled;
     private final JobDataService jobDataService;
 
     private final JobService jobService;
@@ -37,7 +41,8 @@ public class TriggerCoordinatorService {
             final JobDataService jobDataService,
             final JobService jobService,
             final JobExecutorService jobExecutorService,
-            final Collection<TriggerService<?>> triggerServices) {
+            final Collection<TriggerService<?>> triggerServices,
+            final Environment environment) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.jobExecutorService = jobExecutorService;
@@ -45,6 +50,7 @@ public class TriggerCoordinatorService {
                 triggerServices.stream()
                         .collect(
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
+        this.allTriggersDisabled = environment.acceptsProfiles(Profiles.of("job-disable-triggers"));
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -55,21 +61,22 @@ public class TriggerCoordinatorService {
             final var instance = jobService.instantiateJob(jobClass);
             final var triggers = getTriggers(instance);
             for (final var trigger : triggers) {
-                onStartup(trigger, jobClass);
+                onStartup(trigger, job, jobClass);
             }
         }
     }
 
-    protected void onStartup(final Trigger trigger, final Class<? extends Job> jobClass) {
+    protected void onStartup(
+            final Trigger trigger, final JobClassAndId job, final Class<? extends Job> jobClass) {
         getTriggerService(trigger.definition())
-                .onStartup(trigger.id(), trigger.definition(), runnable(jobClass));
+                .onStartup(trigger.id(), trigger.definition(), job, runnable(jobClass));
     }
 
     public void createTrigger(
             final Class<? extends Job> jobClass, final TriggerDefinition triggerDefinition) {
         final var jobId = jobService.getJobId(jobClass);
         final var trigger = jobDataService.insertTrigger(jobId, triggerDefinition);
-        addTrigger(jobClass, trigger);
+        addTrigger(jobId, jobClass, trigger);
     }
 
     public void deleteTrigger(final Trigger trigger) {
@@ -78,9 +85,14 @@ public class TriggerCoordinatorService {
         logger.info("Deleted trigger {}", trigger);
     }
 
-    public void addTrigger(final Class<? extends Job> jobClass, final Trigger trigger) {
+    public void addTrigger(
+            final int jobId, final Class<? extends Job> jobClass, final Trigger trigger) {
         getTriggerService(trigger.definition())
-                .addTrigger(trigger.id(), trigger.definition(), runnable(jobClass));
+                .addTrigger(
+                        trigger.id(),
+                        trigger.definition(),
+                        new JobClassAndId(jobId, jobClass.getCanonicalName()),
+                        runnable(jobClass));
         logger.info("Added trigger {}", trigger);
     }
 
@@ -123,7 +135,8 @@ public class TriggerCoordinatorService {
 
     public void updateTrigger(final Class<? extends Job> jobClass, final Trigger trigger) {
         removeTrigger(trigger);
-        addTrigger(jobClass, trigger);
+        final var jobId = jobService.getJobId(jobClass);
+        addTrigger(jobId, jobClass, trigger);
         jobDataService.saveTrigger(trigger);
     }
 
@@ -138,6 +151,12 @@ public class TriggerCoordinatorService {
     }
 
     private Consumer<JobRunArguments> runnable(final Class<? extends Job> jobClass) {
+        if (allTriggersDisabled) {
+            return jobRunArguments ->
+                    logger.info(
+                            "Job {} will not be submitted because all triggers are disabled by profile.",
+                            jobClass.getSimpleName());
+        }
         return jobRunArguments -> {
             logger.info("Submitting job {}", jobClass);
             jobExecutorService.submit(jobClass, jobRunArguments);

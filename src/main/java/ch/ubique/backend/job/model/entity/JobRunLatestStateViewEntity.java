@@ -5,6 +5,7 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
@@ -28,9 +29,9 @@ public class JobRunLatestStateViewEntity {
     @Column(name = "fk_job_id", nullable = false, insertable = false, updatable = false)
     private Integer jobId;
 
-    @PositiveOrZero
-    @Column(name = "job_version", nullable = false, insertable = false, updatable = false)
-    private Integer jobVersion;
+    @NotBlank
+    @Column(name = "version_tag", nullable = false, insertable = false, updatable = false)
+    private String versionTag;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -50,6 +51,10 @@ public class JobRunLatestStateViewEntity {
             updatable = false,
             length = Integer.MAX_VALUE)
     private JobRunnerKey runnerKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trigger_type", insertable = false, updatable = false)
+    private TriggerType triggerType;
 
     @PastOrPresent
     @Column(name = "started_at", nullable = false, insertable = false, updatable = false)
@@ -76,11 +81,12 @@ public class JobRunLatestStateViewEntity {
         return new JobRun(
                 id,
                 jobId,
-                jobVersion,
+                versionTag,
                 startedAt,
                 finishedAt,
                 latestState,
                 runnerKey,
+                triggerType,
                 jobRunArguments);
     }
 

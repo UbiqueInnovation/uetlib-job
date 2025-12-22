@@ -1,11 +1,13 @@
 package ch.ubique.backend.job.service.triggers;
 
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobRunStateTransition;
 import ch.ubique.backend.job.model.triggers.JobRunStateTrigger;
+import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 
 import org.slf4j.Logger;
@@ -89,7 +91,9 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                         entry -> {
                             final var consumer = triggerCallbacks.get(entry.getKey());
                             logger.debug("Calling callback for {}.", entry.getValue());
-                            consumer.accept(new JobRunArguments());
+                            consumer.accept(
+                                    new JobRunArguments(
+                                            false, TriggerType.JOB_RUN_STATE, null, null, null));
                         });
     }
 
@@ -97,6 +101,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     public void addTrigger(
             final int triggerId,
             final JobRunStateTrigger triggerDefinition,
+            final JobClassAndId job,
             final Consumer<JobRunArguments> consumer) {
         registeredTriggers.put(triggerId, triggerDefinition);
         triggerCallbacks.put(triggerId, consumer);
