@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.4.5
+
+### Fixes
+
+- Job triggers can be updated again, not just added or removed
+
 ## 1.4.4
 
 - Downgraded some log messages to debug
@@ -8,7 +14,7 @@
 
 ## Changes
 
-- JobRunStorage: use built in gzip handling instead of explicit gzip
+- `JobRunStorage`: use built-in gzip handling instead of explicit gzip
 
 ## 1.4.2
 
