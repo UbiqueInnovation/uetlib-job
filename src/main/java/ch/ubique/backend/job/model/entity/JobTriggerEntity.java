@@ -71,9 +71,7 @@ public class JobTriggerEntity {
         return new Trigger(id, jobId, triggerDefinition);
     }
 
-    public JobTriggerEntity with(final Trigger trigger) {
-        this.id = trigger.id();
-        this.jobId = trigger.jobId();
+    public JobTriggerEntity update(final Trigger trigger) {
         this.triggerDefinition = trigger.definition();
         this.type = trigger.definition().type();
         return this;
