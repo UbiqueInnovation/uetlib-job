@@ -458,7 +458,7 @@ public class JobDataService {
     }
 
     @Transactional
-    public void deleteJob(final Trigger trigger) {
+    public void deleteTrigger(final Trigger trigger) {
         jobTriggerRepository.deleteById(trigger.id());
     }
 
