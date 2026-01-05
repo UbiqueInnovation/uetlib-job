@@ -8,10 +8,10 @@ import ch.ubique.backend.job.service.register.JobRegistrationService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.resilience.annotation.EnableResilientMethods;
 
 @Configuration
-@EnableRetry
+@EnableResilientMethods
 public class UetlibJobBaseConfig {
 
     /** bean registeredJobDefinitions is registered programmatically in RegisteredJobRegistrar */
