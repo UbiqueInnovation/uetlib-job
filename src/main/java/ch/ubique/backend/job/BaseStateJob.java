@@ -3,6 +3,7 @@ package ch.ubique.backend.job;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
+import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
@@ -11,26 +12,39 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.storage.output.JsonOutput;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
+import org.springframework.util.backoff.ExponentialBackOff;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
 public abstract class BaseStateJob<T> implements Job {
+
+    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER =
+            new RetryTemplate(
+                    RetryPolicy.builder()
+                            .includes(Exception.class)
+                            .maxRetries(9)
+                            .delay(Duration.ofSeconds(2))
+                            .maxDelay(Duration.ofMinutes(5))
+                            .backOff(new ExponentialBackOff(Duration.ofSeconds(2).toMillis(), 2))
+                            .jitter(Duration.ofSeconds(1))
+                            .build());
 
     protected static final String STATE_PATH = "state.json";
 
@@ -40,17 +54,31 @@ public abstract class BaseStateJob<T> implements Job {
     private final JobRunInputManager jobRunInputManager;
     private final ObjectMapper objectMapper;
     private final JobExecutorService jobExecutorService;
+    private final RetryTemplate retryTemplate;
 
     protected BaseStateJob(@NotNull final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         objectMapper = applicationContext.getBean(ObjectMapper.class);
         jobExecutorService = applicationContext.getBean(JobExecutorService.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
+
+        final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+        retryTemplate.setRetryListener(new LoggingRetryListener());
+        this.retryTemplate = retryTemplate;
     }
 
     @Override
     public boolean supportsForceRun() {
         return true;
+    }
+
+    protected final T getLatestStateWithRetry(final JobRunContext jobRunContext) throws Exception {
+        try {
+            return retryTemplate().execute(() -> getLatestState(jobRunContext));
+        } catch (final RetryException e) {
+            logger.error("Could not load state even after retries and backoff.", e);
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     /**
@@ -61,25 +89,8 @@ public abstract class BaseStateJob<T> implements Job {
      * @return the state want to pass to the {@link BaseStateJob#processState} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-    @Retryable(
-            retryFor = Exception.class,
-            maxAttempts = 10,
-            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
-            listeners = "defaultRetryListener")
     @NotNull
-    @SuppressWarnings("java:S112")
     protected abstract T getLatestState(JobRunContext jobRunContext) throws Exception;
-
-    /**
-     * This method is called as recovery with the thrown exception if {@link #getLatestState}} still
-     * throws an exception after maxAttempts and backoff have run out.
-     */
-    @Recover
-    @SuppressWarnings("java:S112")
-    protected T getLatestStateRecovery(final Exception e) throws Exception {
-        logger.warn("Loading data failed even after retry and backoff.");
-        throw e;
-    }
 
     /**
      * This method determines whether the job can be skipped based on the previous and latest state.
@@ -139,7 +150,8 @@ public abstract class BaseStateJob<T> implements Job {
         // Compute latest state
         logger.debug("Computing latest state.");
         final var latestState =
-                requireNonNull(getLatestState(jobRunContext), "Latest state must not be null");
+                requireNonNull(
+                        getLatestStateWithRetry(jobRunContext), "Latest state must not be null");
         logger.debug("Got latest state {}.", latestState);
 
         // Skip if allowed
@@ -163,6 +175,10 @@ public abstract class BaseStateJob<T> implements Job {
         // Start processing on current runner
         logger.info("Starting processing.");
         return processState(latestState, jobRunContext);
+    }
+
+    protected RetryTemplate retryTemplate() {
+        return retryTemplate;
     }
 
     private boolean isAllowedToSkipAndCanSkip(
@@ -223,7 +239,7 @@ public abstract class BaseStateJob<T> implements Job {
             final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
             logger.debug("Resolved state {}.", previousState);
             return previousState;
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             logger.info("State json could not be parsed. Did the model change?", e);
             return null;
         } catch (final Exception e) {

@@ -2,6 +2,7 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.core.service.DataAndInput;
+import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
@@ -9,19 +10,20 @@ import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.storage.output.ByteOutput;
 
-import com.pivovarit.function.exception.WrappedException;
-
 import jakarta.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.exception.UncheckedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
+import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
@@ -29,11 +31,23 @@ import java.util.stream.Collectors;
 
 public abstract class BaseInputJob<T> implements Job {
 
+    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER =
+            new RetryTemplate(
+                    RetryPolicy.builder()
+                            .includes(Exception.class)
+                            .maxRetries(9)
+                            .delay(Duration.ofSeconds(2))
+                            .maxDelay(Duration.ofMinutes(5))
+                            .multiplier(2)
+                            .jitter(Duration.ofSeconds(1))
+                            .build());
+
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final String version;
     private final JobDataService jobDataService;
     private final JobRunInputManager jobRunInputManager;
+    private final RetryTemplate retryTemplate;
 
     private JobRunContext jobRunContext;
 
@@ -41,6 +55,10 @@ public abstract class BaseInputJob<T> implements Job {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
         version = applicationContext.getBean(BuildProperties.class).getVersion();
+
+        final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+        retryTemplate.setRetryListener(new LoggingRetryListener());
+        this.retryTemplate = retryTemplate;
     }
 
     @Override
@@ -58,35 +76,27 @@ public abstract class BaseInputJob<T> implements Job {
         return true;
     }
 
+    protected final DataAndInput<T> loadInputsWithRetry() {
+        try {
+            return retryTemplate().execute(this::loadInputs);
+        } catch (final RetryException e) {
+            logger.error("Could not load inputs even after retries and backoff.", e);
+            throw new RuntimeException(e.getCause());
+        }
+    }
+
     /**
      * This method should be used to fetch data from all needed input sources. Includes retries with
      * exponential backoff:
      *
      * <p>min delay 2 seconds, max delay 5 minutes with random delays
      *
+     * <p>The {@link RetryTemplate} used can we customised by overriding {@link #retryTemplate()}
+     *
      * @return the data you want to pass to the {@link BaseInputJob#processInputs} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-    @Retryable(
-            retryFor = Exception.class,
-            maxAttempts = 10,
-            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
-            listeners = "defaultRetryListener")
-    @SuppressWarnings("java:S112")
     protected abstract DataAndInput<T> loadInputs() throws Exception;
-
-    /**
-     * This method is called as recovery with the thrown exception if {@link #loadInputs()} still
-     * throws an exception after maxAttempts and backoff have run out.
-     *
-     * <p>The return type and all arguments after the Exception must match with the method to
-     * recover from.
-     */
-    @Recover
-    protected DataAndInput<T> loadInputsRecovery(final Exception e) {
-        logger.warn("Loading data failed even after retry and backoff:", e);
-        return null;
-    }
 
     /**
      * This method is called once the data is loaded and can be used to consume the input data.
@@ -174,14 +184,18 @@ public abstract class BaseInputJob<T> implements Job {
         return jobRunState;
     }
 
+    protected RetryTemplate retryTemplate() {
+        return retryTemplate;
+    }
+
     private Optional<DataAndInput<T>> tryLoadingInputs() {
         try {
-            return Optional.ofNullable(loadInputs());
+            return Optional.ofNullable(loadInputsWithRetry());
         } catch (final Exception e) {
             logger.error(
                     "should not land here, loadInputsRecovery should have caught the error and"
                             + " recovered from the exception in loadInputs()");
-            throw new WrappedException(e);
+            throw new UncheckedException(e);
         }
     }
 
