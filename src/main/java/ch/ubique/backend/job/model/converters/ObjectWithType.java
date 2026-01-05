@@ -1,7 +1,8 @@
 package ch.ubique.backend.job.model.converters;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import tools.jackson.databind.ObjectMapper;
 
 public record ObjectWithType(Object object, String className) {
 

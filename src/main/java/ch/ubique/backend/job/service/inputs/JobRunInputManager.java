@@ -5,8 +5,8 @@ import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.storage.JobRunStorage;
-import ch.ubique.backend.storage.output.Output;
 
+import ch.ubique.backend.storage.output.Output;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

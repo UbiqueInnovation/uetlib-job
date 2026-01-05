@@ -1,22 +1,23 @@
 package ch.ubique.backend.job.service.triggers.files;
 
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.util.function.Consumer;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.exception.UncheckedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
 
@@ -115,7 +116,7 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
 
             watchedPaths.put(watchKey, pathToWatch);
         } catch (final IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedException(e);
         }
     }
 

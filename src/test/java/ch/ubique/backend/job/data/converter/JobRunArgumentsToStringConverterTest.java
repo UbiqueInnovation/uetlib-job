@@ -13,14 +13,14 @@ import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
 
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -34,8 +34,8 @@ class JobRunArgumentsToStringConverterTest {
             ObjectMapperUtils.objectMapper(
                     customizer ->
                             customizer
-                                    .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
-                                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS));
+                                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+                                    .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES));
     private final JobRunArgumentsToStringConverter jobRunArgumentsToStringConverter =
             new JobRunArgumentsToStringConverter();
 
@@ -56,12 +56,12 @@ class JobRunArgumentsToStringConverterTest {
     @Test
     void testConvertForceRunFromDatabaseColumn() {
         final var dbData =
-                "{\"forceRun\":true,\"triggerContext\":{\"type\":\"RETRY\",\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
+                "{\"forceRun\":true,\"triggerContext\":{\"type\":\"RETRY\",\"retryCount\": 1,\"maxRetries\": 3,\"originalJobRunId\": 15,\"JOHN\":\"CENA\"},\"unknownProperty\":\"how"
                         + " did I get here\"}";
         final var jobRunArguments =
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
-        assertEquals(new RetryTriggerContext(0, 0, 0), jobRunArguments.triggerContext());
+        assertEquals(new RetryTriggerContext(1, 3, 15), jobRunArguments.triggerContext());
     }
 
     @Test
@@ -74,7 +74,7 @@ class JobRunArgumentsToStringConverterTest {
     }
 
     @Test
-    void testConvertFileTriggerContextToDatabaseColumn() throws JsonProcessingException {
+    void testConvertFileTriggerContextToDatabaseColumn() throws JacksonException {
         final var testFileName = "AAAA-BBBB-CCCC-DDDD.txt";
         final var matcher = TEST_PATTERN.matcher(testFileName);
         assertTrue(matcher.matches());
