@@ -6,7 +6,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.properties.enums.StateCheckStrategy;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import com.pivovarit.function.ThrowingFunction;
 
 import java.lang.reflect.Field;

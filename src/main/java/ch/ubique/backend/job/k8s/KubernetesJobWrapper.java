@@ -6,15 +6,16 @@ import static java.util.Objects.requireNonNullElse;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.k8s.KubernetesJobRunContext;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.CaseFormat;
-import com.pivovarit.function.exception.WrappedException;
 
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 
+import org.apache.commons.lang3.exception.UncheckedException;
 import org.springframework.context.ApplicationContext;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -119,8 +120,8 @@ public class KubernetesJobWrapper extends KubernetesJob {
     private String serializeObject(final Object object) {
         try {
             return applicationContext.getBean(ObjectMapper.class).writeValueAsString(object);
-        } catch (final JsonProcessingException e) {
-            throw new WrappedException(e);
+        } catch (final JacksonException e) {
+            throw new UncheckedException(e);
         }
     }
 }

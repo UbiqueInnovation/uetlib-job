@@ -1,22 +1,21 @@
 package ch.ubique.backend.job.model.converters;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import java.io.IOException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 
-public class ObjectWithTypeSerializer extends JsonSerializer<Object> {
+public class ObjectWithTypeSerializer extends ValueSerializer<Object> {
 
     @Override
     public void serialize(
             final Object object,
             final JsonGenerator jsonGenerator,
-            final SerializerProvider serializerProvider)
-            throws IOException {
+            final SerializationContext serializerProvider) {
         if (object instanceof final ObjectWithType objectWithType) {
-            jsonGenerator.writeObject(objectWithType);
+            jsonGenerator.writePOJO(objectWithType);
             return;
         }
-        jsonGenerator.writeObject(new ObjectWithType(object));
+
+        jsonGenerator.writePOJO(new ObjectWithType(object));
     }
 }

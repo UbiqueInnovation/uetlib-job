@@ -11,10 +11,11 @@ import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import org.apache.commons.lang3.StringUtils;
+import tools.jackson.core.JacksonException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -101,7 +102,7 @@ public final class JobApplication {
         } catch (final ClassNotFoundException e) {
             logger.error("The specified job or additional data class can not be found", e);
             return JobApplicationExitStatus.JOB_NOT_FOUND;
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             logger.error("Could not deserialize additional data.", e);
             return JobApplicationExitStatus.BAD_ARGUMENTS;
         } catch (final Exception e) {
@@ -132,7 +133,7 @@ public final class JobApplication {
 
     private static Object getAdditionalData(
             final JobApplicationJobToStartArgs args, final ApplicationContext applicationContext)
-            throws ClassNotFoundException, JsonProcessingException {
+            throws ClassNotFoundException, JacksonException {
         final var additionalDataString = args.additionalDataString();
         if (additionalDataString == null) {
             return null;

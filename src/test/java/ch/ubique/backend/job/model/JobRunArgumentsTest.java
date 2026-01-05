@@ -3,11 +3,14 @@ package ch.ubique.backend.job.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.stream.Stream;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.stream.Stream;
 
 class JobRunArgumentsTest {
 
@@ -15,7 +18,7 @@ class JobRunArgumentsTest {
 
     @ParameterizedTest
     @MethodSource("testData")
-    void additionalData(final Object additionalData) throws JsonProcessingException {
+    void additionalData(final Object additionalData) throws JacksonException {
         final var jobRunArguments = new JobRunArguments(false, additionalData);
         final var encoded = objectMapper.writeValueAsString(jobRunArguments);
         final var decoded = objectMapper.readValue(encoded, JobRunArguments.class);

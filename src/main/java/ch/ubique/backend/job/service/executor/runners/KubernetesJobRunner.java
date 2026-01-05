@@ -50,7 +50,7 @@ public class KubernetesJobRunner implements JobRunner {
                             .maxRetries(9)
                             .delay(Duration.ofSeconds(2))
                             .maxDelay(Duration.ofMinutes(5))
-                            .backOff(new ExponentialBackOff(Duration.ofSeconds(2).toMillis(), 2.0))
+                            .multiplier(2)
                             .jitter(Duration.ofSeconds(1))
                             .build());
 
