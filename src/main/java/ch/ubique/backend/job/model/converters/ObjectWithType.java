@@ -2,11 +2,11 @@ package ch.ubique.backend.job.model.converters;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public record ObjectWithType(Object object, String className) {
 
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMapperUtils.objectMapper();
+    private static final JsonMapper OBJECT_MAPPER = ObjectMapperUtils.jsonMapper();
 
     public ObjectWithType(final Object object) {
         this(object, object.getClass().getCanonicalName());

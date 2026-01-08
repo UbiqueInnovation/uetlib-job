@@ -19,8 +19,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -30,8 +30,8 @@ class JobRunArgumentsToStringConverterTest {
     private static final Pattern TEST_PATTERN =
             Pattern.compile("\\w+-(?<blockB>\\w+)-(?<blockC>\\w+)-\\w+.txt");
 
-    private final ObjectMapper objectMapperOrdered =
-            ObjectMapperUtils.objectMapper(
+    private final JsonMapper jsonMapperOrdered =
+            ObjectMapperUtils.jsonMapper(
                     customizer ->
                             customizer
                                     .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
@@ -42,7 +42,7 @@ class JobRunArgumentsToStringConverterTest {
     @BeforeEach
     void beforeEach() {
         ReflectionTestUtils.setField(
-                jobRunArgumentsToStringConverter, "objectMapper", objectMapperOrdered);
+                jobRunArgumentsToStringConverter, "objectMapper", jsonMapperOrdered);
     }
 
     @Test
@@ -95,8 +95,8 @@ class JobRunArgumentsToStringConverterTest {
         final var expected =
                 "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"watchedPath\":\"file:///tmp/\",\"type\":\"FILE\"},\"triggerType\":\"FILE\"}";
         assertEquals(
-                objectMapperOrdered.readValue(expected, Object.class),
-                objectMapperOrdered.readValue(dbData, Object.class));
+                jsonMapperOrdered.readValue(expected, Object.class),
+                jsonMapperOrdered.readValue(dbData, Object.class));
     }
 
     @Test

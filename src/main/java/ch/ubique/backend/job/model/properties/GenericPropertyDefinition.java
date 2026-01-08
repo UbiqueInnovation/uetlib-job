@@ -10,14 +10,14 @@ import org.apache.commons.lang3.exception.UncheckedException;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Objects;
 import java.util.Set;
 
 final class GenericPropertyDefinition<T> extends AbstractJobPropertyDefinition<T> {
 
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMapperUtils.objectMapper();
+    private static final JsonMapper OBJECT_MAPPER = ObjectMapperUtils.jsonMapper();
 
     private final TypeReference<T> typeReference;
 
