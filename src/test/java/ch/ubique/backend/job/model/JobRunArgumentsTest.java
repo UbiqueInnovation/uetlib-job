@@ -8,13 +8,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.stream.Stream;
 
 class JobRunArgumentsTest {
 
-    private final ObjectMapper objectMapper = ObjectMapperUtils.objectMapper();
+    private final JsonMapper objectMapper = ObjectMapperUtils.jsonMapper();
 
     @ParameterizedTest
     @MethodSource("testData")
