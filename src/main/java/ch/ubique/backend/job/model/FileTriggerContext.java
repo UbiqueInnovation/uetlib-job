@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.model;
 
-import ch.ubique.backend.core.regex.SerializableMatchResult;
-import ch.ubique.backend.core.utils.RegexUtil;
+import ch.ubique.backend.job.model.regex.SerializableMatchResult;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.service.triggers.files.FileWatcherEvent;
 
@@ -32,6 +31,6 @@ public record FileTriggerContext(
                 event.watchedPath(),
                 event.type(),
                 event.filePath().toString(),
-                RegexUtil.toSerializableMatchResult(fileMatcher));
+                SerializableMatchResult.fromMatcher(fileMatcher));
     }
 }

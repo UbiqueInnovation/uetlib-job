@@ -5,11 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.ubique.backend.core.jackson.ObjectMapperUtils;
-import ch.ubique.backend.core.utils.RegexUtil;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.RetryTriggerContext;
 import ch.ubique.backend.job.model.converters.JobRunArgumentsToStringConverter;
+import ch.ubique.backend.job.model.regex.SerializableMatchResult;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
@@ -78,7 +78,7 @@ class JobRunArgumentsToStringConverterTest {
         final var testFileName = "AAAA-BBBB-CCCC-DDDD.txt";
         final var matcher = TEST_PATTERN.matcher(testFileName);
         assertTrue(matcher.matches());
-        final var serializableMatchResult = RegexUtil.toSerializableMatchResult(matcher);
+        final var serializableMatchResult = SerializableMatchResult.fromMatcher(matcher);
         final var jobRunArguments =
                 new JobRunArguments(
                         true,
@@ -106,7 +106,7 @@ class JobRunArgumentsToStringConverterTest {
         final var testFileName = "AAAA-BBBB-CCCC-DDDD.txt";
         final var matcher = TEST_PATTERN.matcher(testFileName);
         assertTrue(matcher.matches());
-        final var serializableMatchResult = RegexUtil.toSerializableMatchResult(matcher);
+        final var serializableMatchResult = SerializableMatchResult.fromMatcher(matcher);
         final var jobRunArguments =
                 jobRunArgumentsToStringConverter.convertToEntityAttribute(dbData);
         assertTrue(jobRunArguments.forceRun());
