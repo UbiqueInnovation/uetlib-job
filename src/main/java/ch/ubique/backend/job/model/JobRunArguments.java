@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jspecify.annotations.NonNull;
 
 import tools.jackson.databind.annotation.JsonDeserialize;
 import tools.jackson.databind.annotation.JsonSerialize;
@@ -24,8 +25,9 @@ public record JobRunArguments(
         @JsonProperty(required = true) boolean forceRun,
         @Nullable TriggerType triggerType,
         @Nullable @Valid TriggerContext triggerContext,
-        @Nullable ReplayContext replayContext,
+        @Nullable @Valid ReplayContext replayContext,
         @Nullable
+                @Valid
                 @JsonSerialize(using = ObjectWithTypeSerializer.class)
                 @JsonDeserialize(using = ObjectWithTypeDeserializer.class)
                 Object additionalData) {
@@ -51,11 +53,14 @@ public record JobRunArguments(
     }
 
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         final var builder =
                 new ToStringBuilder(this, ToStringStyle.NO_CLASS_NAME_STYLE)
                         .append("forceRun", forceRun);
 
+        if (triggerType != null) {
+            builder.append("triggerType", triggerType);
+        }
         if (replayContext != null) {
             builder.append("replayContext", replayContext);
         }
