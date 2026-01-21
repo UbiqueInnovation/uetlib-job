@@ -18,8 +18,8 @@ class TriggerDefinitionTest {
         final var reflections = new Reflections("ch.ubique.backend");
         final var definitionClasses = reflections.getSubTypesOf(TriggerDefinition.class);
         assertFalse(definitionClasses.isEmpty());
-        for (final var defintionClass : definitionClasses) {
-            assertDoesNotThrow(() -> TriggerType.getTypeForClass(defintionClass));
+        for (final var definitionClass : definitionClasses) {
+            assertDoesNotThrow(() -> TriggerType.getTypeForClass(definitionClass));
         }
     }
 
@@ -33,7 +33,7 @@ class TriggerDefinitionTest {
                 Arrays.stream(TriggerType.values())
                         .map(
                                 triggerType ->
-                                        Pair.of(triggerType.name(), triggerType.defintionClass()))
+                                        Pair.of(triggerType.name(), triggerType.definitionClass()))
                         .collect(Collectors.toSet());
         final var subTypes =
                 Arrays.stream(jsonSubTypesAnnotation.value())
