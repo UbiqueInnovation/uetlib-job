@@ -21,7 +21,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
-import org.springframework.util.backoff.ExponentialBackOff;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -42,7 +41,7 @@ public abstract class BaseStateJob<T> implements Job {
                             .maxRetries(9)
                             .delay(Duration.ofSeconds(2))
                             .maxDelay(Duration.ofMinutes(5))
-                            .backOff(new ExponentialBackOff(Duration.ofSeconds(2).toMillis(), 2))
+                            .multiplier(2.0)
                             .jitter(Duration.ofSeconds(1))
                             .build());
 
