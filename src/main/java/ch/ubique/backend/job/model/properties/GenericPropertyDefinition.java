@@ -25,7 +25,7 @@ final class GenericPropertyDefinition<T> extends AbstractJobPropertyDefinition<T
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean nullable,
+            final boolean nullable,
             @Nullable final T defaultValue,
             @Nullable final Set<T> allowedValues,
             @NotNull final TypeReference<T> typeReference) {
