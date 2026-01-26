@@ -19,12 +19,12 @@ final class BooleanPropertyDefinition extends AbstractJobPropertyDefinition<Bool
     }
 
     @Override
-    public Boolean decode(final String value) {
+    public Boolean decodeFromString(final String value) {
         return BooleanUtils.toBoolean(value);
     }
 
     @Override
-    public String encode(final Boolean value) {
+    public String encodeFromString(final Boolean value) {
         return String.valueOf(Objects.requireNonNull(value));
     }
 }

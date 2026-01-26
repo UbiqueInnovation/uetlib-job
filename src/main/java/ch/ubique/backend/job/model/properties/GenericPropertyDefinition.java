@@ -37,12 +37,12 @@ final class GenericPropertyDefinition<T> extends AbstractJobPropertyDefinition<T
     }
 
     @Override
-    public T decode(final String value) {
+    public T decodeFromString(final String value) {
         return jsonMapper.readValue(value, typeReference);
     }
 
     @Override
-    public String encode(final T value) {
+    public String encodeFromString(final T value) {
         return jsonMapper.writeValueAsString(value);
     }
 }
