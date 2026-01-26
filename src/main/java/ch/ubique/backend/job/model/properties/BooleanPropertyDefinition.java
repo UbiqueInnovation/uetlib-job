@@ -10,12 +10,11 @@ import java.util.Set;
 
 final class BooleanPropertyDefinition extends AbstractJobPropertyDefinition<Boolean> {
 
-    @SuppressWarnings("NullableProblems")
     BooleanPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean defaultValue) {
+            final boolean defaultValue) {
         super(key, description, group, false, defaultValue, Set.of(true, false));
     }
 

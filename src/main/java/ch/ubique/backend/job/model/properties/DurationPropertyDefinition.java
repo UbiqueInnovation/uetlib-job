@@ -10,12 +10,11 @@ import java.time.Duration;
 
 final class DurationPropertyDefinition extends AbstractJobPropertyDefinition<Duration> {
 
-    @SuppressWarnings("NullableProblems")
     public DurationPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean nullable,
+            final boolean nullable,
             @Nullable final Duration defaultValue) {
         super(key, description, group, nullable, defaultValue, null);
     }
