@@ -6,11 +6,13 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import jakarta.persistence.Converter;
 
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Converter(autoApply = true)
 public class JobRunArgumentsToStringConverter
         extends ObjectMapperToStringConverter<JobRunArguments> {
-    public JobRunArgumentsToStringConverter() {
-        super(new TypeReference<>() {});
+
+    public JobRunArgumentsToStringConverter(final ObjectMapper objectMapper) {
+        super(objectMapper, new TypeReference<>() {});
     }
 }
