@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.model;
 
-import ch.ubique.backend.job.model.converters.ObjectWithTypeDeserializer;
-import ch.ubique.backend.job.model.converters.ObjectWithTypeSerializer;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -16,9 +14,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.jspecify.annotations.NonNull;
 
-import tools.jackson.databind.annotation.JsonDeserialize;
-import tools.jackson.databind.annotation.JsonSerialize;
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record JobRunArguments(
@@ -26,11 +21,7 @@ public record JobRunArguments(
         @Nullable TriggerType triggerType,
         @Nullable @Valid TriggerContext triggerContext,
         @Nullable @Valid ReplayContext replayContext,
-        @Nullable
-                @Valid
-                @JsonSerialize(using = ObjectWithTypeSerializer.class)
-                @JsonDeserialize(using = ObjectWithTypeDeserializer.class)
-                Object additionalData) {
+        @Nullable JobRunArgumentsAdditionalData additionalData) {
 
     public static final JobRunArguments DEFAULT = new JobRunArguments(false);
 
@@ -42,7 +33,8 @@ public record JobRunArguments(
         this(forceRun, null);
     }
 
-    public JobRunArguments(final boolean forceRun, @Nullable final Object additionalData) {
+    public JobRunArguments(
+            final boolean forceRun, @Nullable final JobRunArgumentsAdditionalData additionalData) {
         this(forceRun, null, null, null, additionalData);
     }
 
