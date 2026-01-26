@@ -14,42 +14,50 @@
     <version>3.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
+    <properties>
+        <uetlib-core.version>2.0.0-alpha.12</uetlib-core.version>
+        <uetlib-monitoring.version>2.0.0-alpha.3</uetlib-monitoring.version>
+        <uetlib-db.version>2.0.0-alpha.2</uetlib-db.version>
+        <uetlib-storage-spring-boot.version>2.0.0-alpha.3</uetlib-storage-spring-boot.version>
+        <uetlib-spring-boot.version>2.0.0-alpha.28</uetlib-spring-boot.version>
+    </properties>
+
     <dependencies>
         <!-- uetlib -->
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-core</artifactId>
-            <version>2.0.0-alpha.12</version>
+            <version>${uetlib-core.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-monitoring</artifactId>
-            <version>2.0.0-alpha.3</version>
+            <version>${uetlib-monitoring.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-db</artifactId>
-            <version>2.0.0-alpha.2</version>
+            <version>${uetlib-db.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-storage-spring-boot</artifactId>
-            <version>2.0.0-alpha.3</version>
+            <version>${uetlib-storage-spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot</artifactId>
-            <version>2.0.0-alpha.20</version>
+            <version>${uetlib-spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot-security</artifactId>
-            <version>2.0.0-alpha.20</version>
+            <version>${uetlib-spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot-validation</artifactId>
-            <version>2.0.0-alpha.20</version>
+            <version>${uetlib-spring-boot.version}</version>
         </dependency>
 
         <!-- Spring Boot -->
