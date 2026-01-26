@@ -19,12 +19,12 @@ final class StringPropertyDefinition extends AbstractJobPropertyDefinition<Strin
     }
 
     @Override
-    public String decode(final String value) {
+    public String decodeFromString(final String value) {
         return value;
     }
 
     @Override
-    public String encode(final String value) {
+    public String encodeFromString(final String value) {
         return value;
     }
 }

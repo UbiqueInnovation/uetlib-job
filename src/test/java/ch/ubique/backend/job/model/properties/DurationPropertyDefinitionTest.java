@@ -8,15 +8,17 @@ import java.time.Duration;
 class DurationPropertyDefinitionTest {
 
     @Test
-    void testEncodeDecode() {
+    void testEncodeFromStringDecodeFromString() {
         final var definition =
                 new DurationPropertyDefinition(
                         "RUN_TIME_LIMIT", "ABC", JobPropertyDefinitionGroup.RUNNER, true, null);
 
         final var duration = Duration.ofHours(42);
 
-        Assertions.assertEquals(duration, definition.decode(duration.toString()));
-        Assertions.assertEquals(duration, definition.decode(definition.encode(duration)));
-        Assertions.assertEquals(duration, definition.decode(String.valueOf(duration.toMillis())));
+        Assertions.assertEquals(duration, definition.decodeFromString(duration.toString()));
+        Assertions.assertEquals(
+                duration, definition.decodeFromString(definition.encodeFromString(duration)));
+        Assertions.assertEquals(
+                duration, definition.decodeFromString(String.valueOf(duration.toMillis())));
     }
 }

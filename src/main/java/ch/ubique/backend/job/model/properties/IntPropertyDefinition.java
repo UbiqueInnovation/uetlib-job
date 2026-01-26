@@ -20,12 +20,12 @@ final class IntPropertyDefinition extends AbstractJobPropertyDefinition<Integer>
     }
 
     @Override
-    public Integer decode(final String value) {
+    public Integer decodeFromString(final String value) {
         return Optional.ofNullable(value).map(Integer::parseInt).orElse(null);
     }
 
     @Override
-    public String encode(final Integer value) {
+    public String encodeFromString(final Integer value) {
         return Optional.ofNullable(value).map(String::valueOf).orElse(null);
     }
 }
