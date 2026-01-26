@@ -28,7 +28,7 @@ public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T val
     }
 
     public String encodedValue() {
-        return Optional.ofNullable(value).map(definition::encode).orElse(null);
+        return Optional.ofNullable(value).map(definition::encodeFromString).orElse(null);
     }
 
     public boolean isValuePresent() {
