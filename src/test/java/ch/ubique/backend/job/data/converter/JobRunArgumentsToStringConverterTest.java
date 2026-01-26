@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import ch.ubique.backend.core.jackson.ObjectMapperUtils;
 import ch.ubique.backend.job.model.FileTriggerContext;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.RetryTriggerContext;
@@ -13,11 +12,8 @@ import ch.ubique.backend.job.model.regex.SerializableMatchResult;
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -30,20 +26,14 @@ class JobRunArgumentsToStringConverterTest {
     private static final Pattern TEST_PATTERN =
             Pattern.compile("\\w+-(?<blockB>\\w+)-(?<blockC>\\w+)-\\w+.txt");
 
-    private final JsonMapper jsonMapperOrdered =
-            ObjectMapperUtils.jsonMapper(
-                    customizer ->
-                            customizer
-                                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-                                    .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES));
-    private final JobRunArgumentsToStringConverter jobRunArgumentsToStringConverter =
-            new JobRunArgumentsToStringConverter();
+    private static final JsonMapper JSON_MAPPER =
+            JsonMapper.builder()
+                    .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+                    .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                    .build();
 
-    @BeforeEach
-    void beforeEach() {
-        ReflectionTestUtils.setField(
-                jobRunArgumentsToStringConverter, "objectMapper", jsonMapperOrdered);
-    }
+    private final JobRunArgumentsToStringConverter jobRunArgumentsToStringConverter =
+            new JobRunArgumentsToStringConverter(JSON_MAPPER);
 
     @Test
     void testConvertForceRunToDatabaseColumn() {
@@ -74,7 +64,7 @@ class JobRunArgumentsToStringConverterTest {
     }
 
     @Test
-    void testConvertFileTriggerContextToDatabaseColumn() throws JacksonException {
+    void testConvertFileTriggerContextToDatabaseColumn() {
         final var testFileName = "AAAA-BBBB-CCCC-DDDD.txt";
         final var matcher = TEST_PATTERN.matcher(testFileName);
         assertTrue(matcher.matches());
@@ -95,8 +85,8 @@ class JobRunArgumentsToStringConverterTest {
         final var expected =
                 "{\"forceRun\":true,\"triggerContext\":{\"fileChangeEvent\":\"ENTRY_CREATED\",\"fileName\":\"AAAA-BBBB-CCCC-DDDD.txt\",\"matchResult\":{\"first\":0,\"groupCount\":2,\"groupIndices\":[0,23,5,9,10,14],\"groups\":[\"AAAA-BBBB-CCCC-DDDD.txt\",\"BBBB\",\"CCCC\"],\"last\":23,\"namedGroups\":{\"blockB\":1,\"blockC\":2},\"text\":\"AAAA-BBBB-CCCC-DDDD.txt\"},\"watchedPath\":\"file:///tmp/\",\"type\":\"FILE\"},\"triggerType\":\"FILE\"}";
         assertEquals(
-                jsonMapperOrdered.readValue(expected, Object.class),
-                jsonMapperOrdered.readValue(dbData, Object.class));
+                JSON_MAPPER.readValue(expected, Object.class),
+                JSON_MAPPER.readValue(dbData, Object.class));
     }
 
     @Test
