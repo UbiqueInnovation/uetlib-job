@@ -31,7 +31,7 @@ public record JobPropertyInfo(
 
     private static <T> JobPropertyInfo from(
             final JobPropertyDefinition<T> definition, final String value) {
-        final var defaultValue = definition.defaultValue().map(definition::encode).orElse(null);
+        final var defaultValue = definition.defaultValue().map(definition::encodeFromString).orElse(null);
         return new JobPropertyInfo(
                 definition.key(),
                 definition.getClass().getName(),
@@ -41,7 +41,7 @@ public record JobPropertyInfo(
                         .map(
                                 values ->
                                         values.stream()
-                                                .map(definition::encode)
+                                                .map(definition::encodeFromString)
                                                 .filter(Objects::nonNull)
                                                 .toList())
                         .orElse(null),
