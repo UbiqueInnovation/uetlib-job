@@ -20,7 +20,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
-import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.io.IOException;
 import java.time.Duration;
