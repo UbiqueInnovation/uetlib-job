@@ -271,7 +271,7 @@
         </plugins>
     </build>
 
-    <scm>
+    <scm child.scm.url.inherit.append.path="false">
         <url>https://github.com/UbiqueInnovation/uetlib-job</url>
     </scm>
 </project>
