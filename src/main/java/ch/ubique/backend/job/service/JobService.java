@@ -28,7 +28,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.retry.support.RetryTemplate;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -55,7 +57,7 @@ public class JobService {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.classLoaderService = classLoaderService;
-        this.retryTemplate = RetryTemplate.builder().maxAttempts(10).noBackoff().build();
+        this.retryTemplate = new RetryTemplate(RetryPolicy.builder().maxRetries(9).build());
         this.versionTag = buildProperties.getVersion();
     }
 
@@ -197,11 +199,17 @@ public class JobService {
             final @NotNull JobRun jobRun,
             final @NotNull JobRunState state,
             final @NotNull Instant transitionedAt) {
-        retryTemplate.execute(
-                c -> {
-                    jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
-                    return null;
-                });
+        try {
+            retryTemplate.execute(
+                    () -> {
+                        jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
+                        return null;
+                    });
+        } catch (final RetryException e) {
+            logger.warn("Could not update job run state for {} with retries.", jobRun, e);
+            throw new RuntimeException(e.getCause());
+        }
+
         logger.debug(
                 "Job run {} transitioned to state {} at time {}.",
                 jobRun.id(),

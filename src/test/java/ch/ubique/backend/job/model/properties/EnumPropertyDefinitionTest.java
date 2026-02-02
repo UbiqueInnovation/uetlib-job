@@ -11,18 +11,22 @@ import java.util.Set;
 class EnumPropertyDefinitionTest {
 
     @Test
-    void testEncodeDecode() {
+    void testEncodeFromStringDecodeFromString() {
         final var definition =
                 new EnumPropertyDefinition<>(
                         "RUNNER", "ABC", JobPropertyDefinitionGroup.RUNNER, JobRunnerKey.CURRENT);
 
-        assertEquals(JobRunnerKey.CURRENT.name(), definition.encode(JobRunnerKey.CURRENT));
         assertEquals(
-                JobRunnerKey.CURRENT, definition.decode(JobRunnerKey.CURRENT.name().toLowerCase()));
+                JobRunnerKey.CURRENT.name(), definition.encodeFromString(JobRunnerKey.CURRENT));
         assertEquals(
-                JobRunnerKey.CURRENT, definition.decode(definition.encode(JobRunnerKey.CURRENT)));
+                JobRunnerKey.CURRENT,
+                definition.decodeFromString(JobRunnerKey.CURRENT.name().toLowerCase()));
+        assertEquals(
+                JobRunnerKey.CURRENT,
+                definition.decodeFromString(definition.encodeFromString(JobRunnerKey.CURRENT)));
 
-        assertThrows(NullPointerException.class, () -> definition.decode("made up value"));
+        assertThrows(
+                NullPointerException.class, () -> definition.decodeFromString("made up value"));
     }
 
     @Test

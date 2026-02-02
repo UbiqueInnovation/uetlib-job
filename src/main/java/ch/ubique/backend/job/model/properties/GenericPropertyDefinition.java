@@ -1,33 +1,29 @@
 package ch.ubique.backend.job.model.properties;
 
-import ch.ubique.backend.core.jackson.ObjectMapperUtils;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.io.UncheckedIOException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.util.Objects;
 import java.util.Set;
 
 final class GenericPropertyDefinition<T> extends AbstractJobPropertyDefinition<T> {
 
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMapperUtils.objectMapper();
+    private final JsonMapper jsonMapper;
 
     private final TypeReference<T> typeReference;
 
-    @SuppressWarnings("NullableProblems")
     GenericPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean nullable,
+            final boolean nullable,
             @Nullable final T defaultValue,
             @Nullable final Set<T> allowedValues,
+            @NotNull final JsonMapper jsonMapper,
             @NotNull final TypeReference<T> typeReference) {
         super(
                 key,
@@ -36,24 +32,17 @@ final class GenericPropertyDefinition<T> extends AbstractJobPropertyDefinition<T
                 nullable,
                 nullable ? defaultValue : Objects.requireNonNull(defaultValue),
                 allowedValues);
+        this.jsonMapper = jsonMapper;
         this.typeReference = typeReference;
     }
 
     @Override
-    public T decode(final String value) {
-        try {
-            return OBJECT_MAPPER.readValue(value, typeReference);
-        } catch (final JsonProcessingException e) {
-            throw new UncheckedIOException(e);
-        }
+    public T decodeFromString(final String value) {
+        return jsonMapper.readValue(value, typeReference);
     }
 
     @Override
-    public String encode(final T value) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(value);
-        } catch (final JsonProcessingException e) {
-            throw new UncheckedIOException(e);
-        }
+    public String encodeFromString(final T value) {
+        return jsonMapper.writeValueAsString(value);
     }
 }

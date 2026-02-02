@@ -6,8 +6,10 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.properties.enums.StateCheckStrategy;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.pivovarit.function.ThrowingFunction;
+
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -104,6 +106,7 @@ public final class JobPropertyDefinitions {
                     false,
                     new RunnerGroup("default", 1),
                     null,
+                    JsonMapper.shared(),
                     new TypeReference<>() {});
 
     public static final JobPropertyDefinition<Duration> K8S_TTL_AFTER_FINISHED =
@@ -146,6 +149,7 @@ public final class JobPropertyDefinitions {
                     false,
                     Map.of(),
                     null,
+                    JsonMapper.shared(),
                     new TypeReference<>() {});
     public static final JobPropertyDefinition<KubernetesPodTolerations> K8S_POD_TOLERATIONS =
             new GenericPropertyDefinition<>(
@@ -155,6 +159,7 @@ public final class JobPropertyDefinitions {
                     true,
                     null,
                     null,
+                    JsonMapper.shared(),
                     new TypeReference<>() {});
     public static final JobPropertyDefinition<Map<String, String>> K8S_POD_NODE_SELECTOR =
             new GenericPropertyDefinition<>(
@@ -164,6 +169,7 @@ public final class JobPropertyDefinitions {
                     true,
                     null,
                     null,
+                    JsonMapper.shared(),
                     new TypeReference<>() {});
     public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP =
             new IntPropertyDefinition(

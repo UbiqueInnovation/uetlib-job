@@ -82,7 +82,7 @@ abstract sealed class AbstractJobPropertyDefinition<T> implements JobPropertyDef
         if (org.apache.commons.lang3.StringUtils.isBlank(value)) {
             return createProperty(null);
         }
-        return createProperty(decode(value));
+        return createProperty(decodeFromString(value));
     }
 
     @Override

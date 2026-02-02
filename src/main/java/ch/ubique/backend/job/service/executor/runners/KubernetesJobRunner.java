@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.executor.runners;
 
 import static java.util.Objects.requireNonNull;
 
+import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.k8s.KubernetesJob;
@@ -26,10 +27,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.backoff.ExponentialBackOff;
 
+import java.time.Duration;
 import java.util.Optional;
 
 @Service
@@ -39,16 +43,33 @@ public class KubernetesJobRunner implements JobRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(KubernetesJobRunner.class);
 
+    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER =
+            new RetryTemplate(
+                    RetryPolicy.builder()
+                            .includes(ApiException.class)
+                            .maxRetries(9)
+                            .delay(Duration.ofSeconds(2))
+                            .maxDelay(Duration.ofMinutes(5))
+                            .multiplier(2)
+                            .jitter(Duration.ofSeconds(1))
+                            .build());
+
     private final ApplicationContext applicationContext;
     private final JobDataService jobDataService;
     private final KubernetesService kubernetesService;
     private final KubernetesJobWatcher jobWatcher;
+
+    private final RetryTemplate retryTemplate;
 
     public KubernetesJobRunner(final ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         kubernetesService = applicationContext.getBean(KubernetesService.class);
         jobDataService = applicationContext.getBean(JobDataService.class);
         jobWatcher = applicationContext.getBean(KubernetesJobWatcher.class);
+
+        final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+        retryTemplate.setRetryListener(new LoggingRetryListener());
+        this.retryTemplate = retryTemplate;
     }
 
     @Override
@@ -135,16 +156,19 @@ public class KubernetesJobRunner implements JobRunner {
                 .orElse(null);
     }
 
-    // min delay 2 seconds, max delay 5 minutes with random delays
-    @Retryable(
-            retryFor = ApiException.class,
-            maxAttempts = 10,
-            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
-            listeners = "defaultRetryListener")
     private String submitJobToKubernetes(final V1Job jobDefinition) throws ApiException {
         final var batchApi = new BatchV1Api(kubernetesService.apiClient());
         final var namespace = kubernetesService.currentNamespace();
-        final var createdJob = batchApi.createNamespacedJob(namespace, jobDefinition).execute();
+
+        final V1Job createdJob;
+        try {
+            createdJob =
+                    retryTemplate.execute(
+                            () -> batchApi.createNamespacedJob(namespace, jobDefinition).execute());
+        } catch (final RetryException e) {
+            logger.warn("Unable to create kubernetes job even after retries and backoff:", e);
+            throw new RuntimeException(e.getCause());
+        }
 
         final var k8sJobName = requireNonNull(createdJob.getMetadata()).getName();
         logger.info("Successfully created kubernetes job {}", k8sJobName);

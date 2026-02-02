@@ -13,19 +13,19 @@ final class IntPropertyDefinition extends AbstractJobPropertyDefinition<Integer>
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean nullable,
+            final boolean nullable,
             @Nullable final Integer defaultValue,
             @Nullable final Set<Integer> allowedValues) {
         super(key, description, group, nullable, defaultValue, allowedValues);
     }
 
     @Override
-    public Integer decode(final String value) {
+    public Integer decodeFromString(final String value) {
         return Optional.ofNullable(value).map(Integer::parseInt).orElse(null);
     }
 
     @Override
-    public String encode(final Integer value) {
+    public String encodeFromString(final Integer value) {
         return Optional.ofNullable(value).map(String::valueOf).orElse(null);
     }
 }

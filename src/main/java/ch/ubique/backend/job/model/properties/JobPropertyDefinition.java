@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.model.properties;
 
-import ch.ubique.backend.core.utils.StringEncoderDecoder;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;

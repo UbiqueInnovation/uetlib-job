@@ -15,7 +15,7 @@ class TriggerDefinitionTypeTest {
         assertEquals(
                 TriggerType.values().length,
                 Arrays.stream(TriggerType.values())
-                        .map(TriggerType::defintionClass)
+                        .map(TriggerType::definitionClass)
                         .distinct()
                         .count());
     }

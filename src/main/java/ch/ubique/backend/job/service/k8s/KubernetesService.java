@@ -7,6 +7,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.Optional.ofNullable;
 
+import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesContext;
 
@@ -26,11 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.io.IOException;
+import java.time.Duration;
 
 @Service
 @Profile("!job-run")
@@ -39,26 +43,38 @@ public class KubernetesService {
 
     private static final Logger logger = LoggerFactory.getLogger(KubernetesService.class);
 
+    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER =
+            new RetryTemplate(
+                    RetryPolicy.builder()
+                            .includes(ApiException.class)
+                            .maxRetries(9)
+                            .delay(Duration.ofSeconds(2))
+                            .maxDelay(Duration.ofMinutes(5))
+                            .multiplier(2)
+                            .jitter(Duration.ofSeconds(1))
+                            .build());
+
     private final ApiClient apiClient;
     private final String currentNamespace;
     private final String currentPodName;
+
+    private final RetryTemplate retryTemplate;
 
     public KubernetesService() {
         currentNamespace = getCurrentKubernetesNamespace();
         currentPodName = getCurrentPodName();
         apiClient = getDefaultApiClient();
         warnIfNamespaceOrPodUnknown();
+
+        final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+        retryTemplate.setRetryListener(new LoggingRetryListener());
+        this.retryTemplate = retryTemplate;
     }
 
     public ApiClient apiClient() {
         return requireNonNull(apiClient, "ApiClient not available.");
     }
 
-    @Retryable(
-            retryFor = ApiException.class,
-            maxAttempts = 10,
-            backoff = @Backoff(maxDelay = 300_000, multiplier = 2.0),
-            listeners = "defaultRetryListener")
     public V1Pod getCurrentPod() throws ApiException {
         if (StringUtils.isBlank(currentPodName) || StringUtils.isBlank(currentNamespace)) {
             logger.warn(
@@ -68,7 +84,14 @@ public class KubernetesService {
         }
         logger.info("Getting info for {} on namespace {}", currentPodName, currentNamespace);
         final var coreApi = new CoreV1Api(apiClient);
-        return coreApi.readNamespacedPod(currentPodName, currentNamespace).execute();
+
+        try {
+            return retryTemplate.execute(
+                    () -> coreApi.readNamespacedPod(currentPodName, currentNamespace).execute());
+        } catch (final RetryException e) {
+            logger.warn("Unable to get current pod even after retries and backoff:", e);
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     public KubernetesContext kubernetesContext() throws ApiException {

@@ -29,12 +29,12 @@ final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropert
     }
 
     @Override
-    public T decode(final String value) {
+    public T decodeFromString(final String value) {
         return Objects.requireNonNull(EnumUtils.getEnumIgnoreCase(enumClass, value));
     }
 
     @Override
-    public String encode(final T value) {
+    public String encodeFromString(final T value) {
         return value.name();
     }
 }

@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.submission;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.exception.JobSubmissionException;
+import ch.ubique.backend.job.model.JobRunArgumentsAdditionalData;
 import ch.ubique.backend.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.backend.job.model.triggers.DatabaseSubmissionTrigger;
 import ch.ubique.backend.job.service.JobService;
@@ -29,7 +30,7 @@ public class JobSubmissionService {
     public void submitNewJobRunViaDatabaseTrigger(
             final String jobClassName,
             final boolean forceRun,
-            @Nullable final Object additionalData)
+            @Nullable final JobRunArgumentsAdditionalData additionalData)
             throws JobSubmissionException {
         final var jobId =
                 jobDataService
