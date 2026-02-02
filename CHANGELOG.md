@@ -10,6 +10,12 @@
 
 - Require all usages of `JobRunArguments.additionalData()` to implement the new interface `JobRunAdditionalData`
 
+## 2.1.2
+
+### Improvement
+
+- Disabled Jobs are ignored for the `JobLastRunMaxAgeCheck`
+
 ## 2.1.1
 
 ### Fixes
