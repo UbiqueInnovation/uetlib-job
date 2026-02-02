@@ -20,20 +20,20 @@ public enum TriggerType {
                     Arrays.stream(TriggerType.values())
                             .collect(
                                     Collectors.toUnmodifiableMap(
-                                            TriggerType::defintionClass, Function.identity()));
+                                            TriggerType::definitionClass, Function.identity()));
 
-    private final Class<? extends TriggerDefinition> defintionClass;
+    private final Class<? extends TriggerDefinition> definitionClass;
 
-    TriggerType(final Class<? extends TriggerDefinition> defintionClass) {
-        this.defintionClass = defintionClass;
+    TriggerType(final Class<? extends TriggerDefinition> definitionClass) {
+        this.definitionClass = definitionClass;
     }
 
     public static TriggerType getTypeForClass(
-            final Class<? extends TriggerDefinition> defintionClass) {
-        return Objects.requireNonNull(TRIGGER_TYPE_BY_DEFINITION_CLASS.get(defintionClass));
+            final Class<? extends TriggerDefinition> definitionClass) {
+        return Objects.requireNonNull(TRIGGER_TYPE_BY_DEFINITION_CLASS.get(definitionClass));
     }
 
-    public Class<? extends TriggerDefinition> defintionClass() {
-        return defintionClass;
+    public Class<? extends TriggerDefinition> definitionClass() {
+        return definitionClass;
     }
 }

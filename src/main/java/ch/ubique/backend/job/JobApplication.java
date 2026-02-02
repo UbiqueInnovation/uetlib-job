@@ -3,6 +3,8 @@ package ch.ubique.backend.job;
 import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
 import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.JobRunArgumentsAdditionalData;
+import ch.ubique.backend.job.model.JobRunArgumentsAdditionalDataString;
 import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.runner.JobApplicationExitStatus;
@@ -10,9 +12,6 @@ import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -22,6 +21,9 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @SuppressWarnings("unused")
 public final class JobApplication {
@@ -71,6 +73,7 @@ public final class JobApplication {
             final JobApplicationJobToStartArgs jobToStartArgs,
             final ConfigurableApplicationContext applicationContext) {
         try {
+            final var additionalData = getAdditionalData(jobToStartArgs, applicationContext);
             final var submissionResult =
                     applicationContext
                             .getBean(JobExecutorService.class)
@@ -83,7 +86,7 @@ public final class JobApplication {
                                             null,
                                             null,
                                             null,
-                                            getAdditionalData(jobToStartArgs, applicationContext)),
+                                            additionalData),
                                     jobToStartArgs.jobRunId(),
                                     JobRunnerKey.DEDICATED_K8S_JOB);
 
@@ -101,7 +104,7 @@ public final class JobApplication {
         } catch (final ClassNotFoundException e) {
             logger.error("The specified job or additional data class can not be found", e);
             return JobApplicationExitStatus.JOB_NOT_FOUND;
-        } catch (final JsonProcessingException e) {
+        } catch (final JacksonException e) {
             logger.error("Could not deserialize additional data.", e);
             return JobApplicationExitStatus.BAD_ARGUMENTS;
         } catch (final Exception e) {
@@ -130,9 +133,9 @@ public final class JobApplication {
         return exitStatus;
     }
 
-    private static Object getAdditionalData(
+    private static JobRunArgumentsAdditionalData getAdditionalData(
             final JobApplicationJobToStartArgs args, final ApplicationContext applicationContext)
-            throws ClassNotFoundException, JsonProcessingException {
+            throws ClassNotFoundException, JacksonException {
         final var additionalDataString = args.additionalDataString();
         if (additionalDataString == null) {
             return null;
@@ -140,7 +143,7 @@ public final class JobApplication {
 
         final var additionalDataClassName = args.additionalDataClassName();
         if (StringUtils.isBlank(additionalDataClassName)) {
-            return additionalDataString;
+            return new JobRunArgumentsAdditionalDataString(additionalDataString);
         }
 
         final var additionalDataClass =
@@ -148,8 +151,18 @@ public final class JobApplication {
                         .getBean(ClassLoaderService.class)
                         .getClassForName(additionalDataClassName);
 
-        return applicationContext
-                .getBean(ObjectMapper.class)
-                .readValue(additionalDataString, additionalDataClass);
+        if (!JobRunArgumentsAdditionalData.class.isAssignableFrom(additionalDataClass)) {
+            throw new ClassCastException(
+                    "Additional data class ("
+                            + additionalDataClassName
+                            + ") must implement "
+                            + JobRunArgumentsAdditionalData.class.getCanonicalName());
+        }
+
+        // Cast must hold, by the check above
+        return (JobRunArgumentsAdditionalData)
+                applicationContext
+                        .getBean(ObjectMapper.class)
+                        .readValue(additionalDataString, additionalDataClass);
     }
 }

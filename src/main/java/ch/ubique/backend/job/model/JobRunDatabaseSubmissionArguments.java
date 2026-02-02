@@ -10,7 +10,8 @@ import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record JobRunDatabaseSubmissionArguments(boolean forceRun, @Nullable Object additionalData) {
+public record JobRunDatabaseSubmissionArguments(
+        boolean forceRun, @Nullable JobRunArgumentsAdditionalData additionalData) {
 
     @NotNull
     public JobRunArguments toJobRunArguments() {

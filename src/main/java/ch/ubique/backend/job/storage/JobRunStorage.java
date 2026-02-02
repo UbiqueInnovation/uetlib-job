@@ -7,7 +7,9 @@ import ch.ubique.backend.storage.spring.annotations.Storage;
 import java.io.IOException;
 import java.io.InputStream;
 
-@Storage(clientQualifier = "jobRunStorageClient", codeGenerationType = CodeGenerationType.ALL)
+@Storage(
+        clientQualifier = "jobRunStorageClient",
+        codeGenerationType = CodeGenerationType.IMPLEMENTATION)
 public interface JobRunStorage {
 
     @OutputMapping(path = "{jobName}/{runId}/{fileName}")

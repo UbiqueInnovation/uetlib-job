@@ -8,24 +8,23 @@ import java.util.Set;
 
 final class StringPropertyDefinition extends AbstractJobPropertyDefinition<String> {
 
-    @SuppressWarnings("NullableProblems")
     StringPropertyDefinition(
             @NotBlank final String key,
             @NotBlank final String description,
             @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final boolean nullable,
+            final boolean nullable,
             @Nullable final String defaultValue,
             @Nullable final Set<String> allowedValues) {
         super(key, description, group, nullable, defaultValue, allowedValues);
     }
 
     @Override
-    public String decode(final String value) {
+    public String decodeFromString(final String value) {
         return value;
     }
 
     @Override
-    public String encode(final String value) {
+    public String encodeFromString(final String value) {
         return value;
     }
 }

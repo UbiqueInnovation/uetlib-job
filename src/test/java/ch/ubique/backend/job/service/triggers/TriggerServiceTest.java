@@ -31,7 +31,7 @@ class TriggerServiceTest {
                                                                 cls, TriggerService.class)));
 
         for (final var triggerType : TriggerType.values()) {
-            final var definitionClass = triggerType.defintionClass();
+            final var definitionClass = triggerType.definitionClass();
             assertEquals(
                     1,
                     Optional.ofNullable(servicesForType.get(definitionClass))
