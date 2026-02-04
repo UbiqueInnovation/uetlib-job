@@ -108,9 +108,11 @@ public class CleanupJob implements Job {
         // Get cleanup properties
         final var daysToKeep =
                 jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value();
+        final var daysToKeepSkipped =
+                jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP_SKIPPED).valueMaybe();
         final var chunkSize = jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value();
 
-        final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, chunkSize);
+        final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, daysToKeepSkipped, chunkSize);
 
         logger.info("Cleaning input files for {} runs.", cleanableRuns.size());
         VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);
