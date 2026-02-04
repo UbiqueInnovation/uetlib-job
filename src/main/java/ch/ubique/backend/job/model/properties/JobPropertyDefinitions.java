@@ -180,6 +180,14 @@ public final class JobPropertyDefinitions {
                     false,
                     30,
                     null);
+    public static final JobPropertyDefinition<Integer> CLEANUP_DAYS_TO_KEEP_SKIPPED =
+            new IntPropertyDefinition(
+                    "CLEANUP_DAYS_TO_KEEP_SKIPPED",
+                    "Number of days to keep SKIPPED jobs (absolute, not relative to DONE jobs)",
+                    JobPropertyDefinitionGroup.CLEANUP,
+                    false,
+                    7,
+                    null);
     public static final JobPropertyDefinition<Integer> CLEANUP_CHUNK_SIZE =
             new IntPropertyDefinition(
                     "CLEANUP_CHUNK_SIZE",

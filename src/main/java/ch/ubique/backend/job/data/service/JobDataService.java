@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -398,7 +399,10 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public List<JobRun> findCleanableRuns(
-            final int jobId, final int daysToKeep, final int chunkSize) {
+            final int jobId,
+            final int daysToKeep,
+            final Optional<Integer> daysToKeepSkipped,
+            final int chunkSize) {
         final var finishedBefore =
                 jobRunLatestStateViewRepository
                         .findFirstByJobIdAndLatestStateAndFinishedAtIsNotNullOrderByFinishedAtDesc(
@@ -409,9 +413,18 @@ public class JobDataService {
                                         Objects.requireNonNull(jobRun.finishedAt())
                                                 .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.EPOCH);
-        return jobRunRepository
-                .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
-                        jobId, finishedBefore, PageRequest.of(0, chunkSize))
+        final var pageable = PageRequest.of(0, chunkSize);
+        final var skippedBefore =
+                daysToKeepSkipped.map(d -> Instant.now().minus(Duration.ofDays(d)));
+        return skippedBefore
+                .map(
+                        skipped ->
+                                jobRunRepository.findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
+                                        jobId, finishedBefore, skipped, pageable))
+                .orElseGet(
+                        () ->
+                                jobRunRepository.findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
+                                        jobId, finishedBefore, pageable))
                 .map(JobRunEntity::toJobRun)
                 .toList();
     }
