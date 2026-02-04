@@ -5,6 +5,7 @@
 ### Improvements
 
 - Spring Boot 4 compatibility
+- Add `CLEANUP_DAYS_TO_KEEP_SKIPPED` to clean skipped runs faster
 
 ### Breaking Changes
 
