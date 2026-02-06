@@ -419,13 +419,16 @@ public class JobDataService {
         return skippedBefore
                 .map(
                         skipped ->
-                                jobRunRepository.findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
-                                        jobId, finishedBefore, skipped, pageable))
+                                jobRunRepository
+                                        .findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
+                                                jobId, finishedBefore, skipped, pageable)
+                                        .map(JobRunLatestStateViewEntity::toJobRun))
                 .orElseGet(
                         () ->
-                                jobRunRepository.findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
-                                        jobId, finishedBefore, pageable))
-                .map(JobRunEntity::toJobRun)
+                                jobRunRepository
+                                        .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
+                                                jobId, finishedBefore, pageable)
+                                        .map(JobRunEntity::toJobRun))
                 .toList();
     }
 
@@ -578,6 +581,11 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public boolean isEnabled(final Class<? extends Job> jobClass) {
         return jobRepository.existsByCanonicalClassNameAndEnabledTrue(jobClass.getCanonicalName());
+    }
+
+    @Transactional(readOnly = true)
+    public boolean exists(final Class<? extends Job> jobClass) {
+        return jobRepository.findByCanonicalClassName(jobClass.getCanonicalName()).isPresent();
     }
 
     @Transactional

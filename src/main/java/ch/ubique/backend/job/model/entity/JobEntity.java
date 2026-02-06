@@ -52,4 +52,8 @@ public class JobEntity {
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
     }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
 }
