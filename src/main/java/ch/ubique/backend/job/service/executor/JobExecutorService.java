@@ -55,10 +55,10 @@ public class JobExecutorService {
             @Nullable final JobRunnerKey jobRunnerKey) {
 
         if (!jobService.isEnabled(jobClass)) {
-            if (!jobService.exists(jobClass)) {
-                logger.info("Job class {} does not exist.", jobClass);
-            } else {
+            if (jobService.exists(jobClass)) {
                 logger.info("Job {} is disabled and will not be submitted.", jobClass);
+            } else {
+                logger.info("Job class {} does not exist.", jobClass);
             }
             return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
         }
