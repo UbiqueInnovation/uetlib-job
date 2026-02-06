@@ -251,6 +251,10 @@ public class JobService {
         return jobDataService.isEnabled(jobClass);
     }
 
+    public boolean exists(final Class<? extends Job> jobClass) {
+        return jobDataService.exists(jobClass);
+    }
+
     public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {
         jobDataService.setEnabled(jobClass, isEnabled);
     }

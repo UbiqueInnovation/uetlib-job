@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.data.repository;
 
 import ch.ubique.backend.job.model.entity.JobRunEntity;
+import ch.ubique.backend.job.model.entity.JobRunLatestStateViewEntity;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +24,7 @@ public interface JobRunRepository extends JpaRepository<JobRunEntity, Integer> {
 
     @Query(
             "SELECT r FROM JobRunLatestStateViewEntity r WHERE r.jobId = :jobId AND (r.finishedAt < :finishedBefore OR (r.latestState = 'SKIPPED' AND r.finishedAt < :skippedBefore))")
-    Page<JobRunEntity> findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
+    Page<JobRunLatestStateViewEntity> findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
             int jobId, Instant finishedBefore, Instant skippedBefore, Pageable pageable);
 
     void deleteAllByJobId(int jobId);
