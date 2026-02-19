@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 @Service
+@Profile("!job-run")
 public final class CurrentJobRunner implements JobRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(CurrentJobRunner.class);
