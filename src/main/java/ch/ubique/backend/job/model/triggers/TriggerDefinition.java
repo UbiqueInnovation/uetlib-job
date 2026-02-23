@@ -17,6 +17,7 @@ import jakarta.validation.constraints.NotNull;
     @JsonSubTypes.Type(value = FixedRateTrigger.class, name = "FIXED_RATE"),
     @JsonSubTypes.Type(value = JobRunStateTrigger.class, name = "JOB_RUN_STATE"),
     @JsonSubTypes.Type(value = DatabaseSubmissionTrigger.class, name = "DATABASE_SUBMISSION"),
+    @JsonSubTypes.Type(value = PgListenTrigger.class, name = "PG_LISTEN"),
     @JsonSubTypes.Type(value = RetryTrigger.class, name = "RETRY"),
     @JsonSubTypes.Type(value = FileTrigger.class, name = "FILE")
 })
@@ -27,6 +28,7 @@ public sealed interface TriggerDefinition
                 FileTrigger,
                 FixedRateTrigger,
                 JobRunStateTrigger,
+                PgListenTrigger,
                 RetryTrigger,
                 RunOnStartupTrigger {
 

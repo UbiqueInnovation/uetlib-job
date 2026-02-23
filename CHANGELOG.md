@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.2.0
+
+### New Features
+
+- Added `PgListenTrigger` when running on PostgreSQL.
+
 ## 2.1.1
 
 ### Fixes
