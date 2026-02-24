@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.0.1
+
+### New Features
+
+- Pulled `PgListenTrigger` from `2.2.0` into `3.x` release.
+
 ## 3.0.0
 
 ### Improvements
