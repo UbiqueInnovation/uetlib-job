@@ -9,7 +9,14 @@
 
 ### Breaking Changes
 
-- Require all usages of `JobRunArguments.additionalData()` to implement the new interface `JobRunAdditionalData`
+- Require all usages of `JobRunArguments.additionalData()` to implement the new interface
+  `JobRunAdditionalData`
+
+## 2.2.0
+
+### New Features
+
+- Added `PgListenTrigger` when running on PostgreSQL.
 
 ## 2.1.2
 
