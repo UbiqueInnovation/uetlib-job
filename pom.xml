@@ -106,6 +106,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Websockets needed to send logs in real time to the status interface -->
