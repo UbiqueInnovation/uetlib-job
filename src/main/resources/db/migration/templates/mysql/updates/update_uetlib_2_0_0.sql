@@ -1,10 +1,10 @@
 drop view v_job_run_latest_state;
 
 alter table t_job_run
-    add column version_tag varchar(32) not null default 'unknown';
+    add column version_tag text not null default 'unknown';
 
 alter table t_job_run
-    add column trigger_type varchar(32);
+    add column trigger_type text;
 
 alter table t_job_run
     drop column job_version;
