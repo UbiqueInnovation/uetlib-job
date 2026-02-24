@@ -13,7 +13,8 @@ public enum TriggerType {
     FILE(FileTrigger.class),
     JOB_RUN_STATE(JobRunStateTrigger.class),
     RETRY(RetryTrigger.class),
-    DATABASE_SUBMISSION(DatabaseSubmissionTrigger.class);
+    DATABASE_SUBMISSION(DatabaseSubmissionTrigger.class),
+    PG_LISTEN(PgListenTrigger.class);
 
     private static final Map<Class<? extends TriggerDefinition>, TriggerType>
             TRIGGER_TYPE_BY_DEFINITION_CLASS =
