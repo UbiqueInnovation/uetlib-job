@@ -54,8 +54,8 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
 
-        if (!jobService.isEnabled(jobClass)) {
-            if (jobService.exists(jobClass)) {
+        if (!jobService.isEnabled(jobClass.getCanonicalName())) {
+            if (jobService.exists(jobClass.getCanonicalName())) {
                 logger.info("Job {} is disabled and will not be submitted.", jobClass);
             } else {
                 logger.info("Job class {} does not exist.", jobClass);

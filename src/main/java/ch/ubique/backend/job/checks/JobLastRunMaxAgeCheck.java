@@ -65,7 +65,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
         final Optional<Duration> lastRunMaxAgeMaybe;
         final boolean lastRunMaxAgeAllowNoRun;
         try {
-            if (!jobService.isEnabled(jobService.getJobClassOrThrow(job))) {
+            if (!jobService.isEnabled(job.canonicalClassName())) {
                 return Optional.empty();
             }
             lastRunMaxAgeMaybe =
