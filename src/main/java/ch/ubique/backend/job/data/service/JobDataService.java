@@ -579,13 +579,13 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public boolean isEnabled(final Class<? extends Job> jobClass) {
-        return jobRepository.existsByCanonicalClassNameAndEnabledTrue(jobClass.getCanonicalName());
+    public boolean isEnabled(final String jobClassCanonicalName) {
+        return jobRepository.existsByCanonicalClassNameAndEnabledTrue(jobClassCanonicalName);
     }
 
     @Transactional(readOnly = true)
-    public boolean exists(final Class<? extends Job> jobClass) {
-        return jobRepository.findByCanonicalClassName(jobClass.getCanonicalName()).isPresent();
+    public boolean exists(final String jobClassCanonicalName) {
+        return jobRepository.findByCanonicalClassName(jobClassCanonicalName).isPresent();
     }
 
     @Transactional
