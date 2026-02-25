@@ -113,7 +113,7 @@ public class JobExecutorService {
 
     private boolean isCurrentlyRunning(final Job job) {
         return jobService
-                .getLastJobRun(jobService.getId(job))
+                .getLastJobRun(jobService.findOrInsertJobByClass(job.getClass()).id())
                 .map(JobRun::latestState)
                 .map(JobRunState::isRunning)
                 .orElse(false);
@@ -123,7 +123,8 @@ public class JobExecutorService {
         if (runId == null) {
             return false;
         }
-        final var lastRun = jobService.getLastJobRun(jobService.getId(job));
+        final var lastRun =
+                jobService.getLastJobRun(jobService.findOrInsertJobByClass(job.getClass()).id());
         return lastRun.isPresent() && lastRun.get().id() == runId;
     }
 
@@ -135,7 +136,7 @@ public class JobExecutorService {
             @Nullable final JobRunArguments nullableArguments) {
         final var arguments =
                 Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
-        final var jobClassAndId = jobService.getJobClassAndId(job);
+        final var jobClassAndId = jobService.findOrInsertJobByClass(job.getClass());
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
         return new JobRunContext(jobClassAndId, jobRun, arguments, jobProperties);

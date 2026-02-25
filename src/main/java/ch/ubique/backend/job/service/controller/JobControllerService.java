@@ -285,7 +285,8 @@ public class JobControllerService {
     public void replayJobRun(final String jobIdOrClassName)
             throws ClassNotFoundException, ManualTriggerNotAllowedException {
         final var jobClass = jobService.getJobClassOrThrow(jobIdOrClassName);
-        final var lastJobRun = jobService.getLastJobRun(jobService.getJobId(jobClass));
+        final var lastJobRun =
+                jobService.getLastJobRun(jobService.findOrInsertJobByClass(jobClass).id());
         replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
     }
 
@@ -394,7 +395,7 @@ public class JobControllerService {
             final String jobIdOrClassName, final Map<String, String> updatedValues)
             throws ClassNotFoundException {
         jobDataService.saveProperties(
-                jobService.getJobId(getJobClass(jobIdOrClassName)),
+                jobService.findOrInsertJobByClass(getJobClass(jobIdOrClassName)).id(),
                 getPropertiesFromMap(updatedValues));
         return getJobProperties(jobIdOrClassName);
     }
@@ -431,7 +432,7 @@ public class JobControllerService {
     private Trigger toTrigger(final JobTrigger trigger, final Job job) {
         return new Trigger(
                 Objects.requireNonNull(trigger.id()),
-                jobService.getJobId(job.getClass()),
+                jobService.findOrInsertJobByClass(job.getClass()).id(),
                 trigger.definition());
     }
 
@@ -467,7 +468,9 @@ public class JobControllerService {
         try {
             return Integer.parseInt(jobIdOrClassName);
         } catch (final NumberFormatException ignored) {
-            return jobService.getJobId(jobService.getJobClassOrThrow(jobIdOrClassName));
+            return jobService
+                    .findOrInsertJobByClass(jobService.getJobClassOrThrow(jobIdOrClassName))
+                    .id();
         }
     }
 

@@ -105,8 +105,9 @@ public class JobService {
         }
 
         // The code below merges db properties with initial properties.
+        final var jobId = findOrInsertJobByClass(job.getClass()).id();
         final var db =
-                jobDataService.getProperties(getId(job)).stream()
+                jobDataService.getProperties(jobId).stream()
                         .collect(Collectors.toMap(JobProperty::key, Function.identity()));
 
         final var initial =
@@ -128,16 +129,8 @@ public class JobService {
                         .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
     }
 
-    public int getJobId(final Class<? extends Job> jobClass) {
-        return jobDataService.findOrInsertJob(jobClass).id();
-    }
-
-    public int getId(final Job job) {
-        return getJobId(job.getClass());
-    }
-
-    public JobClassAndId getJobClassAndId(final Job job) {
-        return new JobClassAndId(getId(job), job.getClass().getCanonicalName());
+    public JobClassAndId findOrInsertJobByClass(final Class<? extends Job> jobClass) {
+        return jobDataService.findOrInsertJob(jobClass);
     }
 
     public Optional<JobClassAndId> findJobById(final int jobId) {
@@ -158,7 +151,7 @@ public class JobService {
             final @NotNull Job job,
             final @NotNull JobRunnerKey runnerKey,
             final @NotNull JobRunArguments arguments) {
-        final var jobId = getJobId(job.getClass());
+        final var jobId = findOrInsertJobByClass(job.getClass()).id();
         return jobDataService.createJobRun(jobId, versionTag, runnerKey, arguments);
     }
 
