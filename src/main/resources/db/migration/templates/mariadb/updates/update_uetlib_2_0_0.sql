@@ -1,7 +1,11 @@
 drop view v_job_run_latest_state;
 
-alter table t_job_run
-    add column version_tag text not null default 'unknown';
+ALTER TABLE t_job_run
+    ADD COLUMN version_tag TEXT;
+UPDATE t_job_run SET version_tag = 'unknown' WHERE version_tag IS NULL;
+ALTER TABLE t_job_run
+    MODIFY COLUMN version_tag TEXT NOT NULL;
+
 
 alter table t_job_run
     add column trigger_type text;
