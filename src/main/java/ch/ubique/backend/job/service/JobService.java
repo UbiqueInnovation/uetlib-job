@@ -246,12 +246,12 @@ public class JobService {
         return jobDataService.findJobRunByStates(states);
     }
 
-    public boolean isEnabled(final Class<? extends Job> jobClass) {
-        return jobDataService.isEnabled(jobClass);
+    public boolean isEnabled(final String jobCanonicalClassName) {
+        return jobDataService.isEnabled(jobCanonicalClassName);
     }
 
-    public boolean exists(final Class<? extends Job> jobClass) {
-        return jobDataService.exists(jobClass);
+    public boolean exists(final String jobCanonicalClassName) {
+        return jobDataService.exists(jobCanonicalClassName);
     }
 
     public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {

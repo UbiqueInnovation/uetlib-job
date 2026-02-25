@@ -349,7 +349,7 @@ public class JobControllerService {
                 jobClassAndId.id(),
                 job.getClass().getSimpleName(),
                 job.getClass().getCanonicalName(),
-                jobService.isEnabled(jobClass),
+                jobService.isEnabled(jobClass.getCanonicalName()),
                 cronExpression.orElse(null),
                 cronExpression.isPresent(),
                 cronExpression.map(CronExpression::isValidExpression).orElse(true),
