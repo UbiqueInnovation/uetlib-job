@@ -49,7 +49,7 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     }
 
     @Scheduled(fixedRate = 30, timeUnit = TimeUnit.SECONDS)
-    public void checkJobRuns() throws ClassNotFoundException {
+    public void checkJobRuns() {
         final var aBitBeforePreviousCheck = lastCheck.minus(Duration.ofMinutes(1));
         lastCheck = Instant.now();
 
@@ -75,9 +75,8 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                         .collect(Collectors.toUnmodifiableSet());
     }
 
-    private void onStateChanged(final JobRun jobRun, final JobRunState newState)
-            throws ClassNotFoundException {
-        final var jobClass = jobService.getJobClass(jobRun.jobId());
+    private void onStateChanged(final JobRun jobRun, final JobRunState newState) {
+        final var jobClass = jobService.findJobByIdOrThrow(jobRun.jobId());
         logger.debug("{} changed to state {}.", jobRun, newState);
 
         registeredTriggers.entrySet().stream()
@@ -85,7 +84,9 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                         entry -> {
                             final var trigger = entry.getValue();
                             return trigger.state() == newState
-                                    && trigger.jobClass().equals(jobClass);
+                                    && trigger.jobClass()
+                                            .getCanonicalName()
+                                            .equals(jobClass.canonicalClassName());
                         })
                 .forEach(
                         entry -> {

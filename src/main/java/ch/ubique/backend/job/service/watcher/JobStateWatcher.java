@@ -110,14 +110,14 @@ public class JobStateWatcher {
     }
 
     private Optional<Duration> getRunTimeLimit(final JobRun jobRun) {
+        final var jobClassAndId = jobService.findJobByIdOrThrow(jobRun.jobId());
         try {
-            final var job = jobService.instantiateJob(jobRun.jobId());
+            final var job = jobService.instantiateJob(jobClassAndId);
             return jobService
                     .getProperties(job)
                     .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
                     .valueMaybe();
         } catch (final ClassNotFoundException e) {
-            logger.info("Could not get run time limit for {}.", jobRun, e);
             return Optional.empty();
         }
     }

@@ -39,21 +39,21 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
     }
 
     @Scheduled(fixedRate = 30, timeUnit = TimeUnit.SECONDS)
-    public void checkDatabaseSubmissions() throws ClassNotFoundException {
+    public void checkDatabaseSubmissions() {
         for (final var jobRunDatabaseSubmission : jobDataService.findNewDatabaseSubmissions()) {
             onNewDatabaseSubmission(jobRunDatabaseSubmission);
         }
     }
 
-    private void onNewDatabaseSubmission(final JobRunDatabaseSubmission jobRunDatabaseSubmission)
-            throws ClassNotFoundException {
-        final var jobClass = jobService.getJobClass(jobRunDatabaseSubmission.jobId());
+    private void onNewDatabaseSubmission(final JobRunDatabaseSubmission jobRunDatabaseSubmission) {
+        final var jobId = jobRunDatabaseSubmission.jobId();
+        final var jobClassAndId = jobService.findJobById(jobId).orElseThrow();
         final var jobRunDatabaseSubmissionArguments =
                 jobRunDatabaseSubmission.jobRunDatabaseSubmissionArguments();
 
         logger.info(
                 "Got new database submission for job {} with submission arguments {}.",
-                jobClass,
+                jobClassAndId,
                 jobRunDatabaseSubmissionArguments);
 
         final var jobRunArguments = jobRunDatabaseSubmissionArguments.toJobRunArguments();
@@ -62,7 +62,9 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
                 .filter(
                         entry -> {
                             final var trigger = entry.getValue();
-                            return trigger.jobClass().equals(jobClass);
+                            return trigger.jobClass()
+                                    .getCanonicalName()
+                                    .equals(jobClassAndId.canonicalClassName());
                         })
                 .forEach(
                         entry -> {
@@ -72,7 +74,7 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
                         });
         logger.info(
                 "Submitted new job run from database submission for job {} with run arguments {}.",
-                jobClass,
+                jobClassAndId,
                 jobRunArguments);
         jobDataService.markDatabaseSubmissionAsExecuted(jobRunDatabaseSubmission.id());
     }

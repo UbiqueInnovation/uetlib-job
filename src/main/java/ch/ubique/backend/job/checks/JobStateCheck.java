@@ -58,7 +58,8 @@ public abstract class JobStateCheck implements StatusCheck {
     }
 
     private boolean checkJobFailed(final JobClassAndId job) {
-        return switch (stateCheckStrategy(job)) {
+        final var strategy = stateCheckStrategy(job);
+        return switch (strategy) {
             case CHECK_LATEST_SUCCESSFUL -> checkLatestRunFailed(job);
             case CHECK_ALL_SUCCESSFUL -> checkSomeRunFailed(job);
             case CHECK_INTERVAL_ALL_SUCCESSFUL -> checkSomeRunInIntervalFailed(job);
@@ -94,7 +95,8 @@ public abstract class JobStateCheck implements StatusCheck {
     private Instant checkIntervalStart(final JobClassAndId job) {
         final var checkInterval =
                 jobService
-                        .tryToInstantiateJob(job.id())
+                        .getJobClassMaybe(job)
+                        .map(jobService::instantiateJob)
                         .map(jobService::getProperties)
                         .map(p -> p.getValue(STATE_CHECK_INTERVAL))
                         .orElse(STATE_CHECK_INTERVAL.defaultValue().orElseThrow());
@@ -103,7 +105,8 @@ public abstract class JobStateCheck implements StatusCheck {
 
     private StateCheckStrategy stateCheckStrategy(final JobClassAndId job) {
         return jobService
-                .tryToInstantiateJob(job.id())
+                .getJobClassMaybe(job)
+                .map(jobService::instantiateJob)
                 .map(jobService::getProperties)
                 .map(p -> p.getValue(STATE_CHECK_STRATEGY))
                 .orElse(STATE_CHECK_STRATEGY.defaultValue().orElseThrow());

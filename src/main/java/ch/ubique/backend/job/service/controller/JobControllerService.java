@@ -284,7 +284,7 @@ public class JobControllerService {
 
     public void replayJobRun(final String jobIdOrClassName)
             throws ClassNotFoundException, ManualTriggerNotAllowedException {
-        final var jobClass = jobService.getJobClass(jobIdOrClassName);
+        final var jobClass = jobService.getJobClassOrThrow(jobIdOrClassName);
         final var lastJobRun = jobService.getLastJobRun(jobService.getJobId(jobClass));
         replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
     }
@@ -292,7 +292,8 @@ public class JobControllerService {
     public void replayJobRun(final String jobIdOrClassName, final int jobRunId)
             throws ClassNotFoundException, ManualTriggerNotAllowedException {
         final var jobRun = jobService.getJobRun(jobRunId);
-        final var jobClass = jobService.getJobClass(jobRun.jobId());
+        final var job = jobService.findJobById(jobRun.jobId()).orElseThrow();
+        final var jobClass = jobService.getJobClassOrThrow(job);
         if (!jobClass.equals(getJobClass(jobIdOrClassName))) {
             throw new IllegalArgumentException(
                     MessageFormat.format(
@@ -332,7 +333,7 @@ public class JobControllerService {
     }
 
     public JobInfo jobInfo(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
-        final var jobClass = jobService.getJobClass(jobClassAndId.id());
+        final var jobClass = jobService.getJobClassOrThrow(jobClassAndId);
         final var job = jobService.instantiateJob(jobClass);
 
         final var cronExpression =
@@ -344,7 +345,7 @@ public class JobControllerService {
                 jobService.getProperties(job).get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE);
 
         return new JobInfo(
-                jobService.getId(job),
+                jobClassAndId.id(),
                 job.getClass().getSimpleName(),
                 job.getClass().getCanonicalName(),
                 jobService.isEnabled(jobClass),
@@ -454,9 +455,11 @@ public class JobControllerService {
     private Class<? extends Job> getJobClass(final String jobIdOrClassName)
             throws ClassNotFoundException {
         try {
-            return jobService.getJobClass(Integer.parseInt(jobIdOrClassName));
+            final var job =
+                    jobService.findJobById(Integer.parseInt(jobIdOrClassName)).orElseThrow();
+            return jobService.getJobClassOrThrow(job);
         } catch (final NumberFormatException ignored) {
-            return jobService.getJobClass(jobIdOrClassName);
+            return jobService.getJobClassOrThrow(jobIdOrClassName);
         }
     }
 
@@ -464,7 +467,7 @@ public class JobControllerService {
         try {
             return Integer.parseInt(jobIdOrClassName);
         } catch (final NumberFormatException ignored) {
-            return jobService.getJobId(jobService.getJobClass(jobIdOrClassName));
+            return jobService.getJobId(jobService.getJobClassOrThrow(jobIdOrClassName));
         }
     }
 
@@ -540,6 +543,7 @@ public class JobControllerService {
         return jobDataService
                 .findJobRunById(jobRunId)
                 .map(JobRun::jobId)
+                .flatMap(jobService::findJobById)
                 .flatMap(jobService::getJobClassMaybe)
                 .map(jobService::instantiateJob);
     }
