@@ -84,9 +84,12 @@ public class JobService {
 
     public JobProperties getProperties(final JobClassAndId jobClassAndId)
             throws ClassNotFoundException {
-        final var jobClass = getJobClassOrThrow(jobClassAndId);
-        final var job = instantiateJob(jobClass);
-        return getProperties(job);
+        final var job = instantiateJob(getJobClassOrThrow(jobClassAndId));
+        return getJobProperties(jobClassAndId.id(), job);
+    }
+
+    public JobProperties getProperties(final Job job) {
+        return getJobProperties(findOrInsertJobByClass(job.getClass()).id(), job);
     }
 
     /**
@@ -99,13 +102,12 @@ public class JobService {
      *       <li>Otherwise return initial value (if present) or empty
      *     </ul>
      */
-    public JobProperties getProperties(final Job job) {
+    private JobProperties getJobProperties(final int jobId, final Job job) {
         if (job.propertiesConfig().isFixed()) {
             return new JobProperties(job.propertiesConfig().properties());
         }
 
         // The code below merges db properties with initial properties.
-        final var jobId = findOrInsertJobByClass(job.getClass()).id();
         final var db =
                 jobDataService.getProperties(jobId).stream()
                         .collect(Collectors.toMap(JobProperty::key, Function.identity()));
