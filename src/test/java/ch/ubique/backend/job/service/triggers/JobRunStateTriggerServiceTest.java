@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import ch.ubique.backend.job.cleanup.CleanupJob;
 import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
@@ -40,8 +41,10 @@ class JobRunStateTriggerServiceTest {
     @MockitoBean private JobService jobService;
 
     @Test
-    void testJobRunStateTriggers() throws ClassNotFoundException {
-        doReturn(CleanupJob.class).when(jobService).getJobClass(anyInt());
+    void testJobRunStateTriggers() {
+        doReturn(new JobClassAndId(0, CleanupJob.class.getCanonicalName()))
+                .when(jobService)
+                .findJobByIdOrThrow(anyInt());
 
         final var triggerService = new JobRunStateTriggerService(jobDataService, jobService);
 

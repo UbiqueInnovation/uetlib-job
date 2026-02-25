@@ -61,8 +61,27 @@ public class JobService {
         this.versionTag = buildProperties.getVersion();
     }
 
-    public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {
+    public Class<? extends Job> getJobClassOrThrow(final JobClassAndId jobClassAndId)
+            throws ClassNotFoundException {
+        return classLoaderService.getJobClass(jobClassAndId.canonicalClassName());
+    }
+
+    public Class<? extends Job> getJobClassOrThrow(final String className)
+            throws ClassNotFoundException {
         return classLoaderService.getClassForName(className, Job.class);
+    }
+
+    public Optional<Class<? extends Job>> getJobClassMaybe(final JobClassAndId jobClassAndId) {
+        return getJobClassMaybe(jobClassAndId.canonicalClassName());
+    }
+
+    public Optional<Class<? extends Job>> getJobClassMaybe(final String className) {
+        try {
+            return Optional.of(getJobClassOrThrow(className));
+        } catch (final ClassNotFoundException e) {
+            logger.info("Class not found for  {}.", className);
+            return Optional.empty();
+        }
     }
 
     public JobProperties getProperties(final JobClassAndId jobClassAndId)
@@ -111,20 +130,7 @@ public class JobService {
     }
 
     public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
-        return instantiateJob(jobClassAndId.id());
-    }
-
-    public Job instantiateJob(final int jobId) throws ClassNotFoundException {
-        return instantiateJob(getJobClass(jobId));
-    }
-
-    public Optional<Job> tryToInstantiateJob(final int jobId) {
-        try {
-            return Optional.of(instantiateJob(jobId));
-        } catch (final ClassNotFoundException e) {
-            logger.info("Class not found for {}.", jobId, e);
-            return Optional.empty();
-        }
+        return instantiateJob(getJobClassOrThrow(jobClassAndId));
     }
 
     public int getJobId(final Class<? extends Job> jobClass) {
@@ -139,16 +145,18 @@ public class JobService {
         return new JobClassAndId(getId(job), job.getClass().getCanonicalName());
     }
 
-    public Class<? extends Job> getJobClass(final int jobId) throws ClassNotFoundException {
-        return getJobClass(jobDataService.findJobById(jobId).orElseThrow().canonicalClassName());
+    public Optional<JobClassAndId> findJobById(final int jobId) {
+        final var jobMaybe = jobDataService.findJobById(jobId);
+        if (jobMaybe.isEmpty()) {
+            logger.info("No job found for job id {}.", jobId);
+        }
+        return jobMaybe;
     }
 
-    public Optional<Class<? extends Job>> getJobClassMaybe(final int jobId) {
-        try {
-            return Optional.of(getJobClass(jobId));
-        } catch (final ClassNotFoundException e) {
-            return Optional.empty();
-        }
+    public JobClassAndId findJobByIdOrThrow(final int jobId) {
+        return jobDataService
+                .findJobById(jobId)
+                .orElseThrow(() -> new NoSuchElementException("No job found for id " + jobId));
     }
 
     private JobRun createNewJobRun(

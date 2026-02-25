@@ -2,7 +2,6 @@ package ch.ubique.backend.job.checks;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 
 import ch.ubique.backend.job.Job;
@@ -46,8 +45,10 @@ class JobStateCheckTest {
     @BeforeEach
     void beforeEach() {
         Mockito.when(jobDataService.findJobs()).thenReturn(List.of(job));
-        Mockito.when(jobService.tryToInstantiateJob(anyInt()))
-                .thenReturn(Optional.of(new TestJob()));
+        Mockito.when(jobService.getJobClassMaybe(Mockito.<JobClassAndId>any()))
+                .thenReturn(Optional.of(TestJob.class));
+        Mockito.when(jobService.instantiateJob(Mockito.<Class<? extends Job>>any()))
+                .thenReturn(new TestJob());
     }
 
     @Test

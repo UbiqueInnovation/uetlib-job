@@ -57,7 +57,7 @@ public class TriggerCoordinatorService {
     private void onStartup() throws ClassNotFoundException {
         logger.info("Evaluating triggers of all jobs");
         for (final var job : jobDataService.findJobs()) {
-            final var jobClass = jobService.getJobClass(job.canonicalClassName());
+            final var jobClass = jobService.getJobClassOrThrow(job.canonicalClassName());
             final var instance = jobService.instantiateJob(jobClass);
             final var triggers = getTriggers(instance);
             for (final var trigger : triggers) {
