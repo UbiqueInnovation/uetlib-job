@@ -21,12 +21,13 @@ public class JobManualTriggerService {
 
     public void replayJobRun(final int jobRunId) throws ClassNotFoundException {
         final var jobRun = jobService.getJobRun(jobRunId);
-        final var job = jobService.instantiateJob(jobService.getJobClass(jobRun.jobId()));
+        final var jobClassAndId = jobService.findJobById(jobRun.jobId()).orElseThrow();
+        final var jobClass = jobService.getJobClassOrThrow(jobClassAndId);
         final var previousArguments =
                 requireNonNullElseGet(jobRun.jobRunArguments(), JobRunArguments::new);
         final var jobRunArguments =
                 previousArguments.withReplayContext(new ReplayContext(jobRunId));
 
-        jobExecutorService.submit(job.getClass(), jobRunArguments);
+        jobExecutorService.submit(jobClass, jobRunArguments);
     }
 }

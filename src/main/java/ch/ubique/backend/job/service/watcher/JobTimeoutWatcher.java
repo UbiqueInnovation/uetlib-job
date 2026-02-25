@@ -41,12 +41,16 @@ public class JobTimeoutWatcher {
     }
 
     private void checkTimeoutForJob(final JobRun jobRun) {
-        final var jobMaybe = jobService.tryToInstantiateJob(jobRun.jobId());
+        final var jobMaybe = jobService.findJobById(jobRun.jobId());
         if (jobMaybe.isEmpty()) {
             return;
         }
+        final var jobClass = jobService.getJobClassMaybe(jobMaybe.get());
+        if (jobClass.isEmpty()) {
+            return;
+        }
 
-        final var job = jobMaybe.get();
+        final var job = jobService.instantiateJob(jobClass.get());
         final var sate = jobRun.latestState();
         final var properties = jobService.getProperties(job);
 
