@@ -3,6 +3,7 @@ package ch.ubique.backend.job.service.watcher;
 import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
@@ -110,15 +111,12 @@ public class JobStateWatcher {
     }
 
     private Optional<Duration> getRunTimeLimit(final JobRun jobRun) {
-        final var jobClassAndId = jobService.findJobByIdOrThrow(jobRun.jobId());
-        try {
-            final var job = jobService.instantiateJob(jobClassAndId);
-            return jobService
-                    .getProperties(job)
-                    .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
-                    .valueMaybe();
-        } catch (final ClassNotFoundException e) {
-            return Optional.empty();
-        }
+        return jobService
+                .findJobById(jobRun.jobId())
+                .flatMap(jobService::getJobClassMaybe)
+                .map(jobService::instantiateJob)
+                .map(jobService::getProperties)
+                .map(p -> p.get(JobPropertyDefinitions.RUN_TIME_LIMIT))
+                .flatMap(JobProperty::valueMaybe);
     }
 }

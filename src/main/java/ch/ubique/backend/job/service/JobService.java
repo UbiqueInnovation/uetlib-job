@@ -18,8 +18,6 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import com.pivovarit.function.ThrowingFunction;
-
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
@@ -68,7 +66,7 @@ public class JobService {
 
     public Class<? extends Job> getJobClassOrThrow(final String className)
             throws ClassNotFoundException {
-        return classLoaderService.getClassForName(className, Job.class);
+        return classLoaderService.getJobClass(className);
     }
 
     public Optional<Class<? extends Job>> getJobClassMaybe(final JobClassAndId jobClassAndId) {
@@ -86,7 +84,8 @@ public class JobService {
 
     public JobProperties getProperties(final JobClassAndId jobClassAndId)
             throws ClassNotFoundException {
-        final var job = instantiateJob(jobClassAndId);
+        final var jobClass = getJobClassOrThrow(jobClassAndId);
+        final var job = instantiateJob(jobClass);
         return getProperties(job);
     }
 
@@ -127,10 +126,6 @@ public class JobService {
                 applicationContext
                         .getAutowireCapableBeanFactory()
                         .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
-    }
-
-    public Job instantiateJob(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
-        return instantiateJob(getJobClassOrThrow(jobClassAndId));
     }
 
     public int getJobId(final Class<? extends Job> jobClass) {
@@ -227,8 +222,9 @@ public class JobService {
 
     public Collection<Job> getAllJobs() {
         return jobDataService.findJobs().stream()
-                .map(ThrowingFunction.lifted(this::instantiateJob))
+                .map(this::getJobClassMaybe)
                 .flatMap(Optional::stream)
+                .map(this::instantiateJob)
                 .toList();
     }
 
