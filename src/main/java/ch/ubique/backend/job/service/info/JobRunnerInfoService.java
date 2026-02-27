@@ -7,6 +7,7 @@ import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.CurrentJobRunner;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -21,18 +22,20 @@ import java.util.stream.Collectors;
  * allowed job classes.
  */
 @Service
+@Profile("!job-run")
 public class JobRunnerInfoService {
 
     private final CurrentJobRunner currentJobRunner;
     private final JobService jobService;
 
-    public JobRunnerInfoService(CurrentJobRunner currentJobRunner, JobService jobService) {
+    public JobRunnerInfoService(
+            final CurrentJobRunner currentJobRunner, final JobService jobService) {
         this.currentJobRunner = currentJobRunner;
         this.jobService = jobService;
     }
 
     public List<JobSystemRunnerGroupInfo> getRunnerGroupsInfo() {
-        Map<String, List<String>> configuredJobsByGroup = getConfiguredJobsByGroup();
+        final var configuredJobsByGroup = getConfiguredJobsByGroup();
 
         return currentJobRunner.getExecutorServices().entrySet().stream()
                 .map(entry -> createGroupInfo(entry, configuredJobsByGroup))
@@ -43,9 +46,9 @@ public class JobRunnerInfoService {
     private JobSystemRunnerGroupInfo createGroupInfo(
             final java.util.Map.Entry<RunnerGroup, ThreadPoolExecutor> entry,
             final Map<String, List<String>> configuredJobsByGroup) {
-        final RunnerGroup group = entry.getKey();
-        final ThreadPoolExecutor executor = entry.getValue();
-        final ExecutorStats stats = collectExecutorStats(executor);
+        final var group = entry.getKey();
+        final var executor = entry.getValue();
+        final var stats = collectExecutorStats(executor);
 
         return new JobSystemRunnerGroupInfo(
                 group.identifier(),
