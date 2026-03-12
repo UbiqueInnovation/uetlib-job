@@ -85,6 +85,10 @@ public final class DedicatedJobRunner implements JobRunner {
         };
     }
 
+    public JobRun activeJobRun() {
+        return activeJobRun;
+    }
+
     public void awaitCompletion() {
         try {
             if (future != null) {
