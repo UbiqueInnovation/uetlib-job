@@ -10,6 +10,7 @@ import com.google.common.base.CaseFormat;
 
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
+import io.kubernetes.client.openapi.models.V1VolumeMount;
 
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.springframework.context.ApplicationContext;
@@ -72,7 +73,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
                         .image(currentPodContainer.getImage())
                         .args(args)
                         .envFrom(currentPodContainer.getEnvFrom())
-                        .volumeMounts(currentPodContainer.getVolumeMounts())
+                        .volumeMounts(mainContainerVolumeMounts(kubernetesJobRunContext))
                         .imagePullPolicy(currentPodContainer.getImagePullPolicy())
                         .resources(resources(kubernetesJobRunContext));
 
@@ -89,6 +90,12 @@ public class KubernetesJobWrapper extends KubernetesJob {
         }
 
         return container;
+    }
+
+    protected List<V1VolumeMount> mainContainerVolumeMounts(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var currentPodContainer = getCurrentPodContainer(kubernetesJobRunContext);
+        return currentPodContainer.getVolumeMounts();
     }
 
     @Override

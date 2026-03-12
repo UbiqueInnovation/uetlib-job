@@ -1,5 +1,8 @@
 package ch.ubique.backend.job.k8s;
 
+import static com.google.common.base.CaseFormat.LOWER_HYPHEN;
+import static com.google.common.base.CaseFormat.UPPER_CAMEL;
+
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static java.util.Objects.requireNonNull;
@@ -48,10 +51,14 @@ public abstract class KubernetesJob implements Job {
         return kubernetesJobRunContext.kubernetesContext().currentNamespace();
     }
 
-    private static Optional<V1PodSpec> getCurrentPodSpec(
+    protected static Optional<V1PodSpec> getCurrentPodSpec(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod())
-                .map(V1Pod::getSpec);
+        return currentPod(kubernetesJobRunContext).map(V1Pod::getSpec);
+    }
+
+    protected static Optional<V1Pod> currentPod(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod());
     }
 
     @Override
@@ -103,7 +110,7 @@ public abstract class KubernetesJob implements Job {
 
     protected Optional<String> maybeGetCurrentPodName(
             final KubernetesJobRunContext kubernetesJobRunContext) {
-        return Optional.ofNullable(kubernetesJobRunContext.kubernetesContext().currentPod())
+        return currentPod(kubernetesJobRunContext)
                 .map(V1Pod::getMetadata)
                 .map(V1ObjectMeta::getName);
     }
@@ -232,50 +239,51 @@ public abstract class KubernetesJob implements Job {
 
     protected String kubernetesJobName(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentDeploymentName = getCurrentDeploymentName(kubernetesJobRunContext);
-        final var jobName = kubernetesJobRunContext.jobRunContext().job().name().toLowerCase();
+        final var rawJobName = kubernetesJobRunContext.jobRunContext().job().name().toLowerCase();
+        final var jobName = UPPER_CAMEL.to(LOWER_HYPHEN, rawJobName);
         final var jobRunId = kubernetesJobRunContext.jobRunContext().jobRun().id();
 
-        final var kubernetesJobName = currentDeploymentName + "-" + jobName + "-run-" + jobRunId;
+        final var jobNameWithRun = jobName + "-" + jobRunId;
 
         // see https://kubernetes.io/docs/concepts/workloads/controllers/job/#writing-a-job-spec
-        if (kubernetesJobName.length() <= 63) {
-            return kubernetesJobName;
+        if (jobNameWithRun.length() <= 63) {
+            return jobNameWithRun;
         }
 
-        final var shortKubernetesJobName = currentDeploymentName + "-run-" + jobRunId;
-        if (shortKubernetesJobName.length() <= 63) {
+        final var deploymentNameWithRun = currentDeploymentName + "-run-" + jobRunId;
+        if (deploymentNameWithRun.length() <= 63) {
             logger.info(
                     "job name cannot be longer than 63 characters, got {} characters for job name {}."
                             + " Using shortened name: {}",
-                    kubernetesJobName.length(),
-                    kubernetesJobName,
-                    shortKubernetesJobName);
-            return shortKubernetesJobName;
+                    jobNameWithRun.length(),
+                    jobNameWithRun,
+                    deploymentNameWithRun);
+            return deploymentNameWithRun;
         }
 
-        final var shortCurrentDeploymentName =
+        final var shortDeploymentName =
                 Arrays.stream(currentDeploymentName.split("-"))
                         .filter(StringUtils::isNotBlank)
                         .map(part -> part.substring(0, 1))
-                        .collect(joining("-"));
-        final var evenShorterKubernetesJobName = shortCurrentDeploymentName + "-run-" + jobRunId;
+                        .collect(joining(""));
+        final var shortDeploymentNameWithRun = shortDeploymentName + "-run-" + jobRunId;
         // Pray it is short enough
-        if (evenShorterKubernetesJobName.length() <= 63) {
+        if (shortDeploymentNameWithRun.length() <= 63) {
             logger.info(
                     "job name cannot be longer than 63 characters, got {} characters for job name {}."
                             + " Using shortened name: {}",
-                    kubernetesJobName.length(),
-                    kubernetesJobName,
-                    evenShorterKubernetesJobName);
-            return evenShorterKubernetesJobName;
+                    jobNameWithRun.length(),
+                    jobNameWithRun,
+                    shortDeploymentNameWithRun);
+            return shortDeploymentNameWithRun;
         }
 
         // commit Seppuku
         throw new IllegalStateException(
                 "Job name still longer than 63 characters even after shortening "
-                        + kubernetesJobName
+                        + jobNameWithRun
                         + " down to "
-                        + evenShorterKubernetesJobName
+                        + shortDeploymentNameWithRun
                         + ". Cannot handle :(");
     }
 
