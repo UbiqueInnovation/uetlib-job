@@ -239,7 +239,7 @@ public abstract class KubernetesJob implements Job {
 
     protected String kubernetesJobName(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentDeploymentName = getCurrentDeploymentName(kubernetesJobRunContext);
-        final var rawJobName = kubernetesJobRunContext.jobRunContext().job().name().toLowerCase();
+        final var rawJobName = kubernetesJobRunContext.jobRunContext().job().name();
         final var jobName = UPPER_CAMEL.to(LOWER_HYPHEN, rawJobName);
         final var jobRunId = kubernetesJobRunContext.jobRunContext().jobRun().id();
 
