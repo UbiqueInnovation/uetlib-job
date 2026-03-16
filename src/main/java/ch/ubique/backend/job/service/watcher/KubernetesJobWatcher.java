@@ -2,6 +2,8 @@ package ch.ubique.backend.job.service.watcher;
 
 import static ch.ubique.backend.core.utils.MdcUtils.runnableWithContext;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
@@ -10,6 +12,7 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.service.k8s.KubernetesAvailableConfigurationCondition;
 import ch.ubique.backend.job.service.k8s.KubernetesService;
+import ch.ubique.backend.job.service.watcher.LineWithEndingReader.LineWithEnding;
 
 import com.google.common.reflect.TypeToken;
 
@@ -34,6 +37,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,6 +49,14 @@ import java.util.concurrent.Executors;
 @Profile("!job-run")
 @Conditional(KubernetesAvailableConfigurationCondition.class)
 public class KubernetesJobWatcher {
+
+    /**
+     * Some pods might use \r to move the carriage back to the start of the current line when
+     * logging progress. Without a rate limit, this results in way too many lines logged by this
+     * service. Therefore, carriage return 'lines' are only printed according to this rate limit.
+     * New lines (\n) are always printed.
+     */
+    private static final Duration PROGRESS_RATE_LIMIT = Duration.ofSeconds(5);
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final KubernetesService kubernetesService;
@@ -113,15 +125,26 @@ public class KubernetesJobWatcher {
                                 .buildCall(null)
                                 .execute();
                 final var charStream = requireNonNull(response.body()).charStream();
-                final var reader = new BufferedReader(charStream)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                logger.info("Pod logs: {}", line);
-            }
+                final var reader = new LineWithEndingReader(new BufferedReader(charStream))) {
+            readLogLines(reader);
         } catch (final IOException e) {
             logger.info("Exception while logs job.", e);
         } catch (final ApiException e) {
             logger.info("Exception while logs job: {}", e.getResponseBody(), e);
+        }
+    }
+
+    private void readLogLines(final LineWithEndingReader reader) throws IOException {
+        long lastLogMillis = -1;
+        final var rateLimit = PROGRESS_RATE_LIMIT.toMillis();
+        LineWithEnding line;
+        while ((line = reader.readLineWithEnding()) != null) {
+            final var currentTimeMillis = System.currentTimeMillis();
+            final var millisSinceLast = currentTimeMillis - lastLogMillis;
+            if (isNotBlank(line.text()) && (line.isNewLine() || millisSinceLast >= rateLimit)) {
+                logger.info("Pod logs: {}", line.text());
+                lastLogMillis = currentTimeMillis;
+            }
         }
     }
 
