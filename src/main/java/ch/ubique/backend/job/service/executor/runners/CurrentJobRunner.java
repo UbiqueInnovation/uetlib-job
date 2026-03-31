@@ -32,7 +32,8 @@ public final class CurrentJobRunner implements JobRunner {
     private final Map<RunnerGroup, ThreadPoolExecutor> executorServices;
     private final Map<Integer, Future<?>> futuresByJobRun;
     private final Map<Integer, RunnerGroup> runnerGroupByJobRun;
-    private final Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> queuedJobRuns;
+    private final Map<RunnerGroup, Collection<CurrentRunnerItem>> queuedJobRuns;
+    private final Map<RunnerGroup, Collection<CurrentRunnerItem>> activeJobRuns;
 
     private final JobService jobService;
 
@@ -42,14 +43,19 @@ public final class CurrentJobRunner implements JobRunner {
         futuresByJobRun = new ConcurrentHashMap<>();
         runnerGroupByJobRun = new ConcurrentHashMap<>();
         queuedJobRuns = new ConcurrentHashMap<>();
+        activeJobRuns = new ConcurrentHashMap<>();
     }
 
     public Map<RunnerGroup, ThreadPoolExecutor> getExecutorServices() {
         return Collections.unmodifiableMap(executorServices);
     }
 
-    public Map<RunnerGroup, Collection<CurrentRunnerQueueItem>> getQueuedJobRuns() {
+    public Map<RunnerGroup, Collection<CurrentRunnerItem>> getQueuedJobRuns() {
         return Collections.unmodifiableMap(queuedJobRuns);
+    }
+
+    public Map<RunnerGroup, Collection<CurrentRunnerItem>> getActiveJobRuns() {
+        return Collections.unmodifiableMap(activeJobRuns);
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
@@ -69,22 +75,26 @@ public final class CurrentJobRunner implements JobRunner {
             return false;
         }
 
-        final var executorService = getExecutorService(runnerGroup);
-        final var jobRunId = jobRunContext.jobRun().id();
-        runnerGroupByJobRun.put(jobRunId, runnerGroup);
-        final var queueItem =
-                new CurrentRunnerQueueItem(job.getClass(), jobRunContext.jobRun().id());
         final var runnerGroupQueue =
                 queuedJobRuns.computeIfAbsent(
                         runnerGroup, ignored -> new ConcurrentLinkedDeque<>());
-        runnerGroupQueue.add(queueItem);
+        final var runnerGroupActive =
+                activeJobRuns.computeIfAbsent(
+                        runnerGroup, ignored -> new ConcurrentLinkedDeque<>());
+        final var jobRunId = jobRunContext.jobRun().id();
+        runnerGroupByJobRun.put(jobRunId, runnerGroup);
+        final var item = new CurrentRunnerItem(job.getClass(), jobRunContext.jobRun().id());
+        runnerGroupQueue.add(item);
+        final var executorService = getExecutorService(runnerGroup);
         final var future =
                 executorService.submit(
                         () -> {
-                            runnerGroupQueue.remove(queueItem);
+                            runnerGroupActive.add(item);
+                            runnerGroupQueue.remove(item);
                             JobRunnerHelper.run(job, jobService, jobRunContext);
                             futuresByJobRun.remove(jobRunId);
                             runnerGroupByJobRun.remove(jobRunId);
+                            runnerGroupActive.remove(item);
                         });
         futuresByJobRun.put(jobRunId, future);
         return true;
@@ -101,6 +111,7 @@ public final class CurrentJobRunner implements JobRunner {
         if (runnerGroup != null) {
             getExecutorService(runnerGroup).purge(); // Remove canceled tasks from the queue
             queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
+            activeJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
         }
         runnerGroupByJobRun.remove(runId);
         futuresByJobRun.remove(runId);
