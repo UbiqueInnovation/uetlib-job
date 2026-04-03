@@ -3,6 +3,7 @@ package ch.ubique.backend.job.data.service;
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.repository.*;
+import ch.ubique.backend.job.logging.JobRunLoggingEvent;
 import ch.ubique.backend.job.logging.LoggingEvent;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.entity.*;
@@ -22,8 +23,8 @@ import jakarta.validation.constraints.Positive;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.springframework.data.domain.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -44,6 +45,7 @@ public class JobDataService {
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final K8sJobRepository k8sJobRepository;
     private final LoggingEventRepository loggingEventRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -57,7 +59,8 @@ public class JobDataService {
             final JobRunInputRepository jobRunInputRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
             final K8sJobRepository k8sJobRepository,
-            final LoggingEventRepository loggingEventRepository) {
+            final LoggingEventRepository loggingEventRepository,
+            final JdbcTemplate jdbcTemplate) {
         this.jobRepository = jobRepository;
         this.jobTriggerRepository = jobTriggerRepository;
         this.jobPropertyRepository = jobPropertyRepository;
@@ -68,6 +71,7 @@ public class JobDataService {
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -346,10 +350,20 @@ public class JobDataService {
         return jobRunInputRepository.existsByRunId(runId);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void insertLogEvent(
-            final int jobRunId, final Instant timestamp, final String formattedMessage) {
-        loggingEventRepository.save(new LoggingEventEntity(jobRunId, timestamp, formattedMessage));
+    @Transactional
+    public void insertLogEvents(final Collection<JobRunLoggingEvent> logEvents) {
+        if (logEvents.isEmpty()) {
+            return;
+        }
+        jdbcTemplate.batchUpdate(
+                "insert into t_logging_event (fk_job_run_id, timestamp, formatted_message) values (?, ?, ?)",
+                logEvents,
+                logEvents.size(),
+                (ps, e) -> {
+                    ps.setInt(1, e.jobRunId());
+                    ps.setObject(2, java.sql.Timestamp.from(e.timestamp()));
+                    ps.setString(3, e.formattedMessage());
+                });
     }
 
     @Transactional(readOnly = true)
