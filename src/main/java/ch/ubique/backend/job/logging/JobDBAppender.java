@@ -5,11 +5,17 @@ import ch.qos.logback.core.UnsynchronizedAppenderBase;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.service.logs.LogFormatterService;
 
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
 public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final int BATCH_SIZE = 1_000;
     private final JobDataService jobDataService;
@@ -33,14 +39,24 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
 
     @Override
     protected void append(final ILoggingEvent event) {
-        final var mdc = event.getMDCPropertyMap();
-        if (mdc == null || !mdc.containsKey("jobRunId")) {
+        final var jobRunId = getJobRunId(event);
+        if (jobRunId == null) {
             return;
         }
-
-        final var jobRunId = Integer.parseInt(mdc.get("jobRunId"));
         final var formattedMessage = logFormatterService.toFormattedMessage(event);
         logQueue.add(new JobRunLoggingEvent(jobRunId, event.getInstant(), formattedMessage));
+    }
+
+    private static @Nullable Integer getJobRunId(final ILoggingEvent event) {
+        final var mdc = event.getMDCPropertyMap();
+        if (mdc == null || !mdc.containsKey("jobRunId")) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(mdc.get("jobRunId"));
+        } catch (final NumberFormatException e) {
+            return null;
+        }
     }
 
     private synchronized void writeQueueToDB() {
@@ -52,7 +68,10 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
                 return;
             }
 
-            jobDataService.insertLogEvents(drainedEvents);
+            final var success = tryToInsert();
+            if (!success) {
+                return;
+            }
 
             if (drainedEvents.size() < BATCH_SIZE) {
                 return;
@@ -60,10 +79,21 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
         }
     }
 
+    private boolean tryToInsert() {
+        try {
+            jobDataService.insertLogEvents(drainedEvents);
+            return true;
+        } catch (final Exception e) {
+            logQueue.addAll(drainedEvents);
+            logger.warn("Failed to insert log events to database.", e);
+            return false;
+        }
+    }
+
     @Override
     public void start() {
         super.start();
-        scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 0, 3, TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 0, 5, TimeUnit.SECONDS);
     }
 
     @Override
