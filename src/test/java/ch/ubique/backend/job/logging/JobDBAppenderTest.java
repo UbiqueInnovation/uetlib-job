@@ -69,7 +69,7 @@ class JobDBAppenderTest {
         verify(jobDataService).insertLogEvents(captor.capture());
 
         final var captured = captor.getValue();
-        assert captured.size() == 2;
+        assertEquals(2, captured.size());
     }
 
     @SuppressWarnings("unchecked")
