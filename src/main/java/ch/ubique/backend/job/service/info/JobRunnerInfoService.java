@@ -58,6 +58,7 @@ public class JobRunnerInfoService {
                 stats.busyThreads(),
                 stats.queueLength(),
                 currentJobRunner.getQueuedJobRuns().get(entry.getKey()),
+                currentJobRunner.getActiveJobRuns().get(entry.getKey()),
                 stats.completedTaskCount(),
                 stats.largestPoolSize(),
                 stats.currentPoolSize());
