@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.2.1
+
+- Improved performance of `JobDBAppender` by inserting log entries in batches.
+
 ## 3.2.0
 
 - Drop `uetlib-spring-boot-validation` dependency in favor of `uetlib-spring-boot@v2.1.0`
