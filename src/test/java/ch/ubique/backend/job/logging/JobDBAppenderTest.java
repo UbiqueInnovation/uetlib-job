@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.logging;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -25,7 +26,7 @@ class JobDBAppenderTest {
     void setUp() {
         jobDataService = mock(JobDataService.class);
         logFormatterService = mock(LogFormatterService.class);
-        appender = new JobDBAppender(jobDataService, logFormatterService);
+        appender = new JobDBAppender(jobDataService, logFormatterService, null);
         appender.start();
     }
 
