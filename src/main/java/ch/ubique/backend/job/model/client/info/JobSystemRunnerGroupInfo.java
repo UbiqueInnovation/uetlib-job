@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.model.client.info;
 
-import ch.ubique.backend.job.service.executor.runners.CurrentRunnerQueueItem;
+import ch.ubique.backend.job.service.executor.runners.CurrentRunnerItem;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -23,7 +23,8 @@ public record JobSystemRunnerGroupInfo(
         // Thread pool executor
         int busyThreads,
         int queueLength,
-        @NotNull Collection<CurrentRunnerQueueItem> queueElements,
+        @NotNull Collection<CurrentRunnerItem> queueElements,
+        @NotNull Collection<CurrentRunnerItem> activeElements,
         @PositiveOrZero long completedTaskCount,
         @PositiveOrZero int largestPoolSize,
         @PositiveOrZero int currentPoolSize) {}

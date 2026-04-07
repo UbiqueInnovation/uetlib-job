@@ -5,6 +5,7 @@ import static ch.ubique.backend.core.utils.TimeUtils.isBetween;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.backend.job.data.BaseJobDatabaseTest;
+import ch.ubique.backend.job.logging.JobRunLoggingEvent;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobRunStateTransition;
@@ -54,6 +55,21 @@ class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
                 jobDataService.findAnyJobRunInStatesSince(
                         1, Set.of(), Instant.now().minus(Duration.ofHours(24)));
         assertTrue(jobRun3.isEmpty());
+    }
+
+    @Test
+    void testInsertLogEvents() {
+        final var jobRunId = 1;
+        final var now = Instant.now();
+        final var logs =
+                List.of(
+                        new JobRunLoggingEvent(jobRunId, now, "msg1"),
+                        new JobRunLoggingEvent(jobRunId, now.plusMillis(1), "msg2"));
+        jobDataService.insertLogEvents(logs);
+
+        final var insertedLogs = jobDataService.findAllLogsForJobRun(jobRunId);
+        assertTrue(insertedLogs.stream().anyMatch(l -> "msg1".equals(l.formattedMessage())));
+        assertTrue(insertedLogs.stream().anyMatch(l -> "msg2".equals(l.formattedMessage())));
     }
 
     @Test
