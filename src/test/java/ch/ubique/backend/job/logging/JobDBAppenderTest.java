@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.logging;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
