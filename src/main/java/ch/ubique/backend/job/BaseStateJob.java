@@ -3,7 +3,6 @@ package ch.ubique.backend.job;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
-import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
@@ -17,32 +16,17 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.retry.RetryException;
-import org.springframework.core.retry.RetryPolicy;
-import org.springframework.core.retry.RetryTemplate;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
 public abstract class BaseStateJob<T> implements Job {
-
-    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER =
-            new RetryTemplate(
-                    RetryPolicy.builder()
-                            .includes(Exception.class)
-                            .maxRetries(9)
-                            .delay(Duration.ofSeconds(2))
-                            .maxDelay(Duration.ofMinutes(5))
-                            .multiplier(2.0)
-                            .jitter(Duration.ofSeconds(1))
-                            .build());
 
     protected static final String STATE_PATH = "state.json";
 
@@ -50,33 +34,19 @@ public abstract class BaseStateJob<T> implements Job {
 
     private final JobDataService jobDataService;
     private final JobRunInputManager jobRunInputManager;
-    private final ObjectMapper objectMapper;
-    private final JobExecutorService jobExecutorService;
-    private final RetryTemplate retryTemplate;
+    private final JsonMapper jsonMapper;
+    private final ApplicationContext applicationContext;
 
     protected BaseStateJob(@NonNull final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
-        objectMapper = applicationContext.getBean(ObjectMapper.class);
-        jobExecutorService = applicationContext.getBean(JobExecutorService.class);
+        jsonMapper = applicationContext.getBean(JsonMapper.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
-
-        final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
-        retryTemplate.setRetryListener(new LoggingRetryListener());
-        this.retryTemplate = retryTemplate;
+        this.applicationContext = applicationContext;
     }
 
     @Override
     public boolean supportsForceRun() {
         return true;
-    }
-
-    protected final T getLatestStateWithRetry(final JobRunContext jobRunContext) throws Exception {
-        try {
-            return retryTemplate().execute(() -> getLatestState(jobRunContext));
-        } catch (final RetryException e) {
-            logger.error("Could not load state even after retries and backoff.", e);
-            throw new RuntimeException(e.getCause());
-        }
     }
 
     /**
@@ -88,6 +58,7 @@ public abstract class BaseStateJob<T> implements Job {
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
     @NonNull
+    @SuppressWarnings("java:S112")
     protected abstract T getLatestState(JobRunContext jobRunContext) throws Exception;
 
     /**
@@ -148,8 +119,7 @@ public abstract class BaseStateJob<T> implements Job {
         // Compute latest state
         logger.debug("Computing latest state.");
         final var latestState =
-                requireNonNull(
-                        getLatestStateWithRetry(jobRunContext), "Latest state must not be null");
+                requireNonNull(getLatestState(jobRunContext), "Latest state must not be null");
         logger.debug("Got latest state {}.", latestState);
 
         // Skip if allowed
@@ -165,18 +135,19 @@ public abstract class BaseStateJob<T> implements Job {
         final var processingRunnerKey = requireNonNullElse(runnerForProcessing(), currentRunnerKey);
         if (currentRunnerKey != processingRunnerKey) {
             logger.info("Requested to run processing on runner {}.", processingRunnerKey);
-            jobExecutorService.submit(
-                    getClass(), jobRunContext.arguments(), currentJobRun.id(), processingRunnerKey);
+            applicationContext
+                    .getBean(JobExecutorService.class)
+                    .submit(
+                            getClass(),
+                            jobRunContext.arguments(),
+                            currentJobRun.id(),
+                            processingRunnerKey);
             return JobRunState.SCHEDULED;
         }
 
         // Start processing on current runner
         logger.info("Starting processing.");
         return processState(latestState, jobRunContext);
-    }
-
-    protected RetryTemplate retryTemplate() {
-        return retryTemplate;
     }
 
     private boolean isAllowedToSkipAndCanSkip(
@@ -220,7 +191,7 @@ public abstract class BaseStateJob<T> implements Job {
     private void saveState(final T state, final JobRunContext jobRunContext) throws IOException {
         logger.debug("Saving state {}.", state);
         final var inputDeclaration = stateInputDeclaration(jobRunContext.jobRun());
-        final var output = new JsonOutput<>(state, objectMapper);
+        final var output = new JsonOutput<>(state, jsonMapper);
         jobRunInputManager.save(inputDeclaration, output);
     }
 
@@ -234,7 +205,7 @@ public abstract class BaseStateJob<T> implements Job {
     private T loadState(@NonNull final JobRun jobRun) {
         logger.debug("Loading state of run {}.", jobRun.id());
         try (final var inputStream = getStateInputStream(jobRun)) {
-            final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
+            final var previousState = jsonMapper.readValue(inputStream, stateTypeReference());
             logger.debug("Resolved state {}.", previousState);
             return previousState;
         } catch (final JacksonException e) {

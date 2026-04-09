@@ -44,7 +44,7 @@ public abstract class JobStateCheck implements StatusCheck {
     @Override
     public final CheckStatus check() {
         final var failedJobs =
-                jobDataService.findJobs().stream()
+                jobService.getAllJobClassesWithId().stream()
                         .filter(this::checkJobFailed)
                         .map(JobClassAndId::canonicalClassName)
                         .toList();

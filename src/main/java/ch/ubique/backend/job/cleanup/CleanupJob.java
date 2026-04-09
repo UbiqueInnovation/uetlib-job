@@ -78,7 +78,7 @@ public class CleanupJob implements Job {
 
     private @NonNull JobRunState cleanJobRuns() {
         var hasWarnings = false;
-        for (final var job : jobDataService.findJobs()) {
+        for (final var job : jobService.getAllJobClassesWithId()) {
             final var success = cleanJob(job);
             if (!success) {
                 hasWarnings = true;
@@ -111,7 +111,9 @@ public class CleanupJob implements Job {
                 jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP_SKIPPED).valueMaybe();
         final var chunkSize = jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value();
 
-        final var cleanableRuns = jobDataService.findCleanableRuns(job.id(), daysToKeep, daysToKeepSkipped, chunkSize);
+        final var cleanableRuns =
+                jobDataService.findCleanableRuns(
+                        job.id(), daysToKeep, daysToKeepSkipped, chunkSize);
 
         logger.info("Cleaning input files for {} runs.", cleanableRuns.size());
         VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);

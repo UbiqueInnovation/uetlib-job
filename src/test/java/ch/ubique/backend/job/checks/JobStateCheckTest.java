@@ -44,11 +44,10 @@ class JobStateCheckTest {
 
     @BeforeEach
     void beforeEach() {
-        Mockito.when(jobDataService.findJobs()).thenReturn(List.of(job));
+        Mockito.when(jobService.getAllJobClassesWithId()).thenReturn(List.of(job));
         Mockito.when(jobService.getJobClassMaybe(Mockito.<JobClassAndId>any()))
                 .thenReturn(Optional.of(TestJob.class));
-        Mockito.when(jobService.instantiateJob(Mockito.<Class<? extends Job>>any()))
-                .thenReturn(new TestJob());
+        Mockito.when(jobService.instantiateJob(Mockito.any())).thenReturn(new TestJob());
     }
 
     @Test

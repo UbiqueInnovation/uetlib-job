@@ -20,9 +20,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class JobSubmissionService {
 
+    private final JobService jobService;
+
     private final JobDataService jobDataService;
 
-    public JobSubmissionService(final JobDataService jobDataService) {
+    public JobSubmissionService(final JobService jobService, final JobDataService jobDataService) {
+        this.jobService = jobService;
         this.jobDataService = jobDataService;
     }
 
@@ -32,12 +35,11 @@ public class JobSubmissionService {
             @Nullable final JobRunArgumentsAdditionalData additionalData)
             throws JobSubmissionException {
         final var jobId =
-                jobDataService
-                        .findJobByCanonicalClassName(jobClassName)
+                jobService
+                        .findJobId(jobClassName)
                         .orElseThrow(
                                 JobSubmissionException.supplierWithMessage(
-                                        "No Job with clazz {0} found", jobClassName))
-                        .id();
+                                        "No Job with clazz {0} found", jobClassName));
         jobDataService.insertNewDatabaseSubmission(
                 jobId, new JobRunDatabaseSubmissionArguments(forceRun, additionalData));
     }

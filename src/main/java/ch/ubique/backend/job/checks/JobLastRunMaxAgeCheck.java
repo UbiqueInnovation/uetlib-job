@@ -47,7 +47,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
     @Override
     public CheckStatus check() {
         final var errors =
-                jobDataService.findJobs().stream()
+                jobService.getAllJobClassesWithId().stream()
                         .map(this::checkJobOverdue)
                         .flatMap(Optional::stream)
                         .toList();

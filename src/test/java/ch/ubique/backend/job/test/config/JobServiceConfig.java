@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.test.config;
 
+import static org.mockito.Mockito.mock;
+
 import ch.ubique.backend.job.annotation.EnableJobs;
 import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -14,6 +16,7 @@ import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
@@ -65,10 +68,11 @@ public class JobServiceConfig {
             final ClassLoaderService classLoaderService,
             @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
                     final RegisteredJobDefinitions registeredJobDefinitions) {
-        final var jobRegistrationService =
-                new JobRegistrationService(jobDataService, classLoaderService);
-        jobRegistrationService.registerAllJobs(registeredJobDefinitions);
-        return jobRegistrationService;
+        return new JobRegistrationService(
+                jobDataService,
+                classLoaderService,
+                mock(Environment.class),
+                registeredJobDefinitions);
     }
 
     @Bean
