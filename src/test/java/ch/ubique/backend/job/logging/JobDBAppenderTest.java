@@ -65,16 +65,12 @@ class JobDBAppenderTest {
 
         appender.stop();
 
+        //noinspection unchecked
         final ArgumentCaptor<Collection<JobRunLoggingEvent>> captor =
                 ArgumentCaptor.forClass(Collection.class);
         verify(jobDataService).insertLogEvents(captor.capture());
 
         final var captured = captor.getValue();
         assertEquals(2, captured.size());
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> Collection<T> anyCollection() {
-        return any(Collection.class);
     }
 }
