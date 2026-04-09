@@ -4,9 +4,10 @@ import ch.ubique.backend.core.utils.ArrayUtils;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
+import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.storage.JobRunStorage;
-
 import ch.ubique.backend.storage.output.Output;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,11 +23,16 @@ public class JobRunInputManager implements JobRunInputProvider {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final JobRunStorage jobRunStorage;
+
+    private final JobService jobService;
     private final JobDataService jobDataService;
 
     public JobRunInputManager(
-            final JobRunStorage jobRunStorage, final JobDataService jobDataService) {
+            final JobRunStorage jobRunStorage,
+            final JobService jobService,
+            final JobDataService jobDataService) {
         this.jobRunStorage = jobRunStorage;
+        this.jobService = jobService;
         this.jobDataService = jobDataService;
     }
 
@@ -97,7 +103,7 @@ public class JobRunInputManager implements JobRunInputProvider {
 
     private String getJobSimpleName(final JobRunInputDeclaration inputDeclaration) {
         final var jobRun = jobDataService.findJobRunById(inputDeclaration.jobRunId()).orElseThrow();
-        final var job = jobDataService.findJobById(jobRun.jobId()).orElseThrow();
+        final var job = jobService.findJobByIdOrThrow(jobRun.jobId());
         return ArrayUtils.lastElement(job.canonicalClassName().split("\\."));
     }
 }

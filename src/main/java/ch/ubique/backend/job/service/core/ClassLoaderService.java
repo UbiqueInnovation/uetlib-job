@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.core;
 
 import ch.ubique.backend.job.Job;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,14 @@ public final class ClassLoaderService {
 
     public Class<? extends Job> getJobClass(final String className) throws ClassNotFoundException {
         return getClassForName(className, Job.class);
+    }
+
+    public @Nullable Class<? extends Job> getJobClassIfExists(final String className) {
+        try {
+            return getClassForName(className, Job.class);
+        } catch (final ClassNotFoundException e) {
+            return null;
+        }
     }
 
     public Class<?> getClassForName(final String className) throws ClassNotFoundException {

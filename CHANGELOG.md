@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.3.0
+
+- Major Performance improvements
+
 ## 3.2.2
 
 - Made new `JobDBAppender` more robust.

@@ -13,7 +13,7 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.*;
 
 @Service
+@NullMarked
 public class JobExecutorService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobExecutorService.class);
@@ -37,18 +38,17 @@ public class JobExecutorService {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    public JobSubmissionResult submit(@NonNull final Class<? extends Job> jobClass) {
+    public JobSubmissionResult submit(final Class<? extends Job> jobClass) {
         return submit(jobClass, null);
     }
 
     public JobSubmissionResult submit(
-            @NonNull final Class<? extends Job> jobClass,
-            @Nullable final JobRunArguments arguments) {
+            final Class<? extends Job> jobClass, @Nullable final JobRunArguments arguments) {
         return submit(jobClass, arguments, null, null);
     }
 
     public JobSubmissionResult submit(
-            @NonNull final Class<? extends Job> jobClass,
+            final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
@@ -75,7 +75,7 @@ public class JobExecutorService {
         logger.info("{} submitted to executor.", jobClass);
         final var selectedJobRunnerKey = getSelectedJobRunnerKey(job, jobRunnerKey);
         final var jobRunContext = createContext(job, runId, selectedJobRunnerKey, arguments);
-        final var runner = jobRunners.get(selectedJobRunnerKey);
+        final var runner = Objects.requireNonNull(jobRunners.get(selectedJobRunnerKey));
 
         final var jobRun = jobRunContext.jobRun();
         final var previousContextMap = MDC.getCopyOfContextMap();
@@ -112,38 +112,36 @@ public class JobExecutorService {
 
     private boolean isCurrentlyRunning(final Job job) {
         return jobService
-                .getLastJobRun(jobService.findOrInsertJobByClass(job.getClass()).id())
+                .findJobId(job.getClass())
+                .flatMap(jobService::getLastJobRun)
                 .map(JobRun::latestState)
                 .map(JobRunState::isRunning)
                 .orElse(false);
     }
 
-    private boolean isSameAsLastRun(final Job job, final Integer runId) {
+    private boolean isSameAsLastRun(final Job job, final @Nullable Integer runId) {
         if (runId == null) {
             return false;
         }
-        final var lastRun =
-                jobService.getLastJobRun(jobService.findOrInsertJobByClass(job.getClass()).id());
+        final var lastRun = jobService.findJobId(job.getClass()).flatMap(jobService::getLastJobRun);
         return lastRun.isPresent() && lastRun.get().id() == runId;
     }
 
-    @NonNull
     private JobRunContext createContext(
-            @NonNull final Job job,
+            final Job job,
             @Nullable final Integer runId,
-            @NonNull final JobRunnerKey runnerKey,
+            final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
         final var arguments =
                 Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
-        final var jobClassAndId = jobService.findOrInsertJobByClass(job.getClass());
+        final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
         return new JobRunContext(jobClassAndId, jobRun, arguments, jobProperties);
     }
 
-    @NonNull
     private JobRunnerKey getSelectedJobRunnerKey(
-            @NonNull final Job job, @Nullable final JobRunnerKey jobRunnerKey) {
+            final Job job, @Nullable final JobRunnerKey jobRunnerKey) {
         final var jobProperties = jobService.getProperties(job);
 
         final var selectedJobRunnerKey =
@@ -158,8 +156,7 @@ public class JobExecutorService {
         return selectedJobRunnerKey;
     }
 
-    @NonNull
-    private JobRunnerKey getRunnerKeyFromJobProperties(@NonNull final JobProperties jobProperties) {
+    private JobRunnerKey getRunnerKeyFromJobProperties(final JobProperties jobProperties) {
         return jobProperties.get(JobPropertyDefinitions.RUNNER).value();
     }
 }

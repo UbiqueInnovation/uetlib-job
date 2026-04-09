@@ -4,6 +4,7 @@ import static ch.ubique.backend.job.model.JobRunState.CANCELLED;
 
 import static java.util.Optional.ofNullable;
 
+import ch.ubique.backend.core.utils.SingleCache;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
@@ -18,24 +19,29 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import org.jspecify.annotations.NonNull;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.retry.RetryException;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@NullMarked
+@DependsOn("jobRegistrationService")
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
@@ -43,8 +49,16 @@ public class JobService {
     private final String versionTag;
     private final RetryTemplate retryTemplate;
     private final JobDataService jobDataService;
+
     private final ApplicationContext applicationContext;
-    private final ClassLoaderService classLoaderService;
+
+    private final Collection<JobRunner> jobRunners;
+
+    private final Map<Integer, Class<? extends Job>> jobClassesById;
+    private final Map<String, Class<? extends Job>> jobClassesByCanonicalClassName;
+    private final Map<String, Integer> jobIdsByCanonicalClassName;
+
+    private final SingleCache<Collection<String>> enabledJobsCache;
 
     public JobService(
             final JobDataService jobDataService,
@@ -53,19 +67,42 @@ public class JobService {
             final BuildProperties buildProperties) {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
-        this.classLoaderService = classLoaderService;
         this.retryTemplate = new RetryTemplate(RetryPolicy.builder().maxRetries(9).build());
-        this.versionTag = buildProperties.getVersion();
+        this.versionTag = Objects.requireNonNull(buildProperties.getVersion());
+        this.jobRunners = applicationContext.getBeansOfType(JobRunner.class).values();
+        this.enabledJobsCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
+
+        // Initialize the job maps
+        jobClassesById = new HashMap<>();
+        jobClassesByCanonicalClassName = new HashMap<>();
+        jobIdsByCanonicalClassName = new HashMap<>();
+        final var jobClassesAndIds = jobDataService.getAllJobsKnownByDatabase();
+        for (final var jobClassAndId : jobClassesAndIds) {
+            final var canonicalClassName = jobClassAndId.canonicalClassName();
+            final var jobClass = classLoaderService.getJobClassIfExists(canonicalClassName);
+            if (jobClass != null) {
+                jobClassesById.put(jobClassAndId.id(), jobClass);
+                jobClassesByCanonicalClassName.put(canonicalClassName, jobClass);
+                jobIdsByCanonicalClassName.put(canonicalClassName, jobClassAndId.id());
+            }
+        }
+        logger.info("Job service started with {} jobs.", jobClassesById.size());
     }
 
     public Class<? extends Job> getJobClassOrThrow(final JobClassAndId jobClassAndId)
             throws ClassNotFoundException {
-        return classLoaderService.getJobClass(jobClassAndId.canonicalClassName());
+        return getJobClassOrThrow(jobClassAndId.canonicalClassName());
     }
 
     public Class<? extends Job> getJobClassOrThrow(final String className)
             throws ClassNotFoundException {
-        return classLoaderService.getJobClass(className);
+        final var jobClass = jobClassesByCanonicalClassName.get(className);
+        if (jobClass == null) {
+            throw new ClassNotFoundException(className);
+        }
+        return jobClass;
     }
 
     public Optional<Class<? extends Job>> getJobClassMaybe(final JobClassAndId jobClassAndId) {
@@ -73,12 +110,7 @@ public class JobService {
     }
 
     public Optional<Class<? extends Job>> getJobClassMaybe(final String className) {
-        try {
-            return Optional.of(getJobClassOrThrow(className));
-        } catch (final ClassNotFoundException e) {
-            logger.info("Class not found for  {}.", className);
-            return Optional.empty();
-        }
+        return ofNullable(jobClassesByCanonicalClassName.get(className));
     }
 
     public JobProperties getProperties(final JobClassAndId jobClassAndId)
@@ -88,7 +120,7 @@ public class JobService {
     }
 
     public JobProperties getProperties(final Job job) {
-        return getJobProperties(findOrInsertJobByClass(job.getClass()).id(), job);
+        return getJobProperties(findJobIdOrThrow(job.getClass()), job);
     }
 
     /**
@@ -124,43 +156,51 @@ public class JobService {
     }
 
     public Job instantiateJob(final Class<? extends Job> jobClass) {
-        return (Job)
-                applicationContext
-                        .getAutowireCapableBeanFactory()
-                        .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
+        return createNewInstance(jobClass);
     }
 
-    public JobClassAndId findOrInsertJobByClass(final Class<? extends Job> jobClass) {
-        return jobDataService.findOrInsertJob(jobClass);
+    public Optional<Integer> findJobId(final Class<? extends Job> jobClass) {
+        return findJobId(jobClass.getCanonicalName());
+    }
+
+    public Optional<Integer> findJobId(final String canonicalClassName) {
+        return ofNullable(jobIdsByCanonicalClassName.get(canonicalClassName));
+    }
+
+    public int findJobIdOrThrow(final Class<? extends Job> jobClass) {
+        return findJobIdOrThrow(jobClass.getCanonicalName());
+    }
+
+    public int findJobIdOrThrow(final String canonicalClassName) {
+        return findJobId(canonicalClassName)
+                .orElseThrow(
+                        () -> new NoSuchElementException("No such job: " + canonicalClassName));
+    }
+
+    public JobClassAndId jobClassAndIdOrThrow(final Class<? extends Job> jobClass) {
+        return new JobClassAndId(findJobIdOrThrow(jobClass), jobClass);
     }
 
     public Optional<JobClassAndId> findJobById(final int jobId) {
-        final var jobMaybe = jobDataService.findJobById(jobId);
-        if (jobMaybe.isEmpty()) {
-            logger.info("No job found for job id {}.", jobId);
-        }
-        return jobMaybe;
+        return ofNullable(jobClassesById.get(jobId)).map(job -> new JobClassAndId(jobId, job));
     }
 
     public JobClassAndId findJobByIdOrThrow(final int jobId) {
-        return jobDataService
-                .findJobById(jobId)
+        return findJobById(jobId)
                 .orElseThrow(() -> new NoSuchElementException("No job found for id " + jobId));
     }
 
     private JobRun createNewJobRun(
-            final @NonNull Job job,
-            final @NonNull JobRunnerKey runnerKey,
-            final @NonNull JobRunArguments arguments) {
-        final var jobId = findOrInsertJobByClass(job.getClass()).id();
+            final Job job, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
+        final var jobId = findJobIdOrThrow(job.getClass());
         return jobDataService.createJobRun(jobId, versionTag, runnerKey, arguments);
     }
 
     public JobRun getOrCreateJobRun(
-            final @NonNull Job job,
+            final Job job,
             @Nullable final Integer runId,
-            final @NonNull JobRunnerKey runnerKey,
-            final @NonNull JobRunArguments arguments) {
+            final JobRunnerKey runnerKey,
+            final JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
                 .map(jobRun -> setRunnerKeyAndArguments(jobRun, runnerKey, arguments))
@@ -188,24 +228,14 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public JobRun startJobRun(final @NonNull JobRun jobRun, final @NonNull Instant startedAt) {
+    public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
     }
 
     public void updateJobRunState(
-            final @NonNull JobRun jobRun,
-            final @NonNull JobRunState state,
-            final @NonNull Instant transitionedAt) {
-        try {
-            retryTemplate.execute(
-                    () -> {
-                        jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt);
-                        return null;
-                    });
-        } catch (final RetryException e) {
-            logger.warn("Could not update job run state for {} with retries.", jobRun, e);
-            throw new RuntimeException(e.getCause());
-        }
+            final JobRun jobRun, final JobRunState state, final Instant transitionedAt) {
+        retryTemplate.invoke(
+                () -> jobDataService.updateJobRunState(jobRun.id(), state, transitionedAt));
 
         logger.debug(
                 "Job run {} transitioned to state {} at time {}.",
@@ -215,14 +245,18 @@ public class JobService {
     }
 
     public Collection<Job> getAllJobs() {
-        return jobDataService.findJobs().stream()
-                .map(this::getJobClassMaybe)
-                .flatMap(Optional::stream)
-                .map(this::instantiateJob)
-                .toList();
+        return jobClassesById.values().stream().map(this::instantiateJob).toList();
     }
 
-    public boolean cancel(final @NonNull JobRun jobRun) {
+    public Collection<Class<? extends Job>> getAllJobClasses() {
+        return jobClassesById.values();
+    }
+
+    public Collection<JobClassAndId> getAllJobClassesWithId() {
+        return jobClassesById.values().stream().map(this::jobClassAndIdOrThrow).toList();
+    }
+
+    public boolean cancel(final JobRun jobRun) {
         if (!jobRun.latestState().isRunning()) {
             logger.info("Job run can not be canceled, as it is not running.");
             return false;
@@ -234,8 +268,8 @@ public class JobService {
         return true;
     }
 
-    private JobRunner jobRunner(final @NonNull JobRun jobRun) {
-        return applicationContext.getBeansOfType(JobRunner.class).values().stream()
+    private JobRunner jobRunner(final JobRun jobRun) {
+        return jobRunners.stream()
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()
                 .orElseThrow();
@@ -246,14 +280,29 @@ public class JobService {
     }
 
     public boolean isEnabled(final String jobCanonicalClassName) {
-        return jobDataService.isEnabled(jobCanonicalClassName);
+        return enabledJobsCache
+                .get(this::getEnabledJobsCanonicalNames)
+                .contains(jobCanonicalClassName);
+    }
+
+    private Collection<String> getEnabledJobsCanonicalNames() {
+        return jobDataService.getEnabledJobs().stream()
+                .map(JobClassAndId::canonicalClassName)
+                .toList();
     }
 
     public boolean exists(final String jobCanonicalClassName) {
-        return jobDataService.exists(jobCanonicalClassName);
+        return jobIdsByCanonicalClassName.containsKey(jobCanonicalClassName);
     }
 
     public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {
-        jobDataService.setEnabled(jobClass, isEnabled);
+        jobDataService.setEnabled(findJobIdOrThrow(jobClass), isEnabled);
+    }
+
+    private Job createNewInstance(final Class<? extends Job> jobClass) {
+        return (Job)
+                applicationContext
+                        .getAutowireCapableBeanFactory()
+                        .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
     }
 }

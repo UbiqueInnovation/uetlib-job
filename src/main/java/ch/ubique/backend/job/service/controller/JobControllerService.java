@@ -124,7 +124,7 @@ public class JobControllerService {
     }
 
     @NonNull
-    private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs)
+    private ArrayList<JobInfo> jobInfos(final Collection<JobClassAndId> jobs)
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var jobClassAndId : jobs) {
@@ -142,36 +142,33 @@ public class JobControllerService {
             final Collection<String> includeJobNamesOrIds,
             final Collection<String> excludeJobNamesOrIds)
             throws ClassNotFoundException {
-        final List<JobClassAndId> jobs;
-        if (CollectionUtils.isNotEmpty(includeJobNamesOrIds)) {
-            // include jobs if includeJobNamesOrIds not empty
-            final var includeJobIds = getJobIds(includeJobNamesOrIds);
-            jobs = jobDataService.findJobsInclude(includeJobIds);
-        } else if (CollectionUtils.isNotEmpty(excludeJobNamesOrIds)) {
-            // exclude jobs if excludeJobNamesOrIds not empty
-            final var excludeJobIds = getJobIds(excludeJobNamesOrIds);
-            jobs = jobDataService.findJobsExclude(excludeJobIds);
-        } else {
-            // default include all
-            jobs = jobDataService.findJobs();
-        }
-        return jobInfos(jobs);
+        return jobInfos(getJobClassAndIds(includeJobNamesOrIds, excludeJobNamesOrIds));
     }
 
-    public JobInfosContainer findJobs(final Pageable pageable) throws ClassNotFoundException {
-        final var jobsPage = jobDataService.findJobsPage(pageable);
-        final var jobs = jobsPage.toList();
+    private @NonNull Collection<JobClassAndId> getJobClassAndIds(
+            final Collection<String> include, final Collection<String> exclude) {
+        final var all = jobService.getAllJobClassesWithId();
+        if (CollectionUtils.isNotEmpty(include)) {
+            // include jobs if include not empty
+            final var includeJobIds = getJobIds(include);
+            return all.stream().filter(e -> includeJobIds.contains(e.id())).toList();
+        }
+        if (CollectionUtils.isNotEmpty(exclude)) {
+            // exclude jobs if exclude not empty
+            final var excludeJobIds = getJobIds(exclude);
+            return all.stream().filter(e -> !excludeJobIds.contains(e.id())).toList();
+        }
+        return all;
+    }
+
+    public JobInfosContainer getJobInfos() throws ClassNotFoundException {
+        final var jobs = jobService.getAllJobClassesWithId();
         final var latestRuns = findLatestJobRuns(jobs);
         final var jobInfos = jobInfos(jobs);
-        return new JobInfosContainer(
-                jobInfos,
-                latestRuns,
-                jobsPage.isFirst(),
-                jobsPage.isLast(),
-                jobsPage.getTotalPages());
+        return new JobInfosContainer(jobInfos, latestRuns, true, true, 1);
     }
 
-    public Map<Integer, JobRunInfo> findLatestJobRuns(final List<JobClassAndId> jobs) {
+    public Map<Integer, JobRunInfo> findLatestJobRuns(final Collection<JobClassAndId> jobs) {
         return jobs.stream()
                 .map(
                         job ->
@@ -284,8 +281,7 @@ public class JobControllerService {
     public void replayJobRun(final String jobIdOrClassName)
             throws ClassNotFoundException, ManualTriggerNotAllowedException {
         final var jobClass = jobService.getJobClassOrThrow(jobIdOrClassName);
-        final var lastJobRun =
-                jobService.getLastJobRun(jobService.findOrInsertJobByClass(jobClass).id());
+        final var lastJobRun = jobService.getLastJobRun(jobService.findJobIdOrThrow(jobClass));
         replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
     }
 
@@ -315,9 +311,8 @@ public class JobControllerService {
     }
 
     public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
-        final var jobs = jobDataService.findJobs();
-        for (final var job : jobs) {
-            startJobManual(job.canonicalClassName(), forceRun);
+        for (final var jobClass : jobService.getAllJobClasses()) {
+            startJobManual(jobClass.getCanonicalName(), forceRun);
         }
     }
 
@@ -367,11 +362,7 @@ public class JobControllerService {
     }
 
     private JobClassAndId jobById(final int jobId) {
-        return jobDataService
-                .findJobById(jobId)
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No Job with id {0} found", jobId));
+        return jobService.findJobByIdOrThrow(jobId);
     }
 
     public Collection<JobPropertyInfo> getJobProperties(final String jobIdOrClassName)
@@ -394,7 +385,7 @@ public class JobControllerService {
             final String jobIdOrClassName, final Map<String, String> updatedValues)
             throws ClassNotFoundException {
         jobDataService.saveProperties(
-                jobService.findOrInsertJobByClass(getJobClass(jobIdOrClassName)).id(),
+                jobService.findJobIdOrThrow(getJobClass(jobIdOrClassName)),
                 getPropertiesFromMap(updatedValues));
         return getJobProperties(jobIdOrClassName);
     }
@@ -431,7 +422,7 @@ public class JobControllerService {
     private Trigger toTrigger(final JobTrigger trigger, final Job job) {
         return new Trigger(
                 Objects.requireNonNull(trigger.id()),
-                jobService.findOrInsertJobByClass(job.getClass()).id(),
+                jobService.findJobIdOrThrow(job.getClass()),
                 trigger.definition());
     }
 
@@ -467,9 +458,7 @@ public class JobControllerService {
         try {
             return Integer.parseInt(jobIdOrClassName);
         } catch (final NumberFormatException ignored) {
-            return jobService
-                    .findOrInsertJobByClass(jobService.getJobClassOrThrow(jobIdOrClassName))
-                    .id();
+            return jobService.findJobIdOrThrow(jobService.getJobClassOrThrow(jobIdOrClassName));
         }
     }
 

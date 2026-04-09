@@ -56,7 +56,7 @@ public class JobScheduledStateCheck implements StatusCheck {
 
     @NonNull
     private Optional<String> scheduledForTooLong(final Job job) {
-        final var jobId = jobService.findOrInsertJobByClass(job.getClass()).id();
+        final var jobId = jobService.findJobIdOrThrow(job.getClass());
         final var latestRunMaybe = jobService.getLastJobRun(jobId);
         if (latestRunMaybe.isEmpty()) {
             return Optional.empty();

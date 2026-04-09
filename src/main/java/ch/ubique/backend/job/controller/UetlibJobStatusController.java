@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -57,19 +56,8 @@ public class UetlibJobStatusController {
     }
 
     @GetMapping("/jobs")
-    public JobInfosContainer jobs(
-            @RequestParam(required = false) final Integer page,
-            @RequestParam(required = false, defaultValue = "25") final int perPage,
-            @RequestParam(required = false, defaultValue = "id") final List<String> orderBy,
-            @RequestParam(required = false, defaultValue = "ASC")
-                    final List<Sort.Direction> directions)
-            throws ClassNotFoundException {
-        // pre v1.5 does not send page and pageSize parameter, need to fall back to unpaged
-        final var pageable =
-                Optional.ofNullable(page)
-                        .map(p -> toPageableWithDefaultDirection(p, perPage, orderBy, directions))
-                        .orElseGet(Pageable::unpaged);
-        return jobControllerService.findJobs(pageable);
+    public JobInfosContainer jobs() throws ClassNotFoundException {
+        return jobControllerService.getJobInfos();
     }
 
     @GetMapping("/runs")

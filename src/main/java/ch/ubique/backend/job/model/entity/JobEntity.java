@@ -49,6 +49,10 @@ public class JobEntity {
         return new JobClassAndId(id, canonicalClassName);
     }
 
+    public String canonicalClassName() {
+        return canonicalClassName;
+    }
+
     public void setEnabled(final boolean enabled) {
         this.enabled = enabled;
     }

@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,16 +74,6 @@ public class JobDataService {
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<JobClassAndId> findJobById(final int id) {
-        return jobRepository.findById(id).map(JobEntity::toRecord);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<JobClassAndId> findJobByCanonicalClassName(final String clazz) {
-        return jobRepository.findByCanonicalClassName(clazz).map(JobEntity::toRecord);
     }
 
     @Transactional(readOnly = true)
@@ -147,32 +138,6 @@ public class JobDataService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobs() {
-        return jobRepository.findAllByOrderById().map(JobEntity::toRecord).toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsInclude(final List<Integer> includeJobIds) {
-        return jobRepository
-                .findAllByIdInOrderById(includeJobIds)
-                .map(JobEntity::toRecord)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<JobClassAndId> findJobsExclude(final List<Integer> excludeJobIds) {
-        return jobRepository
-                .findAllByIdNotInOrderById(excludeJobIds)
-                .map(JobEntity::toRecord)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public Page<JobClassAndId> findJobsPage(final Pageable pageable) {
-        return jobRepository.findAll(pageable).map(JobEntity::toRecord);
-    }
-
     private Predicate buildJobRunsPredicate(
             final List<Integer> jobIds,
             final Collection<JobRunState> states,
@@ -218,15 +183,33 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobClassAndId findOrInsertJob(final Class<? extends Job> jobClass) {
-        final var jobClassCanonicalName = jobClass.getCanonicalName();
-        return jobRepository
-                .findByCanonicalClassName(jobClassCanonicalName)
-                // uncomment the following line if you ever add additional fields to JobRunEntity
-                // apart from the canonical class name
-                // .map(entity -> jobRepository.save(entity.with(jobClassCanonicalName)))
-                .orElseGet(() -> jobRepository.save(JobEntity.forClass(jobClass)))
-                .toRecord();
+    public void insertNewJobs(final Collection<Class<? extends Job>> jobClass) {
+        final var existingJobs =
+                jobRepository.findAll().stream()
+                        .map(JobEntity::canonicalClassName)
+                        .collect(Collectors.toSet());
+
+        final var toInsert =
+                jobClass.stream()
+                        .filter(cls -> !existingJobs.contains(cls.getCanonicalName()))
+                        .toList();
+
+        if (toInsert.isEmpty()) {
+            return;
+        }
+
+        final var newEntities = toInsert.stream().map(JobEntity::forClass).toList();
+        jobRepository.saveAll(newEntities);
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobClassAndId> getAllJobsKnownByDatabase() {
+        return jobRepository.findAll().stream().map(JobEntity::toRecord).toList();
+    }
+
+    @Transactional
+    public void deleteJobsByIds(final Collection<Integer> jobIds) {
+        jobRepository.deleteAllById(jobIds);
     }
 
     @Transactional
@@ -242,9 +225,7 @@ public class JobDataService {
                             entity.setJobRunArguments(arguments);
                             return jobRunRepository.save(entity);
                         })
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No JobRunEntity with id {} found", jobRun.id()))
+                .orElseThrow(throwJobRunNotFound(jobRun.id()))
                 .toJobRun();
     }
 
@@ -262,9 +243,7 @@ public class JobDataService {
                                     new JobRunStateTransitionEmbeddable(jobRunState, startedAt));
                             return jobRunRepository.save(entity);
                         })
-                .orElseThrow(
-                        ResourceNotFoundException.supplierWithMessage(
-                                "No JobRunEntity with id {} found", jobRunId))
+                .orElseThrow(throwJobRunNotFound(jobRunId))
                 .toJobRun();
     }
 
@@ -274,11 +253,7 @@ public class JobDataService {
             final @NonNull JobRunState jobRunState,
             final @NonNull Instant transitionedAt) {
         final var jobRunEntity =
-                jobRunRepository
-                        .findById(jobRunId)
-                        .orElseThrow(
-                                ResourceNotFoundException.supplierWithMessage(
-                                        "No JobRunEntity with id {} found", jobRunId));
+                jobRunRepository.findById(jobRunId).orElseThrow(throwJobRunNotFound(jobRunId));
 
         if (jobRunEntity.finishedAt() != null && jobRunEntity.latestState().isRunning()) {
             // finishedAt should not be set for jobs in Running state
@@ -319,15 +294,6 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Optional<JobRun> findJobRunById(final int jobRunId) {
         return jobRunRepository.findById(jobRunId).map(JobRunEntity::toJobRun);
-    }
-
-    @Transactional
-    public void deleteJob(final int jobId) {
-        jobTriggerRepository.deleteAllByJobId(jobId);
-        jobPropertyRepository.deleteAllByJobId(jobId);
-        jobRunInputRepository.deleteAllByJobId(jobId);
-        jobRunRepository.deleteAllByJobId(jobId);
-        jobRepository.deleteById(jobId);
     }
 
     @Transactional
@@ -593,23 +559,26 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public boolean isEnabled(final String jobClassCanonicalName) {
-        return jobRepository.existsByCanonicalClassNameAndEnabledTrue(jobClassCanonicalName);
-    }
-
-    @Transactional(readOnly = true)
-    public boolean exists(final String jobClassCanonicalName) {
-        return jobRepository.findByCanonicalClassName(jobClassCanonicalName).isPresent();
+    public Collection<JobClassAndId> getEnabledJobs() {
+        return jobRepository.findAll().stream()
+                .filter(JobEntity::isEnabled)
+                .map(JobEntity::toRecord)
+                .toList();
     }
 
     @Transactional
-    public void setEnabled(final Class<? extends Job> jobClass, final boolean isEnabled) {
+    public void setEnabled(final int jobId, final boolean isEnabled) {
         jobRepository
-                .findByCanonicalClassName(jobClass.getCanonicalName())
+                .findById(jobId)
                 .ifPresent(
                         jobEntity -> {
                             jobEntity.setEnabled(isEnabled);
                             jobRepository.save(jobEntity);
                         });
+    }
+
+    private static @NonNull Supplier<ResourceNotFoundException> throwJobRunNotFound(int jobRunId) {
+        return ResourceNotFoundException.supplierWithMessage(
+                "No JobRunEntity with id {} found", jobRunId);
     }
 }

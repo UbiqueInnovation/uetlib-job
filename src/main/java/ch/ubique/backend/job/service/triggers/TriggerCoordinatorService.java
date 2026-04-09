@@ -54,14 +54,14 @@ public class TriggerCoordinatorService {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    private void onStartup() throws ClassNotFoundException {
+    private void onStartup() {
         logger.info("Evaluating triggers of all jobs");
-        for (final var job : jobDataService.findJobs()) {
-            final var jobClass = jobService.getJobClassOrThrow(job.canonicalClassName());
+        for (final var jobClass : jobService.getAllJobClasses()) {
             final var instance = jobService.instantiateJob(jobClass);
             final var triggers = getTriggers(instance);
+            final var classAndId = jobService.jobClassAndIdOrThrow(jobClass);
             for (final var trigger : triggers) {
-                onStartup(trigger, job, jobClass);
+                onStartup(trigger, classAndId, jobClass);
             }
         }
     }
@@ -74,7 +74,7 @@ public class TriggerCoordinatorService {
 
     public void createTrigger(
             final Class<? extends Job> jobClass, final TriggerDefinition triggerDefinition) {
-        final var jobId = jobService.findOrInsertJobByClass(jobClass).id();
+        final var jobId = jobService.findJobIdOrThrow(jobClass);
         final var trigger = jobDataService.insertTrigger(jobId, triggerDefinition);
         addTrigger(jobId, jobClass, trigger);
     }
@@ -110,7 +110,7 @@ public class TriggerCoordinatorService {
      * <li>return (possibly just created / overwritten) triggers from database
      */
     public Collection<Trigger> getTriggers(final Job job) {
-        final var jobClassAndId = jobService.findOrInsertJobByClass(job.getClass());
+        final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
         final var dbTriggers = jobDataService.getTriggers(jobClassAndId.id());
         final var dbTriggerDefinitions =
                 dbTriggers.stream().map(Trigger::definition).collect(Collectors.toSet());
@@ -136,7 +136,7 @@ public class TriggerCoordinatorService {
 
     public void updateTrigger(final Class<? extends Job> jobClass, final Trigger trigger) {
         removeTrigger(trigger);
-        final var jobId = jobService.findOrInsertJobByClass(jobClass).id();
+        final var jobId = jobService.findJobIdOrThrow(jobClass);
         addTrigger(jobId, jobClass, trigger);
         jobDataService.saveTrigger(trigger);
     }

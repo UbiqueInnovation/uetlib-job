@@ -44,7 +44,7 @@ public class JobTimeoutCheck implements StatusCheck {
     @Override
     public CheckStatus check() {
         final var errors =
-                jobDataService.findJobs().stream()
+                jobService.getAllJobClassesWithId().stream()
                         .map(this::timeoutError)
                         .flatMap(Optional::stream)
                         .toList();
