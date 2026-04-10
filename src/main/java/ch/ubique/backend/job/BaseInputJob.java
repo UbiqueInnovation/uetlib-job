@@ -10,9 +10,8 @@ import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.storage.output.ByteOutput;
 
-import jakarta.validation.constraints.NotNull;
-
 import org.apache.commons.lang3.exception.UncheckedException;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
@@ -50,7 +49,7 @@ public abstract class BaseInputJob<T> implements Job {
 
     private JobRunContext jobRunContext;
 
-    protected BaseInputJob(@NotNull final ApplicationContext applicationContext) {
+    protected BaseInputJob(@NonNull final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
         version = applicationContext.getBean(BuildProperties.class).getVersion();
@@ -71,7 +70,7 @@ public abstract class BaseInputJob<T> implements Job {
      *
      * @param latestSuccessfulRun non-null info about the last successful run.
      */
-    protected boolean hasNewInputs(@NotNull final JobRunWithInputs latestSuccessfulRun) {
+    protected boolean hasNewInputs(@NonNull final JobRunWithInputs latestSuccessfulRun) {
         return true;
     }
 

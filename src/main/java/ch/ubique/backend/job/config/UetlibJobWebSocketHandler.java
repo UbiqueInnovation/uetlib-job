@@ -3,10 +3,7 @@ package ch.ubique.backend.job.config;
 import ch.ubique.backend.job.exception.WebSocketException;
 import ch.ubique.backend.job.service.logs.LogService;
 
-import tools.jackson.databind.ObjectMapper;
-
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -15,6 +12,8 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.Map;
@@ -50,7 +49,7 @@ public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(
-            final WebSocketSession session, final @NotNull CloseStatus status) throws Exception {
+            final WebSocketSession session, final @NonNull CloseStatus status) throws Exception {
         activeSessions.remove(session.getId());
         super.afterConnectionClosed(session, status);
     }

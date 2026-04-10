@@ -4,13 +4,13 @@ import ch.ubique.backend.job.model.JobRunDatabaseSubmission;
 import ch.ubique.backend.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.backend.job.model.converters.JobRunDatabaseSubmissionArgumentsToStringConverter;
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Objects;

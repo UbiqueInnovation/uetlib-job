@@ -44,14 +44,13 @@ import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import com.pivovarit.function.ThrowingFunction;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Range;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -124,7 +123,7 @@ public class JobControllerService {
         return list;
     }
 
-    @NotNull
+    @NonNull
     private ArrayList<JobInfo> jobInfos(final List<JobClassAndId> jobs)
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
@@ -210,8 +209,8 @@ public class JobControllerService {
     public JobRunInfosContainer findJobRuns(
             final Pageable pageable,
             final Collection<JobRunState> states,
-            @NotNull final Collection<String> includeJobNamesOrIds,
-            @NotNull final Collection<String> excludeJobNamesOrIds,
+            @NonNull final Collection<String> includeJobNamesOrIds,
+            @NonNull final Collection<String> excludeJobNamesOrIds,
             @Nullable final Instant from,
             @Nullable final Instant to)
             throws ClassNotFoundException {

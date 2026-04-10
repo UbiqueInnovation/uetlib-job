@@ -5,8 +5,9 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
+
+import org.jspecify.annotations.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

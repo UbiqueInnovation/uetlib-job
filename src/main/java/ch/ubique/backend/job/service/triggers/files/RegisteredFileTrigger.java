@@ -3,9 +3,9 @@ package ch.ubique.backend.job.service.triggers.files;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.FileTrigger;
 
-import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import java.util.function.Consumer;
 
 public record RegisteredFileTrigger(
-        @NotNull FileTrigger fileTrigger, @NotNull Consumer<JobRunArguments> consumer) {}
+        @NonNull FileTrigger fileTrigger, @NonNull Consumer<JobRunArguments> consumer) {}

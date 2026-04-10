@@ -3,9 +3,10 @@ package ch.ubique.backend.job.model.client;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;

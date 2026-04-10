@@ -10,8 +10,7 @@ import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.model.triggers.FixedRateTrigger;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ public final class HealthCheckJob implements Job {
      *     <p>{@link JobRunState#WARNING} if an error was identified and a fix was available.
      *     <p>{@link JobRunState#DONE} if no issues were identified
      */
-    @NotNull
+    @NonNull
     @Override
     public JobRunState run(final JobRunContext jobRunContext) {
         logger.info("Running health check.");
@@ -42,13 +41,13 @@ public final class HealthCheckJob implements Job {
     }
 
     @Override
-    @NotNull
+    @NonNull
     public JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new FixedRateTrigger(Duration.ofMinutes(10)));
     }
 
     @Override
-    @NotNull
+    @NonNull
     public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),

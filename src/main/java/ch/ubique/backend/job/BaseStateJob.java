@@ -12,9 +12,8 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.storage.output.JsonOutput;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -55,7 +54,7 @@ public abstract class BaseStateJob<T> implements Job {
     private final JobExecutorService jobExecutorService;
     private final RetryTemplate retryTemplate;
 
-    protected BaseStateJob(@NotNull final ApplicationContext applicationContext) {
+    protected BaseStateJob(@NonNull final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         objectMapper = applicationContext.getBean(ObjectMapper.class);
         jobExecutorService = applicationContext.getBean(JobExecutorService.class);
@@ -88,7 +87,7 @@ public abstract class BaseStateJob<T> implements Job {
      * @return the state want to pass to the {@link BaseStateJob#processState} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-    @NotNull
+    @NonNull
     protected abstract T getLatestState(JobRunContext jobRunContext) throws Exception;
 
     /**
@@ -116,13 +115,13 @@ public abstract class BaseStateJob<T> implements Job {
      * @param latestState the latestState returned by {@link BaseStateJob#getLatestState}
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-    @NotNull
+    @NonNull
     @SuppressWarnings("java:S112")
-    protected abstract JobRunState processState(T latestState, @NotNull JobRunContext jobRunContext)
+    protected abstract JobRunState processState(T latestState, @NonNull JobRunContext jobRunContext)
             throws Exception;
 
     /** You need to overwrite this method to correctly deserialize the saved state. */
-    @NotNull
+    @NonNull
     protected abstract TypeReference<T> stateTypeReference();
 
     /**
@@ -135,8 +134,8 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Override
-    @NotNull
-    public final JobRunState run(@NotNull final JobRunContext jobRunContext) throws Exception {
+    @NonNull
+    public final JobRunState run(@NonNull final JobRunContext jobRunContext) throws Exception {
         final var currentJobRun = jobRunContext.jobRun();
 
         // Check if state for current run has already been computed and saved.
@@ -232,7 +231,7 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Nullable
-    private T loadState(@NotNull final JobRun jobRun) {
+    private T loadState(@NonNull final JobRun jobRun) {
         logger.debug("Loading state of run {}.", jobRun.id());
         try (final var inputStream = getStateInputStream(jobRun)) {
             final var previousState = objectMapper.readValue(inputStream, stateTypeReference());
@@ -252,7 +251,7 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Nullable
-    private T loadStateIfPresent(@NotNull final JobRun jobRun) {
+    private T loadStateIfPresent(@NonNull final JobRun jobRun) {
         if (!hasStateForRun(jobRun)) {
             return null;
         }

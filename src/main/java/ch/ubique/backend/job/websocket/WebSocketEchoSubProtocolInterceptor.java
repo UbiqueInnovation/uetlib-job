@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.websocket;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.WebSocketHandler;
@@ -52,9 +51,9 @@ public class WebSocketEchoSubProtocolInterceptor implements HandshakeInterceptor
     @Override
     public boolean beforeHandshake(
             final ServerHttpRequest request,
-            @NotNull final ServerHttpResponse response,
-            @NotNull final WebSocketHandler wsHandler,
-            @NotNull final Map<String, Object> attributes) {
+            @NonNull final ServerHttpResponse response,
+            @NonNull final WebSocketHandler wsHandler,
+            @NonNull final Map<String, Object> attributes) {
 
         final var protocols = request.getHeaders().get("Sec-WebSocket-Protocol");
         if (protocols != null) {
@@ -73,9 +72,9 @@ public class WebSocketEchoSubProtocolInterceptor implements HandshakeInterceptor
 
     @Override
     public void afterHandshake(
-            @NotNull final ServerHttpRequest request,
-            @NotNull final ServerHttpResponse response,
-            @NotNull final WebSocketHandler wsHandler,
+            @NonNull final ServerHttpRequest request,
+            @NonNull final ServerHttpResponse response,
+            @NonNull final WebSocketHandler wsHandler,
             final Exception exception) {
         // no-op
     }

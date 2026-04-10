@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.logging;
 
-import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import java.time.Instant;
 
-public record LoggingEvent(@NotNull Instant timestamp, @NotNull String formattedMessage) {}
+public record LoggingEvent(@NonNull Instant timestamp, @NonNull String formattedMessage) {}

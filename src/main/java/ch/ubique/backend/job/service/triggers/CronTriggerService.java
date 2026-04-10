@@ -5,8 +5,7 @@ import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,14 +26,14 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
 
     private static final Logger logger = LoggerFactory.getLogger(CronTriggerService.class);
 
-    @NotNull private final ZoneId defaultZoneId;
+    @NonNull private final ZoneId defaultZoneId;
 
     private final TaskScheduler taskScheduler;
 
     private final Map<Integer, ScheduledFuture<?>> scheduledCronJobs;
 
     public CronTriggerService(
-            @Value("${ch.ubique.backend.job.cron.timezone:UTC}") @NotNull
+            @Value("${ch.ubique.backend.job.cron.timezone:UTC}") @NonNull
                     final String defaultZoneId,
             final TaskScheduler taskScheduler) {
         this.defaultZoneId = ZoneId.of(defaultZoneId);
@@ -76,7 +75,7 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
         logger.info("Scheduled cron trigger {} with definition {}", triggerId, cronDefinition);
     }
 
-    public @NotNull ZoneId getDefaultZoneId() {
+    public @NonNull ZoneId getDefaultZoneId() {
         return defaultZoneId;
     }
 }

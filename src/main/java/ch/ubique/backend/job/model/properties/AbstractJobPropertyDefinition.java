@@ -2,12 +2,12 @@ package ch.ubique.backend.job.model.properties;
 
 import ch.ubique.backend.core.utils.StringUtils;
 
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.Set;

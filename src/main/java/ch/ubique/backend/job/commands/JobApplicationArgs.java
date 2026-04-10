@@ -1,5 +1,5 @@
 package ch.ubique.backend.job.commands;
 
-import jakarta.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public record JobApplicationArgs(@Nullable JobApplicationJobToStartArgs jobToStart) {}

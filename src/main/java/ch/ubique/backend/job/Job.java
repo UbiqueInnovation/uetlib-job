@@ -5,7 +5,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 
-import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NonNull;
 
 public interface Job {
 
@@ -13,13 +13,13 @@ public interface Job {
     JobRunState run(final JobRunContext jobRunContext) throws Exception;
 
     /** You can override this method to set initial or fixed properties for this job. */
-    @NotNull
+    @NonNull
     default JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.unset();
     }
 
     /** You can override this method to set initial or fixed triggers for this job. */
-    @NotNull
+    @NonNull
     default JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.unset();
     }

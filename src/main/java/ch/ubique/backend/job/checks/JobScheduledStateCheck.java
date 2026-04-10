@@ -9,8 +9,7 @@ import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -55,7 +54,7 @@ public class JobScheduledStateCheck implements StatusCheck {
         return CheckStatus.CHECK_PASSED;
     }
 
-    @NotNull
+    @NonNull
     private Optional<String> scheduledForTooLong(final Job job) {
         final var jobId = jobService.findOrInsertJobByClass(job.getClass()).id();
         final var latestRunMaybe = jobService.getLastJobRun(jobId);

@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.exception;
 
-import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import java.text.MessageFormat;
 import java.util.function.Supplier;
@@ -18,12 +18,12 @@ public class JobSubmissionException extends Exception {
     }
 
     public static JobSubmissionException withMessage(
-            @NotNull final String pattern, final Object... arguments) {
+            @NonNull final String pattern, final Object... arguments) {
         return new JobSubmissionException(MessageFormat.format(pattern, arguments));
     }
 
     public static Supplier<JobSubmissionException> supplierWithMessage(
-            @NotNull final String pattern, final Object... arguments) {
+            @NonNull final String pattern, final Object... arguments) {
         return () -> withMessage(pattern, arguments);
     }
 }
