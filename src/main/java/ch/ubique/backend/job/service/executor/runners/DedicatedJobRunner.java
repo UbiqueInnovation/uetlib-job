@@ -68,21 +68,8 @@ public final class DedicatedJobRunner implements JobRunner {
     @Override
     @Nullable
     public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
-        if (activeJobRun == null) {
-            return null;
-        }
-        if (activeJobRun.id() != jobRun.id()) {
-            return null;
-        }
-        if (!future.isDone()) {
-            return JobRunState.BUSY;
-        }
-        return switch (future.state()) {
-            case SUCCESS -> JobRunState.DONE;
-            case CANCELLED -> JobRunState.CANCELLED;
-            case FAILED -> JobRunState.ERROR;
-            case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
-        };
+        // resolveJobRunState should not be called when the job-run profile is active.
+        throw new IllegalStateException("Do not call resolveJobRunState for dedicated job runner.");
     }
 
     public JobRun activeJobRun() {

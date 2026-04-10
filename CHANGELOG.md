@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.2.2
+
+- Made new `JobDBAppender` more robust.
+
 ## 3.2.1
 
 - Improved performance of `JobDBAppender` by inserting log entries in batches.

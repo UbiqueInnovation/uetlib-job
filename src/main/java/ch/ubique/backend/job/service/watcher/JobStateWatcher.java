@@ -12,8 +12,11 @@ import ch.ubique.backend.job.service.logs.LogService;
 
 import jakarta.validation.constraints.NotNull;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ import java.util.Optional;
 
 @Service
 @Profile("!job-run")
+@NullMarked
 public class JobStateWatcher {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -67,40 +71,71 @@ public class JobStateWatcher {
             return;
         }
 
-        // Check if the job is still running
         final var state = findJobRunState(jobRun);
+        if (state == null) {
+            handleUnknownJobState(jobRun);
+        } else {
+            handleKnownJobState(jobRun, state);
+        }
+    }
+
+    private void handleUnknownJobState(final JobRun jobRun) {
+        if (wasRecentlyActive(jobRun)) {
+            logger.debug("Could not resolve state for run {}, but was recently active.", jobRun);
+            return;
+        }
+
+        // Set to unfinished
+        logger.info(
+                "Could not resolve state for run {}, and no recent activity. Setting job to {}",
+                jobRun,
+                JobRunState.UNFINISHED);
+        setJobState(jobRun, JobRunState.UNFINISHED);
+    }
+
+    private void handleKnownJobState(final JobRun jobRun, final JobRunState state) {
         logger.debug("Resolved state {} for run {}.", state, jobRun);
         if (state.isRunning()) {
             logger.debug("{} is still active and in state {}.", jobRun, state);
-            return;
+        } else {
+            setJobState(jobRun, state);
         }
+    }
 
-        // If the job still produced logs recently, we are not going to update its state
+    private void setJobState(final JobRun jobRun, final JobRunState state) {
+        final var previousContextMap = MDC.getCopyOfContextMap();
+        MDC.put("jobRunId", String.valueOf(jobRun.id()));
+        try {
+            logger.debug("Inferred {} is now in state {}.", jobRun, state);
+            jobService.updateJobRunState(jobRun, state, Instant.now());
+            logger.info("Set job run {} to {}.", jobRun.id(), state);
+        } finally {
+            MDC.setContextMap(previousContextMap);
+        }
+    }
+
+    private boolean wasRecentlyActive(final JobRun jobRun) {
         final var latestActivity = logService.mostRecentLogTimestamp(jobRun.id());
         final var timeout = latestActivityTimeout(jobRun);
-        if (latestActivity.isPresent()
-                && latestActivity.get().isAfter(Instant.now().minus(timeout))) {
-            logger.debug("Latest log activity of run {} is newer than {}.", jobRun, timeout);
-            return;
-        }
-
-        logger.debug("{} is not running.", jobRun);
-        jobService.updateJobRunState(jobRun, state, Instant.now());
-        logger.info("Set job run {} to {}.", jobRun.id(), state);
+        return latestActivity.isPresent()
+                && latestActivity.get().isAfter(Instant.now().minus(timeout));
     }
 
     @NotNull
-    private JobRunState findJobRunState(final JobRun jobRun) {
+    private @Nullable JobRunState findJobRunState(final JobRun jobRun) {
         final var runnerKey = jobRun.runnerKey();
         final var runner = jobRunners.get(runnerKey);
         if (runner == null) {
             logger.info("No runner found for {}.", runnerKey);
-            return JobRunState.UNFINISHED;
+            return null;
         }
         final var resolvedState = runner.resolveJobRunState(jobRun);
         if (resolvedState == null) {
-            logger.info("Could not resolve job state.");
-            return JobRunState.UNFINISHED;
+            logger.info(
+                    "{} could not resolve job state for {}.",
+                    runner.getClass().getSimpleName(),
+                    jobRun);
+            return null;
         }
         return resolvedState;
     }
