@@ -91,16 +91,14 @@ public class JobService {
         logger.info("Job service started with {} jobs.", jobClassesById.size());
     }
 
-    public Class<? extends Job> getJobClassOrThrow(final JobClassAndId jobClassAndId)
-            throws ClassNotFoundException {
+    public Class<? extends Job> getJobClassOrThrow(final JobClassAndId jobClassAndId) {
         return getJobClassOrThrow(jobClassAndId.canonicalClassName());
     }
 
-    public Class<? extends Job> getJobClassOrThrow(final String className)
-            throws ClassNotFoundException {
+    public Class<? extends Job> getJobClassOrThrow(final String className) {
         final var jobClass = jobClassesByCanonicalClassName.get(className);
         if (jobClass == null) {
-            throw new ClassNotFoundException(className);
+            throw new NoSuchElementException("No such job: " + className);
         }
         return jobClass;
     }
@@ -113,8 +111,7 @@ public class JobService {
         return ofNullable(jobClassesByCanonicalClassName.get(className));
     }
 
-    public JobProperties getProperties(final JobClassAndId jobClassAndId)
-            throws ClassNotFoundException {
+    public JobProperties getProperties(final JobClassAndId jobClassAndId) {
         final var job = instantiateJob(getJobClassOrThrow(jobClassAndId));
         return getJobProperties(jobClassAndId.id(), job);
     }
@@ -254,6 +251,14 @@ public class JobService {
 
     public Collection<JobClassAndId> getAllJobClassesWithId() {
         return jobClassesById.values().stream().map(this::jobClassAndIdOrThrow).toList();
+    }
+
+    public Collection<JobClassAndId> getEnabledJobClassesWithId() {
+        final var enabled = enabledJobsCache.get(this::getEnabledJobsCanonicalNames);
+        return jobClassesById.values().stream()
+                .map(this::jobClassAndIdOrThrow)
+                .filter(j -> enabled.contains(j.canonicalClassName()))
+                .toList();
     }
 
     public boolean cancel(final JobRun jobRun) {

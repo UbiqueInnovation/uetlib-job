@@ -10,7 +10,6 @@ import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 import ch.ubique.backend.job.service.logs.LogService;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -120,7 +119,6 @@ public class JobStateWatcher {
                 && latestActivity.get().isAfter(Instant.now().minus(timeout));
     }
 
-    @NonNull
     private @Nullable JobRunState findJobRunState(final JobRun jobRun) {
         final var runnerKey = jobRun.runnerKey();
         final var runner = jobRunners.get(runnerKey);

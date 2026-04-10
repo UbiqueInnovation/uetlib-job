@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -75,7 +76,7 @@ public class JobTimeoutCheck implements StatusCheck {
                             .getProperties(job)
                             .get(JobPropertyDefinitions.RUN_TIME_LIMIT)
                             .value();
-        } catch (final ClassNotFoundException e) {
+        } catch (final NoSuchElementException e) {
             return Optional.empty();
         }
 
