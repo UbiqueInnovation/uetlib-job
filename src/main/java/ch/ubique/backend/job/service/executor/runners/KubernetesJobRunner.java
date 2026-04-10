@@ -19,9 +19,8 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.models.*;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -31,7 +30,6 @@ import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -73,12 +71,12 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public @NotNull JobRunnerKey key() {
+    public @NonNull JobRunnerKey key() {
         return JobRunnerKey.DEDICATED_K8S_JOB;
     }
 
     @Override
-    public boolean submit(final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+    public boolean submit(final @NonNull Job job, final @NonNull JobRunContext jobRunContext) {
         final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
         try {
             final var kubernetesJobRunContext =
@@ -98,7 +96,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final @NotNull JobRun jobRun) {
+    public void cancel(final @NonNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             logger.info("No k8s job found for given job run.");
@@ -122,7 +120,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
+    public JobRunState resolveJobRunState(final @NonNull JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             return null;

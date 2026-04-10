@@ -12,8 +12,7 @@ import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -60,7 +59,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
         return CheckStatus.CHECK_PASSED;
     }
 
-    @NotNull
+    @NonNull
     private Optional<Map<String, Object>> checkJobOverdue(final JobClassAndId job) {
         final Optional<Duration> lastRunMaxAgeMaybe;
         final boolean lastRunMaxAgeAllowNoRun;

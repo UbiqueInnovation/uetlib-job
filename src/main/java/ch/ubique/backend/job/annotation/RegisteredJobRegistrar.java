@@ -6,8 +6,7 @@ import static ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotatio
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
@@ -36,8 +35,8 @@ class RegisteredJobRegistrar
     private ResourceLoader resourceLoader;
     private Environment environment;
 
-    private static @NotNull Class<?> loadEnableJobsClass(
-            final @NotNull AnnotationMetadata importingClassMetadata) {
+    private static @NonNull Class<?> loadEnableJobsClass(
+            final @NonNull AnnotationMetadata importingClassMetadata) {
         try {
             return Class.forName(importingClassMetadata.getClassName());
         } catch (final ClassNotFoundException e) {
@@ -51,8 +50,8 @@ class RegisteredJobRegistrar
 
     @Override
     public void registerBeanDefinitions(
-            final @NotNull AnnotationMetadata importingClassMetadata,
-            final @NotNull BeanDefinitionRegistry registry) {
+            final @NonNull AnnotationMetadata importingClassMetadata,
+            final @NonNull BeanDefinitionRegistry registry) {
         // This would be a problem if this RegisteredJobDefinitions gets created if the profile
         // job-run is active, but
         // it is not needed, so we skip it
@@ -65,8 +64,8 @@ class RegisteredJobRegistrar
     }
 
     private void registerRegisteredJobClassesBeanDefinition(
-            final @NotNull DefaultListableBeanFactory beanFactory,
-            final @NotNull AnnotationMetadata importingClassMetadata) {
+            final @NonNull DefaultListableBeanFactory beanFactory,
+            final @NonNull AnnotationMetadata importingClassMetadata) {
         final var enableJobsClass = loadEnableJobsClass(importingClassMetadata);
         final var enableJobsAnnotation =
                 importingClassMetadata.getAnnotations().get(EnableJobs.class).synthesize();
@@ -113,12 +112,12 @@ class RegisteredJobRegistrar
     }
 
     @Override
-    public void setResourceLoader(final @NotNull ResourceLoader resourceLoader) {
+    public void setResourceLoader(final @NonNull ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
 
     @Override
-    public void setEnvironment(final @NotNull Environment environment) {
+    public void setEnvironment(final @NonNull Environment environment) {
         this.environment = environment;
     }
 }

@@ -18,9 +18,8 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -150,18 +149,18 @@ public class JobService {
     }
 
     private JobRun createNewJobRun(
-            final @NotNull Job job,
-            final @NotNull JobRunnerKey runnerKey,
-            final @NotNull JobRunArguments arguments) {
+            final @NonNull Job job,
+            final @NonNull JobRunnerKey runnerKey,
+            final @NonNull JobRunArguments arguments) {
         final var jobId = findOrInsertJobByClass(job.getClass()).id();
         return jobDataService.createJobRun(jobId, versionTag, runnerKey, arguments);
     }
 
     public JobRun getOrCreateJobRun(
-            final @NotNull Job job,
+            final @NonNull Job job,
             @Nullable final Integer runId,
-            final @NotNull JobRunnerKey runnerKey,
-            final @NotNull JobRunArguments arguments) {
+            final @NonNull JobRunnerKey runnerKey,
+            final @NonNull JobRunArguments arguments) {
         return ofNullable(runId)
                 .flatMap(jobDataService::findJobRunById)
                 .map(jobRun -> setRunnerKeyAndArguments(jobRun, runnerKey, arguments))
@@ -189,14 +188,14 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public JobRun startJobRun(final @NotNull JobRun jobRun, final @NotNull Instant startedAt) {
+    public JobRun startJobRun(final @NonNull JobRun jobRun, final @NonNull Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
     }
 
     public void updateJobRunState(
-            final @NotNull JobRun jobRun,
-            final @NotNull JobRunState state,
-            final @NotNull Instant transitionedAt) {
+            final @NonNull JobRun jobRun,
+            final @NonNull JobRunState state,
+            final @NonNull Instant transitionedAt) {
         try {
             retryTemplate.execute(
                     () -> {
@@ -223,7 +222,7 @@ public class JobService {
                 .toList();
     }
 
-    public boolean cancel(final @NotNull JobRun jobRun) {
+    public boolean cancel(final @NonNull JobRun jobRun) {
         if (!jobRun.latestState().isRunning()) {
             logger.info("Job run can not be canceled, as it is not running.");
             return false;
@@ -235,7 +234,7 @@ public class JobService {
         return true;
     }
 
-    private JobRunner jobRunner(final @NotNull JobRun jobRun) {
+    private JobRunner jobRunner(final @NonNull JobRun jobRun) {
         return applicationContext.getBeansOfType(JobRunner.class).values().stream()
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()

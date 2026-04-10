@@ -9,9 +9,8 @@ import ch.ubique.backend.job.service.JobService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -39,13 +38,13 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public @NotNull JobRunnerKey key() {
+    public @NonNull JobRunnerKey key() {
         return JobRunnerKey.DEDICATED_K8S_JOB;
     }
 
     @Override
     public synchronized boolean submit(
-            final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+            final @NonNull Job job, final @NonNull JobRunContext jobRunContext) {
         if (future != null) {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;
@@ -56,7 +55,7 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final @NotNull JobRun jobRun) {
+    public void cancel(final @NonNull JobRun jobRun) {
         if (future != null) {
             future.cancel(true);
             activeJobRun = null;
@@ -67,7 +66,7 @@ public final class DedicatedJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
+    public JobRunState resolveJobRunState(final @NonNull JobRun jobRun) {
         // resolveJobRunState should not be called when the job-run profile is active.
         throw new IllegalStateException("Do not call resolveJobRunState for dedicated job runner.");
     }

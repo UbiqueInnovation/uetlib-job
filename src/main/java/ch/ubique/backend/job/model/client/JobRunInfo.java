@@ -9,10 +9,11 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
+
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Optional;

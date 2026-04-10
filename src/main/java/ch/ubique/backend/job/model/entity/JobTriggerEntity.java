@@ -5,13 +5,13 @@ import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Objects;

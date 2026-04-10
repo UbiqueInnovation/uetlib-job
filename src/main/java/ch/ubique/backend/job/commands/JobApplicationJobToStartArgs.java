@@ -1,12 +1,12 @@
 package ch.ubique.backend.job.commands;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
 public record JobApplicationJobToStartArgs(
-        @NotNull String jobClassName,
+        @NonNull String jobClassName,
         @Nullable Integer jobRunId,
         boolean forceRun,
         @Nullable String additionalDataString,

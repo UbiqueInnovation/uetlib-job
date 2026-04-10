@@ -17,11 +17,11 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -205,7 +205,7 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Page<JobRun> findJobRuns(
             final Pageable pageable,
-            @NotNull final List<Integer> includeJobIds,
+            @NonNull final List<Integer> includeJobIds,
             final Collection<JobRunState> states,
             final Optional<Range<Instant>> fromToRange) {
         return jobRunLatestStateViewRepository
@@ -231,8 +231,8 @@ public class JobDataService {
 
     @Transactional
     public JobRun updateJobRunRunnerKeyAndArguments(
-            @NotNull final JobRun jobRun,
-            @NotNull final JobRunnerKey runnerKey,
+            @NonNull final JobRun jobRun,
+            @NonNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         return jobRunRepository
                 .findById(jobRun.id())
@@ -251,8 +251,8 @@ public class JobDataService {
     @Transactional
     public JobRun startJobRun(
             final int jobRunId,
-            @NotNull final JobRunState jobRunState,
-            @NotNull final Instant startedAt) {
+            @NonNull final JobRunState jobRunState,
+            @NonNull final Instant startedAt) {
         return jobRunRepository
                 .findById(jobRunId)
                 .map(
@@ -271,8 +271,8 @@ public class JobDataService {
     @Transactional
     public void updateJobRunState(
             final int jobRunId,
-            final @NotNull JobRunState jobRunState,
-            final @NotNull Instant transitionedAt) {
+            final @NonNull JobRunState jobRunState,
+            final @NonNull Instant transitionedAt) {
         final var jobRunEntity =
                 jobRunRepository
                         .findById(jobRunId)
@@ -478,7 +478,7 @@ public class JobDataService {
     public JobRun createJobRun(
             @Positive final int jobId,
             @NotBlank final String versionTag,
-            @NotNull final JobRunnerKey runnerKey,
+            @NonNull final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =

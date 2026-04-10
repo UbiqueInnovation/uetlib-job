@@ -12,13 +12,12 @@ import ch.ubique.backend.job.service.JobService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.slf4j.MDC;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -66,13 +65,13 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public @NotNull JobRunnerKey key() {
+    public @NonNull JobRunnerKey key() {
         return JobRunnerKey.CURRENT;
     }
 
     @Override
     public synchronized boolean submit(
-            final @NotNull Job job, final @NotNull JobRunContext jobRunContext) {
+            final @NonNull Job job, final @NonNull JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
         if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
@@ -107,7 +106,7 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final @NotNull JobRun jobRun) {
+    public void cancel(final @NonNull JobRun jobRun) {
         final var runId = jobRun.id();
         final var future = futuresByJobRun.get(runId);
         if (future != null) {
@@ -129,7 +128,7 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(final @NotNull JobRun jobRun) {
+    public JobRunState resolveJobRunState(final @NonNull JobRun jobRun) {
         final var future = futuresByJobRun.get(jobRun.id());
         if (future == null) {
             return null;

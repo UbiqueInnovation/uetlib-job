@@ -7,8 +7,7 @@ import ch.ubique.backend.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.backend.job.model.triggers.DatabaseSubmissionTrigger;
 import ch.ubique.backend.job.service.JobService;
 
-import jakarta.annotation.Nullable;
-
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 /**

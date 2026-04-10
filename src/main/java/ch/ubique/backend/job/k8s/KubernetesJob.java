@@ -19,9 +19,8 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.*;
 
-import jakarta.annotation.Nullable;
-
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;

@@ -7,8 +7,7 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -28,7 +27,7 @@ public class ProfileDisabledTestJob implements Job {
     }
 
     @Override
-    public @NotNull JobPropertiesConfig propertiesConfig() {
+    public @NonNull JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.initial(
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofDays(10000)));
     }

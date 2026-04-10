@@ -20,9 +20,8 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Config;
 import io.kubernetes.client.util.Namespaces;
 
-import jakarta.validation.constraints.NotNull;
-
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Conditional;
@@ -31,7 +30,6 @@ import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -103,7 +101,7 @@ public class KubernetesService {
         return currentNamespace;
     }
 
-    public @NotNull JobRunState getJobRunStatus(final V1Job job) {
+    public @NonNull JobRunState getJobRunStatus(final V1Job job) {
         final var jobMetadata = requireNonNull(job.getMetadata());
         final var jobName = requireNonNull(jobMetadata.getName());
         final var status = requireNonNull(job.getStatus(), "Kubernetes job has no status.");

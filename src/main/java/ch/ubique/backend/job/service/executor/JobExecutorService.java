@@ -13,9 +13,8 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -38,18 +37,18 @@ public class JobExecutorService {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    public JobSubmissionResult submit(@NotNull final Class<? extends Job> jobClass) {
+    public JobSubmissionResult submit(@NonNull final Class<? extends Job> jobClass) {
         return submit(jobClass, null);
     }
 
     public JobSubmissionResult submit(
-            @NotNull final Class<? extends Job> jobClass,
+            @NonNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments) {
         return submit(jobClass, arguments, null, null);
     }
 
     public JobSubmissionResult submit(
-            @NotNull final Class<? extends Job> jobClass,
+            @NonNull final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey) {
@@ -128,11 +127,11 @@ public class JobExecutorService {
         return lastRun.isPresent() && lastRun.get().id() == runId;
     }
 
-    @NotNull
+    @NonNull
     private JobRunContext createContext(
-            @NotNull final Job job,
+            @NonNull final Job job,
             @Nullable final Integer runId,
-            @NotNull final JobRunnerKey runnerKey,
+            @NonNull final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
         final var arguments =
                 Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
@@ -142,9 +141,9 @@ public class JobExecutorService {
         return new JobRunContext(jobClassAndId, jobRun, arguments, jobProperties);
     }
 
-    @NotNull
+    @NonNull
     private JobRunnerKey getSelectedJobRunnerKey(
-            @NotNull final Job job, @Nullable final JobRunnerKey jobRunnerKey) {
+            @NonNull final Job job, @Nullable final JobRunnerKey jobRunnerKey) {
         final var jobProperties = jobService.getProperties(job);
 
         final var selectedJobRunnerKey =
@@ -159,8 +158,8 @@ public class JobExecutorService {
         return selectedJobRunnerKey;
     }
 
-    @NotNull
-    private JobRunnerKey getRunnerKeyFromJobProperties(@NotNull final JobProperties jobProperties) {
+    @NonNull
+    private JobRunnerKey getRunnerKeyFromJobProperties(@NonNull final JobProperties jobProperties) {
         return jobProperties.get(JobPropertyDefinitions.RUNNER).value();
     }
 }

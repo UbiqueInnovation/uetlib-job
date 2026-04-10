@@ -6,18 +6,16 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 
-import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.NotNull;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 public interface JobRunner {
 
-    @NotNull
-    JobRunnerKey key();
+    @NonNull JobRunnerKey key();
 
-    boolean submit(@NotNull Job job, @NotNull JobRunContext jobRunContext);
+    boolean submit(@NonNull Job job, @NonNull JobRunContext jobRunContext);
 
-    void cancel(@NotNull JobRun jobRun);
+    void cancel(@NonNull JobRun jobRun);
 
-    @Nullable
-    JobRunState resolveJobRunState(@NotNull JobRun jobRun);
+    @Nullable JobRunState resolveJobRunState(@NonNull JobRun jobRun);
 }

@@ -21,7 +21,7 @@ import ch.ubique.backend.job.testjob.TestJob;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckPassed;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -148,7 +148,7 @@ class JobStateCheckTest {
         assertInstanceOf(CheckFailed.class, checkStatus);
     }
 
-    private @NotNull Optional<JobRun> mockJobRunWith(final JobRunState jobRunState) {
+    private @NonNull Optional<JobRun> mockJobRunWith(final JobRunState jobRunState) {
         return Optional.of(
                 new JobRun(
                         12,
