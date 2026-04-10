@@ -1,10 +1,13 @@
 package ch.ubique.backend.job.checks;
 
+import static ch.ubique.backend.core.utils.MapCollectors.toMap;
+
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
+import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
@@ -47,9 +50,13 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
 
     @Override
     public CheckStatus check() {
+        final var jobs = jobService.getEnabledJobClassesWithId();
+        final var jobIds = jobs.stream().map(JobClassAndId::id).toList();
+        final var latestRunsByJob =
+                jobDataService.findAllLatestRuns(jobIds).stream().collect(toMap(JobRun::jobId));
         final var errors =
-                jobService.getAllJobClassesWithId().stream()
-                        .map(this::checkJobOverdue)
+                jobs.stream()
+                        .map(j -> checkJobOverdue(j, latestRunsByJob))
                         .flatMap(Optional::stream)
                         .toList();
 
@@ -61,23 +68,16 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
     }
 
     @NonNull
-    private Optional<Map<String, Object>> checkJobOverdue(final JobClassAndId job) {
+    private Optional<Map<String, Object>> checkJobOverdue(
+            final JobClassAndId job, final Map<Integer, JobRun> latestRunByJob) {
         final Optional<Duration> lastRunMaxAgeMaybe;
         final boolean lastRunMaxAgeAllowNoRun;
         try {
-            if (!jobService.isEnabled(job.canonicalClassName())) {
-                return Optional.empty();
-            }
+            final var properties = jobService.getProperties(job);
             lastRunMaxAgeMaybe =
-                    jobService
-                            .getProperties(job)
-                            .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE)
-                            .valueMaybe();
+                    properties.get(JobPropertyDefinitions.LAST_RUN_MAX_AGE).valueMaybe();
             lastRunMaxAgeAllowNoRun =
-                    jobService
-                            .getProperties(job)
-                            .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE_ALLOW_NO_RUN)
-                            .value();
+                    properties.get(JobPropertyDefinitions.LAST_RUN_MAX_AGE_ALLOW_NO_RUN).value();
         } catch (final NoSuchElementException e) {
             return Optional.empty();
         }
@@ -88,7 +88,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
 
         final var lastRunMaxAge = lastRunMaxAgeMaybe.get();
 
-        final var lastRunMaybe = jobDataService.findLatestJobRun(job.id());
+        final var lastRunMaybe = Optional.ofNullable(latestRunByJob.get(job.id()));
 
         if (lastRunMaybe.isEmpty()) {
             if (lastRunMaxAgeAllowNoRun) {
