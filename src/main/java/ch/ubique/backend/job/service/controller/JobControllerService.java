@@ -29,9 +29,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.backend.job.model.response.SuccessResponse;
 import ch.ubique.backend.job.model.response.files.JobRunFileListResponse;
-import ch.ubique.backend.job.model.triggers.CronTrigger;
 import ch.ubique.backend.job.model.triggers.Trigger;
-import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.JobManualTriggerService;
@@ -56,7 +54,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -70,7 +67,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @Profile("!job-run")
@@ -165,7 +161,7 @@ public class JobControllerService {
         final var jobs = jobService.getAllJobClassesWithId();
         final var latestRuns = findLatestJobRuns(jobs);
         final var jobInfos = jobInfos(jobs);
-        return new JobInfosContainer(jobInfos, latestRuns, true, true, 1);
+        return new JobInfosContainer(jobInfos, latestRuns);
     }
 
     public Map<Integer, JobRunInfo> findLatestJobRuns(final Collection<JobClassAndId> jobs) {
@@ -331,11 +327,6 @@ public class JobControllerService {
         final var jobClass = jobService.getJobClassOrThrow(jobClassAndId);
         final var job = jobService.instantiateJob(jobClass);
 
-        final var cronExpression =
-                getCronTriggers(job)
-                        .findAny()
-                        .map(trigger -> (CronTrigger) trigger.definition())
-                        .map(CronTrigger::cronExpression);
         final var manualReplayMode =
                 jobService.getProperties(job).get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE);
 
@@ -344,21 +335,14 @@ public class JobControllerService {
                 job.getClass().getSimpleName(),
                 job.getClass().getCanonicalName(),
                 jobService.isEnabled(jobClass.getCanonicalName()),
-                cronExpression.orElse(null),
-                cronExpression.isPresent(),
-                cronExpression.map(CronExpression::isValidExpression).orElse(true),
-                job.triggersConfig().isFixed(),
                 job.propertiesConfig().isFixed(),
+                job.triggersConfig().isFixed(),
+                triggerCoordinatorService.getTriggers(job).size(),
                 job.supportsForceRun(),
                 manualReplayMode
                         .valueMaybe()
                         .or(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE::defaultValue)
                         .orElseThrow());
-    }
-
-    private Stream<Trigger> getCronTriggers(final Job job) {
-        return triggerCoordinatorService.getTriggers(job).stream()
-                .filter(trigger -> trigger.definition().type() == TriggerType.CRON);
     }
 
     private JobClassAndId jobById(final int jobId) {
