@@ -9,12 +9,16 @@ import ch.ubique.backend.job.service.logs.LogFormatterService;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
+public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
+        implements DisposableBean {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -106,8 +110,18 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     }
 
     @Override
+    @EventListener(ContextClosedEvent.class)
     public void stop() {
         super.stop();
+        stopScheduler();
+        writeQueueToDB();
+    }
+
+    private void stopScheduler() {
+        if (scheduler.isShutdown()) {
+            return;
+        }
+
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
@@ -117,6 +131,11 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+
+    @Override
+    public void destroy() {
+        stopScheduler();
         writeQueueToDB();
     }
 }

@@ -18,6 +18,7 @@ import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -91,12 +92,15 @@ public final class CurrentJobRunner implements JobRunner {
         final var future =
                 executorService.submit(
                         () -> {
-                            runnerGroupActive.add(item);
-                            runnerGroupQueue.remove(item);
-                            JobRunnerHelper.run(job, jobService, jobRunContext);
-                            futuresByJobRun.remove(jobRunId);
-                            runnerGroupByJobRun.remove(jobRunId);
-                            runnerGroupActive.remove(item);
+                            try {
+                                runnerGroupActive.add(item);
+                                runnerGroupQueue.remove(item);
+                                JobRunnerHelper.run(job, jobService, jobRunContext);
+                                futuresByJobRun.remove(jobRunId);
+                                runnerGroupByJobRun.remove(jobRunId);
+                            } finally {
+                                runnerGroupActive.remove(item);
+                            }
                         });
         futuresByJobRun.put(jobRunId, future);
         return true;
@@ -109,9 +113,13 @@ public final class CurrentJobRunner implements JobRunner {
         if (future != null) {
             future.cancel(true);
         }
+        cleanupRun(runId);
+    }
+
+    private void cleanupRun(final int runId) {
         final var runnerGroup = runnerGroupByJobRun.get(runId);
         if (runnerGroup != null) {
-            getExecutorService(runnerGroup).purge(); // Remove canceled tasks from the queue
+            getExecutorService(runnerGroup).purge(); // Removes canceled tasks from the queue
             queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
             activeJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
         }
@@ -126,16 +134,29 @@ public final class CurrentJobRunner implements JobRunner {
         if (future == null) {
             return null;
         }
-        if (future.isDone()) {
-            return switch (future.state()) {
-                case SUCCESS -> JobRunState.DONE;
-                case CANCELLED -> JobRunState.CANCELLED;
-                case FAILED -> JobRunState.ERROR;
-                case RUNNING -> throw new IllegalStateException("isDone implies !RUNNING");
-            };
+        if (!future.isDone()) {
+            return JobRunState.BUSY;
         }
-        // Not done yet -> the job is running
-        return JobRunState.BUSY;
+        if (future.isCancelled()) {
+            return JobRunState.CANCELLED;
+        }
+
+        final var previousContextMap = MDC.getCopyOfContextMap();
+        MDC.put("jobRunId", String.valueOf(jobRun.id()));
+        try {
+            future.get();
+            return JobRunState.DONE;
+        } catch (final InterruptedException e) {
+            logger.info("Thread interrupted while resolving job run state.", e);
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (final ExecutionException e) {
+            logger.info("Detected job run in error state.", e);
+            cleanupRun(jobRun.id());
+            return JobRunState.ERROR;
+        } finally {
+            MDC.setContextMap(previousContextMap);
+        }
     }
 
     private ThreadPoolExecutor getExecutorService(final RunnerGroup runnerGroup) {
