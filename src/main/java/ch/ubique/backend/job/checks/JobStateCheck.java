@@ -1,39 +1,34 @@
 package ch.ubique.backend.job.checks;
 
-import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.STATE_CHECK_INTERVAL;
-import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.STATE_CHECK_STRATEGY;
+import static ch.ubique.backend.job.model.JobRunState.SUCCESS_STATES;
 
-import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.checks.cache.JobStateCheckEvaluationCache;
+import ch.ubique.backend.job.checks.cache.JobStateCheckEvaluationData;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.StateCheckStrategy;
-import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Stream;
 
 public abstract class JobStateCheck implements StatusCheck {
 
     private final CheckLevel level;
     private final JobRunState stateToCheck;
 
-    private final JobDataService jobDataService;
-    private final JobService jobService;
+    private final JobStateCheckEvaluationCache cache;
 
     protected JobStateCheck(
             final CheckLevel level,
             final JobRunState stateToCheck,
-            final JobDataService jobDataService,
-            final JobService jobService) {
+            final JobStateCheckEvaluationCache cache) {
         this.level = level;
         this.stateToCheck = stateToCheck;
-        this.jobDataService = jobDataService;
-        this.jobService = jobService;
+        this.cache = cache;
     }
 
     @Override
@@ -43,72 +38,69 @@ public abstract class JobStateCheck implements StatusCheck {
 
     @Override
     public final CheckStatus check() {
-        final var failedJobs =
-                jobDataService.findJobs().stream()
-                        .filter(this::checkJobFailed)
-                        .map(JobClassAndId::canonicalClassName)
-                        .toList();
+        var evaluation = cache.get();
 
+        final var failedJobs = failedJobs(evaluation);
         if (!failedJobs.isEmpty()) {
+            final var failedJobClassNames =
+                    failedJobs.stream().map(JobClassAndId::canonicalClassName).toList();
             return new CheckFailed(
-                    "Some jobs are in state " + stateToCheck + ".", Map.of("jobs", failedJobs));
+                    "Some jobs are in state " + stateToCheck + ".",
+                    Map.of("jobs", failedJobClassNames));
         }
 
         return CheckStatus.CHECK_PASSED;
     }
 
-    private boolean checkJobFailed(final JobClassAndId job) {
-        final var strategy = stateCheckStrategy(job);
-        return switch (strategy) {
-            case CHECK_LATEST_SUCCESSFUL -> checkLatestRunFailed(job);
-            case CHECK_ALL_SUCCESSFUL -> checkSomeRunFailed(job);
-            case CHECK_INTERVAL_ALL_SUCCESSFUL -> checkSomeRunInIntervalFailed(job);
-            case CHECK_INTERVAL_SOME_SUCCESSFUL -> checkNoRunInIntervalSuccessful(job);
-        };
+    private List<JobClassAndId> failedJobs(JobStateCheckEvaluationData evaluation) {
+        final var failedJobs = new ArrayList<JobClassAndId>();
+        failedJobs.addAll(failedJobsLatestState(evaluation).toList());
+        failedJobs.addAll(failedJobsAnyFailure(evaluation).toList());
+        failedJobs.addAll(failedJobsAnyFailureInInterval(evaluation).toList());
+        failedJobs.addAll(failedJobsNoSuccessInInterval(evaluation).toList());
+        return failedJobs;
     }
 
-    private boolean checkLatestRunFailed(final JobClassAndId job) {
-        return jobDataService
-                .findLatestJobRunByStates(job.id(), JobRunState.ALL_EXCEPT_RUNNING_STATES)
-                .map(run -> run.latestState() == stateToCheck)
-                .orElse(false);
+    /** Returns jobs failing the check for strategy CHECK_LATEST_SUCCESSFUL */
+    private Stream<JobClassAndId> failedJobsLatestState(JobStateCheckEvaluationData evaluation) {
+        return evaluation.latestState().entrySet().stream()
+                .filter(entry -> entry.getValue() == stateToCheck)
+                .map(Map.Entry::getKey);
     }
 
-    private boolean checkSomeRunFailed(final JobClassAndId job) {
-        return jobDataService.findLatestJobRunByState(job.id(), stateToCheck).isPresent();
+    /** Returns jobs failing the check for strategy CHECK_ALL_SUCCESSFUL */
+    private Stream<JobClassAndId> failedJobsAnyFailure(JobStateCheckEvaluationData evaluation) {
+        return evaluation.problemStates().entrySet().stream()
+                .filter(entry -> entry.getValue().contains(stateToCheck))
+                .map(Map.Entry::getKey);
     }
 
-    private boolean checkSomeRunInIntervalFailed(final JobClassAndId job) {
-        final var after = checkIntervalStart(job);
-        return jobDataService
-                .findAnyJobRunInStatesSince(job.id(), Set.of(stateToCheck), after)
-                .isPresent();
+    /** Returns jobs failing the check for strategy CHECK_INTERVAL_ALL_SUCCESSFUL */
+    private Stream<JobClassAndId> failedJobsAnyFailureInInterval(
+            JobStateCheckEvaluationData evaluation) {
+        return evaluation.jobStateCheckStrategy().entrySet().stream()
+                .filter(
+                        entry ->
+                                entry.getValue()
+                                        == StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL)
+                .map(Map.Entry::getKey)
+                .filter(job -> evaluation.statesInInterval().get(job).contains(stateToCheck));
     }
 
-    private boolean checkNoRunInIntervalSuccessful(final JobClassAndId job) {
-        final var after = checkIntervalStart(job);
-        return jobDataService
-                .findAnyJobRunInStatesSince(job.id(), JobRunState.SUCCESS_STATES, after)
-                .isEmpty();
-    }
-
-    private Instant checkIntervalStart(final JobClassAndId job) {
-        final var checkInterval =
-                jobService
-                        .getJobClassMaybe(job)
-                        .map(jobService::instantiateJob)
-                        .map(jobService::getProperties)
-                        .map(p -> p.getValue(STATE_CHECK_INTERVAL))
-                        .orElse(STATE_CHECK_INTERVAL.defaultValue().orElseThrow());
-        return Instant.now().minus(checkInterval);
-    }
-
-    private StateCheckStrategy stateCheckStrategy(final JobClassAndId job) {
-        return jobService
-                .getJobClassMaybe(job)
-                .map(jobService::instantiateJob)
-                .map(jobService::getProperties)
-                .map(p -> p.getValue(STATE_CHECK_STRATEGY))
-                .orElse(STATE_CHECK_STRATEGY.defaultValue().orElseThrow());
+    /** Returns jobs failing the check for strategy CHECK_INTERVAL_SOME_SUCCESSFUL */
+    private Stream<JobClassAndId> failedJobsNoSuccessInInterval(
+            JobStateCheckEvaluationData evaluation) {
+        return evaluation.jobStateCheckStrategy().entrySet().stream()
+                .filter(
+                        entry ->
+                                entry.getValue()
+                                        == StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL)
+                .map(Map.Entry::getKey)
+                .filter(
+                        job -> {
+                            var jobRunStates = evaluation.statesInInterval().get(job);
+                            return jobRunStates.contains(stateToCheck)
+                                    && jobRunStates.stream().noneMatch(SUCCESS_STATES::contains);
+                        });
     }
 }

@@ -110,12 +110,32 @@ public class JobDataService {
                 .map(JobRunLatestStateViewEntity::toJobRun);
     }
 
+    /** Find distinct job run states for the given jobs */
     @Transactional(readOnly = true)
-    public Optional<JobRun> findLatestJobRunByStates(
-            final int jobId, final Collection<JobRunState> states) {
+    public Map<Integer, Set<JobRunState>> findJobRunStates(final Collection<Integer> jobs) {
+        if (jobs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return jobRunLatestStateViewRepository.findJobRunStates(jobs);
+    }
+
+    /** Find distinct job run states for jobs started after the given per-job instances */
+    @Transactional(readOnly = true)
+    public Map<Integer, Set<JobRunState>> findJobRunStatesSince(final Map<Integer, Instant> jobs) {
+        if (jobs.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return jobRunLatestStateViewRepository.findJobRunStatesSince(jobs);
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobRun> findLatestJobRunsByStates(
+            final Collection<Integer> jobIds, final Collection<JobRunState> states) {
         return jobRunLatestStateViewRepository
-                .findFirstByJobIdAndLatestStateInOrderByStartedAtDesc(jobId, states)
-                .map(JobRunLatestStateViewEntity::toJobRun);
+                .findFirstByJobIdAndLatestStateInOrderByStartedAtDesc(jobIds, states)
+                .stream()
+                .map(JobRunLatestStateViewEntity::toJobRun)
+                .toList();
     }
 
     @Transactional(readOnly = true)
