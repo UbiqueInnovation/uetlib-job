@@ -1,8 +1,7 @@
 package ch.ubique.backend.job.checks;
 
-import ch.ubique.backend.job.data.service.JobDataService;
+import ch.ubique.backend.job.checks.cache.JobStateCheckEvaluationCache;
 import ch.ubique.backend.job.model.JobRunState;
-import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.monitoring.check.models.CheckLevel;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -15,8 +14,7 @@ public class JobCancelledStateCheck extends JobStateCheck {
 
     public JobCancelledStateCheck(
             @Value("${ch.ubique.backend.job.check.cancelled-state:INFO}") final CheckLevel level,
-            final JobDataService jobDataService,
-            final JobService jobService) {
-        super(level, JobRunState.CANCELLED, jobDataService, jobService);
+            final JobStateCheckEvaluationCache jobStateCheckEvaluationCache) {
+        super(level, JobRunState.CANCELLED, jobStateCheckEvaluationCache);
     }
 }

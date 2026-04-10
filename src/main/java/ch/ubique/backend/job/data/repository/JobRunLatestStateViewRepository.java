@@ -11,14 +11,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Repository
 public interface JobRunLatestStateViewRepository
         extends JpaRepository<JobRunLatestStateViewEntity, Integer>,
-                JpaSpecificationExecutor<JobRunLatestStateViewEntity> {
+                JpaSpecificationExecutor<JobRunLatestStateViewEntity>,
+                JobRunLatestStateViewRepositoryCustom {
 
     @Query(
             """
@@ -45,14 +45,16 @@ public interface JobRunLatestStateViewRepository
 
     @Query(
             """
-                    select jrlsve
-                    from JobRunLatestStateViewEntity jrlsve
-                    where jrlsve.jobId = :jobId
-                      and jrlsve.latestState in :latestStates
-                    order by jrlsve.startedAt desc
-                    limit 1""")
-    Optional<JobRunLatestStateViewEntity> findFirstByJobIdAndLatestStateInOrderByStartedAtDesc(
-            int jobId, Collection<JobRunState> latestStates);
+                    select r
+                    from JobRunLatestStateViewEntity r
+                            join (select max(rl.id) as latest_id
+                                  from JobRunLatestStateViewEntity rl
+                                  where rl.latestState in :latestStates
+                                  group by rl.jobId) latest on r.id = latest.latest_id
+                    where r.jobId in :jobIds
+                    """)
+    Collection<JobRunLatestStateViewEntity> findFirstByJobIdAndLatestStateInOrderByStartedAtDesc(
+            Collection<Integer> jobIds, Collection<JobRunState> latestStates);
 
     @Query(
             """
