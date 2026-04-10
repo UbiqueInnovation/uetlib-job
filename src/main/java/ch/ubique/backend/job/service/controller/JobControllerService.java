@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.service.controller;
 
-import static java.util.function.Function.identity;
+import static ch.ubique.backend.core.utils.MapCollectors.toMap;
 
 import ch.ubique.backend.core.exception.ResourceNotFoundException;
 import ch.ubique.backend.job.Job;
@@ -47,7 +47,7 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Range;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,11 +65,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @Profile("!job-run")
+@NullMarked
 public class JobControllerService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -119,29 +119,19 @@ public class JobControllerService {
         return list;
     }
 
-    @NonNull
-    private ArrayList<JobInfo> jobInfos(final Collection<JobClassAndId> jobs)
+    private ArrayList<JobInfo> jobInfos(
+            final Collection<JobClassAndId> jobs,
+            final Map<Integer, List<Trigger>> existingDbTriggers)
             throws ClassNotFoundException {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var jobClassAndId : jobs) {
-            final var jobInfo = jobInfo(jobClassAndId);
+            final var jobInfo = jobInfo(jobClassAndId, existingDbTriggers);
             jobInfos.add(jobInfo);
         }
         return jobInfos;
     }
 
-    public Collection<JobInfo> findAllJobs() throws ClassNotFoundException {
-        return findJobs(Set.of(), Set.of());
-    }
-
-    public List<JobInfo> findJobs(
-            final Collection<String> includeJobNamesOrIds,
-            final Collection<String> excludeJobNamesOrIds)
-            throws ClassNotFoundException {
-        return jobInfos(getJobClassAndIds(includeJobNamesOrIds, excludeJobNamesOrIds));
-    }
-
-    private @NonNull Collection<JobClassAndId> getJobClassAndIds(
+    private Collection<JobClassAndId> getJobClassAndIds(
             final Collection<String> include, final Collection<String> exclude) {
         final var all = jobService.getAllJobClassesWithId();
         if (CollectionUtils.isNotEmpty(include)) {
@@ -159,21 +149,20 @@ public class JobControllerService {
 
     public JobInfosContainer getJobInfos() throws ClassNotFoundException {
         final var jobs = jobService.getAllJobClassesWithId();
-        final var latestRuns = findLatestJobRuns(jobs);
-        final var jobInfos = jobInfos(jobs);
-        return new JobInfosContainer(jobInfos, latestRuns);
+        final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
+        return new JobInfosContainer(jobInfos(jobs, existingDbTriggers), findLatestJobRuns(jobs));
     }
 
     public Map<Integer, JobRunInfo> findLatestJobRuns(final Collection<JobClassAndId> jobs) {
-        return jobs.stream()
-                .map(
-                        job ->
-                                jobDataService
-                                        .findLatestJobRun(job.id())
-                                        .map(this::createJobRunInfo)
-                                        .orElse(null))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toMap(JobRunInfo::jobId, identity()));
+        final var neededJobIds = jobs.stream().map(JobClassAndId::id).toList();
+        final var latestRuns = jobDataService.findAllLatestRuns(neededJobIds);
+        final var runIds = latestRuns.stream().map(JobRun::id).toList();
+        final var runIdsWithFiles = jobDataService.jobRunIdsWithInputs(runIds);
+        return latestRuns.stream()
+                .collect(
+                        Collectors.toMap(
+                                JobRun::jobId,
+                                r -> JobRunInfo.from(r, runIdsWithFiles.contains(r.id()))));
     }
 
     /**
@@ -202,20 +191,28 @@ public class JobControllerService {
     public JobRunInfosContainer findJobRuns(
             final Pageable pageable,
             final Collection<JobRunState> states,
-            @NonNull final Collection<String> includeJobNamesOrIds,
-            @NonNull final Collection<String> excludeJobNamesOrIds,
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds,
             @Nullable final Instant from,
             @Nullable final Instant to)
             throws ClassNotFoundException {
-        final var jobsById =
-                findAllJobs().stream().collect(Collectors.toMap(JobInfo::id, identity()));
+        final var jobs = jobService.getAllJobClassesWithId();
+        final var dbTriggers = jobDataService.getAllDbTriggersByJobId();
+        final var jobsById = jobInfos(jobs, dbTriggers).stream().collect(toMap(JobInfo::id));
 
         final var selectedJobIdList =
-                getJobIdIncludeList(includeJobNamesOrIds, excludeJobNamesOrIds);
+                getJobClassAndIds(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
+                        .map(JobClassAndId::id)
+                        .toList();
         final var fromToRange = getFromToRangeOptional(from, to);
         final var jobRunsPage =
                 jobDataService.findJobRuns(pageable, selectedJobIdList, states, fromToRange);
-        final var jobRuns = jobRunsPage.stream().map(this::createJobRunInfo).toList();
+        final var runIds = jobRunsPage.getContent().stream().map(JobRun::id).toList();
+        final var runIdsWithFiles = jobDataService.jobRunIdsWithInputs(runIds);
+        final var jobRuns =
+                jobRunsPage.stream()
+                        .map(r -> JobRunInfo.from(r, runIdsWithFiles.contains(r.id())))
+                        .toList();
         return new JobRunInfosContainer(
                 jobRuns,
                 jobsById,
@@ -224,35 +221,14 @@ public class JobControllerService {
                 jobRunsPage.getTotalPages());
     }
 
-    private JobRunInfo createJobRunInfo(final JobRun jobRun) {
-        return JobRunInfo.from(jobRun, hasFiles(jobRun));
-    }
-
-    private List<Integer> getJobIdIncludeList(
-            final Collection<String> includeJobNamesOrIds,
-            final Collection<String> excludeJobNamesOrIds)
-            throws ClassNotFoundException {
-        final var includeJobIds = CollectionUtils.isNotEmpty(includeJobNamesOrIds);
-        final var excludeJobIds = CollectionUtils.isNotEmpty(excludeJobNamesOrIds);
-        if (includeJobIds) {
-            return findJobs(includeJobNamesOrIds, List.of()).stream().map(JobInfo::id).toList();
-        }
-        if (excludeJobIds) {
-            return findJobs(List.of(), excludeJobNamesOrIds).stream().map(JobInfo::id).toList();
-        }
-        return List.of();
-    }
-
-    private Optional<Range<Instant>> getFromToRangeOptional(final Instant from, final Instant to) {
+    private Optional<Range<Instant>> getFromToRangeOptional(
+            final @Nullable Instant from, final @Nullable Instant to) {
         return Optional.ofNullable(from)
                 .flatMap(fromI -> Optional.ofNullable(to).map(toI -> Range.of(fromI, toI)));
     }
 
     private List<Integer> getJobIds(final Collection<String> jobNamesOrIds) {
-        return jobNamesOrIds.stream()
-                .map(ThrowingFunction.lifted(this::getJobId))
-                .flatMap(Optional::stream)
-                .toList();
+        return jobNamesOrIds.stream().map(this::getJobId).filter(Objects::nonNull).toList();
     }
 
     /**
@@ -319,11 +295,15 @@ public class JobControllerService {
                         .orElseThrow(
                                 ResourceNotFoundException.supplierWithMessage(
                                         "No JobRun with runId {0} found", jobRunId));
-        final var jobInfo = jobInfo(jobById(jobRun.jobId()));
-        return JobRunInfoContainer.from(createJobRunInfo(jobRun), jobInfo);
+        final var jobInfo =
+                jobInfo(jobById(jobRun.jobId()), jobDataService.getAllDbTriggersByJobId());
+        return JobRunInfoContainer.from(
+                JobRunInfo.from(jobRun, jobDataService.hasJobRunInputs(jobRunId)), jobInfo);
     }
 
-    public JobInfo jobInfo(final JobClassAndId jobClassAndId) throws ClassNotFoundException {
+    public JobInfo jobInfo(
+            final JobClassAndId jobClassAndId, final Map<Integer, List<Trigger>> existingDbTriggers)
+            throws ClassNotFoundException {
         final var jobClass = jobService.getJobClassOrThrow(jobClassAndId);
         final var job = jobService.instantiateJob(jobClass);
 
@@ -337,7 +317,7 @@ public class JobControllerService {
                 jobService.isEnabled(jobClass.getCanonicalName()),
                 job.propertiesConfig().isFixed(),
                 job.triggersConfig().isFixed(),
-                triggerCoordinatorService.getTriggers(job).size(),
+                triggerCoordinatorService.getTriggers(job, existingDbTriggers).size(),
                 job.supportsForceRun(),
                 manualReplayMode
                         .valueMaybe()
@@ -375,18 +355,20 @@ public class JobControllerService {
     }
 
     public JobTriggers getJobTriggers(final String jobIdOrClassName) throws ClassNotFoundException {
+        final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         final var job = getJobInstance(jobIdOrClassName);
-        return getJobTriggers(job);
+        return getJobTriggers(job, existingDbTriggers);
     }
 
     public JobTriggers updateJobTriggers(final String jobIdOrClassName, final JobTriggers triggers)
             throws ClassNotFoundException {
+        final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         final var job = getJobInstance(jobIdOrClassName);
 
         final var triggerIds = triggers.triggers().stream().map(JobTrigger::id).toList();
 
         // Delete triggers that are currently existing, but not present anymore
-        final var existing = getJobTriggers(job);
+        final var existing = getJobTriggers(job, existingDbTriggers);
         existing.triggers().stream()
                 .filter(trigger -> !triggerIds.contains(trigger.id()))
                 .map(trigger -> toTrigger(trigger, job))
@@ -400,7 +382,7 @@ public class JobControllerService {
                 triggerCoordinatorService.updateTrigger(job.getClass(), toTrigger(trigger, job));
             }
         }
-        return getJobTriggers(job);
+        return getJobTriggers(job, existingDbTriggers);
     }
 
     private Trigger toTrigger(final JobTrigger trigger, final Job job) {
@@ -410,10 +392,13 @@ public class JobControllerService {
                 trigger.definition());
     }
 
-    private JobTriggers getJobTriggers(final Job job) {
+    private JobTriggers getJobTriggers(
+            final Job job, final Map<Integer, List<Trigger>> existingDbTriggers) {
         return new JobTriggers(
                 job.triggersConfig().isFixed(),
-                triggerCoordinatorService.getTriggers(job).stream().map(JobTrigger::new).toList());
+                triggerCoordinatorService.getTriggers(job, existingDbTriggers).stream()
+                        .map(JobTrigger::new)
+                        .toList());
     }
 
     public JobSystemInfoResponse getInfo() {
@@ -438,11 +423,11 @@ public class JobControllerService {
         }
     }
 
-    private int getJobId(final String jobIdOrClassName) throws ClassNotFoundException {
+    private @Nullable Integer getJobId(final String jobIdOrClassName) {
         try {
             return Integer.parseInt(jobIdOrClassName);
         } catch (final NumberFormatException ignored) {
-            return jobService.findJobIdOrThrow(jobService.getJobClassOrThrow(jobIdOrClassName));
+            return jobService.findJobId(jobIdOrClassName).orElse(null);
         }
     }
 
@@ -508,10 +493,6 @@ public class JobControllerService {
                 .findFirst()
                 .flatMap(ThrowingFunction.lifted(inputProvider::getJobRunInput))
                 .map(InputStreamResource::new);
-    }
-
-    private boolean hasFiles(final JobRun jobRun) {
-        return jobRunInputManager.hasDeclaredInputs(jobRun.id());
     }
 
     private Optional<Job> instantiateJob(final int jobRunId) {

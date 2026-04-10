@@ -56,9 +56,10 @@ public class TriggerCoordinatorService {
     @EventListener(ApplicationReadyEvent.class)
     private void onStartup() {
         logger.info("Evaluating triggers of all jobs");
+        final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         for (final var jobClass : jobService.getAllJobClasses()) {
             final var instance = jobService.instantiateJob(jobClass);
-            final var triggers = getTriggers(instance);
+            final var triggers = getTriggers(instance, existingDbTriggers);
             final var classAndId = jobService.jobClassAndIdOrThrow(jobClass);
             for (final var trigger : triggers) {
                 onStartup(trigger, classAndId, jobClass);
@@ -109,9 +110,12 @@ public class TriggerCoordinatorService {
      *     initial trigger
      * <li>return (possibly just created / overwritten) triggers from database
      */
-    public Collection<Trigger> getTriggers(final Job job) {
+    public Collection<Trigger> getTriggers(
+            final Job job, final Map<Integer, List<Trigger>> existingDbTriggersByJob) {
         final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
-        final var dbTriggers = jobDataService.getTriggers(jobClassAndId.id());
+        final var dbTriggers =
+                Objects.<List<Trigger>>requireNonNullElseGet(
+                        existingDbTriggersByJob.get(jobClassAndId.id()), List::of);
         final var dbTriggerDefinitions =
                 dbTriggers.stream().map(Trigger::definition).collect(Collectors.toSet());
 

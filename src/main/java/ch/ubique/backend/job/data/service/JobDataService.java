@@ -12,6 +12,7 @@ import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
+import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -81,6 +82,13 @@ public class JobDataService {
         return jobRunRepository
                 .findFirstByJobIdOrderByStartedAtDesc(jobId)
                 .map(JobRunEntity::toJobRun);
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<JobRun> findAllLatestRuns(final Collection<Integer> jobIds) {
+        return jobRunRepository.findLatestRuns(jobIds).stream()
+                .map(JobRunLatestStateViewEntity::toJobRun)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -317,6 +325,11 @@ public class JobDataService {
         return jobRunInputRepository.existsByRunId(runId);
     }
 
+    @Transactional(readOnly = true)
+    public Collection<Integer> jobRunIdsWithInputs(final Collection<Integer> runIds) {
+        return jobRunInputRepository.findJobRunIdsWithInputs(runIds);
+    }
+
     @Transactional
     public void insertLogEvents(final Collection<JobRunLoggingEvent> logEvents) {
         if (logEvents.isEmpty()) {
@@ -431,13 +444,19 @@ public class JobDataService {
         jobPropertyRepository.deleteAllByKeyNotIn(jobPropertyNames);
     }
 
+    /**
+     * Attention, the DB triggers do not correspond to the effective triggers of the job, since
+     * fixed and initial triggers are not taken into consideration.
+     *
+     * <p>Use {@link TriggerCoordinatorService#getTriggers(Job, Map)} to resolve the actual
+     * triggers.
+     */
     @Transactional(readOnly = true)
-    public Collection<Trigger> getTriggers(final int jobId) {
-        return jobTriggerRepository
-                .findAllByJobId(jobId)
+    public Map<Integer, List<Trigger>> getAllDbTriggersByJobId() {
+        return jobTriggerRepository.findAll().stream()
                 .map(JobTriggerEntity::toTrigger)
                 .filter(Objects::nonNull)
-                .toList();
+                .collect(Collectors.groupingBy(Trigger::jobId));
     }
 
     @Transactional
@@ -568,13 +587,7 @@ public class JobDataService {
 
     @Transactional
     public void setEnabled(final int jobId, final boolean isEnabled) {
-        jobRepository
-                .findById(jobId)
-                .ifPresent(
-                        jobEntity -> {
-                            jobEntity.setEnabled(isEnabled);
-                            jobRepository.save(jobEntity);
-                        });
+        jobRepository.setEnabled(jobId, isEnabled);
     }
 
     private static @NonNull Supplier<ResourceNotFoundException> throwJobRunNotFound(int jobRunId) {

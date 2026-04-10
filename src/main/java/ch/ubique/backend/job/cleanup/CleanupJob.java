@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 @SuppressWarnings("ClassCanBeRecord")
@@ -99,7 +100,7 @@ public class CleanupJob implements Job {
         final JobProperties jobProperties;
         try {
             jobProperties = jobService.getProperties(job);
-        } catch (final ClassNotFoundException e) {
+        } catch (final NoSuchElementException e) {
             logger.info("Failed to instantiate job {}, no need to clean: ", job, e);
             return true;
         }

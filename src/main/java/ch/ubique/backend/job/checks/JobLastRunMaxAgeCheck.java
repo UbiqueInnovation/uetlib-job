@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -77,7 +78,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
                             .getProperties(job)
                             .get(JobPropertyDefinitions.LAST_RUN_MAX_AGE_ALLOW_NO_RUN)
                             .value();
-        } catch (final ClassNotFoundException e) {
+        } catch (final NoSuchElementException e) {
             return Optional.empty();
         }
 
