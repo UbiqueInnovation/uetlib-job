@@ -42,7 +42,6 @@ public class JobDataService {
     private final JobTriggerRepository jobTriggerRepository;
     private final JobPropertyRepository jobPropertyRepository;
     private final JobRunRepository jobRunRepository;
-    private final JobRunLatestStateViewRepository jobRunLatestStateViewRepository;
     private final JobRunStateTransitionRepository jobRunStateTransitionRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
@@ -57,7 +56,6 @@ public class JobDataService {
             final JobTriggerRepository jobTriggerRepository,
             final JobPropertyRepository jobPropertyRepository,
             final JobRunRepository jobRunRepository,
-            final JobRunLatestStateViewRepository jobRunLatestStateViewRepository,
             final JobRunStateTransitionRepository jobRunStateTransitionRepository,
             final JobRunInputRepository jobRunInputRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
@@ -68,7 +66,6 @@ public class JobDataService {
         this.jobTriggerRepository = jobTriggerRepository;
         this.jobPropertyRepository = jobPropertyRepository;
         this.jobRunRepository = jobRunRepository;
-        this.jobRunLatestStateViewRepository = jobRunLatestStateViewRepository;
         this.jobRunStateTransitionRepository = jobRunStateTransitionRepository;
         this.jobRunInputRepository = jobRunInputRepository;
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
@@ -87,15 +84,15 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Collection<JobRun> findAllLatestRuns(final Collection<Integer> jobIds) {
         return jobRunRepository.findLatestRuns(jobIds).stream()
-                .map(JobRunLatestStateViewEntity::toJobRun)
+                .map(JobRunEntity::toJobRun)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<JobRun> findLatestJobRunByState(final int jobId, final JobRunState state) {
-        return jobRunLatestStateViewRepository
+        return jobRunRepository
                 .findFirstByJobIdAndLatestStateOrderByStartedAtDesc(jobId, state)
-                .map(JobRunLatestStateViewEntity::toJobRun);
+                .map(JobRunEntity::toJobRun);
     }
 
     @Transactional(readOnly = true)
@@ -104,9 +101,9 @@ public class JobDataService {
         if (states.isEmpty()) {
             return Optional.empty();
         }
-        return jobRunLatestStateViewRepository
+        return jobRunRepository
                 .findAnyJobRunInStateSince(jobId, states, after)
-                .map(JobRunLatestStateViewEntity::toJobRun);
+                .map(JobRunEntity::toJobRun);
     }
 
     /** Find distinct job run states for the given jobs */
@@ -115,7 +112,7 @@ public class JobDataService {
         if (jobs.isEmpty()) {
             return Collections.emptyMap();
         }
-        return jobRunLatestStateViewRepository.findJobRunStates(jobs);
+        return jobRunRepository.findJobRunStates(jobs);
     }
 
     /** Find distinct job run states for jobs started after the given per-job instances */
@@ -124,25 +121,20 @@ public class JobDataService {
         if (jobs.isEmpty()) {
             return Collections.emptyMap();
         }
-        return jobRunLatestStateViewRepository.findJobRunStatesSince(jobs);
+        return jobRunRepository.findJobRunStatesSince(jobs);
     }
 
     @Transactional(readOnly = true)
     public Collection<JobRun> findLatestJobRunsByStates(
             final Collection<Integer> jobIds, final Collection<JobRunState> states) {
-        return jobRunLatestStateViewRepository
-                .findFirstByJobIdAndLatestStateInOrderByStartedAtDesc(jobIds, states)
-                .stream()
-                .map(JobRunLatestStateViewEntity::toJobRun)
+        return jobRunRepository.findLatestJobRunsByStates(jobIds, states).stream()
+                .map(JobRunEntity::toJobRun)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Collection<JobRun> findJobRunByStates(final Collection<JobRunState> states) {
-        return jobRunLatestStateViewRepository
-                .findAllByLatestStateIn(states)
-                .map(JobRunLatestStateViewEntity::toJobRun)
-                .toList();
+        return jobRunRepository.findAllByLatestStateIn(states).map(JobRunEntity::toJobRun).toList();
     }
 
     @Transactional(readOnly = true)
@@ -151,9 +143,9 @@ public class JobDataService {
         if (CollectionUtils.isEmpty(states)) {
             throw new IllegalArgumentException("States must not be empty");
         }
-        return jobRunLatestStateViewRepository
+        return jobRunRepository
                 .findLatestRunsForEachJobIfInState(states)
-                .map(JobRunLatestStateViewEntity::toJobRun)
+                .map(JobRunEntity::toJobRun)
                 .toList();
     }
 
@@ -170,7 +162,7 @@ public class JobDataService {
             final List<Integer> jobIds,
             final Collection<JobRunState> states,
             final Optional<Range<Instant>> dateTimeRange,
-            final Root<JobRunLatestStateViewEntity> root,
+            final Root<JobRunEntity> root,
             final CriteriaBuilder criteriaBuilder) {
 
         final var predicates = new ArrayList<Predicate>();
@@ -201,13 +193,13 @@ public class JobDataService {
             @NonNull final List<Integer> includeJobIds,
             final Collection<JobRunState> states,
             final Optional<Range<Instant>> fromToRange) {
-        return jobRunLatestStateViewRepository
+        return jobRunRepository
                 .findAll(
                         (root, query, criteriaBuilder) ->
                                 buildJobRunsPredicate(
                                         includeJobIds, states, fromToRange, root, criteriaBuilder),
                         pageable)
-                .map(JobRunLatestStateViewEntity::toJobRun);
+                .map(JobRunEntity::toJobRun);
     }
 
     @Transactional
@@ -258,18 +250,13 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobRun startJobRun(
-            final int jobRunId,
-            @NonNull final JobRunState jobRunState,
-            @NonNull final Instant startedAt) {
+    public JobRun startJobRun(final int jobRunId, @NonNull final Instant startedAt) {
         return jobRunRepository
                 .findById(jobRunId)
                 .map(
                         entity -> {
                             entity.setStartedAt(startedAt);
-                            entity.addJobRunStateTransition(
-                                    new JobRunStateTransitionEmbeddable(jobRunState, startedAt));
-                            return jobRunRepository.save(entity);
+                            return saveJobRunWithTransition(entity, JobRunState.BUSY, startedAt);
                         })
                 .orElseThrow(throwJobRunNotFound(jobRunId))
                 .toJobRun();
@@ -292,9 +279,7 @@ public class JobDataService {
         if (JobRunState.ACKNOWLEDGED == jobRunState
                 && jobRunEntity.latestState().isAcknowledgeable()) {
             // Add state transition
-            jobRunEntity.addJobRunStateTransition(
-                    new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
-            jobRunRepository.save(jobRunEntity);
+            saveJobRunWithTransition(jobRunEntity, jobRunState, transitionedAt);
         }
 
         final var isFinishedState = !jobRunState.isRunning();
@@ -312,11 +297,7 @@ public class JobDataService {
         }
 
         // Add state transition
-        jobRunEntity.addJobRunStateTransition(
-                new JobRunStateTransitionEmbeddable(jobRunState, transitionedAt));
-
-        // Save
-        jobRunRepository.save(jobRunEntity);
+        saveJobRunWithTransition(jobRunEntity, jobRunState, transitionedAt);
     }
 
     @Transactional(readOnly = true)
@@ -417,10 +398,10 @@ public class JobDataService {
             final Optional<Integer> daysToKeepSkipped,
             final int chunkSize) {
         final var finishedBefore =
-                jobRunLatestStateViewRepository
-                        .findFirstByJobIdAndLatestStateAndFinishedAtIsNotNullOrderByFinishedAtDesc(
+                jobRunRepository
+                        .findFirstByJobIdAndLatestStateOrderByFinishedAtDesc(
                                 jobId, JobRunState.DONE)
-                        .map(JobRunLatestStateViewEntity::toJobRun)
+                        .map(JobRunEntity::toJobRun)
                         .map(
                                 jobRun ->
                                         Objects.requireNonNull(jobRun.finishedAt())
@@ -435,7 +416,7 @@ public class JobDataService {
                                 jobRunRepository
                                         .findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
                                                 jobId, finishedBefore, skipped, pageable)
-                                        .map(JobRunLatestStateViewEntity::toJobRun))
+                                        .map(JobRunEntity::toJobRun))
                 .orElseGet(
                         () ->
                                 jobRunRepository
@@ -488,9 +469,8 @@ public class JobDataService {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =
                 new JobRunEntity(jobId, versionTag, runnerKey, scheduledAt, arguments);
-        jobRunEntity.addJobRunStateTransition(
-                new JobRunStateTransitionEmbeddable(JobRunState.SCHEDULED, scheduledAt));
-        return jobRunRepository.save(jobRunEntity).toJobRun();
+        return saveJobRunWithTransition(jobRunEntity, JobRunState.SCHEDULED, scheduledAt)
+                .toJobRun();
     }
 
     @Transactional
@@ -610,8 +590,34 @@ public class JobDataService {
         jobRepository.setEnabled(jobId, isEnabled);
     }
 
-    private static @NonNull Supplier<ResourceNotFoundException> throwJobRunNotFound(int jobRunId) {
+    private static @NonNull Supplier<ResourceNotFoundException> throwJobRunNotFound(
+            final int jobRunId) {
         return ResourceNotFoundException.supplierWithMessage(
                 "No JobRunEntity with id {} found", jobRunId);
+    }
+
+    private JobRunEntity saveJobRunWithTransition(
+            final JobRunEntity jobRunEntity,
+            final JobRunState state,
+            final Instant transitionedAt) {
+
+        jobRunEntity.setLatestState(state);
+        final var savedJobRun = jobRunRepository.save(jobRunEntity);
+        final var transition = new JobRunStateTransitionEntity(savedJobRun, state, transitionedAt);
+        jobRunStateTransitionRepository.save(transition);
+
+        // Check what the actual latest transition is
+        final var latestTransitionState =
+                jobRunStateTransitionRepository
+                        .findFirstByJobRunIdOrderByTransitionedAtDesc(savedJobRun.id())
+                        .state();
+        if (latestTransitionState != state) {
+            // There is a newer state transition in the database, update latest state of run
+            // accordingly
+            savedJobRun.setLatestState(latestTransitionState);
+            jobRunRepository.save(savedJobRun);
+        }
+
+        return savedJobRun;
     }
 }

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 4.0.0
+
+### Breaking Changes
+
+- Altered `t_job_run` table to include `latest_state` for better performance and easier querying.
+
+  When migrating, please apply `update_uetlib_4_0_0.sql`.
+
 ## 3.3.1
 
 ### Improvements

@@ -16,4 +16,6 @@ public interface JobRunStateTransitionRepository
             Instant transitionedAtAfter);
 
     Stream<JobRunStateTransitionEntity> findAllByJobRunId(int jobRunId);
+
+    JobRunStateTransitionEntity findFirstByJobRunIdOrderByTransitionedAtDesc(int jobRunId);
 }
