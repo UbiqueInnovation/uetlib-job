@@ -8,7 +8,6 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import jakarta.persistence.*;
-import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.*;
 
@@ -16,20 +15,10 @@ import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "t_job_run")
 public class JobRunEntity {
-
-    @NotEmpty
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-            name = "t_job_run_state_transition",
-            joinColumns = @JoinColumn(name = "fk_job_run_id"))
-    @OrderBy("transitionedAt desc")
-    private final List<JobRunStateTransitionEmbeddable> jobRunStateTransitions = new ArrayList<>();
 
     @Id
     @Positive
@@ -72,6 +61,11 @@ public class JobRunEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "latest_state", nullable = false)
+    private JobRunState latestState;
+
     protected JobRunEntity() {}
 
     public JobRunEntity(
@@ -89,10 +83,7 @@ public class JobRunEntity {
     }
 
     public JobRunState latestState() {
-        return jobRunStateTransitions.stream()
-                .findFirst()
-                .map(JobRunStateTransitionEmbeddable::state)
-                .orElseThrow();
+        return latestState;
     }
 
     public JobRun toJobRun() {
@@ -124,28 +115,15 @@ public class JobRunEntity {
         this.startedAt = startedAt;
     }
 
-    public void addJobRunStateTransition(
-            final JobRunStateTransitionEmbeddable jobRunStateEmbeddableTransition) {
-        jobRunStateTransitions.add(jobRunStateEmbeddableTransition);
+    public void setLatestState(final JobRunState latestState) {
+        this.latestState = latestState;
     }
 
     public @PastOrPresent Instant finishedAt() {
         return finishedAt;
     }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(final Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(final Instant createdAt) {
-        this.createdAt = createdAt;
+    public Integer id() {
+        return id;
     }
 }

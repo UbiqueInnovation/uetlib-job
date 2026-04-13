@@ -7,6 +7,7 @@ create table t_job
     updated_at timestamp with time zone not null
 );
 
+
 create table t_job_properties
 (
     fk_job_id  integer                  not null references t_job (pk_job_id) on delete cascade on update cascade,
@@ -14,8 +15,10 @@ create table t_job_properties
     value      text,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null,
-    PRIMARY KEY (fk_job_id, key)
+    primary key (fk_job_id, key)
 );
+create index idx_job_properties_job_id on t_job_properties (fk_job_id);
+
 
 create table t_job_run
 (
@@ -28,10 +31,14 @@ create table t_job_run
     updated_at        timestamp with time zone not null,
     started_at        timestamp with time zone not null,
     finished_at       timestamp with time zone,
+    latest_state text not null,
     job_run_arguments jsonb
 );
+create index idx_job_run_job_id on t_job_run (fk_job_id);
+create index job_run_idx_latest_state on t_job_run (latest_state);
+create index idx_job_run_started_at on t_job_run (started_at);
+create index job_run_idx_finished_at on t_job_run (finished_at);
 
-create index idx_finished_at on t_job_run (finished_at);
 
 create table t_job_run_input
 (
@@ -42,6 +49,8 @@ create table t_job_run_input
     created_at          timestamp with time zone not null,
     updated_at          timestamp with time zone not null
 );
+create index fk_idx_job_run_input_job_run_id on t_job_run_input (fk_job_run_id);
+
 
 create table t_logging_event
 (
@@ -50,21 +59,22 @@ create table t_logging_event
     timestamp           timestamp with time zone not null,
     formatted_message   text                     not null
 );
-
 create index idx_logging_event_job_run_id_timestamp on t_logging_event (fk_job_run_id, timestamp asc);
 
-CREATE TABLE t_job_trigger
+
+create table t_job_trigger
 (
-    pk_job_trigger_id  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    fk_job_id          INTEGER                  NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE ON UPDATE CASCADE,
-    type               TEXT                     NOT NULL,
-    trigger_definition JSONB                    NOT NULL,
+    pk_job_trigger_id  integer generated always as identity primary key,
+    fk_job_id          integer not null references t_job (pk_job_id) on delete cascade on update cascade,
+    type               text    not null,
+    trigger_definition jsonb   not null,
     created_at         timestamp with time zone not null,
     updated_at         timestamp with time zone not null
 );
+create index fk_idx_job_trigger_job_id on t_job_trigger (fk_job_id);
+create index idx_type on t_job_trigger (type);
+create index idx_job_id on t_job_trigger (fk_job_id);
 
-CREATE INDEX idx_type ON t_job_trigger (type);
-CREATE INDEX idx_job_id ON t_job_trigger (fk_job_id);
 
 create table t_job_run_database_submission
 (
@@ -75,6 +85,7 @@ create table t_job_run_database_submission
     executed_at                           timestamp with time zone,
     job_run_database_submission_arguments jsonb                    not null
 );
+create index fk_idx_job_run_database_submission_job_id on t_job_run_database_submission (fk_job_id);
 
 
 create table t_k8s_jobs
@@ -85,6 +96,8 @@ create table t_k8s_jobs
     created_at     timestamp with time zone not null,
     updated_at     timestamp with time zone not null
 );
+create index fk_idx_k8s_jobs_job_run_id on t_k8s_jobs (fk_job_run_id);
+
 
 create table t_job_run_state_transition
 (
@@ -93,25 +106,7 @@ create table t_job_run_state_transition
     state                          text                     not null,
     transitioned_at                timestamp with time zone not null
 );
-
-create index idx_job_run_started_at on t_job_run (started_at);
+create index idx_job_run_state_transition_job_run_id on t_job_run_state_transition (fk_job_run_id);
 create index idx_job_run_state_transition_state on t_job_run_state_transition (state);
-create index idx_job_run_state_transition_transitioned_at on t_job_run_state_transition (transitioned_at);
-create index idx_job_run_state_transition_transitioned_at_desc on t_job_run_state_transition (transitioned_at DESC);
+create index idx_job_run_state_transition_transitioned_at_desc on t_job_run_state_transition (transitioned_at desc);
 
-create view v_job_run_latest_state as
-select r.*,
-       (select state
-        from t_job_run_state_transition t
-        where t.fk_job_run_id = r.pk_job_run_id
-        order by t.transitioned_at desc, t.pk_job_run_state_transition_id desc
-        limit 1) as latest_state
-from t_job_run r;
-
-create index fk_idx_job_properties_job_id on t_job_properties (fk_job_id);
-create index fk_idx_job_run_job_id on t_job_run (fk_job_id);
-create index fk_idx_job_run_database_submission_job_id on t_job_run_database_submission (fk_job_id);
-create index fk_idx_job_run_input_job_run_id on t_job_run_input (fk_job_run_id);
-create index fk_idx_job_run_state_transition_job_run_id on t_job_run_state_transition (fk_job_run_id);
-create index fk_idx_job_trigger_job_id on t_job_trigger (fk_job_id);
-create index fk_idx_k8s_jobs_job_run_id on t_k8s_jobs (fk_job_run_id);

@@ -223,7 +223,7 @@ public class JobService {
     }
 
     public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {
-        return jobDataService.startJobRun(jobRun.id(), JobRunState.BUSY, startedAt);
+        return jobDataService.startJobRun(jobRun.id(), startedAt);
     }
 
     public void updateJobRunState(

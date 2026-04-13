@@ -13,6 +13,7 @@ import java.time.Instant;
 public class JobRunStateTransitionEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(
             name = "pk_job_run_state_transition_id",
             nullable = false,
@@ -36,7 +37,18 @@ public class JobRunStateTransitionEntity {
 
     protected JobRunStateTransitionEntity() {}
 
+    public JobRunStateTransitionEntity(
+            final JobRunEntity jobRun, final JobRunState state, final Instant transitionedAt) {
+        this.jobRun = jobRun;
+        this.state = state;
+        this.transitionedAt = transitionedAt;
+    }
+
     public JobRunStateTransition toJobRunStateTransition() {
         return new JobRunStateTransition(id, jobRun.toJobRun(), state, transitionedAt);
+    }
+
+    public JobRunState state() {
+        return state;
     }
 }
