@@ -104,3 +104,20 @@ create table t_job_run_state_transition
     index (transitioned_at desc),
     index (state(10))
 ) charset = utf8mb4;
+
+create view v_latest_job_run as
+select r.*
+from t_job_run r
+         join (select max(pk_job_run_id) as latest_job_run_pk
+               from t_job_run
+               group by fk_job_id) m
+              on m.latest_job_run_pk = r.pk_job_run_id;
+
+create view v_latest_finished_job_run as
+select r.*
+from t_job_run r
+         join (select max(pk_job_run_id) as latest_job_run_pk
+               from t_job_run
+               where finished_at is not null
+               group by fk_job_id) m
+              on m.latest_job_run_pk = r.pk_job_run_id;

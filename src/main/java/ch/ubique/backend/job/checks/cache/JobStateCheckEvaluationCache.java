@@ -72,9 +72,7 @@ public class JobStateCheckEvaluationCache {
         final var jobById = jobs.stream().collect(Collectors.toMap(JobClassAndId::id, job -> job));
 
         return jobDataService
-                .findLatestJobRunsByStates(
-                        jobs.stream().map(JobClassAndId::id).toList(),
-                        JobRunState.ALL_EXCEPT_RUNNING_STATES)
+                .findLatestFinishedJobRuns(jobs.stream().map(JobClassAndId::id).toList())
                 .stream()
                 .collect(Collectors.toMap(run -> jobById.get(run.jobId()), JobRun::latestState));
     }

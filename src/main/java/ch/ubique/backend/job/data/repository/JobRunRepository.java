@@ -1,6 +1,8 @@
 package ch.ubique.backend.job.data.repository;
 
 import ch.ubique.backend.job.model.JobRunState;
+import ch.ubique.backend.job.model.entity.JobLatestFinishedRunEntity;
+import ch.ubique.backend.job.model.entity.JobLatestRunEntity;
 import ch.ubique.backend.job.model.entity.JobRunEntity;
 
 import jakarta.validation.constraints.NotEmpty;
@@ -25,18 +27,11 @@ public interface JobRunRepository
 
     Optional<JobRunEntity> findFirstByJobIdOrderByStartedAtDesc(int jobId);
 
-    @Query(
-            """
-                select r
-                from JobRunEntity r
-                where r.id in (
-                    select max(r2.id)
-                    from JobRunEntity r2
-                    where r2.jobId in :jobIds
-                    group by r2.jobId
-                )
-                """)
-    Collection<JobRunEntity> findLatestRuns(Collection<Integer> jobIds);
+    @Query("select r from JobLatestRunEntity r where r.jobId in :jobIds")
+    Collection<JobLatestRunEntity> findLatestRuns(Collection<Integer> jobIds);
+
+    @Query("select r from JobLatestFinishedRunEntity r where r.jobId in :jobIds")
+    Collection<JobLatestFinishedRunEntity> findLatestFinishedRuns(Collection<Integer> jobIds);
 
     Optional<JobRunEntity> findById(int id);
 
@@ -70,29 +65,9 @@ public interface JobRunRepository
                 where run.latestState in :latestStates""")
     Stream<JobRunEntity> findAllByLatestStateIn(Collection<JobRunState> latestStates);
 
-    @Query(
-            """
-                select r
-                from JobRunEntity r
-                         join (select max(rl.id) as latest_id
-                               from JobRunEntity rl
-                               group by rl.jobId) latest on r.id = latest.latest_id
-                where r.latestState in :states""")
-    Stream<JobRunEntity> findLatestRunsForEachJobIfInState(
+    @Query("select r from JobLatestRunEntity r where r.latestState in :states")
+    Stream<JobLatestRunEntity> findLatestRunsForEachJobIfInState(
             @NotEmpty Collection<JobRunState> states);
-
-    @Query(
-            """
-                    select r
-                    from JobRunEntity r
-                            join (select max(rl.id) as latest_id
-                                  from JobRunEntity rl
-                                  where rl.latestState in :latestStates
-                                  group by rl.jobId) latest on r.id = latest.latest_id
-                    where r.jobId in :jobIds
-                    """)
-    Collection<JobRunEntity> findLatestJobRunsByStates(
-            Collection<Integer> jobIds, Collection<JobRunState> latestStates);
 
     @Query(
             """
@@ -105,4 +80,7 @@ public interface JobRunRepository
                 limit 1""")
     Optional<JobRunEntity> findFirstByJobIdAndLatestStateOrderByFinishedAtDesc(
             int jobId, JobRunState latestState);
+
+    Collection<JobRunEntity> findAllByJobIdInAndLatestState(
+            Collection<Integer> jobIds, JobRunState state);
 }

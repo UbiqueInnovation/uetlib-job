@@ -38,6 +38,7 @@ create index idx_job_run_job_id on t_job_run (fk_job_id);
 create index job_run_idx_latest_state on t_job_run (latest_state);
 create index idx_job_run_started_at on t_job_run (started_at);
 create index job_run_idx_finished_at on t_job_run (finished_at);
+create index idx_job_run_job_id_job_run_id on t_job_run (fk_job_id, pk_job_run_id desc);
 
 
 create table t_job_run_input
@@ -110,3 +111,13 @@ create index idx_job_run_state_transition_job_run_id on t_job_run_state_transiti
 create index idx_job_run_state_transition_state on t_job_run_state_transition (state);
 create index idx_job_run_state_transition_transitioned_at_desc on t_job_run_state_transition (transitioned_at desc);
 
+create view v_latest_job_run as
+select distinct on (fk_job_id) *
+from t_job_run
+order by fk_job_id, pk_job_run_id desc;
+
+create view v_latest_finished_job_run as
+select distinct on (fk_job_id) *
+from t_job_run
+where finished_at is not null
+order by fk_job_id, pk_job_run_id desc;

@@ -15,3 +15,16 @@ alter table t_job_run
 create index idx_latest_state on t_job_run (latest_state);
 
 drop view v_job_run_latest_state;
+
+create index idx_job_run_job_id_job_run_id on t_job_run (fk_job_id, pk_job_run_id desc);
+
+create view v_latest_job_run as
+select distinct on (fk_job_id) *
+from t_job_run
+order by fk_job_id, pk_job_run_id desc;
+
+create view v_latest_finished_job_run as
+select distinct on (fk_job_id) *
+from t_job_run
+where finished_at is not null
+order by fk_job_id, pk_job_run_id desc;

@@ -62,9 +62,7 @@ public class JobTimeoutCheck implements StatusCheck {
     private List<Map<String, Object>> failedJobsRunningForTooLong(
             final Collection<JobClassAndId> jobs) {
         final var jobsById = jobs.stream().collect(Collectors.toMap(JobClassAndId::id, job -> job));
-        return jobDataService
-                .findLatestJobRunsByStates(jobsById.keySet(), List.of(JobRunState.BUSY))
-                .stream()
+        return jobDataService.findJobRunsInState(jobsById.keySet(), JobRunState.BUSY).stream()
                 .flatMap(
                         busyRun ->
                                 runtimeLimitExceededError(jobsById.get(busyRun.jobId()), busyRun)
@@ -84,6 +82,8 @@ public class JobTimeoutCheck implements StatusCheck {
                 Map.of(
                         "job",
                         jobClassAndId.canonicalClassName(),
+                        "run",
+                        jobRun.id(),
                         "limit",
                         runtimeLimit,
                         "duration",

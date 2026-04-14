@@ -84,7 +84,7 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Collection<JobRun> findAllLatestRuns(final Collection<Integer> jobIds) {
         return jobRunRepository.findLatestRuns(jobIds).stream()
-                .map(JobRunEntity::toJobRun)
+                .map(JobLatestRunEntity::toJobRun)
                 .toList();
     }
 
@@ -125,9 +125,15 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
-    public Collection<JobRun> findLatestJobRunsByStates(
-            final Collection<Integer> jobIds, final Collection<JobRunState> states) {
-        return jobRunRepository.findLatestJobRunsByStates(jobIds, states).stream()
+    public Collection<JobRun> findLatestFinishedJobRuns(final Collection<Integer> jobIds) {
+        return jobRunRepository.findLatestFinishedRuns(jobIds).stream()
+                .map(JobLatestFinishedRunEntity::toJobRun)
+                .toList();
+    }
+
+    public Collection<JobRun> findJobRunsInState(
+            final Set<Integer> jobIds, final JobRunState jobRunState) {
+        return jobRunRepository.findAllByJobIdInAndLatestState(jobIds, jobRunState).stream()
                 .map(JobRunEntity::toJobRun)
                 .toList();
     }
@@ -145,7 +151,7 @@ public class JobDataService {
         }
         return jobRunRepository
                 .findLatestRunsForEachJobIfInState(states)
-                .map(JobRunEntity::toJobRun)
+                .map(JobLatestRunEntity::toJobRun)
                 .toList();
     }
 
