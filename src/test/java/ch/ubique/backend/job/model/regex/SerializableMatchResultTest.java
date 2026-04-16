@@ -10,7 +10,6 @@ import static java.util.stream.Collectors.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.regex.MatchResult;
@@ -25,7 +24,7 @@ class SerializableMatchResultTest {
     private static MatchResult matchResult;
     private static SerializableMatchResult serializableMatchResult;
 
-    private final ObjectMapper objectMapper = JsonMapper.shared();
+    private final JsonMapper jsonMapper = JsonMapper.shared();
 
     @BeforeAll
     static void beforeAll() {
@@ -38,8 +37,8 @@ class SerializableMatchResultTest {
 
     @Test
     void testSerializableMatchResultJackson() {
-        final var serialized = objectMapper.writeValueAsString(serializableMatchResult);
-        final var deserialized = objectMapper.readValue(serialized, SerializableMatchResult.class);
+        final var serialized = jsonMapper.writeValueAsString(serializableMatchResult);
+        final var deserialized = jsonMapper.readValue(serialized, SerializableMatchResult.class);
         assertEquals(serializableMatchResult, deserialized);
     }
 
