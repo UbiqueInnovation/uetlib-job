@@ -33,7 +33,7 @@ import java.util.*;
 @Validated
 @ValidateResponse
 @Profile("!job-run")
-@RequestMapping("/v1/status")
+@RequestMapping(value = "/v1/status", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin(
         value = {
             "https://status.systems.ubique.ch",

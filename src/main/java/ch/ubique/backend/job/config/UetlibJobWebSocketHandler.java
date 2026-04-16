@@ -13,7 +13,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.util.Map;
@@ -26,14 +26,13 @@ public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UetlibJobWebSocketHandler.class);
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final LogService logService;
 
     private final Map<String, ActiveSession> activeSessions = new ConcurrentHashMap<>();
 
-    public UetlibJobWebSocketHandler(
-            final ObjectMapper objectMapper, final LogService logsService) {
-        this.objectMapper = objectMapper;
+    public UetlibJobWebSocketHandler(final JsonMapper jsonMapper, final LogService logsService) {
+        this.jsonMapper = jsonMapper;
         this.logService = logsService;
     }
 
@@ -41,7 +40,7 @@ public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
     public void handleTextMessage(final WebSocketSession session, final TextMessage message)
             throws IOException {
         final var jobRunId =
-                objectMapper.readValue(message.getPayload(), LogRequestMessage.class).jobRunId;
+                jsonMapper.readValue(message.getPayload(), LogRequestMessage.class).jobRunId;
         logger.trace("message with jobRunId: {}", jobRunId);
         activeSessions.putIfAbsent(
                 session.getId(), new ActiveSession(session, jobRunId, new AtomicLong(0)));

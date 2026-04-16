@@ -23,7 +23,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @SuppressWarnings("unused")
 public final class JobApplication {
@@ -162,7 +162,7 @@ public final class JobApplication {
         // Cast must hold, by the check above
         return (JobRunArgumentsAdditionalData)
                 applicationContext
-                        .getBean(ObjectMapper.class)
+                        .getBean(JsonMapper.class)
                         .readValue(additionalDataString, additionalDataClass);
     }
 }

@@ -16,7 +16,7 @@ import org.apache.commons.lang3.exception.UncheckedException;
 import org.springframework.context.ApplicationContext;
 
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -126,7 +126,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
 
     private String serializeObject(final Object object) {
         try {
-            return applicationContext.getBean(ObjectMapper.class).writeValueAsString(object);
+            return applicationContext.getBean(JsonMapper.class).writeValueAsString(object);
         } catch (final JacksonException e) {
             throw new UncheckedException(e);
         }
