@@ -52,8 +52,6 @@ public class JobService {
 
     private final ApplicationContext applicationContext;
 
-    private final Collection<JobRunner> jobRunners;
-
     private final Map<Integer, Class<? extends Job>> jobClassesById;
     private final Map<String, Class<? extends Job>> jobClassesByCanonicalClassName;
     private final Map<String, Integer> jobIdsByCanonicalClassName;
@@ -69,7 +67,6 @@ public class JobService {
         this.applicationContext = applicationContext;
         this.retryTemplate = new RetryTemplate(RetryPolicy.builder().maxRetries(9).build());
         this.versionTag = Objects.requireNonNull(buildProperties.getVersion());
-        this.jobRunners = applicationContext.getBeansOfType(JobRunner.class).values();
         this.enabledJobsCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
@@ -274,7 +271,7 @@ public class JobService {
     }
 
     private JobRunner jobRunner(final JobRun jobRun) {
-        return jobRunners.stream()
+        return applicationContext.getBeansOfType(JobRunner.class).values().stream()
                 .filter(runner -> runner.key() == jobRun.runnerKey())
                 .findFirst()
                 .orElseThrow();
