@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 3.3.1
+
+### Improvements
+
+- Kubernetes support can be locallly disabled by setting the profile `disable-k8s`
+- JDBC template used by this module was renamed to `jobJdbcTemplate` to make it easier for projects
+  to configure this specific JDBC template
+
+### Fixes
+
+- JobService initialized `runnerGroups` to early.
+
 ## 3.3.0
 
 - Major Performance improvements
