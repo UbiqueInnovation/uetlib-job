@@ -2,7 +2,6 @@ package ch.ubique.backend.job.service.k8s;
 
 import static ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables.K8S_NAMESPACE;
 import static ch.ubique.backend.job.k8s.KubernetesEnvironmentVariables.K8S_POD_NAME;
-
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.Optional.ofNullable;
@@ -10,16 +9,15 @@ import static java.util.Optional.ofNullable;
 import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.k8s.KubernetesContext;
-
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobSpec;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.util.Config;
 import io.kubernetes.client.util.Namespaces;
-
+import java.io.IOException;
+import java.time.Duration;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -30,9 +28,6 @@ import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.time.Duration;
 
 @Service
 @Profile("!job-run")
@@ -58,10 +53,10 @@ public class KubernetesService {
 
     private final RetryTemplate retryTemplate;
 
-    public KubernetesService() {
+    public KubernetesService(final KubernetesClientProvider kubernetesClientProvider) {
         currentNamespace = getCurrentKubernetesNamespace();
         currentPodName = getCurrentPodName();
-        apiClient = getDefaultApiClient();
+        apiClient = kubernetesClientProvider.getDefaultApiClient();
         warnIfNamespaceOrPodUnknown();
 
         final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
@@ -77,7 +72,7 @@ public class KubernetesService {
         if (StringUtils.isBlank(currentPodName) || StringUtils.isBlank(currentNamespace)) {
             logger.warn(
                     "Unable to get current pod, as the current pod name and/or namespace are"
-                            + " unknown.");
+                    + " unknown.");
             return null;
         }
         logger.info("Getting info for {} on namespace {}", currentPodName, currentNamespace);
@@ -123,15 +118,6 @@ public class KubernetesService {
         return JobRunState.BUSY;
     }
 
-    private static ApiClient getDefaultApiClient() {
-        try {
-            return Config.defaultClient();
-        } catch (final IOException e) {
-            logger.warn("Could not connect to k8s", e);
-            return null;
-        }
-    }
-
     private String getCurrentKubernetesNamespace() {
         try {
             return Namespaces.getPodNamespace();
@@ -166,14 +152,14 @@ public class KubernetesService {
         if (StringUtils.isBlank(currentNamespace)) {
             logger.warn(
                     "Could not get kubernetes namespace. If this application is not running the on"
-                            + " a k8s cluster, this is the expected behaviour.");
+                    + " a k8s cluster, this is the expected behaviour.");
         }
 
         // Get current pod name
         if (StringUtils.isBlank(currentPodName)) {
             logger.warn(
                     "Could not get pod name. If this application is not running the on a k8s"
-                            + " cluster, this is the expected behaviour.");
+                    + " cluster, this is the expected behaviour.");
         }
     }
 }
