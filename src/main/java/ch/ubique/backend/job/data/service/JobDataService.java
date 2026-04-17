@@ -48,7 +48,7 @@ public class JobDataService {
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final K8sJobRepository k8sJobRepository;
     private final LoggingEventRepository loggingEventRepository;
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jobJdbcTemplate;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -63,7 +63,7 @@ public class JobDataService {
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
             final K8sJobRepository k8sJobRepository,
             final LoggingEventRepository loggingEventRepository,
-            final JdbcTemplate jdbcTemplate) {
+            final JdbcTemplate jobJdbcTemplate) {
         this.jobRepository = jobRepository;
         this.jobTriggerRepository = jobTriggerRepository;
         this.jobPropertyRepository = jobPropertyRepository;
@@ -74,7 +74,7 @@ public class JobDataService {
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
-        this.jdbcTemplate = jdbcTemplate;
+        this.jobJdbcTemplate = jobJdbcTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -355,7 +355,7 @@ public class JobDataService {
         if (logEvents.isEmpty()) {
             return;
         }
-        jdbcTemplate.batchUpdate(
+        jobJdbcTemplate.batchUpdate(
                 "insert into t_logging_event (fk_job_run_id, timestamp, formatted_message) values (?, ?, ?)",
                 logEvents,
                 logEvents.size(),
