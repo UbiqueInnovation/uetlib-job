@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 4.0.1
+
+### Improvements
+
+- Bulk insert of job run inputs, instead of one by one.
+
 ## 4.0.0
 
 ### Breaking Changes
