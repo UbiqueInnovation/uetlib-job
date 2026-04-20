@@ -50,6 +50,9 @@ public class JobRunInputManager implements JobRunInputProvider {
     }
 
     public void saveToDatabase(final Collection<JobRunInputDeclaration> inputDeclarations) {
+        if (inputDeclarations.isEmpty()) {
+            return;
+        }
         logger.debug("Saving {} inputs to database.", inputDeclarations.size());
         jobDataService.insertJobRunInput(inputDeclarations);
     }

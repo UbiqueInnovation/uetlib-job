@@ -28,6 +28,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -318,8 +319,21 @@ public class JobDataService {
 
     @Transactional
     public void insertJobRunInput(final Collection<JobRunInputDeclaration> inputDeclarations) {
-        jobRunInputRepository.saveAll(
-                inputDeclarations.stream().map(JobRunInputEntity::from).toList());
+        final var now = Timestamp.from(Instant.now());
+        jobJdbcTemplate.batchUpdate(
+                """
+                    insert into t_job_run_input (fk_job_run_id, input_name, input_hash, created_at, updated_at)
+                    values (?, ?, ?, ?, ?)
+                    """,
+                inputDeclarations,
+                inputDeclarations.size(),
+                (ps, e) -> {
+                    ps.setInt(1, e.jobRunId());
+                    ps.setString(2, e.path());
+                    ps.setString(3, e.hash());
+                    ps.setTimestamp(4, now);
+                    ps.setTimestamp(5, now);
+                });
     }
 
     @Transactional(readOnly = true)
@@ -348,7 +362,7 @@ public class JobDataService {
                 logEvents.size(),
                 (ps, e) -> {
                     ps.setInt(1, e.jobRunId());
-                    ps.setObject(2, java.sql.Timestamp.from(e.timestamp()));
+                    ps.setTimestamp(2, Timestamp.from(e.timestamp()));
                     ps.setString(3, e.formattedMessage());
                 });
     }
