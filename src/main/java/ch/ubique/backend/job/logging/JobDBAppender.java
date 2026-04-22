@@ -20,6 +20,7 @@ import java.util.concurrent.*;
 public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
         implements DisposableBean {
 
+    private static final String DB_APPENDER_THREAD_NAME = "job-db-logs";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final int BATCH_SIZE = 1_000;
@@ -31,7 +32,7 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
     private final ScheduledExecutorService scheduler =
             Executors.newSingleThreadScheduledExecutor(
                     r -> {
-                        var thread = new Thread(r, "job-db-logs");
+                        var thread = new Thread(r, DB_APPENDER_THREAD_NAME);
                         thread.setDaemon(true);
                         return thread;
                     });
@@ -49,6 +50,11 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
 
     @Override
     protected void append(final ILoggingEvent event) {
+        if (DB_APPENDER_THREAD_NAME.equals(Thread.currentThread().getName())) {
+            // Do not process logs from the DB appender thread itself
+            return;
+        }
+
         final var jobRunId = getJobRunId(event);
         if (jobRunId == null) {
             return;

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 4.0.2
+
+### Fixes
+
+- Fixed logging recursion in JobDBAppender
+
 ## 4.0.1
 
 ### Improvements
