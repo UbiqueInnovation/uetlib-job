@@ -334,6 +334,7 @@ public class JobDataService {
                     ps.setTimestamp(4, now);
                     ps.setTimestamp(5, now);
                 });
+        entityManager.flush();
     }
 
     @Transactional(readOnly = true)
@@ -365,6 +366,7 @@ public class JobDataService {
                     ps.setTimestamp(2, Timestamp.from(e.timestamp()));
                     ps.setString(3, e.formattedMessage());
                 });
+        entityManager.flush();
     }
 
     @Transactional(readOnly = true)
