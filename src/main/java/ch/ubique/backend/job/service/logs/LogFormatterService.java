@@ -6,6 +6,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.ubique.backend.job.logging.AccumulatedLogLines;
 import ch.ubique.backend.job.logging.LoggingEvent;
 
+import org.jspecify.annotations.NonNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -37,15 +38,23 @@ public class LogFormatterService {
     }
 
     /** Build formatted log message. Includes stack traces for exceptions. */
-    public String toFormattedMessage(ILoggingEvent event) {
-        return new String(patternLayoutEncoder.encode(event), StandardCharsets.UTF_8);
+    public String toFormattedMessage(final ILoggingEvent event) {
+        return encodeAsUtf8(patternLayoutEncoder.encode(event));
     }
 
-    public Stream<String> streamOfStrings(Collection<LoggingEvent> loggingEvents) {
+    private static @NonNull String encodeAsUtf8(final byte[] messageBytes) {
+        final var value = new String(messageBytes, StandardCharsets.UTF_8);
+        if (value.contains("\0")) {
+            return value.replace('\0', '\uFFFD');
+        }
+        return value;
+    }
+
+    public Stream<String> streamOfStrings(final Collection<LoggingEvent> loggingEvents) {
         return loggingEvents.stream().map(this::toString);
     }
 
-    private String toString(LoggingEvent loggingEvent) {
+    private String toString(final LoggingEvent loggingEvent) {
         return formatTimestamp(loggingEvent) + " " + loggingEvent.formattedMessage();
     }
 
