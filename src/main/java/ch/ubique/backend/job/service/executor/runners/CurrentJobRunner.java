@@ -150,7 +150,8 @@ public final class CurrentJobRunner implements JobRunner {
             Thread.currentThread().interrupt();
             return null;
         } catch (final ExecutionException e) {
-            logger.info("Detected job run in error state.", e);
+            final var outcome = e.getCause() == null ? e : e.getCause();
+            logger.error("Current job run {} failed.", jobRun.id(), outcome);
             cleanupRun(jobRun.id());
             return JobRunState.ERROR;
         } finally {
