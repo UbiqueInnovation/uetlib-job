@@ -615,7 +615,7 @@ public class JobDataService {
     private static @NonNull Supplier<ResourceNotFoundException> throwJobRunNotFound(
             final int jobRunId) {
         return ResourceNotFoundException.supplierWithMessage(
-                "No JobRunEntity with id {} found", jobRunId);
+                "No JobRunEntity with id {0} found", jobRunId);
     }
 
     private JobRunEntity saveJobRunWithTransition(
