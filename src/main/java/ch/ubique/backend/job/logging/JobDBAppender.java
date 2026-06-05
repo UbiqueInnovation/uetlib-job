@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.NonTransientDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,11 +104,50 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
         try {
             jobDataService.insertLogEvents(drainedEvents);
             return true;
-        } catch (final Exception e) {
+        } catch (final TransientDataAccessException e) {
             logQueue.addAll(drainedEvents);
+            logger.warn("Failed to insert log events to database (will retry).", e);
+            return false;
+        } catch (final NonTransientDataAccessException e) {
+            return tryInsertIndividually();
+        } catch (final Exception e) {
             logger.warn("Failed to insert log events to database.", e);
             return false;
         }
+    }
+
+    private boolean tryInsertIndividually() {
+        final var retryEvents = new ArrayList<JobRunLoggingEvent>();
+        Exception warnRetryException = null;
+        Exception warnNoretryException = null;
+        var anySuccess = false;
+        for (var logEvent : drainedEvents) {
+            try {
+                jobDataService.insertLogEvents(List.of(logEvent));
+                anySuccess = true;
+            } catch (final TransientDataAccessException e) {
+                retryEvents.add(logEvent);
+                if (warnRetryException == null) {
+                    warnRetryException = e;
+                } else {
+                    warnRetryException.addSuppressed(e);
+                }
+            } catch (final Exception e) { // NonTransientDataAccessException or anything else
+                if (warnNoretryException == null) {
+                    warnNoretryException = e;
+                } else {
+                    warnNoretryException.addSuppressed(e);
+                }
+            }
+        }
+        if (warnNoretryException != null) {
+            logger.warn("Failed to insert log events to database.", warnNoretryException);
+        }
+        if (warnRetryException != null) {
+            logger.warn("Failed to insert log events to database (will retry).", warnRetryException);
+        }
+        logQueue.addAll(retryEvents);
+        return anySuccess;
     }
 
     @Override
