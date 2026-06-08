@@ -1,10 +1,16 @@
 # CHANGELOG
 
+## 4.0.4
+
+### Fixes
+
+- Avoid retries for log DB insertion on non-transient errors, avoid spamming sentry indefinitely
+
 ## 4.0.3
 
 ### Fixes
 
-- Filter illegal null charachter `0x00` in log messages before inserting them into the database.
+- Filter illegal null character `0x00` in log messages before inserting them into the database.
 
 ## 4.0.2
 
