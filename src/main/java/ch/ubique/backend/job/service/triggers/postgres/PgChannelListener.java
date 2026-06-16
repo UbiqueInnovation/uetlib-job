@@ -13,6 +13,7 @@ import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Properties;
@@ -35,14 +36,15 @@ class PgChannelListener {
      * To detect this we periodically run a keepalive query that forces a round-trip: on a dead
      * socket it throws (within {@link #SOCKET_TIMEOUT_SECONDS}) and triggers a reconnect.
      */
-    private static final Duration KEEPALIVE_INTERVAL = Duration.ofSeconds(30);
+    static final Duration DEFAULT_KEEPALIVE_INTERVAL = Duration.ofSeconds(30);
 
     /**
      * The listener is considered unhealthy if it has not had a confirmed interaction with the
      * database (successful connect, keepalive or received notification) within this window. Must be
-     * larger than {@link #KEEPALIVE_INTERVAL} to tolerate a few missed keepalives / a reconnect.
+     * larger than {@link #DEFAULT_KEEPALIVE_INTERVAL} to tolerate a few missed keepalives / a
+     * reconnect.
      */
-    private static final Duration MAX_SILENCE = Duration.ofSeconds(90);
+    static final Duration DEFAULT_MAX_SILENCE = Duration.ofSeconds(90);
 
     private static final int SOCKET_TIMEOUT_SECONDS = 30;
 
@@ -59,14 +61,7 @@ class PgChannelListener {
     private final Duration maxSilence;
 
     private volatile boolean running;
-    private volatile long lastInteractionNanos = System.nanoTime();
-
-    PgChannelListener(
-            final String channel,
-            final Consumer<Collection<String>> callback,
-            final DataSourceProperties dataSourceProperties) {
-        this(channel, callback, dataSourceProperties, KEEPALIVE_INTERVAL, MAX_SILENCE);
-    }
+    private volatile Instant lastInteraction = Instant.now();
 
     PgChannelListener(
             final String channel,
@@ -140,18 +135,21 @@ class PgChannelListener {
     private void listenForNotifications(final Connection connection) throws SQLException {
         logger.info("Listening for notifications on channel {}", channel);
         final var pgConnection = connection.unwrap(PGConnection.class);
-        var lastKeepAliveNanos = System.nanoTime();
+        var lastKeepAlive = Instant.now();
         while (running && !connection.isClosed()) {
             final var notifications = pgConnection.getNotifications();
             if (notifications != null) {
                 processNotifications(notifications);
                 markInteraction();
             }
-            if (System.nanoTime() - lastKeepAliveNanos >= keepAliveInterval.toNanos()) {
+
+            final var now = Instant.now();
+            if (now.minus(keepAliveInterval).isAfter(lastKeepAlive)) {
                 sendKeepAlive(connection);
                 markInteraction();
-                lastKeepAliveNanos = System.nanoTime();
+                lastKeepAlive = now;
             }
+
             sleepWithInterrupt(POLL_INTERVAL);
         }
     }
@@ -181,7 +179,7 @@ class PgChannelListener {
     }
 
     private void markInteraction() {
-        lastInteractionNanos = System.nanoTime();
+        lastInteraction = Instant.now();
     }
 
     /**
@@ -193,10 +191,8 @@ class PgChannelListener {
         if (!running) {
             return false;
         }
-        final var sinceLastInteraction =
-                Duration.ofNanos(System.nanoTime() - lastInteractionNanos);
-        final var hasRecentInteraction = sinceLastInteraction.compareTo(maxSilence) < 0;
-        return hasRecentInteraction;
+        final var silentSince = lastInteraction.plus(maxSilence);
+        return Instant.now().isBefore(silentSince);
     }
 
     private void closeConnection(final Connection connection) {
