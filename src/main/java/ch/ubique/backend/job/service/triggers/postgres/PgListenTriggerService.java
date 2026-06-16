@@ -94,6 +94,18 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
         }
     }
 
+    /**
+     * Returns the channels whose listener is no longer actively monitoring the database (dead
+     * listener thread or a connection that cannot be re-established). An empty collection means all
+     * registered channels are being listened to.
+     */
+    public Collection<String> unhealthyChannels() {
+        return channelListeners.entrySet().stream()
+                .filter(entry -> !entry.getValue().isHealthy())
+                .map(Map.Entry::getKey)
+                .toList();
+    }
+
     @PreDestroy
     public void shutdown() {
         channelListeners.values().forEach(PgChannelListener::stop);
