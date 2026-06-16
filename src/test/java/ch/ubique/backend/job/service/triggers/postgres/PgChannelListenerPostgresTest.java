@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
 
-class PgChannelListenerDatabaseTest {
+class PgChannelListenerPostgresTest {
 
     private static final String CHANNEL = "test_channel";
 

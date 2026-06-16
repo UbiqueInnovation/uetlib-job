@@ -1,8 +1,8 @@
 # CHANGELOG
 
-## 5.0.0
+## 4.0.5
 
-### Improvements
+### Fixes
 
 - `PG_LISTEN` triggers are now resilient to silently dropped (half-open) `LISTEN` connections: the
   connection enables TCP keepalive and a bounded socket timeout, and a periodic keepalive query
