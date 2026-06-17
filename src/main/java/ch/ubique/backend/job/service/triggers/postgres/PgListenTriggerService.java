@@ -10,11 +10,13 @@ import jakarta.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.DatabaseDriver;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,12 +30,27 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
     private static final Logger logger = LoggerFactory.getLogger(PgListenTriggerService.class);
 
     private final DataSourceProperties dataSourceProperties;
+    private final Duration keepAliveInterval;
+    private final Duration maxSilence;
 
     private final Map<String, PgChannelListener> channelListeners = new ConcurrentHashMap<>();
     private final Collection<TriggerInfo> triggerInfos = new ConcurrentLinkedQueue<>();
 
+    @Autowired
     public PgListenTriggerService(final DataSourceProperties dataSourceProperties) {
+        this(
+                dataSourceProperties,
+                PgChannelListener.DEFAULT_KEEPALIVE_INTERVAL,
+                PgChannelListener.DEFAULT_MAX_SILENCE);
+    }
+
+    PgListenTriggerService(
+            final DataSourceProperties dataSourceProperties,
+            final Duration keepAliveInterval,
+            final Duration maxSilence) {
         this.dataSourceProperties = dataSourceProperties;
+        this.keepAliveInterval = keepAliveInterval;
+        this.maxSilence = maxSilence;
     }
 
     @Override
@@ -54,7 +71,11 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
                     "Only PostgreSQL is supported for listening to PostgreSQL channels.");
         }
         return new PgChannelListener(
-                channel, payloads -> onEvents(channel, payloads), dataSourceProperties);
+                channel,
+                payloads -> onEvents(channel, payloads),
+                dataSourceProperties,
+                keepAliveInterval,
+                maxSilence);
     }
 
     private void onEvents(final String channel, final Collection<String> payloads) {
@@ -92,6 +113,18 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
             channelListeners.remove(channel);
             logger.debug("Removed channel listener for {}.", channel);
         }
+    }
+
+    /**
+     * Returns the channels whose listener is no longer actively monitoring the database (dead
+     * listener thread or a connection that cannot be re-established). An empty collection means all
+     * registered channels are being listened to.
+     */
+    public Collection<String> unhealthyChannels() {
+        return channelListeners.entrySet().stream()
+                .filter(entry -> !entry.getValue().isHealthy())
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     @PreDestroy

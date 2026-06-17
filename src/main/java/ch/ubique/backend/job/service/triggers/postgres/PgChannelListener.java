@@ -13,8 +13,10 @@ import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -22,6 +24,29 @@ import java.util.function.Consumer;
 import javax.sql.DataSource;
 
 class PgChannelListener {
+
+    private static final Duration POLL_INTERVAL = Duration.ofSeconds(3);
+    private static final Duration RECONNECT_DELAY = Duration.ofSeconds(5);
+
+    /**
+     * A {@code LISTEN} connection is mostly idle (it only receives data when a {@code NOTIFY}
+     * arrives) and is therefore prone to being silently dropped by firewalls/NAT idle timeouts. A
+     * non-blocking {@link PGConnection#getNotifications()} poll does no network I/O while idle, so
+     * such a half-open connection would never be detected and notifications would be lost forever.
+     * To detect this we periodically run a keepalive query that forces a round-trip: on a dead
+     * socket it throws (within {@link #SOCKET_TIMEOUT_SECONDS}) and triggers a reconnect.
+     */
+    static final Duration DEFAULT_KEEPALIVE_INTERVAL = Duration.ofSeconds(30);
+
+    /**
+     * The listener is considered unhealthy if it has not had a confirmed interaction with the
+     * database (successful connect, keepalive or received notification) within this window. Must be
+     * larger than {@link #DEFAULT_KEEPALIVE_INTERVAL} to tolerate a few missed keepalives / a
+     * reconnect.
+     */
+    static final Duration DEFAULT_MAX_SILENCE = Duration.ofSeconds(90);
+
+    private static final int SOCKET_TIMEOUT_SECONDS = 30;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -32,19 +57,23 @@ class PgChannelListener {
 
     private final Consumer<Collection<String>> callback;
 
+    private final Duration keepAliveInterval;
+    private final Duration maxSilence;
+
     private volatile boolean running;
+    private volatile Instant lastInteraction = Instant.now();
 
     PgChannelListener(
             final String channel,
             final Consumer<Collection<String>> callback,
-            final DataSourceProperties dataSourceProperties) {
+            final DataSourceProperties dataSourceProperties,
+            final Duration keepAliveInterval,
+            final Duration maxSilence) {
         this.channel = channel;
         this.callback = callback;
-        this.dataSource =
-                dataSourceProperties
-                        .initializeDataSourceBuilder()
-                        .type(SimpleDriverDataSource.class)
-                        .build();
+        this.keepAliveInterval = keepAliveInterval;
+        this.maxSilence = maxSilence;
+        this.dataSource = buildDataSource(dataSourceProperties);
         this.listenerThread =
                 Executors.newSingleThreadExecutor(
                         new ThreadFactoryBuilder()
@@ -57,15 +86,36 @@ class PgChannelListener {
         listenerThread.submit(this::listenerLoop);
     }
 
+    private static DataSource buildDataSource(final DataSourceProperties dataSourceProperties) {
+        final var dataSource =
+                dataSourceProperties
+                        .initializeDataSourceBuilder()
+                        .type(SimpleDriverDataSource.class)
+                        .build();
+        // Enable OS-level keepalive and bound socket reads so a dropped connection eventually
+        // surfaces as an exception instead of hanging the listener forever.
+        final var connectionProperties = new Properties();
+        connectionProperties.setProperty("tcpKeepAlive", "true");
+        connectionProperties.setProperty("socketTimeout", Integer.toString(SOCKET_TIMEOUT_SECONDS));
+        dataSource.setConnectionProperties(connectionProperties);
+        return dataSource;
+    }
+
     private void listenerLoop() {
         while (running) {
             Connection connection = null;
             try {
                 connection = setupListenConnection();
+                markInteraction();
                 listenForNotifications(connection);
             } catch (final Exception e) {
-                // Connection lost / DB restart / network hiccup: retry
-                sleepWithInterrupt(Duration.ofSeconds(5));
+                // Connection lost / DB restart / network hiccup / dead socket: retry
+                logger.warn(
+                        "Listener on channel {} disconnected, reconnecting in {}s: {}",
+                        channel,
+                        RECONNECT_DELAY.toSeconds(),
+                        e.toString());
+                sleepWithInterrupt(RECONNECT_DELAY);
             } finally {
                 closeConnection(connection);
             }
@@ -85,12 +135,32 @@ class PgChannelListener {
     private void listenForNotifications(final Connection connection) throws SQLException {
         logger.info("Listening for notifications on channel {}", channel);
         final var pgConnection = connection.unwrap(PGConnection.class);
+        var lastKeepAlive = Instant.now();
         while (running && !connection.isClosed()) {
             final var notifications = pgConnection.getNotifications();
             if (notifications != null) {
                 processNotifications(notifications);
+                markInteraction();
             }
-            sleepWithInterrupt(Duration.ofSeconds(3));
+
+            final var now = Instant.now();
+            if (now.minus(keepAliveInterval).isAfter(lastKeepAlive)) {
+                sendKeepAlive(connection);
+                markInteraction();
+                lastKeepAlive = now;
+            }
+
+            sleepWithInterrupt(POLL_INTERVAL);
+        }
+    }
+
+    /**
+     * Forces a round-trip to the database so that a silently dropped (half-open) connection throws
+     * instead of leaving the listener stuck on a dead socket.
+     */
+    private void sendKeepAlive(final Connection connection) throws SQLException {
+        try (final var statement = connection.createStatement()) {
+            statement.execute("SELECT 1");
         }
     }
 
@@ -106,6 +176,23 @@ class PgChannelListener {
         }
         logger.debug("{} received: {}", channel, payloads);
         callback.accept(payloads);
+    }
+
+    private void markInteraction() {
+        lastInteraction = Instant.now();
+    }
+
+    /**
+     * Whether the listener is actively monitoring its channel, i.e. it is running and has had a
+     * confirmed interaction with the database within {@link #maxSilence}. A stale value indicates a
+     * dead listener thread or a connection that cannot be re-established.
+     */
+    boolean isHealthy() {
+        if (!running) {
+            return false;
+        }
+        final var silentSince = lastInteraction.plus(maxSilence);
+        return Instant.now().isBefore(silentSince);
     }
 
     private void closeConnection(final Connection connection) {

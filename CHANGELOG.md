@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 4.0.5
+
+### Fixes
+
+- `PG_LISTEN` triggers are now resilient to silently dropped (half-open) `LISTEN` connections: the
+  connection enables TCP keepalive and a bounded socket timeout, and a periodic keepalive query
+  forces a round-trip so a dead connection surfaces as an error and the listener reconnects instead
+  of going permanently deaf. Added a `StatusCheck` (`PgListenListenerCheck`) that reports via the
+  monitoring endpoint when a channel is no longer being actively monitored.
+
 ## 4.0.4
 
 ### Fixes
