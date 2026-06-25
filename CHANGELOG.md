@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 4.0.6
+
+### Fixes
+
+- Fixed compatibility issue with newest `uetlib-job` version
+- Improved timeout handling for `PgListenListener`
+
 ## 4.0.5
 
 ### Fixes
