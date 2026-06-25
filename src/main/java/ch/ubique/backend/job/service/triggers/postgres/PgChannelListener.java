@@ -25,7 +25,7 @@ import javax.sql.DataSource;
 
 class PgChannelListener {
 
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(3);
+    private static final Duration NOTIFICATION_WAIT_TIME = Duration.ofSeconds(15);
     private static final Duration RECONNECT_DELAY = Duration.ofSeconds(5);
 
     /**
@@ -34,7 +34,7 @@ class PgChannelListener {
      * non-blocking {@link PGConnection#getNotifications()} poll does no network I/O while idle, so
      * such a half-open connection would never be detected and notifications would be lost forever.
      * To detect this we periodically run a keepalive query that forces a round-trip: on a dead
-     * socket it throws (within {@link #SOCKET_TIMEOUT_SECONDS}) and triggers a reconnect.
+     * socket it throws (within {@link #SOCKET_TIMEOUT}) and triggers a reconnect.
      */
     static final Duration DEFAULT_KEEPALIVE_INTERVAL = Duration.ofSeconds(30);
 
@@ -46,7 +46,7 @@ class PgChannelListener {
      */
     static final Duration DEFAULT_MAX_SILENCE = Duration.ofSeconds(90);
 
-    private static final int SOCKET_TIMEOUT_SECONDS = 30;
+    private static final Duration SOCKET_TIMEOUT = Duration.ofSeconds(30);
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -95,8 +95,9 @@ class PgChannelListener {
         // Enable OS-level keepalive and bound socket reads so a dropped connection eventually
         // surfaces as an exception instead of hanging the listener forever.
         final var connectionProperties = new Properties();
-        connectionProperties.setProperty("tcpKeepAlive", "true");
-        connectionProperties.setProperty("socketTimeout", Integer.toString(SOCKET_TIMEOUT_SECONDS));
+        connectionProperties.setProperty("tcpKeepAlive", String.valueOf(true));
+        connectionProperties.setProperty(
+                "socketTimeout", String.valueOf(SOCKET_TIMEOUT.toSeconds()));
         dataSource.setConnectionProperties(connectionProperties);
         return dataSource;
     }
@@ -122,6 +123,7 @@ class PgChannelListener {
         }
     }
 
+    @SuppressWarnings("java:S2077")
     private Connection setupListenConnection() throws SQLException {
         final var connection = DataSourceUtils.getConnection(dataSource);
         connection.setAutoCommit(true);
@@ -137,7 +139,8 @@ class PgChannelListener {
         final var pgConnection = connection.unwrap(PGConnection.class);
         var lastKeepAlive = Instant.now();
         while (running && !connection.isClosed()) {
-            final var notifications = pgConnection.getNotifications();
+            final var notifications =
+                    pgConnection.getNotifications((int) NOTIFICATION_WAIT_TIME.toMillis());
             if (notifications != null) {
                 processNotifications(notifications);
                 markInteraction();
@@ -149,8 +152,6 @@ class PgChannelListener {
                 markInteraction();
                 lastKeepAlive = now;
             }
-
-            sleepWithInterrupt(POLL_INTERVAL);
         }
     }
 
