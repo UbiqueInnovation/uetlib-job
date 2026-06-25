@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.config;
 
+import ch.ubique.backend.monitoring.check.StatusCheckService;
 import ch.ubique.backend.monitoring.service.MonitoringService;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,9 @@ public class UetlibJobMonitoringServiceConfig {
     MonitoringService monitoringService(
             final RestClient.Builder restClientBuilder,
             @Value("${ch.ubique.backend.job.interface.heartbeat.endpoint}")
-                    final String heartbeatEndpoint) {
-        return new MonitoringService(restClientBuilder.build(), heartbeatEndpoint);
+                    final String heartbeatEndpoint,
+            final StatusCheckService statusCheckService) {
+        return new MonitoringService(
+                restClientBuilder.build(), heartbeatEndpoint, statusCheckService);
     }
 }
