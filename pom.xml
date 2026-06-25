@@ -16,10 +16,10 @@
 
     <properties>
         <uetlib-core.version>2.3.3</uetlib-core.version>
-        <uetlib-monitoring.version>2.2.2</uetlib-monitoring.version>
-        <uetlib-db.version>2.0.1</uetlib-db.version>
-        <uetlib-storage-spring-boot.version>2.0.2</uetlib-storage-spring-boot.version>
-        <uetlib-spring-boot.version>2.1.1</uetlib-spring-boot.version>
+        <uetlib-monitoring.version>2.3.0</uetlib-monitoring.version>
+        <uetlib-db.version>2.1.0</uetlib-db.version>
+        <uetlib-storage-spring-boot.version>2.1.0</uetlib-storage-spring-boot.version>
+        <uetlib-spring-boot.version>2.2.1</uetlib-spring-boot.version>
     </properties>
 
     <dependencies>
@@ -142,25 +142,25 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-test</artifactId>
-            <version>2.0.1</version>
+            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
-            <version>2.0.1</version>
+            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
-            <version>2.0.1</version>
+            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
-            <version>2.0.1</version>
+            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
 
