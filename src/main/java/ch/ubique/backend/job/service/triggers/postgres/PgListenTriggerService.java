@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers.postgres;
 
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.spring.PgListenDataSourceProvider;
 import ch.ubique.backend.job.model.triggers.PgListenTrigger;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 import ch.ubique.backend.job.service.triggers.TriggerService;
@@ -37,9 +38,9 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
     private final Collection<TriggerInfo> triggerInfos = new ConcurrentLinkedQueue<>();
 
     @Autowired
-    public PgListenTriggerService(final DataSourceProperties dataSourceProperties) {
+    public PgListenTriggerService(final PgListenDataSourceProvider pgListenDataSourceProvider) {
         this(
-                dataSourceProperties,
+                pgListenDataSourceProvider.getDataSourceProperties(),
                 PgChannelListener.DEFAULT_KEEPALIVE_INTERVAL,
                 PgChannelListener.DEFAULT_MAX_SILENCE);
     }
