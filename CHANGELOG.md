@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 4.1.0
+
+## Improvements
+
+- `PgListenTriggerService` now requires a Bean `PgListenDataSourceProvider`, e.g., `() -> dataSourceProperties`. A
+  default that exposes the only available `DataSourceProperties` bean is provided if the user does not specify one.
+
 ## 4.0.6
 
 ### Fixes

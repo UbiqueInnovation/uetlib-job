@@ -18,6 +18,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.context.annotation.Import;
+import ch.ubique.backend.job.config.UetlibJobPgListenDataSourceProviderConfig;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.scheduling.TaskScheduler;
@@ -29,6 +31,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 @SpringBootConfiguration
+@Import(UetlibJobPgListenDataSourceProviderConfig.class)
 @ComponentScan({"ch.ubique.backend.job.data.service", "ch.ubique.backend.job.service"})
 @EnableJobs("ch.ubique.backend.job.testjob")
 @EnableJpaRepositories(basePackages = "ch.ubique.backend.job.data.repository")
