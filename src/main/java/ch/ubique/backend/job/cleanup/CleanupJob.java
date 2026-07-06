@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.cleanup;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.core.executor.VirtualThreadUtils;
 import ch.ubique.backend.core.utils.StreamUtils;
 import ch.ubique.backend.job.Job;
@@ -53,12 +55,12 @@ public class CleanupJob implements Job {
     }
 
     @Override
-    public @NonNull JobTriggersConfig triggersConfig() {
+    public  JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
     }
 
     @Override
-    public @NonNull JobPropertiesConfig propertiesConfig() {
+    public  JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
@@ -68,7 +70,7 @@ public class CleanupJob implements Job {
     }
 
     @Override
-    public @NonNull JobRunState run(final JobRunContext jobRunContext) {
+    public  JobRunState run(final JobRunContext jobRunContext) {
         clearUnknownJobProperties();
         return cleanJobRuns();
     }
@@ -77,7 +79,7 @@ public class CleanupJob implements Job {
         jobDataService.clearUnknownJobProperties();
     }
 
-    private @NonNull JobRunState cleanJobRuns() {
+    private  JobRunState cleanJobRuns() {
         var hasWarnings = false;
         for (final var job : jobService.getAllJobClassesWithId()) {
             final var success = cleanJob(job);
@@ -107,10 +109,13 @@ public class CleanupJob implements Job {
 
         // Get cleanup properties
         final var daysToKeep =
-                jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value();
+                requireNonNull(
+                        jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP).value());
         final var daysToKeepSkipped =
                 jobProperties.get(JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP_SKIPPED).valueMaybe();
-        final var chunkSize = jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value();
+        final int chunkSize =
+                requireNonNull(
+                        jobProperties.get(JobPropertyDefinitions.CLEANUP_CHUNK_SIZE).value());
 
         final var cleanableRuns =
                 jobDataService.findCleanableRuns(

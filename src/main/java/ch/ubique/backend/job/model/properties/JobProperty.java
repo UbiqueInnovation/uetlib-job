@@ -1,22 +1,40 @@
 package ch.ubique.backend.job.model.properties;
 
+import static ch.ubique.backend.core.utils.OptionalUtils.ofNullable;
+
+import static java.util.Objects.requireNonNull;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
-public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T value) {
+public record JobProperty<T extends @Nullable Object>(
+        @JsonProperty(required = true) @NotNull JobPropertyDefinition<T> definition,
+        @Nullable T value) {
 
     public JobProperty(
-            @NotNull @Valid final JobPropertyDefinition<T> definition, @Nullable final T value) {
-        this.definition = Objects.requireNonNull(definition);
+            @JsonProperty(required = true) @NotNull
+                    final JobPropertyDefinition<@Valid T> definition,
+            @Nullable final T value) {
+        this.definition = requireNonNull(definition);
         if (definition.nullable()) {
             this.value = value;
         } else {
-            this.value = Objects.requireNonNullElse(value, definition.defaultValue().orElse(null));
+            this.value =
+                    ofNullable(value)
+                            .or(definition::defaultValue)
+                            .orElseThrow(
+                                    () ->
+                                            new NoSuchElementException(
+                                                    "Either value or default value must be present for definition: "
+                                                            + definition.key()));
         }
     }
 
@@ -28,6 +46,7 @@ public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T val
         return value == null || definition.defaultValue().map(value::equals).orElse(false);
     }
 
+    @Nullable
     public String encodedValue() {
         return Optional.ofNullable(value).map(definition::encodeFromString).orElse(null);
     }
@@ -36,7 +55,7 @@ public record JobProperty<T>(@NotNull JobPropertyDefinition<T> definition, T val
         return value != null;
     }
 
-    public Optional<T> valueMaybe() {
-        return Optional.ofNullable(value);
+    public Optional<@NonNull T> valueMaybe() {
+        return ofNullable(value);
     }
 }

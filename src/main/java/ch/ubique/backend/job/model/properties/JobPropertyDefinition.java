@@ -8,13 +8,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.Optional;
 import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public sealed interface JobPropertyDefinition<T> extends StringEncoderDecoder<T>
-        permits AbstractJobPropertyDefinition {
+public sealed interface JobPropertyDefinition<T extends @Nullable Object>
+        extends StringEncoderDecoder<T> permits AbstractJobPropertyDefinition {
 
     @NotBlank
     @JsonProperty(required = true)
@@ -31,17 +34,15 @@ public sealed interface JobPropertyDefinition<T> extends StringEncoderDecoder<T>
     @JsonProperty(required = true)
     boolean nullable();
 
-    @NotNull
     @JsonProperty
-    Optional<T> defaultValue();
+    Optional<@NonNull T> defaultValue();
 
-    @NotNull
     @JsonProperty
     Optional<Set<T>> allowedValues();
 
     @JsonIgnore
-    JobProperty<T> createPropertyFromString(final String value);
+    JobProperty<T> createPropertyFromString(final @Nullable String value);
 
     @JsonIgnore
-    JobProperty<T> createProperty(final T value);
+    JobProperty<T> createProperty(final @Nullable T value);
 }

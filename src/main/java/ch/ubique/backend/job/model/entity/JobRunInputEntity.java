@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -24,24 +25,24 @@ public class JobRunInputEntity implements JobRunInput {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_job_run_input_id", nullable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @Column(name = "fk_job_run_id", nullable = false)
-    private Integer runId;
+    private @Nullable Integer runId;
 
     @Column(name = "input_name", nullable = false)
-    private String name;
+    private @Nullable String name;
 
     @Column(name = "input_hash", nullable = false, length = 128)
-    private String hash;
+    private @Nullable String hash;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
     public static JobRunInputEntity from(final JobRun jobRun, final ByteFile file) {
         final var input = new JobRunInputEntity();
@@ -60,45 +61,50 @@ public class JobRunInputEntity implements JobRunInput {
     }
 
     @Override
+    @Nullable
     public Integer getId() {
         return id;
     }
 
     @Override
-    public void setId(final Integer id) {
+    public void setId(final @Nullable Integer id) {
         this.id = id;
     }
 
     @Override
+    @Nullable
     public Integer getRunId() {
         return runId;
     }
 
     @Override
-    public void setRunId(final Integer runId) {
+    public void setRunId(final @Nullable Integer runId) {
         this.runId = runId;
     }
 
     @Override
+    @Nullable
     public String getName() {
         return name;
     }
 
     @Override
-    public void setName(final String name) {
+    public void setName(final @Nullable String name) {
         this.name = name;
     }
 
     @Override
+    @Nullable
     public String getHash() {
         return hash;
     }
 
     @Override
-    public void setHash(final String hash) {
+    public void setHash(final @Nullable String hash) {
         this.hash = hash;
     }
 
+    @Nullable
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -107,6 +113,7 @@ public class JobRunInputEntity implements JobRunInput {
         this.createdAt = createdAt;
     }
 
+    @Nullable
     public Instant getUpdatedAt() {
         return updatedAt;
     }

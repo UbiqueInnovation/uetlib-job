@@ -13,6 +13,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -22,13 +23,27 @@ import java.util.stream.IntStream;
 
 public final class SerializableMatchResult implements MatchResult {
 
-    @JsonProperty private final int first;
-    @JsonProperty private final int last;
-    @JsonProperty private final int groupCount;
-    @JsonProperty private final int[] groupIndices;
-    @JsonProperty private final String text;
-    @JsonProperty @NotNull private final Map<String, Integer> namedGroups;
-    @JsonProperty @NotNull private final List<String> groups;
+    @JsonProperty(required = true)
+    private final int first;
+
+    @JsonProperty(required = true)
+    private final int last;
+
+    @JsonProperty(required = true)
+    private final int groupCount;
+
+    @JsonProperty(required = true)
+    private final int[] groupIndices;
+
+    @JsonProperty private final @Nullable String text;
+
+    @JsonProperty(required = true)
+    @NotNull
+    private final Map<String, Integer> namedGroups;
+
+    @JsonProperty(required = true)
+    @NotNull
+    private final List<String> groups;
 
     @JsonCreator
     public SerializableMatchResult(
@@ -37,7 +52,7 @@ public final class SerializableMatchResult implements MatchResult {
             final int groupCount,
             final @NotNull List<String> groups,
             final int[] groupIndices,
-            final String text,
+            final @Nullable String text,
             final @NotNull Map<String, Integer> namedGroups) {
         this.first = first;
         this.last = last;
@@ -119,19 +134,21 @@ public final class SerializableMatchResult implements MatchResult {
     }
 
     @Override
+    @Nullable
     public String group() {
         checkMatch();
         return group(0);
     }
 
     @Override
+    @Nullable
     public String group(final int group) {
         checkMatch();
         checkGroup(group);
         if ((groupIndices[group * 2] == -1) || (groupIndices[group * 2 + 1] == -1)) {
             return null;
         }
-        return text.substring(groupIndices[group * 2] - first, groupIndices[group * 2 + 1] - first);
+        return java.util.Objects.requireNonNull(text).substring(groupIndices[group * 2] - first, groupIndices[group * 2 + 1] - first);
     }
 
     @Override
@@ -164,7 +181,7 @@ public final class SerializableMatchResult implements MatchResult {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(final @Nullable Object o) {
         if (this == o) {
             return true;
         }

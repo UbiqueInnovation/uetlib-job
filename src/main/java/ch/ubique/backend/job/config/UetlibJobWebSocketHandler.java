@@ -48,7 +48,7 @@ public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(
-            final WebSocketSession session, final @NonNull CloseStatus status) throws Exception {
+            final WebSocketSession session, final  CloseStatus status) throws Exception {
         activeSessions.remove(session.getId());
         super.afterConnectionClosed(session, status);
     }

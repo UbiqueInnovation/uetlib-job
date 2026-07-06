@@ -69,7 +69,6 @@ import java.util.stream.Collectors;
 
 @Service
 @Profile("!job-run")
-@NullMarked
 public class JobControllerService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());

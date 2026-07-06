@@ -3,6 +3,8 @@ package ch.ubique.backend.job.model.client;
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinition;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,13 +15,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 public record JobPropertyInfo(
-        @NotBlank String key,
-        @NotBlank String type,
-        @NotNull JobPropertyGroupInfo group,
+        @JsonProperty(required = true) @NotBlank String key,
+        @JsonProperty(required = true) @NotBlank String type,
+        @JsonProperty(required = true) @NotNull JobPropertyGroupInfo group,
         @Nullable List<String> allowedValues,
         @Nullable String defaultValue,
-        @NotNull boolean nullable,
-        @NotBlank String description,
+        @JsonProperty(required = true) boolean nullable,
+        @JsonProperty(required = true) @NotBlank String description,
         @Nullable String value) {
 
     public static JobPropertyInfo from(final JobProperty<?> property) {
@@ -31,8 +33,9 @@ public record JobPropertyInfo(
     }
 
     private static <T> JobPropertyInfo from(
-            final JobPropertyDefinition<T> definition, final String value) {
-        final var defaultValue = definition.defaultValue().map(definition::encodeFromString).orElse(null);
+            final JobPropertyDefinition<T> definition, final @Nullable String value) {
+        final var defaultValue =
+                definition.defaultValue().map(definition::encodeFromString).orElse(null);
         return new JobPropertyInfo(
                 definition.key(),
                 definition.getClass().getName(),

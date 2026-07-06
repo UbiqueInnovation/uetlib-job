@@ -1,9 +1,7 @@
 package ch.ubique.backend.job.model.properties;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 import org.apache.commons.lang3.EnumUtils;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Set;
@@ -14,10 +12,10 @@ final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropert
 
     @SuppressWarnings("unchecked")
     EnumPropertyDefinition(
-            @NotBlank final String key,
-            @NotBlank final String description,
-            @NotNull final JobPropertyDefinitionGroup group,
-            @NotNull final T defaultValue) {
+            final String key,
+            final String description,
+            final JobPropertyDefinitionGroup group,
+            final T defaultValue) {
         super(
                 key,
                 description,
@@ -29,7 +27,7 @@ final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropert
     }
 
     @Override
-    public T decodeFromString(final String value) {
+    public T decodeFromString(final @Nullable String value) {
         return Objects.requireNonNull(EnumUtils.getEnumIgnoreCase(enumClass, value));
     }
 

@@ -11,7 +11,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 import java.io.IOException;
 
-@NullMarked
+
 public class KubernetesAvailableConfigurationCondition implements ConfigurationCondition {
 
     public static final String DISABLE_K8S_PROFILE = "disable-k8s";

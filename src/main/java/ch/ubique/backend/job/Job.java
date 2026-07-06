@@ -13,13 +13,13 @@ public interface Job {
     JobRunState run(final JobRunContext jobRunContext) throws Exception;
 
     /** You can override this method to set initial or fixed properties for this job. */
-    @NonNull
+
     default JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.unset();
     }
 
     /** You can override this method to set initial or fixed triggers for this job. */
-    @NonNull
+
     default JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.unset();
     }

@@ -5,8 +5,11 @@ import jakarta.validation.constraints.*;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+
+import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_k8s_jobs")
@@ -16,36 +19,37 @@ public class K8sJobEntity {
     @Positive
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_k8s_jobs_id", nullable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @NotNull
     @Positive
     @Column(name = "fk_job_run_id", nullable = false)
-    private Integer jobRunId;
+    private @Nullable Integer jobRunId;
 
     @NotBlank
     @Column(name = "k8s_job_name", nullable = false)
-    private String k8sJobName;
+    private @Nullable String k8sJobName;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
     protected K8sJobEntity() {}
 
-    public K8sJobEntity(final int jobRunId, final String k8sJobName) {
+    public K8sJobEntity(final int jobRunId, final @Nullable String k8sJobName) {
         this.jobRunId = jobRunId;
         this.k8sJobName = k8sJobName;
     }
 
     public String k8sJobName() {
-        return k8sJobName;
+        return requireNonNull(k8sJobName);
     }
 
+    @Nullable
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -54,6 +58,7 @@ public class K8sJobEntity {
         this.createdAt = createdAt;
     }
 
+    @Nullable
     public Instant getUpdatedAt() {
         return updatedAt;
     }

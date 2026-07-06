@@ -2,7 +2,8 @@ package ch.ubique.backend.job.websocket;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.Strings;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.resource.BearerTokenErrors;
@@ -73,6 +74,7 @@ public final class WebSocketSubProtocolBearerTokenResolver implements BearerToke
             Pattern.compile("^Bearer (?<token>[a-zA-Z0-9-._~+/]+=*)$", Pattern.CASE_INSENSITIVE);
 
     @Override
+    @Nullable
     public String resolve(final HttpServletRequest request) {
         return resolveToken(
                 // 1. First, try resolving token from the WebSocket header (Sec-WebSocket-Protocol)
@@ -99,21 +101,24 @@ public final class WebSocketSubProtocolBearerTokenResolver implements BearerToke
      * @param request the HTTP request (WebSocket handshake request)
      * @return the token if found in the {@code Sec-WebSocket-Protocol} header, otherwise null
      */
+    @Nullable
     private String resolveFromWebSocketProtocol(final HttpServletRequest request) {
         final var protocolHeader = request.getHeader("Sec-WebSocket-Protocol");
 
-        if (protocolHeader != null) {
-            // Split the protocols and strip whitespace
-            final var protocols =
-                    Arrays.stream(protocolHeader.split(","))
-                            .map(String::strip) // Strip leading/trailing spaces
-                            .toList();
+        if (protocolHeader == null) {
+            return null;
+        }
 
-            // Check if the first protocol is "Bearer"
-            if (protocols.size() == 2 && "Bearer".equalsIgnoreCase(protocols.get(0))) {
-                // Return the token, which is the second part after the comma
-                return protocols.get(1);
-            }
+        // Split the protocols and strip whitespace
+        final var protocols =
+                Arrays.stream(protocolHeader.split(","))
+                        .map(String::strip) // Strip leading/trailing spaces
+                        .toList();
+
+        // Check if the first protocol is "Bearer"
+        if (protocols.size() == 2 && "Bearer".equalsIgnoreCase(protocols.get(0))) {
+            // Return the token, which is the second part after the comma
+            return protocols.get(1);
         }
         return null;
     }
@@ -129,9 +134,10 @@ public final class WebSocketSubProtocolBearerTokenResolver implements BearerToke
      *     header)
      * @return the token if found in the Authorization header, otherwise null
      */
+    @Nullable
     private String resolveFromAuthorizationHeader(final HttpServletRequest request) {
         final var authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (!StringUtils.startsWithIgnoreCase(authorization, "bearer")) {
+        if (!Strings.CI.startsWith(authorization, "bearer")) {
             return null;
         }
 
@@ -155,7 +161,8 @@ public final class WebSocketSubProtocolBearerTokenResolver implements BearerToke
      * @return the resolved token
      * @throws OAuth2AuthenticationException if multiple tokens are found or the token is empty
      */
-    private static String resolveToken(final String... accessTokens) {
+    @Nullable
+    private static String resolveToken(final @Nullable String @Nullable ... accessTokens) {
         if (accessTokens == null || accessTokens.length == 0) {
             return null;
         }

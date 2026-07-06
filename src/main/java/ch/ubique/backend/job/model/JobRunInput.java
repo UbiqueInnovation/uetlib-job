@@ -1,20 +1,26 @@
 package ch.ubique.backend.job.model;
 
+import org.jspecify.annotations.Nullable;
+
 public interface JobRunInput {
 
+    @Nullable
     Integer getId();
 
-    void setId(Integer runId);
+    void setId(@Nullable Integer runId);
 
+    @Nullable
     Integer getRunId();
 
-    void setRunId(Integer runId);
+    void setRunId(@Nullable Integer runId);
 
+    @Nullable
     String getName();
 
-    void setName(String name);
+    void setName(@Nullable String name);
 
+    @Nullable
     String getHash();
 
-    void setHash(String hash);
+    void setHash(@Nullable String hash);
 }

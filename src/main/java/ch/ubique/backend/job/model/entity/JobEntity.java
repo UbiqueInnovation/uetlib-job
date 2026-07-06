@@ -13,7 +13,10 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "t_job")
@@ -22,21 +25,21 @@ public class JobEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_job_id", nullable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @Column(name = "clazz", nullable = false)
-    private String canonicalClassName;
+    private @Nullable String canonicalClassName;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
     public static JobEntity forClass(final Class<? extends Job> jobClass) {
         final var jobEntity = new JobEntity();
@@ -46,11 +49,11 @@ public class JobEntity {
     }
 
     public JobClassAndId toRecord() {
-        return new JobClassAndId(id, canonicalClassName);
+        return new JobClassAndId(Objects.requireNonNull(id), Objects.requireNonNull(canonicalClassName));
     }
 
     public String canonicalClassName() {
-        return canonicalClassName;
+        return Objects.requireNonNull(canonicalClassName);
     }
 
     public void setEnabled(final boolean enabled) {

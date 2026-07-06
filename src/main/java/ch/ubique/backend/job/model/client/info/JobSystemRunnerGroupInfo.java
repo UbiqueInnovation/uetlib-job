@@ -3,7 +3,9 @@ package ch.ubique.backend.job.model.client.info;
 import ch.ubique.backend.job.service.executor.runners.CurrentRunnerItem;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -15,16 +17,16 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobSystemRunnerGroupInfo(
         // Runner group
-        @NotBlank String identifier,
-        @Positive int threadPoolSize,
-        @NotNull List<String> allowedJobs,
-        @NotNull List<String> configuredJobs,
+        @JsonProperty(required = true) @NotBlank String identifier,
+        @JsonProperty(required = true) @Positive int threadPoolSize,
+        @JsonProperty(required = true) @NotNull List<String> allowedJobs,
+        @JsonProperty(required = true) @NotNull List<String> configuredJobs,
 
         // Thread pool executor
-        int busyThreads,
-        int queueLength,
-        @NotNull Collection<CurrentRunnerItem> queueElements,
-        @NotNull Collection<CurrentRunnerItem> activeElements,
-        @PositiveOrZero long completedTaskCount,
-        @PositiveOrZero int largestPoolSize,
-        @PositiveOrZero int currentPoolSize) {}
+        @JsonProperty(required = true) int busyThreads,
+        @JsonProperty(required = true) int queueLength,
+        @JsonProperty(required = true) @NotNull @Valid Collection<CurrentRunnerItem> queueElements,
+        @JsonProperty(required = true) @NotNull @Valid Collection<CurrentRunnerItem> activeElements,
+        @JsonProperty(required = true) @PositiveOrZero long completedTaskCount,
+        @JsonProperty(required = true) @PositiveOrZero int largestPoolSize,
+        @JsonProperty(required = true) @PositiveOrZero int currentPoolSize) {}

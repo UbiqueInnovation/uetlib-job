@@ -182,7 +182,9 @@ public abstract class KubernetesJob implements Job {
     }
 
     private static Map<String, String> labelsFromProperties(final JobRunContext jobRunContext) {
-        return jobRunContext.properties().get(JobPropertyDefinitions.K8S_POD_LABELS).value();
+        return java.util.Objects.requireNonNullElse(
+                jobRunContext.properties().get(JobPropertyDefinitions.K8S_POD_LABELS).value(),
+                JobPropertyDefinitions.K8S_POD_LABELS.defaultValue().orElseThrow());
     }
 
     /**
@@ -211,11 +213,13 @@ public abstract class KubernetesJob implements Job {
 
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var ttlAfterFinished =
-                kubernetesJobRunContext
-                        .jobRunContext()
-                        .properties()
-                        .get(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED)
-                        .value();
+                java.util.Objects.requireNonNullElse(
+                        kubernetesJobRunContext
+                                .jobRunContext()
+                                .properties()
+                                .get(JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED)
+                                .value(),
+                        JobPropertyDefinitions.K8S_TTL_AFTER_FINISHED.defaultValue().orElseThrow());
 
         return new V1JobSpec()
                 .ttlSecondsAfterFinished((int) ttlAfterFinished.toSeconds())
@@ -302,6 +306,7 @@ public abstract class KubernetesJob implements Job {
         return podSpec;
     }
 
+    @Nullable
     protected String serviceAccountName(final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext)
                 .map(V1PodSpec::getServiceAccountName)
@@ -388,6 +393,7 @@ public abstract class KubernetesJob implements Job {
         return new V1ResourceRequirements().requests(requests).limits(limits);
     }
 
+    @Nullable
     protected V1Affinity affinity(final KubernetesJobRunContext kubernetesJobRunContext) {
         return getCurrentPodSpec(kubernetesJobRunContext).map(V1PodSpec::getAffinity).orElse(null);
     }

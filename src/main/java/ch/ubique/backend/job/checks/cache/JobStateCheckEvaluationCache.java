@@ -13,10 +13,14 @@ import ch.ubique.backend.job.service.JobService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 @Service
 @Profile("!job-run")
@@ -25,8 +29,8 @@ public class JobStateCheckEvaluationCache {
     private final JobDataService jobDataService;
     private final JobService jobService;
 
-    private JobStateCheckEvaluationData latestEvaluation;
-    private Instant latestEvaluationTime;
+    private @Nullable JobStateCheckEvaluationData latestEvaluation;
+    private @Nullable Instant latestEvaluationTime;
 
     private static final Duration CACHE_DURATION = Duration.ofSeconds(10);
 
@@ -37,6 +41,7 @@ public class JobStateCheckEvaluationCache {
 
     public synchronized JobStateCheckEvaluationData get() {
         if (latestEvaluation == null
+                || latestEvaluationTime == null
                 || latestEvaluationTime.isBefore(Instant.now().minus(CACHE_DURATION))) {
             latestEvaluation = evaluate();
             latestEvaluationTime = Instant.now();
@@ -74,7 +79,7 @@ public class JobStateCheckEvaluationCache {
         return jobDataService
                 .findLatestFinishedJobRuns(jobs.stream().map(JobClassAndId::id).toList())
                 .stream()
-                .collect(Collectors.toMap(run -> jobById.get(run.jobId()), JobRun::latestState));
+                .collect(Collectors.toMap(run -> requireNonNull(jobById.get(run.jobId())), JobRun::latestState));
     }
 
     private Map<JobClassAndId, Set<JobRunState>> findProblemRunStates(
@@ -88,7 +93,7 @@ public class JobStateCheckEvaluationCache {
         return jobDataService.findJobRunStates(jobIds).entrySet().stream()
                 .collect(
                         Collectors.toMap(
-                                entry -> jobById.get(entry.getKey()),
+                                entry -> requireNonNull(jobById.get(entry.getKey())),
                                 entry -> onlyProblemRunStates(entry.getValue())));
     }
 
@@ -108,7 +113,7 @@ public class JobStateCheckEvaluationCache {
         return jobDataService.findJobRunStatesSince(checkIntervalStart).entrySet().stream()
                 .collect(
                         Collectors.toMap(
-                                entry -> jobById.get(entry.getKey()), Map.Entry::getValue));
+                                entry -> requireNonNull(jobById.get(entry.getKey())), Map.Entry::getValue));
     }
 
     private List<JobClassAndId> jobsWithCheckLatestSuccessfulStrategy(

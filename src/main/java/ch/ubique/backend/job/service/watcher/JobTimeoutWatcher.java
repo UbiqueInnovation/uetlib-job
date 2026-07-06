@@ -5,6 +5,8 @@ import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.*;
 
 import static org.apache.commons.lang3.compare.ComparableUtils.is;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobProperties;
@@ -74,18 +76,22 @@ public class JobTimeoutWatcher {
     }
 
     private Duration timeoutForState(final JobProperties properties, final JobRunState state) {
-        return switch (state) {
-            case SCHEDULED -> properties.getValue(MAX_DURATION_IN_SCHEDULED_STATE);
-            case BUSY -> properties.getValue(RUN_TIME_LIMIT);
-            default -> throw new IllegalArgumentException();
-        };
+        final var value =
+                switch (state) {
+                    case SCHEDULED -> properties.getValue(MAX_DURATION_IN_SCHEDULED_STATE);
+                    case BUSY -> properties.getValue(RUN_TIME_LIMIT);
+                    default -> throw new IllegalArgumentException();
+                };
+        return requireNonNull(value);
     }
 
     private boolean killTimeoutEnabled(final JobProperties properties, final JobRunState state) {
-        return switch (state) {
-            case SCHEDULED -> properties.getValue(KILL_JOBS_SCHEDULE_TIMEOUT);
-            case BUSY -> properties.getValue(KILL_JOBS_RUN_TIMEOUT);
-            default -> throw new IllegalArgumentException();
-        };
+        final var value =
+                switch (state) {
+                    case SCHEDULED -> properties.getValue(KILL_JOBS_SCHEDULE_TIMEOUT);
+                    case BUSY -> properties.getValue(KILL_JOBS_RUN_TIMEOUT);
+                    default -> throw new IllegalArgumentException();
+                };
+        return Boolean.TRUE.equals(value);
     }
 }
