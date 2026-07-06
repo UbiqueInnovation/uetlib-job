@@ -27,16 +27,20 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 class RegisteredJobRegistrar
         implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
     private static final Logger logger = LoggerFactory.getLogger(RegisteredJobRegistrar.class);
 
-    private ResourceLoader resourceLoader;
-    private Environment environment;
+    private @Nullable ResourceLoader resourceLoader;
+    private @Nullable Environment environment;
 
-    private static @NonNull Class<?> loadEnableJobsClass(
-            final @NonNull AnnotationMetadata importingClassMetadata) {
+    private static Class<?> loadEnableJobsClass(
+            final AnnotationMetadata importingClassMetadata) {
         try {
             return Class.forName(importingClassMetadata.getClassName());
         } catch (final ClassNotFoundException e) {
@@ -50,12 +54,12 @@ class RegisteredJobRegistrar
 
     @Override
     public void registerBeanDefinitions(
-            final @NonNull AnnotationMetadata importingClassMetadata,
-            final @NonNull BeanDefinitionRegistry registry) {
+            final AnnotationMetadata importingClassMetadata,
+            final BeanDefinitionRegistry registry) {
         // This would be a problem if this RegisteredJobDefinitions gets created if the profile
         // job-run is active, but
         // it is not needed, so we skip it
-        if (environment.matchesProfiles("job-run")) {
+        if (environment != null && environment.matchesProfiles("job-run")) {
             return;
         }
 
@@ -64,8 +68,8 @@ class RegisteredJobRegistrar
     }
 
     private void registerRegisteredJobClassesBeanDefinition(
-            final @NonNull DefaultListableBeanFactory beanFactory,
-            final @NonNull AnnotationMetadata importingClassMetadata) {
+            final DefaultListableBeanFactory beanFactory,
+            final AnnotationMetadata importingClassMetadata) {
         final var enableJobsClass = loadEnableJobsClass(importingClassMetadata);
         final var enableJobsAnnotation =
                 importingClassMetadata.getAnnotations().get(EnableJobs.class).synthesize();
@@ -89,7 +93,7 @@ class RegisteredJobRegistrar
         if (org.apache.commons.lang3.ArrayUtils.isEmpty(jobs)) {
             final var scanner =
                     EnableAnnotationUtils.getScanner(
-                            environment, resourceLoader, RegisteredJob.class);
+                            requireNonNull(environment), requireNonNull(resourceLoader), RegisteredJob.class);
             final var basePackages =
                     getBasePackages(
                             enableJobsAnnotation.basePackages(),
@@ -107,17 +111,17 @@ class RegisteredJobRegistrar
         return candidateComponents.stream()
                 .filter(AnnotatedBeanDefinition.class::isInstance)
                 .map(AnnotatedBeanDefinition.class::cast)
-                .map(beanDefinition -> classForName(beanDefinition.getBeanClassName()))
+                .map(beanDefinition -> classForName(requireNonNull(beanDefinition.getBeanClassName())))
                 .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
-    public void setResourceLoader(final @NonNull ResourceLoader resourceLoader) {
+    public void setResourceLoader(final  ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
 
     @Override
-    public void setEnvironment(final @NonNull Environment environment) {
+    public void setEnvironment(final  Environment environment) {
         this.environment = environment;
     }
 }

@@ -3,20 +3,20 @@ package ch.ubique.backend.job.model.client;
 import ch.ubique.backend.job.model.properties.enums.JobManualTriggerMode;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotNull;
 
 import org.jspecify.annotations.NullMarked;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@NullMarked
 public record JobInfo(
-        int id,
-        @NotNull String name,
-        @NotNull String clazz,
-        boolean enabled,
-        boolean propertiesFixed,
-        boolean triggersFixed,
-        int numTriggers,
-        boolean forceRunnable,
-        @NotNull JobManualTriggerMode manualTriggerMode) {}
+        @JsonProperty(required = true) int id,
+        @JsonProperty(required = true) @NotNull String name,
+        @JsonProperty(required = true) @NotNull String clazz,
+        @JsonProperty(required = true) boolean enabled,
+        @JsonProperty(required = true) boolean propertiesFixed,
+        @JsonProperty(required = true) boolean triggersFixed,
+        @JsonProperty(required = true) int numTriggers,
+        @JsonProperty(required = true) boolean forceRunnable,
+        @JsonProperty(required = true) @NotNull JobManualTriggerMode manualTriggerMode) {}

@@ -10,9 +10,9 @@ import java.util.Set;
 final class StringPropertyDefinition extends AbstractJobPropertyDefinition<String> {
 
     StringPropertyDefinition(
-            @NotBlank final String key,
-            @NotBlank final String description,
-            @NotNull final JobPropertyDefinitionGroup group,
+            final String key,
+            final String description,
+            final JobPropertyDefinitionGroup group,
             final boolean nullable,
             @Nullable final String defaultValue,
             @Nullable final Set<String> allowedValues) {
@@ -20,7 +20,10 @@ final class StringPropertyDefinition extends AbstractJobPropertyDefinition<Strin
     }
 
     @Override
-    public String decodeFromString(final String value) {
+    public String decodeFromString(final @Nullable String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("value cannot be null");
+        }
         return value;
     }
 

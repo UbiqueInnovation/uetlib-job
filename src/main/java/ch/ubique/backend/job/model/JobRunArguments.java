@@ -45,7 +45,7 @@ public record JobRunArguments(
     }
 
     @Override
-    public @NonNull String toString() {
+    public  String toString() {
         final var builder =
                 new ToStringBuilder(this, ToStringStyle.NO_CLASS_NAME_STYLE)
                         .append("forceRun", forceRun);

@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.Optional;
 
 public record JobApplicationJobToStartArgs(
-        @NonNull String jobClassName,
+         String jobClassName,
         @Nullable Integer jobRunId,
         boolean forceRun,
         @Nullable String additionalDataString,

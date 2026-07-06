@@ -12,12 +12,19 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/** used for custom methods in {@link JobRunRepository} */
+@SuppressWarnings("unused")
 public class JobRunRepositoryCustomImpl implements JobRunRepositoryCustom {
 
-    @PersistenceContext private EntityManager entityManager;
+    @SuppressWarnings("NullAway.Init")
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public Map<Integer, Set<JobRunState>> findJobRunStates(final Collection<Integer> jobs) {
+        if (jobs.isEmpty()) {
+            return Map.of();
+        }
         final var cb = entityManager.getCriteriaBuilder();
         final var query = cb.createTupleQuery();
 
@@ -37,6 +44,9 @@ public class JobRunRepositoryCustomImpl implements JobRunRepositoryCustom {
 
     @Override
     public Map<Integer, Set<JobRunState>> findJobRunStatesSince(final Map<Integer, Instant> jobs) {
+        if (jobs.isEmpty()) {
+            return Map.of();
+        }
         final var cb = entityManager.getCriteriaBuilder();
         final var query = cb.createTupleQuery();
 
@@ -53,7 +63,7 @@ public class JobRunRepositoryCustomImpl implements JobRunRepositoryCustom {
                             cb.greaterThanOrEqualTo(startedAt, entry.getValue())));
         }
         query.select(cb.tuple(jobId, latestState))
-                .where(cb.or(orPredicates))
+                .where(cb.or(orPredicates.toArray(new Predicate[0])))
                 .groupBy(jobId, latestState);
 
         final var tuples = entityManager.createQuery(query).getResultList();
@@ -67,7 +77,9 @@ public class JobRunRepositoryCustomImpl implements JobRunRepositoryCustom {
                 jobs.stream().collect(Collectors.toMap(id -> id, id -> new HashSet<>()));
         for (final var jobIdAndRunState : jobIdAndJobRunStateTuples) {
             final var statesForJob = result.get(jobIdAndRunState.get(0, Integer.class));
-            statesForJob.add(jobIdAndRunState.get(1, JobRunState.class));
+            if (statesForJob != null) {
+                statesForJob.add(jobIdAndRunState.get(1, JobRunState.class));
+            }
         }
         return result;
     }

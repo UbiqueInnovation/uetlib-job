@@ -27,7 +27,6 @@ import java.util.Optional;
 
 @Service
 @Profile("!job-run")
-@NullMarked
 public class JobStateWatcher {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());

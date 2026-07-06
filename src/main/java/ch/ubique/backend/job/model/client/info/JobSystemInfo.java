@@ -1,10 +1,12 @@
 package ch.ubique.backend.job.model.client.info;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
 public record JobSystemInfo(
-        @Valid @NotNull JobSystemCronInfo cron,
-        @NotNull List<@Valid JobSystemRunnerGroupInfo> runnerGroups) {}
+        @JsonProperty(required = true) @NotNull @Valid JobSystemCronInfo cron,
+        @JsonProperty(required = true) @NotNull @Valid
+                List<JobSystemRunnerGroupInfo> runnerGroups) {}

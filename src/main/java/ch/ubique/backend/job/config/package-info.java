@@ -1,4 +1,4 @@
-@NullUnmarked
+@NullMarked
 package ch.ubique.backend.job.config;
 
-import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.NullMarked;

@@ -3,6 +3,7 @@ package ch.ubique.backend.job.model.runner;
 import ch.ubique.backend.job.Job;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 
@@ -16,18 +17,19 @@ import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record RunnerGroup(
-        @NotBlank String identifier,
-        @Positive int threadPoolSize,
-        @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY) Set<Class<? extends Job>> allowedJobs) {
+        @JsonProperty(required = true) @NotBlank String identifier,
+        @JsonProperty(required = true) @Positive int threadPoolSize,
+        @JsonProperty(required = true) @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY)
+                Set<Class<? extends Job>> allowedJobs) {
 
     private static final Set<RunnerGroup> INSTANCES = new HashSet<>();
 
     @SuppressWarnings("java:S6207") // A canonical constructor is not possible since,
     // it calls check() before fields are initialized
     public RunnerGroup(
-            @NotBlank final String identifier,
-            @Positive final int threadPoolSize,
-            @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY)
+            @JsonProperty(required = true) @NotBlank final String identifier,
+            @JsonProperty(required = true) @Positive final int threadPoolSize,
+            @JsonProperty(required = true) @NotNull @JsonSetter(nulls = Nulls.AS_EMPTY)
                     final Set<Class<? extends Job>> allowedJobs) {
         this.identifier = identifier;
         this.threadPoolSize = threadPoolSize;
@@ -35,7 +37,9 @@ public record RunnerGroup(
         check(this);
     }
 
-    public RunnerGroup(@NotBlank final String identifier, @Positive final int threadPoolSize) {
+    public RunnerGroup(
+            @JsonProperty(required = true) @NotBlank final String identifier,
+            @JsonProperty(required = true) @Positive final int threadPoolSize) {
         this(identifier, threadPoolSize, Set.of());
     }
 
@@ -48,7 +52,7 @@ public record RunnerGroup(
             throw new IllegalArgumentException(
                     MessageFormat.format(
                             "There is already a different RunnerGroup with the same identifier. New"
-                                + " runner group: {0}, existing: {1}",
+                                    + " runner group: {0}, existing: {1}",
                             runnerGroup, sameIdentifierButNotEqual));
         }
         INSTANCES.add(runnerGroup);

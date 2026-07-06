@@ -4,4 +4,4 @@ import org.jspecify.annotations.NonNull;
 
 import java.time.Instant;
 
-public record LoggingEvent(@NonNull Instant timestamp, @NonNull String formattedMessage) {}
+public record LoggingEvent( Instant timestamp,  String formattedMessage) {}

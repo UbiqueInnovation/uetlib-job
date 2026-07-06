@@ -13,7 +13,8 @@ import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_job_run_database_submission")
@@ -22,26 +23,26 @@ public class JobRunDatabaseSubmissionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_job_run_database_submission_id", nullable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @Column(name = "fk_job_id", nullable = false)
-    private Integer jobId;
+    private @Nullable Integer jobId;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
     @Column(name = "executed_at")
-    private Instant executedAt;
+    private @Nullable Instant executedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = JobRunDatabaseSubmissionArgumentsToStringConverter.class)
     @Column(name = "job_run_database_submission_arguments", nullable = false)
-    private JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments;
+    private @Nullable JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments;
 
     protected JobRunDatabaseSubmissionEntity() {}
 
@@ -52,9 +53,10 @@ public class JobRunDatabaseSubmissionEntity {
         this.jobId = jobId;
         this.createdAt = createdAt;
         this.jobRunDatabaseSubmissionArguments =
-                Objects.requireNonNull(jobRunDatabaseSubmissionArguments);
+                requireNonNull(jobRunDatabaseSubmissionArguments);
     }
 
+    @Nullable
     public Integer getId() {
         return id;
     }
@@ -63,6 +65,7 @@ public class JobRunDatabaseSubmissionEntity {
         this.id = id;
     }
 
+    @Nullable
     public Integer getJobId() {
         return jobId;
     }
@@ -81,6 +84,10 @@ public class JobRunDatabaseSubmissionEntity {
             return null;
         }
         return new JobRunDatabaseSubmission(
-                id, jobId, createdAt, executedAt, jobRunDatabaseSubmissionArguments);
+                requireNonNull(id),
+                requireNonNull(jobId),
+                requireNonNull(createdAt),
+                executedAt,
+                jobRunDatabaseSubmissionArguments);
     }
 }

@@ -9,6 +9,8 @@ import org.springframework.core.GenericTypeResolver;
 
 import java.util.function.Consumer;
 
+import static java.util.Objects.requireNonNull;
+
 public interface TriggerService<T extends TriggerDefinition> {
 
     default void onStartup(
@@ -32,6 +34,6 @@ public interface TriggerService<T extends TriggerDefinition> {
         final var genericType =
                 (Class<T>)
                         GenericTypeResolver.resolveTypeArgument(getClass(), TriggerService.class);
-        return TriggerType.getTypeForClass(genericType);
+        return TriggerType.getTypeForClass(requireNonNull(genericType));
     }
 }

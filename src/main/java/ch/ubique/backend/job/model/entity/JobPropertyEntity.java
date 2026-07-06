@@ -12,8 +12,11 @@ import jakarta.persistence.Table;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+
+import static java.util.Objects.requireNonNull;
 
 @Entity
 @IdClass(JobPropertyId.class)
@@ -26,18 +29,18 @@ public class JobPropertyEntity {
 
     @Id
     @Column(name = "\"key\"", nullable = false)
-    private String key;
+    private @Nullable String key;
 
     @Column(name = "value")
-    private String value;
+    private @Nullable String value;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
     public static <T> JobPropertyEntity from(final int jobId, final JobProperty<T> property) {
         final var entity = new JobPropertyEntity();
@@ -53,13 +56,15 @@ public class JobPropertyEntity {
     }
 
     public JobProperty<Object> toProperty() {
-        return JobPropertyDefinitions.get(key).createPropertyFromString(getValue());
+        return JobPropertyDefinitions.get(requireNonNull(key)).createPropertyFromString(getValue());
     }
 
+    @Nullable
     public String getValue() {
         return StringUtils.defaultIfBlank(value, null);
     }
 
+    @Nullable
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -68,6 +73,7 @@ public class JobPropertyEntity {
         this.createdAt = createdAt;
     }
 
+    @Nullable
     public Instant getUpdatedAt() {
         return updatedAt;
     }

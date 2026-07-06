@@ -39,7 +39,7 @@ public abstract class BaseStateJob<T> implements Job {
     private final JsonMapper jsonMapper;
     private final ApplicationContext applicationContext;
 
-    protected BaseStateJob(@NonNull final ApplicationContext applicationContext) {
+    protected BaseStateJob( final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jsonMapper = applicationContext.getBean(JsonMapper.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
@@ -59,7 +59,7 @@ public abstract class BaseStateJob<T> implements Job {
      * @return the state want to pass to the {@link BaseStateJob#processState} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-    @NonNull
+
     @SuppressWarnings("java:S112")
     protected abstract T getLatestState(JobRunContext jobRunContext) throws Exception;
 
@@ -88,13 +88,13 @@ public abstract class BaseStateJob<T> implements Job {
      * @param latestState the latestState returned by {@link BaseStateJob#getLatestState}
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-    @NonNull
+
     @SuppressWarnings("java:S112")
-    protected abstract JobRunState processState(T latestState, @NonNull JobRunContext jobRunContext)
+    protected abstract JobRunState processState(T latestState,  JobRunContext jobRunContext)
             throws Exception;
 
     /** You need to overwrite this method to correctly deserialize the saved state. */
-    @NonNull
+
     protected abstract TypeReference<T> stateTypeReference();
 
     /**
@@ -107,8 +107,8 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Override
-    @NonNull
-    public final JobRunState run(@NonNull final JobRunContext jobRunContext) throws Exception {
+
+    public final JobRunState run( final JobRunContext jobRunContext) throws Exception {
         final var currentJobRun = jobRunContext.jobRun();
 
         // Check if state for current run has already been computed and saved.
@@ -218,7 +218,7 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Nullable
-    private T loadState(@NonNull final JobRun jobRun) {
+    private T loadState( final JobRun jobRun) {
         logger.debug("Loading state of run {}.", jobRun.id());
         try (final var inputStream = getStateInputStream(jobRun)) {
             final var previousState = jsonMapper.readValue(inputStream, stateTypeReference());
@@ -238,7 +238,7 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Nullable
-    private T loadStateIfPresent(@NonNull final JobRun jobRun) {
+    private T loadStateIfPresent( final JobRun jobRun) {
         if (!hasStateForRun(jobRun)) {
             return null;
         }

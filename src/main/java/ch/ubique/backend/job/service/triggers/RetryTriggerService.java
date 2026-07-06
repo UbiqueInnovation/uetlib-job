@@ -58,12 +58,18 @@ public class RetryTriggerService implements TriggerService<RetryTrigger> {
 
     private Collection<Integer> retryTriggerIdsOfJob(final int jobId) {
         return registeredTriggers.keySet().stream()
-                .filter(triggerId -> jobsByTriggerId.get(triggerId).id() == jobId)
+                .filter(triggerId -> {
+                    final var job = jobsByTriggerId.get(triggerId);
+                    return job != null && job.id() == jobId;
+                })
                 .toList();
     }
 
     private void evaluateTrigger(final JobRun jobRun, final Integer triggerId) {
         final var trigger = registeredTriggers.get(triggerId);
+        if (trigger == null) {
+            return;
+        }
         logger.debug("Evaluating {} for {}.", trigger, jobRun);
 
         if (!is(age(jobRun)).greaterThan(trigger.constantBackoff())) {
@@ -79,9 +85,11 @@ public class RetryTriggerService implements TriggerService<RetryTrigger> {
 
         logger.info("Requesting retry for {}.", jobRun);
         final var callback = triggerCallbacks.get(triggerId);
-        callback.accept(
-                new JobRunArguments(
-                        false, TriggerType.RETRY, retryContext.increment(), null, null));
+        if (callback != null) {
+            callback.accept(
+                    new JobRunArguments(
+                            false, TriggerType.RETRY, retryContext.increment(), null, null));
+        }
     }
 
     private RetryTriggerContext getOrCreateRetryTriggerContext(

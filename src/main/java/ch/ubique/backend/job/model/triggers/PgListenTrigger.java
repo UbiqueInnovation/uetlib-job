@@ -10,7 +10,6 @@ import java.util.List;
  * @param payloads Payloads for which the trigger should be fired, an empty list means listening to
  *     all payloads
  */
-@NullMarked
 public record PgListenTrigger(String channel, Collection<String> payloads)
         implements TriggerDefinition {
 

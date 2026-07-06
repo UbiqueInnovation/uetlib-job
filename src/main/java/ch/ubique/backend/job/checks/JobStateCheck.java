@@ -86,7 +86,10 @@ public abstract class JobStateCheck implements StatusCheck {
                                 entry.getValue()
                                         == StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL)
                 .map(Map.Entry::getKey)
-                .filter(job -> evaluation.statesInInterval().get(job).contains(stateToCheck));
+                .filter(job -> {
+                    final var states = evaluation.statesInInterval().get(job);
+                    return states != null && states.contains(stateToCheck);
+                });
     }
 
     /** Returns jobs failing the check for strategy CHECK_INTERVAL_SOME_SUCCESSFUL */
@@ -101,7 +104,8 @@ public abstract class JobStateCheck implements StatusCheck {
                 .filter(
                         job -> {
                             final var jobRunStates = evaluation.statesInInterval().get(job);
-                            return jobRunStates.contains(stateToCheck)
+                            return jobRunStates != null
+                                    && jobRunStates.contains(stateToCheck)
                                     && jobRunStates.stream().noneMatch(SUCCESS_STATES::contains);
                         });
     }

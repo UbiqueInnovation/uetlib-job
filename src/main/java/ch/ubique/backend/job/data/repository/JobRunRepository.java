@@ -7,6 +7,8 @@ import ch.ubique.backend.job.model.entity.JobRunEntity;
 
 import jakarta.validation.constraints.NotEmpty;
 
+import java.util.Map;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -83,4 +85,8 @@ public interface JobRunRepository
 
     Collection<JobRunEntity> findAllByJobIdInAndLatestState(
             Collection<Integer> jobIds, JobRunState state);
+
+    Map<Integer, Set<JobRunState>> findJobRunStates(final Collection<Integer> jobs);
+
+    Map<Integer, Set<JobRunState>> findJobRunStatesSince(final Map<Integer, Instant> jobs);
 }

@@ -42,7 +42,7 @@ public class LogFormatterService {
         return encodeAsUtf8(patternLayoutEncoder.encode(event));
     }
 
-    private static @NonNull String encodeAsUtf8(final byte[] messageBytes) {
+    private static  String encodeAsUtf8(final byte[] messageBytes) {
         final var value = new String(messageBytes, StandardCharsets.UTF_8);
         if (value.contains("\0")) {
             return value.replace('\0', '\uFFFD');

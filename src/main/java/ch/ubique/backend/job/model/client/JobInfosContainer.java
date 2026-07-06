@@ -2,12 +2,14 @@ package ch.ubique.backend.job.model.client;
 
 import com.drew.lang.annotations.NotNull;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.jspecify.annotations.NullMarked;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@NullMarked
-public record JobInfosContainer(@NotNull List<JobInfo> jobs, @NotNull Map<Integer, JobRunInfo> latestRuns) {}
+public record JobInfosContainer(
+        @JsonProperty(required = true) @NotNull @Valid List<JobInfo> jobs,
+        @JsonProperty(required = true) @NotNull @Valid Map<Integer, JobRunInfo> latestRuns) {}

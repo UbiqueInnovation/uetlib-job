@@ -23,6 +23,7 @@ import jakarta.validation.constraints.Positive;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 @Service
 public class JobDataService {
@@ -50,7 +53,9 @@ public class JobDataService {
     private final LoggingEventRepository loggingEventRepository;
     private final JdbcTemplate jobJdbcTemplate;
 
-    @PersistenceContext private EntityManager entityManager;
+    @SuppressWarnings("NullAway.Init")
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public JobDataService(
             final JobRepository jobRepository,
@@ -197,7 +202,7 @@ public class JobDataService {
     @Transactional(readOnly = true)
     public Page<JobRun> findJobRuns(
             final Pageable pageable,
-            @NonNull final List<Integer> includeJobIds,
+             final List<Integer> includeJobIds,
             final Collection<JobRunState> states,
             final Optional<Range<Instant>> fromToRange) {
         return jobRunRepository
@@ -241,8 +246,8 @@ public class JobDataService {
 
     @Transactional
     public JobRun updateJobRunRunnerKeyAndArguments(
-            @NonNull final JobRun jobRun,
-            @NonNull final JobRunnerKey runnerKey,
+             final JobRun jobRun,
+             final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         return jobRunRepository
                 .findById(jobRun.id())
@@ -257,7 +262,7 @@ public class JobDataService {
     }
 
     @Transactional
-    public JobRun startJobRun(final int jobRunId, @NonNull final Instant startedAt) {
+    public JobRun startJobRun(final int jobRunId,  final Instant startedAt) {
         return jobRunRepository
                 .findById(jobRunId)
                 .map(
@@ -272,19 +277,21 @@ public class JobDataService {
     @Transactional
     public void updateJobRunState(
             final int jobRunId,
-            final @NonNull JobRunState jobRunState,
-            final @NonNull Instant transitionedAt) {
+            final  JobRunState jobRunState,
+            final  Instant transitionedAt) {
         final var jobRunEntity =
                 jobRunRepository.findById(jobRunId).orElseThrow(throwJobRunNotFound(jobRunId));
 
-        if (jobRunEntity.finishedAt() != null && jobRunEntity.latestState().isRunning()) {
+        final var latestState = jobRunEntity.latestState();
+        if (jobRunEntity.finishedAt() != null && latestState != null && latestState.isRunning()) {
             // finishedAt should not be set for jobs in Running state
             jobRunEntity.setFinishedAt(null);
             jobRunRepository.save(jobRunEntity);
         }
 
         if (JobRunState.ACKNOWLEDGED == jobRunState
-                && jobRunEntity.latestState().isAcknowledgeable()) {
+                && latestState != null
+                && latestState.isAcknowledgeable()) {
             // Add state transition
             saveJobRunWithTransition(jobRunEntity, jobRunState, transitionedAt);
         }
@@ -486,7 +493,7 @@ public class JobDataService {
     public JobRun createJobRun(
             @Positive final int jobId,
             @NotBlank final String versionTag,
-            @NonNull final JobRunnerKey runnerKey,
+             final JobRunnerKey runnerKey,
             final JobRunArguments arguments) {
         final var scheduledAt = Instant.now();
         final var jobRunEntity =
@@ -612,7 +619,7 @@ public class JobDataService {
         jobRepository.setEnabled(jobId, isEnabled);
     }
 
-    private static @NonNull Supplier<ResourceNotFoundException> throwJobRunNotFound(
+    private static  Supplier<ResourceNotFoundException> throwJobRunNotFound(
             final int jobRunId) {
         return ResourceNotFoundException.supplierWithMessage(
                 "No JobRunEntity with id {0} found", jobRunId);
@@ -629,17 +636,18 @@ public class JobDataService {
         jobRunStateTransitionRepository.save(transition);
 
         // Check what the actual latest transition is
-        final var latestTransitionState =
+        final var latestTransitionEntity =
                 jobRunStateTransitionRepository
-                        .findFirstByJobRunIdOrderByTransitionedAtDesc(savedJobRun.id())
-                        .state();
-        if (latestTransitionState != state) {
-            // There is a newer state transition in the database, update latest state of run
-            // accordingly
-            savedJobRun.setLatestState(latestTransitionState);
-            jobRunRepository.save(savedJobRun);
+                        .findFirstByJobRunIdOrderByTransitionedAtDesc(requireNonNull(savedJobRun.id()));
+        if (latestTransitionEntity != null) {
+            final var latestTransitionState = latestTransitionEntity.state();
+            if (latestTransitionState != state) {
+                // There is a newer state transition in the database, update latest state of run
+                // accordingly
+                savedJobRun.setLatestState(latestTransitionState);
+                jobRunRepository.save(savedJobRun);
+            }
         }
-
         return savedJobRun;
     }
 }

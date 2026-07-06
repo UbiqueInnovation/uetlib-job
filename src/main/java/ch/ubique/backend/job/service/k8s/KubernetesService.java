@@ -21,7 +21,6 @@ import io.kubernetes.client.util.Namespaces;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.UncheckedException;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,6 @@ import java.time.Duration;
 @Service
 @Profile("!job-run")
 @Conditional(KubernetesAvailableConfigurationCondition.class)
-@NullMarked
 public class KubernetesService {
 
     private static final Logger logger = LoggerFactory.getLogger(KubernetesService.class);

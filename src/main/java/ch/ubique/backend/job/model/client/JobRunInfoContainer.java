@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.model.client;
 
-
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -12,7 +12,9 @@ import jakarta.validation.constraints.NotNull;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobRunInfoContainer(
-        @NotNull JobRunInfo jobRun, @NotNull JobInfo job, @NotNull String jobName) {
+        @JsonProperty(required = true) @NotNull JobRunInfo jobRun,
+        @JsonProperty(required = true) @NotNull JobInfo job,
+        @JsonProperty(required = true) @NotNull String jobName) {
 
     public static JobRunInfoContainer from(final JobRunInfo jobRunInfo, final JobInfo jobInfo) {
         return new JobRunInfoContainer(jobRunInfo, jobInfo, jobInfo.name());

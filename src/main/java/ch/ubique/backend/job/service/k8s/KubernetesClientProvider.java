@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 
 @Service
-@NullMarked
 @Conditional(KubernetesAvailableConfigurationCondition.class)
 public class KubernetesClientProvider {
 

@@ -1,9 +1,8 @@
 package ch.ubique.backend.job.model.properties;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Set;
@@ -11,15 +10,15 @@ import java.util.Set;
 final class BooleanPropertyDefinition extends AbstractJobPropertyDefinition<Boolean> {
 
     BooleanPropertyDefinition(
-            @NotBlank final String key,
-            @NotBlank final String description,
-            @NotNull final JobPropertyDefinitionGroup group,
+            final String key,
+            final String description,
+            final JobPropertyDefinitionGroup group,
             final boolean defaultValue) {
         super(key, description, group, false, defaultValue, Set.of(true, false));
     }
 
     @Override
-    public Boolean decodeFromString(final String value) {
+    public Boolean decodeFromString(final @Nullable String value) {
         return BooleanUtils.toBoolean(value);
     }
 

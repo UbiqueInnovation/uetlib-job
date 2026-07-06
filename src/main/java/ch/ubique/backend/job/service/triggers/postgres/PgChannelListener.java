@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.triggers.postgres;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import org.jspecify.annotations.Nullable;
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.slf4j.Logger;
@@ -196,7 +197,7 @@ class PgChannelListener {
         return Instant.now().isBefore(silentSince);
     }
 
-    private void closeConnection(final Connection connection) {
+    private void closeConnection(final @Nullable Connection connection) {
         if (connection == null) {
             return;
         }
