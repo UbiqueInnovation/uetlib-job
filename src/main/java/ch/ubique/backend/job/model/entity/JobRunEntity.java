@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunState;
@@ -13,6 +15,7 @@ import jakarta.validation.constraints.*;
 
 import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 
@@ -24,55 +27,54 @@ public class JobRunEntity {
     @Positive
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_job_run_id", nullable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @Positive
     @Column(name = "fk_job_id", nullable = false)
-    private Integer jobId;
+    private @Nullable Integer jobId;
 
     @NotBlank
     @Column(name = "version_tag", nullable = false)
-    private String versionTag;
+    private @Nullable String versionTag;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "runner_key", nullable = false, length = Integer.MAX_VALUE)
-    private JobRunnerKey runnerKey;
+    private @Nullable JobRunnerKey runnerKey;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "trigger_type")
-    private TriggerType triggerType;
+    private @Nullable TriggerType triggerType;
 
     @Column(name = "started_at", nullable = false)
-    private Instant startedAt;
+    private @Nullable Instant startedAt;
 
     @Column(name = "finished_at")
-    private Instant finishedAt;
+    private @Nullable Instant finishedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = JobRunArgumentsToStringConverter.class)
     @Column(name = "job_run_arguments")
-    private JobRunArguments jobRunArguments;
+    private @Nullable JobRunArguments jobRunArguments;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
-    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "latest_state", nullable = false)
-    private JobRunState latestState;
+    private @Nullable JobRunState latestState;
 
     protected JobRunEntity() {}
 
     public JobRunEntity(
-            @Positive final int jobId,
-            @NotBlank final String versionTag,
-            @NotNull final JobRunnerKey runnerKey,
-            @NotNull @PastOrPresent final Instant startedAt,
+            final int jobId,
+            final String versionTag,
+            final JobRunnerKey runnerKey,
+            final Instant startedAt,
             final JobRunArguments jobRunArguments) {
         this.jobId = jobId;
         this.versionTag = versionTag;
@@ -82,19 +84,20 @@ public class JobRunEntity {
         this.jobRunArguments = jobRunArguments;
     }
 
+    @Nullable
     public JobRunState latestState() {
         return latestState;
     }
 
     public JobRun toJobRun() {
         return new JobRun(
-                id,
-                jobId,
-                versionTag,
-                startedAt,
+                requireNonNull(id),
+                requireNonNull(jobId),
+                requireNonNull(versionTag),
+                requireNonNull(startedAt),
                 finishedAt,
-                latestState(),
-                runnerKey,
+                requireNonNull(latestState),
+                requireNonNull(runnerKey),
                 triggerType,
                 jobRunArguments);
     }
@@ -103,11 +106,11 @@ public class JobRunEntity {
         this.runnerKey = runnerKey;
     }
 
-    public void setJobRunArguments(final JobRunArguments jobRunArguments) {
+    public void setJobRunArguments(final @Nullable JobRunArguments jobRunArguments) {
         this.jobRunArguments = jobRunArguments;
     }
 
-    public void setFinishedAt(final Instant finishedAt) {
+    public void setFinishedAt(final @Nullable Instant finishedAt) {
         this.finishedAt = finishedAt;
     }
 
@@ -119,10 +122,12 @@ public class JobRunEntity {
         this.latestState = latestState;
     }
 
-    public @PastOrPresent Instant finishedAt() {
+    @Nullable
+    public Instant finishedAt() {
         return finishedAt;
     }
 
+    @Nullable
     public Integer id() {
         return id;
     }

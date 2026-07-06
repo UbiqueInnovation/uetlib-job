@@ -6,7 +6,11 @@ import ch.ubique.backend.job.model.JobRunStateTransition;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
+
+import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_job_run_state_transition")
@@ -19,21 +23,21 @@ public class JobRunStateTransitionEntity {
             nullable = false,
             insertable = false,
             updatable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "fk_job_run_id", nullable = false)
-    private JobRunEntity jobRun;
+    private @Nullable JobRunEntity jobRun;
 
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = Integer.MAX_VALUE)
-    private JobRunState state;
+    private @Nullable JobRunState state;
 
     @NotNull
     @PastOrPresent
     @Column(name = "transitioned_at", nullable = false, updatable = false)
-    private Instant transitionedAt;
+    private @Nullable Instant transitionedAt;
 
     protected JobRunStateTransitionEntity() {}
 
@@ -45,10 +49,14 @@ public class JobRunStateTransitionEntity {
     }
 
     public JobRunStateTransition toJobRunStateTransition() {
-        return new JobRunStateTransition(id, jobRun.toJobRun(), state, transitionedAt);
+        return new JobRunStateTransition(
+                requireNonNull(id),
+                requireNonNull(jobRun).toJobRun(),
+                requireNonNull(state),
+                requireNonNull(transitionedAt));
     }
 
     public JobRunState state() {
-        return state;
+        return requireNonNull(state);
     }
 }

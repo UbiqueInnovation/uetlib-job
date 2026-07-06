@@ -14,7 +14,7 @@ public final class JobTriggersConfig {
 
     private JobTriggersConfig(
             final boolean isFixed,
-            @NotNull final Collection<TriggerDefinition> triggerDefinitions) {
+             final Collection<TriggerDefinition> triggerDefinitions) {
         this.isFixed = isFixed;
         this.triggerDefinitions = Collections.unmodifiableCollection(triggerDefinitions);
     }

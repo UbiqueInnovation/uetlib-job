@@ -5,7 +5,10 @@ import ch.ubique.backend.job.model.JobRunState;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
+import java.util.Objects;
 
 @Embeddable
 public class JobRunStateTransitionEmbeddable {
@@ -15,27 +18,26 @@ public class JobRunStateTransitionEmbeddable {
             nullable = false,
             insertable = false,
             updatable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = Integer.MAX_VALUE)
-    private JobRunState state;
+    private @Nullable JobRunState state;
 
     @NotNull
     @PastOrPresent
     @Column(name = "transitioned_at", nullable = false, updatable = false)
-    private Instant transitionedAt;
+    private @Nullable Instant transitionedAt;
 
     protected JobRunStateTransitionEmbeddable() {}
 
-    public JobRunStateTransitionEmbeddable(
-            final @NotNull JobRunState state, final @NotNull Instant transitionedAt) {
+    public JobRunStateTransitionEmbeddable(final JobRunState state, final Instant transitionedAt) {
         this.state = state;
         this.transitionedAt = transitionedAt;
     }
 
-    public @NotNull JobRunState state() {
-        return state;
+    public JobRunState state() {
+        return Objects.requireNonNull(state);
     }
 }

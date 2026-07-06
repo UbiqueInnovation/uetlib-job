@@ -21,9 +21,6 @@
         <uetlib-storage-spring-boot.version>2.2.0</uetlib-storage-spring-boot.version>
         <uetlib-spring-boot.version>2.3.0</uetlib-spring-boot.version>
 
-        <!-- TODO remove (set to ERROR) when fixing nullability -->
-        <explicit-null-marking-level>WARN</explicit-null-marking-level>
-
         <!-- westemeyer version config -->
         <westemeyer-version-package-name>ch.ubique.backend.job.version</westemeyer-version-package-name>
     </properties>

@@ -1,8 +1,10 @@
 package ch.ubique.backend.job.model.properties;
 
-public interface StringEncoderDecoder<T> {
+import org.jspecify.annotations.Nullable;
 
-    T decodeFromString(final String value);
+public interface StringEncoderDecoder<T extends @Nullable Object> {
 
-    String encodeFromString(final T value);
+    T decodeFromString(final @Nullable String value);
+
+    @Nullable String encodeFromString(final T value);
 }

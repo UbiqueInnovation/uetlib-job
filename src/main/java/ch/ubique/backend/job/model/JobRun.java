@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import jakarta.validation.constraints.Null;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.jspecify.annotations.Nullable;
@@ -64,11 +65,11 @@ public record JobRun(
         private int jobId;
         private final String versionTag;
         private Instant startedAt;
-        private Instant finishedAt;
+        private @Nullable Instant finishedAt;
         private JobRunState state;
         private JobRunnerKey runnerKey;
-        private final TriggerType triggerType;
-        private JobRunArguments jobRunArguments;
+        private final @Nullable TriggerType triggerType;
+        private @Nullable JobRunArguments jobRunArguments;
 
         private ModifiableJobRun(final JobRun jobRun) {
             this.id = jobRun.id;
@@ -92,7 +93,7 @@ public record JobRun(
             return this;
         }
 
-        public ModifiableJobRun startedAt(@NotNull final Instant startedAt) {
+        public ModifiableJobRun startedAt(final Instant startedAt) {
             this.startedAt = Objects.requireNonNull(startedAt);
             return this;
         }
@@ -102,12 +103,12 @@ public record JobRun(
             return this;
         }
 
-        public ModifiableJobRun state(@NotNull final JobRunState state) {
+        public ModifiableJobRun state(final JobRunState state) {
             this.state = Objects.requireNonNull(state);
             return this;
         }
 
-        public ModifiableJobRun runnerKey(@NotNull final JobRunnerKey runnerKey) {
+        public ModifiableJobRun runnerKey(final JobRunnerKey runnerKey) {
             this.runnerKey = Objects.requireNonNull(runnerKey);
             return this;
         }

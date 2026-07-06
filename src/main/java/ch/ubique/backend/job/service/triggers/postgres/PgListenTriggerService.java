@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.service.triggers.postgres;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.spring.PgListenDataSourceProvider;
@@ -9,6 +11,8 @@ import ch.ubique.backend.job.service.triggers.TriggerService;
 
 import jakarta.annotation.PreDestroy;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,7 +114,7 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
         final var channel = triggerInfo.channel();
         final var remainingChannels = triggerInfos.stream().map(TriggerInfo::channel).toList();
         if (!remainingChannels.contains(channel)) {
-            channelListeners.get(channel).stop();
+            requireNonNull(channelListeners.get(channel)).stop();
             channelListeners.remove(channel);
             logger.debug("Removed channel listener for {}.", channel);
         }
@@ -149,13 +153,20 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
 
         @Override
         public boolean equals(final Object o) {
-            return this == o
-                    || (o instanceof final TriggerInfo info && info.triggerId == triggerId);
+            if (this == o) {
+                return true;
+            }
+
+            if (!(o instanceof final TriggerInfo that)) {
+                return false;
+            }
+
+            return new EqualsBuilder().append(triggerId, that.triggerId).isEquals();
         }
 
         @Override
         public int hashCode() {
-            return triggerId;
+            return new HashCodeBuilder(17, 37).append(triggerId).toHashCode();
         }
     }
 }

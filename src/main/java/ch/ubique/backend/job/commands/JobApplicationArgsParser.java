@@ -3,6 +3,7 @@ package ch.ubique.backend.job.commands;
 import org.apache.commons.cli.*;
 import org.apache.commons.cli.help.HelpFormatter;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,11 @@ public class JobApplicationArgsParser {
             return Optional.empty();
         }
 
-        return Optional.of(new JobApplicationArgs(getJobToStart(command)));
+        final var jobToStart = getJobToStart(command);
+        if (jobToStart == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new JobApplicationArgs(jobToStart));
     }
 
     private void printHelp(final HelpFormatter helpFormatter) {
@@ -90,6 +95,7 @@ public class JobApplicationArgsParser {
         }
     }
 
+    @Nullable
     private JobApplicationJobToStartArgs getJobToStart(final CommandLine command) {
 
         if (!command.hasOption(jobClassOption)) {

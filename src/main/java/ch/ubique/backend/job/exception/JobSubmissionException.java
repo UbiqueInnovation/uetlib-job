@@ -18,12 +18,12 @@ public class JobSubmissionException extends Exception {
     }
 
     public static JobSubmissionException withMessage(
-            @NonNull final String pattern, final Object... arguments) {
+             final String pattern, final Object... arguments) {
         return new JobSubmissionException(MessageFormat.format(pattern, arguments));
     }
 
     public static Supplier<JobSubmissionException> supplierWithMessage(
-            @NonNull final String pattern, final Object... arguments) {
+             final String pattern, final Object... arguments) {
         return () -> withMessage(pattern, arguments);
     }
 }

@@ -69,8 +69,10 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
                 .forEach(
                         entry -> {
                             final var consumer = triggerCallbacks.get(entry.getKey());
-                            logger.info("Calling callback for {}.", entry.getValue());
-                            consumer.accept(jobRunArguments);
+                            if (consumer != null) {
+                                logger.info("Calling callback for {}.", entry.getValue());
+                                consumer.accept(jobRunArguments);
+                            }
                         });
         logger.info(
                 "Submitted new job run from database submission for job {} with run arguments {}.",

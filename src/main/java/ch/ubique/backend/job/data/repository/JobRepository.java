@@ -11,5 +11,5 @@ import org.springframework.stereotype.Repository;
 public interface JobRepository extends JpaRepository<JobEntity, Integer> {
     @Modifying
     @Query("update JobEntity j set j.enabled = :enabled where j.id = :jobId")
-    int setEnabled(int jobId, boolean enabled);
+    void setEnabled(int jobId, boolean enabled);
 }

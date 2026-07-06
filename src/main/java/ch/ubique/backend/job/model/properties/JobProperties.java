@@ -1,12 +1,17 @@
 package ch.ubique.backend.job.model.properties;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 
 import java.util.Collection;
 
-public record JobProperties(@NotNull Collection<JobProperty<Object>> values) {
+import org.jspecify.annotations.Nullable;
 
-    public <T> JobProperty<T> get(final JobPropertyDefinition<T> definition) {
+public record JobProperties(
+        @JsonProperty(required = true) @NotNull Collection<JobProperty<Object>> values) {
+
+    public <T extends @Nullable Object> JobProperty<T> get(final JobPropertyDefinition<T> definition) {
         //noinspection unchecked
         return values.stream()
                 .filter(property -> property.key().equals(definition.key()))
@@ -15,7 +20,7 @@ public record JobProperties(@NotNull Collection<JobProperty<Object>> values) {
                 .orElseGet(() -> definition.createProperty(null));
     }
 
-    public <T> T getValue(final JobPropertyDefinition<T> definition) {
+    public <T extends @Nullable Object> @Nullable T getValue(final JobPropertyDefinition<T> definition) {
         return get(definition).value();
     }
 }

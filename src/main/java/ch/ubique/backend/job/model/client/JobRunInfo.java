@@ -9,6 +9,7 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
@@ -20,16 +21,16 @@ import java.util.Optional;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobRunInfo(
-        @Positive int id,
-        @Positive int jobId,
-        @NotNull JobRunState state,
-        @NotNull @PastOrPresent Instant startedAt,
-        @PastOrPresent Instant finishedAt,
-        @NotNull String duration,
-        @NotNull String versionTag,
+        @JsonProperty(required = true) @Positive int id,
+        @JsonProperty(required = true) @Positive int jobId,
+        @JsonProperty(required = true) @NotNull JobRunState state,
+        @JsonProperty(required = true) @NotNull @PastOrPresent Instant startedAt,
+        @PastOrPresent @Nullable Instant finishedAt,
+        @JsonProperty(required = true) @NotNull String duration,
+        @JsonProperty(required = true) @NotNull String versionTag,
         @Nullable TriggerType triggerType,
         @Nullable TriggerContext triggerContext,
-        boolean hasFiles) {
+        @JsonProperty(required = true) boolean hasFiles) {
 
     public static JobRunInfo from(final JobRun jobRun, final boolean hasFiles) {
         return new JobRunInfo(
@@ -38,7 +39,9 @@ public record JobRunInfo(
                 jobRun.latestState(),
                 jobRun.startedAt(),
                 jobRun.finishedAt(),
-                StringFormattingUtils.formatDuration(jobRun.startedAt(), jobRun.finishedAt()),
+                StringFormattingUtils.formatDuration(
+                        jobRun.startedAt(),
+                        java.util.Objects.requireNonNullElse(jobRun.finishedAt(), Instant.now())),
                 jobRun.versionTag(),
                 jobRun.triggerType(),
                 Optional.ofNullable(jobRun.jobRunArguments())

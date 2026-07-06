@@ -13,7 +13,7 @@ import org.jspecify.annotations.NullMarked;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@NullMarked
+
 public record JobClassAndId(
         @JsonProperty(required = true) int id,
         @JsonProperty(required = true) @NotBlank String canonicalClassName) {

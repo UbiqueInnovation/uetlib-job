@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.kubernetes.client.openapi.models.V1Toleration;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Use the {@link #builder()} to set only some of the fields, as none of them are actually required,
  * but some have implicit default values in k8s.
@@ -16,11 +18,11 @@ import io.kubernetes.client.openapi.models.V1Toleration;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record KubernetesPodToleration(
-        String key,
-        KubernetesPodTolerationOperator operator,
-        String value,
-        KubernetesPodTolerationEffect effect,
-        Long tolerationSeconds) {
+        @Nullable String key,
+        @Nullable KubernetesPodTolerationOperator operator,
+        @Nullable String value,
+        @Nullable KubernetesPodTolerationEffect effect,
+        @Nullable Long tolerationSeconds) {
 
     public static KubernetesPodTolerationBuilder builder() {
         return new KubernetesPodTolerationBuilder();
@@ -36,37 +38,37 @@ public record KubernetesPodToleration(
     }
 
     public static final class KubernetesPodTolerationBuilder {
-        private String key;
-        private KubernetesPodTolerationOperator operator;
-        private String value;
-        private KubernetesPodTolerationEffect effect;
-        private Long tolerationSeconds;
+        private @Nullable String key;
+        private @Nullable KubernetesPodTolerationOperator operator;
+        private @Nullable String value;
+        private @Nullable KubernetesPodTolerationEffect effect;
+        private @Nullable Long tolerationSeconds;
 
         private KubernetesPodTolerationBuilder() {}
 
-        public KubernetesPodTolerationBuilder withKey(final String key) {
+        public KubernetesPodTolerationBuilder withKey(final @Nullable String key) {
             this.key = key;
             return this;
         }
 
         public KubernetesPodTolerationBuilder withOperator(
-                final KubernetesPodTolerationOperator operator) {
+                final @Nullable KubernetesPodTolerationOperator operator) {
             this.operator = operator;
             return this;
         }
 
-        public KubernetesPodTolerationBuilder withValue(final String value) {
+        public KubernetesPodTolerationBuilder withValue(final @Nullable String value) {
             this.value = value;
             return this;
         }
 
         public KubernetesPodTolerationBuilder withEffect(
-                final KubernetesPodTolerationEffect effect) {
+                final @Nullable KubernetesPodTolerationEffect effect) {
             this.effect = effect;
             return this;
         }
 
-        public KubernetesPodTolerationBuilder withTolerationSeconds(final Long tolerationSeconds) {
+        public KubernetesPodTolerationBuilder withTolerationSeconds(final @Nullable Long tolerationSeconds) {
             this.tolerationSeconds = tolerationSeconds;
             return this;
         }

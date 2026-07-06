@@ -1,8 +1,5 @@
 package ch.ubique.backend.job.model.properties;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
@@ -11,9 +8,9 @@ import java.util.Set;
 final class IntPropertyDefinition extends AbstractJobPropertyDefinition<Integer> {
 
     IntPropertyDefinition(
-            @NotBlank final String key,
-            @NotBlank final String description,
-            @NotNull final JobPropertyDefinitionGroup group,
+            final String key,
+            final String description,
+            final JobPropertyDefinitionGroup group,
             final boolean nullable,
             @Nullable final Integer defaultValue,
             @Nullable final Set<Integer> allowedValues) {
@@ -21,12 +18,16 @@ final class IntPropertyDefinition extends AbstractJobPropertyDefinition<Integer>
     }
 
     @Override
-    public Integer decodeFromString(final String value) {
-        return Optional.ofNullable(value).map(Integer::parseInt).orElse(null);
+    public Integer decodeFromString(final @Nullable String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("value cannot be null");
+        }
+        return Integer.parseInt(value);
     }
 
     @Override
-    public String encodeFromString(final Integer value) {
+    @Nullable
+    public String encodeFromString(final @Nullable Integer value) {
         return Optional.ofNullable(value).map(String::valueOf).orElse(null);
     }
 }

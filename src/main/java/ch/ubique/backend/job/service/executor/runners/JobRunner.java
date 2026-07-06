@@ -11,11 +11,11 @@ import org.jspecify.annotations.Nullable;
 
 public interface JobRunner {
 
-    @NonNull JobRunnerKey key();
+     JobRunnerKey key();
 
-    boolean submit(@NonNull Job job, @NonNull JobRunContext jobRunContext);
+    boolean submit( Job job,  JobRunContext jobRunContext);
 
-    void cancel(@NonNull JobRun jobRun);
+    void cancel( JobRun jobRun);
 
-    @Nullable JobRunState resolveJobRunState(@NonNull JobRun jobRun);
+    @Nullable JobRunState resolveJobRunState( JobRun jobRun);
 }

@@ -2,6 +2,7 @@ package ch.ubique.backend.job.model.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
@@ -12,8 +13,8 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobRunInfosContainer(
-        @NotNull List<JobRunInfo> jobRuns,
-        @NotNull Map<Integer, JobInfo> jobs,
-        @NotNull boolean first,
-        @NotNull boolean last,
-        @NotNull int totalPages) {}
+        @JsonProperty(required = true) @NotNull List<JobRunInfo> jobRuns,
+        @JsonProperty(required = true) @NotNull Map<Integer, JobInfo> jobs,
+        @JsonProperty(required = true) boolean first,
+        @JsonProperty(required = true) boolean last,
+        @JsonProperty(required = true) int totalPages) {}

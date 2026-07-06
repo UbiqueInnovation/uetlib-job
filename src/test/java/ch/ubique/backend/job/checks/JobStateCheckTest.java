@@ -145,7 +145,7 @@ class JobStateCheckTest {
         assertInstanceOf(CheckFailed.class, checkStatus);
     }
 
-    private @NonNull List<JobRun> mockJobRunWith(final JobRunState jobRunState) {
+    private  List<JobRun> mockJobRunWith(final JobRunState jobRunState) {
         return List.of(
                 new JobRun(
                         12,

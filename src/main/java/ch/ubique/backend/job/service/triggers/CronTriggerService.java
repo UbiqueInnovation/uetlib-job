@@ -26,14 +26,14 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
 
     private static final Logger logger = LoggerFactory.getLogger(CronTriggerService.class);
 
-    @NonNull private final ZoneId defaultZoneId;
+     private final ZoneId defaultZoneId;
 
     private final TaskScheduler taskScheduler;
 
     private final Map<Integer, ScheduledFuture<?>> scheduledCronJobs;
 
     public CronTriggerService(
-            @Value("${ch.ubique.backend.job.cron.timezone:UTC}") @NonNull
+            @Value("${ch.ubique.backend.job.cron.timezone:UTC}")
                     final String defaultZoneId,
             final TaskScheduler taskScheduler) {
         this.defaultZoneId = ZoneId.of(defaultZoneId);
@@ -75,7 +75,7 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
         logger.info("Scheduled cron trigger {} with definition {}", triggerId, cronDefinition);
     }
 
-    public @NonNull ZoneId getDefaultZoneId() {
+    public  ZoneId getDefaultZoneId() {
         return defaultZoneId;
     }
 }

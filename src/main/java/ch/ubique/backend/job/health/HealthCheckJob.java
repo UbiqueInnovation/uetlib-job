@@ -33,7 +33,7 @@ public final class HealthCheckJob implements Job {
      *     <p>{@link JobRunState#WARNING} if an error was identified and a fix was available.
      *     <p>{@link JobRunState#DONE} if no issues were identified
      */
-    @NonNull
+
     @Override
     public JobRunState run(final JobRunContext jobRunContext) {
         logger.info("Running health check.");
@@ -41,13 +41,13 @@ public final class HealthCheckJob implements Job {
     }
 
     @Override
-    @NonNull
+
     public JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new FixedRateTrigger(Duration.ofMinutes(10)));
     }
 
     @Override
-    @NonNull
+
     public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),

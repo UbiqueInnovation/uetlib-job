@@ -8,4 +8,4 @@ import org.jspecify.annotations.NonNull;
 import java.util.function.Consumer;
 
 public record RegisteredFileTrigger(
-        @NonNull FileTrigger fileTrigger, @NonNull Consumer<JobRunArguments> consumer) {}
+         FileTrigger fileTrigger,  Consumer<JobRunArguments> consumer) {}

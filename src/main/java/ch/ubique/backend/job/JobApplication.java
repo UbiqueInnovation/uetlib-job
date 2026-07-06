@@ -14,6 +14,7 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -134,6 +135,7 @@ public final class JobApplication {
         return exitStatus;
     }
 
+    @Nullable
     private static JobRunArgumentsAdditionalData getAdditionalData(
             final JobApplicationJobToStartArgs args, final ApplicationContext applicationContext)
             throws ClassNotFoundException, JacksonException {

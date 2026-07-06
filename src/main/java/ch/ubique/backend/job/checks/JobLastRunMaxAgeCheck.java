@@ -67,7 +67,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
         return CheckStatus.CHECK_PASSED;
     }
 
-    @NonNull
+
     private Optional<Map<String, Object>> checkJobOverdue(
             final JobClassAndId job, final Map<Integer, JobRun> latestRunByJob) {
         final Optional<Duration> lastRunMaxAgeMaybe;
@@ -77,7 +77,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
             lastRunMaxAgeMaybe =
                     properties.get(JobPropertyDefinitions.LAST_RUN_MAX_AGE).valueMaybe();
             lastRunMaxAgeAllowNoRun =
-                    properties.get(JobPropertyDefinitions.LAST_RUN_MAX_AGE_ALLOW_NO_RUN).value();
+                    Boolean.TRUE.equals(properties.get(JobPropertyDefinitions.LAST_RUN_MAX_AGE_ALLOW_NO_RUN).value());
         } catch (final NoSuchElementException e) {
             return Optional.empty();
         }
