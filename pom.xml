@@ -20,6 +20,12 @@
         <uetlib-db.version>2.1.0</uetlib-db.version>
         <uetlib-storage-spring-boot.version>2.2.0</uetlib-storage-spring-boot.version>
         <uetlib-spring-boot.version>2.3.0</uetlib-spring-boot.version>
+
+        <!-- TODO remove (set to ERROR) when fixing nullability -->
+        <explicit-null-marking-level>WARN</explicit-null-marking-level>
+
+        <!-- westemeyer version config -->
+        <westemeyer-version-package-name>ch.ubique.backend.job.version</westemeyer-version-package-name>
     </properties>
 
     <dependencies>
@@ -190,6 +196,16 @@
     </dependencies>
 
     <repositories>
+        <repository>
+            <id>ubique-artifactory</id>
+            <name>backend</name>
+            <url>https://artifactory.ubique.ch/artifactory/backend</url>
+        </repository>
+        <repository>
+            <id>ubique-artifactory-virtual</id>
+            <name>ubique</name>
+            <url>https://artifactory.ubique.ch/artifactory/ubique</url>
+        </repository>
         <repository>
             <id>osgeo</id>
             <name>Open Source Geospatial Foundation Repository</name>
