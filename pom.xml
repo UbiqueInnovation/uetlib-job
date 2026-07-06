@@ -7,7 +7,7 @@
     <parent>
         <groupId>ch.ubique</groupId>
         <artifactId>uetlib-parent</artifactId>
-        <version>2026.05.0</version>
+        <version>2026.06.1</version>
     </parent>
 
     <artifactId>uetlib-job</artifactId>
@@ -15,11 +15,11 @@
     <packaging>jar</packaging>
 
     <properties>
-        <uetlib-core.version>2.3.3</uetlib-core.version>
+        <uetlib-core.version>2.4.0</uetlib-core.version>
         <uetlib-monitoring.version>2.3.0</uetlib-monitoring.version>
         <uetlib-db.version>2.1.0</uetlib-db.version>
-        <uetlib-storage-spring-boot.version>2.1.0</uetlib-storage-spring-boot.version>
-        <uetlib-spring-boot.version>2.2.2</uetlib-spring-boot.version>
+        <uetlib-storage-spring-boot.version>2.2.0</uetlib-storage-spring-boot.version>
+        <uetlib-spring-boot.version>2.3.0</uetlib-spring-boot.version>
     </properties>
 
     <dependencies>
