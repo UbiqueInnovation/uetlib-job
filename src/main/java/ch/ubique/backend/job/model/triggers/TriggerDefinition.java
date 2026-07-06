@@ -33,7 +33,7 @@ public sealed interface TriggerDefinition
                 RunOnStartupTrigger {
 
     @NotNull
-    @JsonProperty
+    @JsonProperty(required = true)
     default TriggerType type() {
         return TriggerType.getTypeForClass(getClass());
     }

@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.executor.runners;
 
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.RUNNER_GROUP;
+import static java.util.Objects.requireNonNull;
 
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.JobRun;
@@ -61,17 +62,18 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
-        return jobRunContext.properties().get(RUNNER_GROUP).value();
+        return requireNonNull(
+                jobRunContext.properties().get(RUNNER_GROUP).value());
     }
 
     @Override
-    public @NonNull JobRunnerKey key() {
+    public JobRunnerKey key() {
         return JobRunnerKey.CURRENT;
     }
 
     @Override
     public synchronized boolean submit(
-            final @NonNull Job job, final @NonNull JobRunContext jobRunContext) {
+            final Job job, final JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
         if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
@@ -106,7 +108,7 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final @NonNull JobRun jobRun) {
+    public void cancel(final JobRun jobRun) {
         final var runId = jobRun.id();
         final var future = futuresByJobRun.get(runId);
         if (future != null) {
@@ -119,8 +121,14 @@ public final class CurrentJobRunner implements JobRunner {
         final var runnerGroup = runnerGroupByJobRun.get(runId);
         if (runnerGroup != null) {
             getExecutorService(runnerGroup).purge(); // Removes canceled tasks from the queue
-            queuedJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
-            activeJobRuns.get(runnerGroup).removeIf(e -> e.jobRunId() == runId);
+            final var queued = queuedJobRuns.get(runnerGroup);
+            if (queued != null) {
+                queued.removeIf(e -> e.jobRunId() == runId);
+            }
+            final var active = activeJobRuns.get(runnerGroup);
+            if (active != null) {
+                active.removeIf(e -> e.jobRunId() == runId);
+            }
         }
         runnerGroupByJobRun.remove(runId);
         futuresByJobRun.remove(runId);
@@ -128,7 +136,7 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(final @NonNull JobRun jobRun) {
+    public JobRunState resolveJobRunState(final  JobRun jobRun) {
         final var future = futuresByJobRun.get(jobRun.id());
         if (future == null) {
             return null;

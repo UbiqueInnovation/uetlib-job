@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.util.*;
 
 @Service
-@NullMarked
 public class JobExecutorService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobExecutorService.class);
@@ -157,6 +156,8 @@ public class JobExecutorService {
     }
 
     private JobRunnerKey getRunnerKeyFromJobProperties(final JobProperties jobProperties) {
-        return jobProperties.get(JobPropertyDefinitions.RUNNER).value();
+        return java.util.Objects.requireNonNullElse(
+                jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
+                JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow());
     }
 }

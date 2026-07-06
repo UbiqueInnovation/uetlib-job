@@ -7,6 +7,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.lang3.exception.UncheckedException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
         }
     }
 
+    @Nullable
     private WatchKey waitForNextWatchKey() {
         try {
             return watchService.take();
@@ -74,6 +76,9 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
 
     private void checkForMatchingTriggerDefinitions(final WatchKey key) {
         final var watchedPath = watchedPaths.get(key);
+        if (watchedPath == null) {
+            return;
+        }
         logger.debug("Watched path: {}", watchedPath);
 
         for (final var event : key.pollEvents()) {

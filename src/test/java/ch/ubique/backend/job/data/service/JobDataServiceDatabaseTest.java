@@ -143,7 +143,7 @@ class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
         assertTrue(jobDataService.findLatestJobRunByState(1, JobRunState.SKIPPED).isEmpty());
     }
 
-    private @NonNull List<JobRunState> getJobRunStates(final JobRun jobRun) {
+    private  List<JobRunState> getJobRunStates(final JobRun jobRun) {
         return jobDataService.findJobRunStateTransitionsByJobRunId(jobRun.id()).stream()
                 .map(JobRunStateTransition::state)
                 .toList();

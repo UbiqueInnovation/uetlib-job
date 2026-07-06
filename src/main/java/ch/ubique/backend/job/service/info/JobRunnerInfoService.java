@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.runner.RunnerGroup;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.CurrentJobRunner;
+import ch.ubique.backend.job.service.executor.runners.CurrentRunnerItem;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,15 @@ public class JobRunnerInfoService {
         final var executor = entry.getValue();
         final var stats = collectExecutorStats(executor);
 
+        final var queued =
+                java.util.Objects.requireNonNullElse(
+                        currentJobRunner.getQueuedJobRuns().get(entry.getKey()),
+                        java.util.Collections.<CurrentRunnerItem>emptyList());
+        final var active =
+                java.util.Objects.requireNonNullElse(
+                        currentJobRunner.getActiveJobRuns().get(entry.getKey()),
+                        java.util.Collections.<CurrentRunnerItem>emptyList());
+
         return new JobSystemRunnerGroupInfo(
                 group.identifier(),
                 group.threadPoolSize(),
@@ -57,8 +67,8 @@ public class JobRunnerInfoService {
                 configuredJobsByGroup.getOrDefault(group.identifier(), List.of()),
                 stats.busyThreads(),
                 stats.queueLength(),
-                currentJobRunner.getQueuedJobRuns().get(entry.getKey()),
-                currentJobRunner.getActiveJobRuns().get(entry.getKey()),
+                queued,
+                active,
                 stats.completedTaskCount(),
                 stats.largestPoolSize(),
                 stats.currentPoolSize());
@@ -82,10 +92,12 @@ public class JobRunnerInfoService {
                 .collect(
                         Collectors.groupingBy(
                                 job ->
-                                        jobService
-                                                .getProperties(job)
-                                                .get(JobPropertyDefinitions.RUNNER_GROUP)
-                                                .value()
+                                        java.util.Objects.requireNonNullElse(
+                                                jobService
+                                                        .getProperties(job)
+                                                        .get(JobPropertyDefinitions.RUNNER_GROUP)
+                                                        .value(),
+                                                JobPropertyDefinitions.RUNNER_GROUP.defaultValue().orElseThrow())
                                                 .identifier(),
                                 Collectors.mapping(
                                         Job::getClass,

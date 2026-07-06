@@ -14,7 +14,8 @@ import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_job_trigger")
@@ -23,27 +24,27 @@ public class JobTriggerEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "pk_job_trigger_id", nullable = false)
-    private Integer id;
+    private @Nullable Integer id;
 
     @Column(name = "fk_job_id", nullable = false)
     private int jobId;
 
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.STRING)
-    private TriggerType type;
+    private @Nullable TriggerType type;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = TriggerDefinitionToStringConverter.class)
     @Column(name = "trigger_definition", nullable = false)
-    private TriggerDefinition triggerDefinition;
+    private @Nullable TriggerDefinition triggerDefinition;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private @Nullable Instant createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private @Nullable Instant updatedAt;
 
     public JobTriggerEntity() {}
 
@@ -56,11 +57,11 @@ public class JobTriggerEntity {
     }
 
     private JobTriggerEntity(
-            final Integer id, final int jobId, final TriggerDefinition triggerDefinition) {
+            final @Nullable Integer id, final int jobId, final TriggerDefinition triggerDefinition) {
         this.id = id;
         this.jobId = jobId;
-        this.triggerDefinition = Objects.requireNonNull(triggerDefinition);
-        this.type = Objects.requireNonNull(triggerDefinition.type());
+        this.triggerDefinition = requireNonNull(triggerDefinition);
+        this.type = requireNonNull(triggerDefinition.type());
     }
 
     @Nullable
@@ -68,7 +69,7 @@ public class JobTriggerEntity {
         if (triggerDefinition == null) {
             return null;
         }
-        return new Trigger(id, jobId, triggerDefinition);
+        return new Trigger(requireNonNull(id), jobId, triggerDefinition);
     }
 
     public JobTriggerEntity update(final Trigger trigger) {

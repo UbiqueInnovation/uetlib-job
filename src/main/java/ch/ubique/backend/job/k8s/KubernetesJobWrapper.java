@@ -95,7 +95,7 @@ public class KubernetesJobWrapper extends KubernetesJob {
     protected List<V1VolumeMount> mainContainerVolumeMounts(
             final KubernetesJobRunContext kubernetesJobRunContext) {
         final var currentPodContainer = getCurrentPodContainer(kubernetesJobRunContext);
-        return currentPodContainer.getVolumeMounts();
+        return java.util.Objects.requireNonNullElse(currentPodContainer.getVolumeMounts(), List.of());
     }
 
     @Override

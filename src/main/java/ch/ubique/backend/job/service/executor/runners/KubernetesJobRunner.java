@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.service.executor.runners;
 
+import static ch.ubique.backend.core.utils.OptionalUtils.ofNullable;
+
 import static java.util.Objects.requireNonNull;
 
 import ch.ubique.backend.core.utils.retry.LoggingRetryListener;
@@ -19,7 +21,6 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.models.*;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,6 @@ import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Optional;
 
 @Service
 @Profile("!job-run")
@@ -65,18 +65,18 @@ public class KubernetesJobRunner implements JobRunner {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jobWatcher = applicationContext.getBean(KubernetesJobWatcher.class);
 
-        final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
-        retryTemplate.setRetryListener(new LoggingRetryListener());
-        this.retryTemplate = retryTemplate;
+        final var retryTemplateWithListener = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+        retryTemplateWithListener.setRetryListener(new LoggingRetryListener());
+        this.retryTemplate = retryTemplateWithListener;
     }
 
     @Override
-    public @NonNull JobRunnerKey key() {
+    public JobRunnerKey key() {
         return JobRunnerKey.DEDICATED_K8S_JOB;
     }
 
     @Override
-    public boolean submit(final @NonNull Job job, final @NonNull JobRunContext jobRunContext) {
+    public boolean submit(final Job job, final JobRunContext jobRunContext) {
         final var kubernetesJob = KubernetesJob.forJob(job, applicationContext);
         try {
             final var kubernetesJobRunContext =
@@ -96,7 +96,7 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final @NonNull JobRun jobRun) {
+    public void cancel(final JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             logger.info("No k8s job found for given job run.");
@@ -120,7 +120,8 @@ public class KubernetesJobRunner implements JobRunner {
     }
 
     @Override
-    public JobRunState resolveJobRunState(final @NonNull JobRun jobRun) {
+    @Nullable
+    public JobRunState resolveJobRunState(final JobRun jobRun) {
         final var k8sJobNameMaybe = jobDataService.findK8sJobName(jobRun.id());
         if (k8sJobNameMaybe.isEmpty()) {
             return null;
@@ -148,10 +149,7 @@ public class KubernetesJobRunner implements JobRunner {
 
     @Nullable
     private static String jobName(final V1Job job) {
-        return Optional.ofNullable(job)
-                .map(V1Job::getMetadata)
-                .map(V1ObjectMeta::getName)
-                .orElse(null);
+        return ofNullable(job).map(V1Job::getMetadata).map(V1ObjectMeta::getName).orElse(null);
     }
 
     private String submitJobToKubernetes(final V1Job jobDefinition) throws ApiException {
@@ -168,7 +166,7 @@ public class KubernetesJobRunner implements JobRunner {
             throw new RuntimeException(e.getCause());
         }
 
-        final var k8sJobName = requireNonNull(createdJob.getMetadata()).getName();
+        final var k8sJobName = requireNonNull(requireNonNull(createdJob.getMetadata()).getName());
         logger.info("Successfully created kubernetes job {}", k8sJobName);
 
         return k8sJobName;

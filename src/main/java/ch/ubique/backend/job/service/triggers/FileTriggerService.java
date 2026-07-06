@@ -13,6 +13,7 @@ import ch.ubique.backend.job.service.triggers.files.RegisteredFileTrigger;
 
 import com.den_4.inotify_java.exceptions.InotifyException;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -97,6 +98,7 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
         trigger.consumer().accept(jobRunArguments);
     }
 
+    @Nullable
     private Matcher fileMatcher(final RegisteredFileTrigger trigger, final FileWatcherEvent event) {
         final var fileTrigger = trigger.fileTrigger();
         if (event.type() != fileTrigger.changeEvent()

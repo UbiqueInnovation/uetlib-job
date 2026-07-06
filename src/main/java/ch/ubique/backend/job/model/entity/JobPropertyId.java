@@ -2,14 +2,16 @@ package ch.ubique.backend.job.model.entity;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 
 public class JobPropertyId implements Serializable {
 
-    private Integer jobId;
-    private String key;
+    private @Nullable Integer jobId;
+    private @Nullable String key;
 
+    @Nullable
     public Integer getJobId() {
         return jobId;
     }
@@ -18,6 +20,7 @@ public class JobPropertyId implements Serializable {
         this.jobId = jobId;
     }
 
+    @Nullable
     public String getKey() {
         return key;
     }
@@ -27,7 +30,7 @@ public class JobPropertyId implements Serializable {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(final @Nullable Object o) {
         if (this == o) {
             return true;
         }

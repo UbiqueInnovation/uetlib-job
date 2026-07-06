@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.Reader;
 
-@NullMarked
 public class LineWithEndingReader extends PushbackReader {
 
     private final StringBuilder lineBuilder;

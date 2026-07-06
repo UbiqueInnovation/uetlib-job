@@ -27,7 +27,7 @@ public class ProfileEnabledTestJob implements Job {
     }
 
     @Override
-    public @NonNull JobPropertiesConfig propertiesConfig() {
+    public  JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.initial(
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofDays(10000)));
     }

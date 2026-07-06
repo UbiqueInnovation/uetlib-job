@@ -1,8 +1,5 @@
 package ch.ubique.backend.job.model.properties;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jspecify.annotations.Nullable;
 
@@ -11,16 +8,19 @@ import java.time.Duration;
 final class DurationPropertyDefinition extends AbstractJobPropertyDefinition<Duration> {
 
     public DurationPropertyDefinition(
-            @NotBlank final String key,
-            @NotBlank final String description,
-            @NotNull final JobPropertyDefinitionGroup group,
+            final String key,
+            final String description,
+            final JobPropertyDefinitionGroup group,
             final boolean nullable,
             @Nullable final Duration defaultValue) {
         super(key, description, group, nullable, defaultValue, null);
     }
 
     @Override
-    public Duration decodeFromString(final String value) {
+    public Duration decodeFromString(final @Nullable String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("value cannot be null");
+        }
         if (NumberUtils.isDigits(value)) {
             return Duration.ofMillis(Long.parseLong(value));
         }

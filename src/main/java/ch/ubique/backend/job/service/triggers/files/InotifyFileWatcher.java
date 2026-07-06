@@ -56,6 +56,10 @@ public final class InotifyFileWatcher implements FileWatcher, InotifyEventListen
         logger.debug("Got {}", event);
         final var watchDescriptor = event.getSource();
         final var watchedPath = pathsByWatchDescriptor.get(watchDescriptor);
+        if (watchedPath == null) {
+            logger.debug("No watched path for descriptor {}", watchDescriptor);
+            return;
+        }
         final var filePath = event.getName();
         final var eventType = FileChangeEvent.fromInotifyEvent(event);
         if (eventType == FileChangeEvent.UNKNOWN) {

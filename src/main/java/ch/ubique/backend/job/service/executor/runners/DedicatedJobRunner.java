@@ -24,8 +24,8 @@ public final class DedicatedJobRunner implements JobRunner {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private JobRun activeJobRun;
-    private Future<?> future;
+    private @Nullable JobRun activeJobRun;
+    private @Nullable Future<?> future;
     private final ExecutorService executorService;
 
     private final JobService jobService;
@@ -38,13 +38,13 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public @NonNull JobRunnerKey key() {
+    public JobRunnerKey key() {
         return JobRunnerKey.DEDICATED_K8S_JOB;
     }
 
     @Override
     public synchronized boolean submit(
-            final @NonNull Job job, final @NonNull JobRunContext jobRunContext) {
+            final Job job, final JobRunContext jobRunContext) {
         if (future != null) {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;
@@ -55,7 +55,7 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public void cancel(final @NonNull JobRun jobRun) {
+    public void cancel(final JobRun jobRun) {
         if (future != null) {
             future.cancel(true);
             activeJobRun = null;
@@ -66,11 +66,12 @@ public final class DedicatedJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(final @NonNull JobRun jobRun) {
+    public JobRunState resolveJobRunState(final JobRun jobRun) {
         // resolveJobRunState should not be called when the job-run profile is active.
         throw new IllegalStateException("Do not call resolveJobRunState for dedicated job runner.");
     }
 
+    @Nullable
     public JobRun activeJobRun() {
         return activeJobRun;
     }

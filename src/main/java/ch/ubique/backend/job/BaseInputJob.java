@@ -12,6 +12,7 @@ import ch.ubique.backend.storage.output.ByteOutput;
 
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.info.BuildProperties;
@@ -26,6 +27,9 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 public abstract class BaseInputJob<T> implements Job {
 
@@ -47,12 +51,12 @@ public abstract class BaseInputJob<T> implements Job {
     private final JobRunInputManager jobRunInputManager;
     private final RetryTemplate retryTemplate;
 
-    private JobRunContext jobRunContext;
+    private @Nullable JobRunContext jobRunContext;
 
-    protected BaseInputJob(@NonNull final ApplicationContext applicationContext) {
+    protected BaseInputJob(final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
-        version = applicationContext.getBean(BuildProperties.class).getVersion();
+        version = requireNonNullElse(applicationContext.getBean(BuildProperties.class).getVersion(), "unknown");
 
         final var retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
         retryTemplate.setRetryListener(new LoggingRetryListener());
@@ -70,7 +74,7 @@ public abstract class BaseInputJob<T> implements Job {
      *
      * @param latestSuccessfulRun non-null info about the last successful run.
      */
-    protected boolean hasNewInputs(@NonNull final JobRunWithInputs latestSuccessfulRun) {
+    protected boolean hasNewInputs( final JobRunWithInputs latestSuccessfulRun) {
         return true;
     }
 
@@ -211,7 +215,7 @@ public abstract class BaseInputJob<T> implements Job {
         for (final var file : inputFiles) {
             logger.info("Saving job run input file {}.", file.getFileName());
             jobRunInputManager.saveToStorage(
-                    JobRunInputDeclaration.from(jobRun, file), new ByteOutput(file.getBytes()));
+                    JobRunInputDeclaration.from(jobRun, file), new ByteOutput(requireNonNull(file.getBytes())));
         }
     }
 
@@ -263,7 +267,7 @@ public abstract class BaseInputJob<T> implements Job {
                         input -> {
                             final var other = latestInputsByName.get(input.getFileName());
 
-                            if (!input.getFileHash().equals(other.getHash())) {
+                            if (other == null || !requireNonNull(input.getFileHash()).equals(other.getHash())) {
                                 logger.info(
                                         "Input {} changed since last successful run",
                                         input.getFileName());

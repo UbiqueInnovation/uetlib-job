@@ -22,7 +22,7 @@ public record JobRunContext(
         @JsonProperty(required = true) @NotNull @Valid JobProperties properties) {
 
     @Override
-    public @NonNull String toString() {
+    public  String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
                 .append("runId", jobRun.id())
                 .append("arguments", arguments)

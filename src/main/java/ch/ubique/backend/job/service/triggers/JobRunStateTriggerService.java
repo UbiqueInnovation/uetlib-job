@@ -19,8 +19,8 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -36,7 +36,10 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
     private final Map<Integer, Consumer<JobRunArguments>> triggerCallbacks;
     private final JobDataService jobDataService;
     private final JobService jobService;
-    private Collection<Integer> lastCheckedJobRunStateIds = new HashSet<>();
+
+    @SuppressWarnings("java:S1450")
+    private Collection<Integer> lastCheckedJobRunStateIds = Set.of();
+
     private Instant lastCheck;
 
     public JobRunStateTriggerService(
@@ -91,10 +94,12 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                 .forEach(
                         entry -> {
                             final var consumer = triggerCallbacks.get(entry.getKey());
-                            logger.debug("Calling callback for {}.", entry.getValue());
-                            consumer.accept(
-                                    new JobRunArguments(
-                                            false, TriggerType.JOB_RUN_STATE, null, null, null));
+                            if (consumer != null) {
+                                logger.debug("Calling callback for {}.", entry.getValue());
+                                consumer.accept(
+                                        new JobRunArguments(
+                                                false, TriggerType.JOB_RUN_STATE, null, null, null));
+                            }
                         });
     }
 

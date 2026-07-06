@@ -157,7 +157,7 @@ public class KubernetesJobWatcher {
                                 .fieldSelector("metadata.name=" + podName)
                                 .watch(true)
                                 .buildCall(null),
-                        new TypeToken<@NonNull Response<V1Pod>>() {}.getType())) {
+                        new TypeToken< Response<V1Pod>>() {}.getType())) {
 
             for (final var event : watch) {
                 final var pod = event.object;
@@ -188,7 +188,7 @@ public class KubernetesJobWatcher {
         final var client = kubernetesService.apiClient();
         final var listJob = jobListRequest(jobName).watch(true).buildCall(null);
         return Watch.createWatch(
-                client, listJob, new TypeToken<@NonNull Response<V1Job>>() {}.getType());
+                client, listJob, new TypeToken< Response<V1Job>>() {}.getType());
     }
 
     private APIlistNamespacedJobRequest jobListRequest(final String jobName) {
