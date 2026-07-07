@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 4.1.1
+
+### Improvements
+
+- Latest uetlib versions
+
 ## 4.1.0
 
 ## Improvements
