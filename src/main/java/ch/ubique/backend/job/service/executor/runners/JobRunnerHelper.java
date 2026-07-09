@@ -41,7 +41,11 @@ public final class JobRunnerHelper {
     static void runJob(
             final Job job, final JobRunContext jobRunContext, final JobService jobService) {
         try {
-            logger.info("Running {} with {}", job.getClass().getCanonicalName(), jobRunContext);
+            logger.info(
+                    "Running {} on {} with {}",
+                    job.getClass().getCanonicalName(),
+                    Thread.currentThread().getName(),
+                    jobRunContext);
             final var state = job.run(jobRunContext);
             logger.info("Job {} finished with state {}", job.getClass().getCanonicalName(), state);
             updateJobRunState(jobService, jobRunContext, state);
