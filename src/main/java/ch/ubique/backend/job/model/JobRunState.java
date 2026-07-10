@@ -14,11 +14,13 @@ public enum JobRunState {
     CANCELLED,
     SKIPPED,
     SCHEDULED,
-    ACKNOWLEDGED;
+    ACKNOWLEDGED,
+    SCHEDULING_FAILED,
+    ;
 
     public static final Collection<JobRunState> RUNNING_STATES = Set.of(BUSY, SCHEDULED);
     public static final Collection<JobRunState> PROBLEM_STATES =
-            Set.of(UNFINISHED, CANCELLED, WARNING, ERROR);
+            Set.of(UNFINISHED, CANCELLED, SCHEDULING_FAILED, WARNING, ERROR);
     public static final Collection<JobRunState> SUCCESS_STATES =
             Set.of(SKIPPED, ACKNOWLEDGED, DONE);
 

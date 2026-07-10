@@ -5,6 +5,8 @@ import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.*;
+import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
+import ch.ubique.backend.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
@@ -135,14 +137,28 @@ public abstract class BaseStateJob<T> implements Job {
         final var processingRunnerKey = requireNonNullElse(runnerForProcessing(), currentRunnerKey);
         if (currentRunnerKey != processingRunnerKey) {
             logger.info("Requested to run processing on runner {}.", processingRunnerKey);
-            applicationContext
-                    .getBean(JobExecutorService.class)
-                    .submit(
-                            getClass(),
-                            jobRunContext.arguments(),
-                            currentJobRun.id(),
-                            processingRunnerKey);
-            return JobRunState.SCHEDULED;
+            final var submission =
+                    applicationContext
+                            .getBean(JobExecutorService.class)
+                            .submit(
+                                    getClass(),
+                                    jobRunContext.arguments(),
+                                    currentJobRun.id(),
+                                    processingRunnerKey);
+            return switch (submission) {
+                case final SuccessfulSubmissionResult ignored -> JobRunState.SCHEDULED;
+                case UnsuccessfulSubmissionResult(final var status) ->
+                        switch (status) {
+                            case SUBMITTED -> JobRunState.SCHEDULED;
+                            case FAILED, DISALLOWED -> {
+                                logger.info(
+                                        "Could not schedule job {}: {}",
+                                        getClass().getCanonicalName(),
+                                        status);
+                                yield JobRunState.SCHEDULING_FAILED;
+                            }
+                        };
+            };
         }
 
         // Start processing on current runner
