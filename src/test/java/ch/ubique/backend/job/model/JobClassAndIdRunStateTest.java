@@ -21,6 +21,7 @@ class JobClassAndIdRunStateTest {
                         JobRunState.WARNING,
                         JobRunState.ERROR,
                         JobRunState.UNFINISHED,
+                        JobRunState.SCHEDULING_FAILED,
                         JobRunState.CANCELLED,
                         JobRunState.ACKNOWLEDGED,
                         JobRunState.SKIPPED),

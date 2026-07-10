@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 4.2.0
+
+- When submission fails for a `BaseStateJob`, the new state is now set to `SCHEDULING_FAILED` instead of `SCHEDULED` to
+  avoid starving the other Jobs in the runner group. `SCHEDULING_FAILED` is a newly introduces `JobRunState`.
+
 ## 4.1.2
 
 ### Improvements
