@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 4.1.2
+
+### Improvements
+
+- `JobSubmissionService` now only uses minimal bean dependencies.
+
 ## 4.1.1
 
 ### Improvements
@@ -10,8 +16,9 @@
 
 ## Improvements
 
-- `PgListenTriggerService` now requires a Bean `PgListenDataSourceProvider`, e.g., `() -> dataSourceProperties`. A
-  default that exposes the only available `DataSourceProperties` bean is provided if the user does not specify one.
+- `PgListenTriggerService` now requires a Bean `PgListenDataSourceProvider`, e.g.,
+  `() -> dataSourceProperties`. A default that exposes the only available `DataSourceProperties`
+  bean is provided if the user does not specify one.
 
 ## 4.0.6
 
@@ -149,9 +156,8 @@ Retreat 2025 Edition
 
 ### New Features
 
-- Added an option to kill jobs automatically after they exceeded their
-  run-time or schedule-time limit.
-  The behavior can be controlled using the job properties.
+- Added an option to kill jobs automatically after they exceeded their run-time or schedule-time
+  limit. The behavior can be controlled using the job properties.
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
 - Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
@@ -165,8 +171,7 @@ Retreat 2025 Edition
 
 ### Database migrations
 
-- You will need to add the database migration `update_uetlib_2_0_0.sql` to your
-  project.
+- You will need to add the database migration `update_uetlib_2_0_0.sql` to your project.
 
 ### Breaking Changes
 
@@ -215,8 +220,8 @@ Retreat 2025 Edition
 
 ### Fixes
 
-- Added `-job` suffix to dedicated k8s-job `app`-label to avoid selectors for the main
-  app to also affect the job pods.
+- Added `-job` suffix to dedicated k8s-job `app`-label to avoid selectors for the main app to also
+  affect the job pods.
 
 ## 1.3.4
 
@@ -248,9 +253,8 @@ Retreat 2025 Edition
 
 - Status logs are now served from base path `/v1/status` to be protected under the security config.
     - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires
-      implementing
-      projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security
-      config, e.g.:
+      implementing projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from
+      their security config, e.g.:
       ```diff
       - http.securityMatcher("/v1/status/**")
       -       .authorizeHttpRequests(
@@ -272,9 +276,8 @@ Retreat 2025 Edition
       - }
       ```
     - Additionally, you have to add a separate filter chain for the actuator endpoints. The
-      following three filter
-      chains suffice for the minimal job module security config with no additional exposed
-      endpoints:
+      following three filter chains suffice for the minimal job module security config with no
+      additional exposed endpoints:
       ```
       /** Probably keep this one as-is to have the swagger documentation adequately protected */
       @Bean
@@ -339,8 +342,8 @@ Retreat 2025 Edition
 
 ### Improvements
 
-- Jobs that produced log outputs within the last minute are never set to unfinished.
-  This should improve the ability to run multiple replicas.
+- Jobs that produced log outputs within the last minute are never set to unfinished. This should
+  improve the ability to run multiple replicas.
 
 ## 1.1.6
 
