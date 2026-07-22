@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 4.2.1
+
+- `@Valid` on containers is deprecated
+
 ## 4.2.0
 
 - When submission fails for a `BaseStateJob`, the new state is now set to `SCHEDULING_FAILED` instead of `SCHEDULED` to
