@@ -12,8 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.Duration;
 import java.util.List;
@@ -24,19 +23,17 @@ class PgListenTriggerCheckPostgresTest {
 
     private static final String CHANNEL = "test_channel";
 
-    private static PostgreSQLContainer<?> postgres;
+    private static final PostgreSQLContainer postgres =
+            new PostgreSQLContainer("postgres:17");
 
     @BeforeAll
     static void startContainer() {
-        postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:17"));
         postgres.start();
     }
 
     @AfterAll
     static void stopContainer() {
-        if (postgres != null && postgres.isRunning()) {
-            postgres.stop();
-        }
+        postgres.stop();
     }
 
     @Test
@@ -82,6 +79,7 @@ class PgListenTriggerCheckPostgresTest {
         return properties;
     }
 
+    @SuppressWarnings({"BusyWait", "java:S2925"})
     private static void waitUntil(final Duration timeout, final BooleanSupplier condition)
             throws InterruptedException {
         final var deadline = System.nanoTime() + timeout.toNanos();

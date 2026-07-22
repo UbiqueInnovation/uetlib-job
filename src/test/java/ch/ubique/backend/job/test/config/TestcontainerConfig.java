@@ -9,4 +9,4 @@ import org.springframework.context.annotation.Import;
     MysqlTestcontainerConfig.class,
     MariaDBTestcontainerConfig.class
 })
-public class TestcontainerConfig {}
+public class TestcontainerConfig extends BaseDatabaseTestcontainerConfig {}
