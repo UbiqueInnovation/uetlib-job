@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## unreleased
+## 4.3.0
 
 - null-marked
+- update uetlib and github actions version
 
 ## 4.2.1
 
