@@ -117,14 +117,19 @@ public class KubernetesService {
         final var maxRetries = ofNullable(job.getSpec()).map(V1JobSpec::getBackoffLimit).orElse(0);
 
         if (succeededCount > 0) {
+            logger.debug("Job {} has succeeded. Set to DONE", jobName);
             return JobRunState.DONE;
         }
         if (failedCount > maxRetries) {
+            logger.info("Job {} failed after {} retries. Set to ERROR", jobName, maxRetries);
             return JobRunState.ERROR;
         }
         if (status.getStartTime() == null) {
+            logger.debug("Job {} has no start time. Set to SCHEDULED", jobName);
             return JobRunState.SCHEDULED;
         }
+
+        logger.debug("Job {} is still running. Set to BUSY", jobName);
         return JobRunState.BUSY;
     }
 
