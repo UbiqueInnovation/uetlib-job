@@ -13,7 +13,6 @@ import ch.ubique.backend.job.service.executor.JobExecutorService;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 import ch.ubique.backend.storage.output.JsonOutput;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +38,7 @@ public abstract class BaseStateJob<T> implements Job {
     private final JsonMapper jsonMapper;
     private final ApplicationContext applicationContext;
 
-    protected BaseStateJob( final ApplicationContext applicationContext) {
+    protected BaseStateJob(final ApplicationContext applicationContext) {
         jobDataService = applicationContext.getBean(JobDataService.class);
         jsonMapper = applicationContext.getBean(JsonMapper.class);
         jobRunInputManager = applicationContext.getBean(JobRunInputManager.class);
@@ -59,7 +58,6 @@ public abstract class BaseStateJob<T> implements Job {
      * @return the state want to pass to the {@link BaseStateJob#processState} method.
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-
     @SuppressWarnings("java:S112")
     protected abstract T getLatestState(JobRunContext jobRunContext) throws Exception;
 
@@ -88,13 +86,11 @@ public abstract class BaseStateJob<T> implements Job {
      * @param latestState the latestState returned by {@link BaseStateJob#getLatestState}
      * @throws Exception if anything goes wrong, the job will stop and report an error.
      */
-
     @SuppressWarnings("java:S112")
-    protected abstract JobRunState processState(T latestState,  JobRunContext jobRunContext)
+    protected abstract JobRunState processState(T latestState, JobRunContext jobRunContext)
             throws Exception;
 
     /** You need to overwrite this method to correctly deserialize the saved state. */
-
     protected abstract TypeReference<T> stateTypeReference();
 
     /**
@@ -102,13 +98,12 @@ public abstract class BaseStateJob<T> implements Job {
      * runner is allowed to differ from the runner specified in the job properties.
      */
     @Nullable
-    protected JobRunnerKey runnerForProcessing() {
+    protected JobRunnerKey runnerForProcessing(@SuppressWarnings("unused") final T latestState) {
         return null;
     }
 
     @Override
-
-    public final JobRunState run( final JobRunContext jobRunContext) throws Exception {
+    public final JobRunState run(final JobRunContext jobRunContext) throws Exception {
         final var currentJobRun = jobRunContext.jobRun();
 
         // Check if state for current run has already been computed and saved.
@@ -134,7 +129,8 @@ public abstract class BaseStateJob<T> implements Job {
 
         // Run processing on a different runner, if requested
         final var currentRunnerKey = currentJobRun.runnerKey();
-        final var processingRunnerKey = requireNonNullElse(runnerForProcessing(), currentRunnerKey);
+        final var processingRunnerKey =
+                requireNonNullElse(runnerForProcessing(latestState), currentRunnerKey);
         if (currentRunnerKey != processingRunnerKey) {
             logger.info("Requested to run processing on runner {}.", processingRunnerKey);
             final var submission =
@@ -218,7 +214,7 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Nullable
-    private T loadState( final JobRun jobRun) {
+    private T loadState(final JobRun jobRun) {
         logger.debug("Loading state of run {}.", jobRun.id());
         try (final var inputStream = getStateInputStream(jobRun)) {
             final var previousState = jsonMapper.readValue(inputStream, stateTypeReference());
@@ -238,7 +234,7 @@ public abstract class BaseStateJob<T> implements Job {
     }
 
     @Nullable
-    private T loadStateIfPresent( final JobRun jobRun) {
+    private T loadStateIfPresent(final JobRun jobRun) {
         if (!hasStateForRun(jobRun)) {
             return null;
         }
