@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 5.0.0
+
+### Breaking Changes
+
+- `BaseStateJob#runnerForProcessing` takes `T latestState` as parameter instead of none
+
 ## 4.3.0
 
 - null-marked
