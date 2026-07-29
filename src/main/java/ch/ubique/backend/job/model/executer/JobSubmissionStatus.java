@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.model.executer;
 
-
 public enum JobSubmissionStatus {
     /** Successfully submitted job */
     SUBMITTED(true),

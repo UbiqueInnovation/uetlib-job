@@ -3,8 +3,8 @@ package ch.ubique.backend.job.model.entity;
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunInput;
-
 import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

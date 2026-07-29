@@ -1,8 +1,5 @@
 package ch.ubique.backend.job.model.properties;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.Set;

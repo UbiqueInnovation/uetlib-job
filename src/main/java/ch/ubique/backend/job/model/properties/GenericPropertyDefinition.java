@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.model.properties;
 
-
 import org.jspecify.annotations.Nullable;
 
 import tools.jackson.core.type.TypeReference;
@@ -9,7 +8,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.Objects;
 import java.util.Set;
 
-final class GenericPropertyDefinition<T extends @Nullable Object> extends AbstractJobPropertyDefinition<T> {
+final class GenericPropertyDefinition<T extends @Nullable Object>
+        extends AbstractJobPropertyDefinition<T> {
 
     private final JsonMapper jsonMapper;
 

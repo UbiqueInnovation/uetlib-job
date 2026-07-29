@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobRunStateTransition;
 
@@ -9,8 +11,6 @@ import jakarta.validation.constraints.*;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-
-import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_job_run_state_transition")

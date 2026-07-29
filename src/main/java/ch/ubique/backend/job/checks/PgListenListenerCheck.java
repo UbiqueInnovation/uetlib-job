@@ -15,8 +15,8 @@ import java.util.Map;
 /**
  * Verifies that every registered PostgreSQL {@code LISTEN} channel is still being actively
  * monitored. A listener can silently stop working (e.g. a half-open connection that is never
- * detected, or a dead listener thread) while the application keeps running, which causes
- * {@code PG_LISTEN}-triggered jobs to stop firing without any restart or error.
+ * detected, or a dead listener thread) while the application keeps running, which causes {@code
+ * PG_LISTEN}-triggered jobs to stop firing without any restart or error.
  */
 @Service
 @Profile("!job-run")

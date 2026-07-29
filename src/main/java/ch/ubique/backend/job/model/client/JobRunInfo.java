@@ -8,8 +8,8 @@ import ch.ubique.backend.job.model.TriggerContext;
 import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;

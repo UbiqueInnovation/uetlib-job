@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.JobRunDatabaseSubmission;
 import ch.ubique.backend.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.backend.job.model.converters.JobRunDatabaseSubmissionArgumentsToStringConverter;
@@ -13,8 +15,6 @@ import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-
-import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_job_run_database_submission")
@@ -52,8 +52,7 @@ public class JobRunDatabaseSubmissionEntity {
             final JobRunDatabaseSubmissionArguments jobRunDatabaseSubmissionArguments) {
         this.jobId = jobId;
         this.createdAt = createdAt;
-        this.jobRunDatabaseSubmissionArguments =
-                requireNonNull(jobRunDatabaseSubmissionArguments);
+        this.jobRunDatabaseSubmissionArguments = requireNonNull(jobRunDatabaseSubmissionArguments);
     }
 
     @Nullable

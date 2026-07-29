@@ -3,10 +3,10 @@ package ch.ubique.backend.job.service.logs;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.logging.AccumulatedLogLines;
 
+import org.springframework.stereotype.Service;
+
 import java.time.Instant;
 import java.util.Optional;
-
-import org.springframework.stereotype.Service;
 
 @Service
 public class LogService {

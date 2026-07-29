@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.exception;
 
-import org.jspecify.annotations.NonNull;
-
 import java.text.MessageFormat;
 import java.util.function.Supplier;
 
@@ -18,12 +16,12 @@ public class JobSubmissionException extends Exception {
     }
 
     public static JobSubmissionException withMessage(
-             final String pattern, final Object... arguments) {
+            final String pattern, final Object... arguments) {
         return new JobSubmissionException(MessageFormat.format(pattern, arguments));
     }
 
     public static Supplier<JobSubmissionException> supplierWithMessage(
-             final String pattern, final Object... arguments) {
+            final String pattern, final Object... arguments) {
         return () -> withMessage(pattern, arguments);
     }
 }

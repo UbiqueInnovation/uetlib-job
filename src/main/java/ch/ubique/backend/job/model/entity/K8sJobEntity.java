@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
@@ -8,8 +10,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-
-import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_k8s_jobs")

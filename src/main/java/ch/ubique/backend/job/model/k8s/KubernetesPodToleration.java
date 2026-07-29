@@ -68,7 +68,8 @@ public record KubernetesPodToleration(
             return this;
         }
 
-        public KubernetesPodTolerationBuilder withTolerationSeconds(final @Nullable Long tolerationSeconds) {
+        public KubernetesPodTolerationBuilder withTolerationSeconds(
+                final @Nullable Long tolerationSeconds) {
             this.tolerationSeconds = tolerationSeconds;
             return this;
         }

@@ -148,7 +148,8 @@ public final class SerializableMatchResult implements MatchResult {
         if ((groupIndices[group * 2] == -1) || (groupIndices[group * 2 + 1] == -1)) {
             return null;
         }
-        return java.util.Objects.requireNonNull(text).substring(groupIndices[group * 2] - first, groupIndices[group * 2 + 1] - first);
+        return java.util.Objects.requireNonNull(text)
+                .substring(groupIndices[group * 2] - first, groupIndices[group * 2 + 1] - first);
     }
 
     @Override

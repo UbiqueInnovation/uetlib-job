@@ -93,11 +93,15 @@ public class JobRunnerInfoService {
                         Collectors.groupingBy(
                                 job ->
                                         java.util.Objects.requireNonNullElse(
-                                                jobService
-                                                        .getProperties(job)
-                                                        .get(JobPropertyDefinitions.RUNNER_GROUP)
-                                                        .value(),
-                                                JobPropertyDefinitions.RUNNER_GROUP.defaultValue().orElseThrow())
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(
+                                                                        JobPropertyDefinitions
+                                                                                .RUNNER_GROUP)
+                                                                .value(),
+                                                        JobPropertyDefinitions.RUNNER_GROUP
+                                                                .defaultValue()
+                                                                .orElseThrow())
                                                 .identifier(),
                                 Collectors.mapping(
                                         Job::getClass,

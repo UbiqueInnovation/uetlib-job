@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.triggers.files;
 
 import ch.ubique.backend.job.model.triggers.FileChangeEvent;
+
 import java.nio.file.Path;
 
 public record FileWatcherEvent(Path watchedPath, Path filePath, FileChangeEvent type) {

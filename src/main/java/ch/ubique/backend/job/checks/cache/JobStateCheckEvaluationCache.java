@@ -3,6 +3,8 @@ package ch.ubique.backend.job.checks.cache;
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.STATE_CHECK_INTERVAL;
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.STATE_CHECK_STRATEGY;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRun;
@@ -10,17 +12,14 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.StateCheckStrategy;
 import ch.ubique.backend.job.service.JobService;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
-
-import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 @Service
 @Profile("!job-run")
@@ -79,7 +78,10 @@ public class JobStateCheckEvaluationCache {
         return jobDataService
                 .findLatestFinishedJobRuns(jobs.stream().map(JobClassAndId::id).toList())
                 .stream()
-                .collect(Collectors.toMap(run -> requireNonNull(jobById.get(run.jobId())), JobRun::latestState));
+                .collect(
+                        Collectors.toMap(
+                                run -> requireNonNull(jobById.get(run.jobId())),
+                                JobRun::latestState));
     }
 
     private Map<JobClassAndId, Set<JobRunState>> findProblemRunStates(
@@ -113,7 +115,8 @@ public class JobStateCheckEvaluationCache {
         return jobDataService.findJobRunStatesSince(checkIntervalStart).entrySet().stream()
                 .collect(
                         Collectors.toMap(
-                                entry -> requireNonNull(jobById.get(entry.getKey())), Map.Entry::getValue));
+                                entry -> requireNonNull(jobById.get(entry.getKey())),
+                                Map.Entry::getValue));
     }
 
     private List<JobClassAndId> jobsWithCheckLatestSuccessfulStrategy(

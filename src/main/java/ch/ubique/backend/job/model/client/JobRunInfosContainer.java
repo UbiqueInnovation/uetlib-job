@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.model.client;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;

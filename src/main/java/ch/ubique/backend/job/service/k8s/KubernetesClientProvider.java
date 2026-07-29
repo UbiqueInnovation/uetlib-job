@@ -3,7 +3,6 @@ package ch.ubique.backend.job.service.k8s;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.Config;
 
-import org.jspecify.annotations.NullMarked;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Service;
 

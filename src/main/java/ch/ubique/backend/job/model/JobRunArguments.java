@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -45,7 +44,7 @@ public record JobRunArguments(
     }
 
     @Override
-    public  String toString() {
+    public String toString() {
         final var builder =
                 new ToStringBuilder(this, ToStringStyle.NO_CLASS_NAME_STYLE)
                         .append("forceRun", forceRun);

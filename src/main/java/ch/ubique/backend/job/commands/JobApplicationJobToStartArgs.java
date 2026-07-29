@@ -1,12 +1,11 @@
 package ch.ubique.backend.job.commands;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 
 public record JobApplicationJobToStartArgs(
-         String jobClassName,
+        String jobClassName,
         @Nullable Integer jobRunId,
         boolean forceRun,
         @Nullable String additionalDataString,

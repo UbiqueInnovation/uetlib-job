@@ -17,8 +17,7 @@ class PgChannelListenerPostgresTest {
 
     private static final String CHANNEL = "test_channel";
 
-    private static final PostgreSQLContainer postgres =
-            new PostgreSQLContainer("postgres:17");
+    private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
 
     @BeforeAll
     static void startContainer() {

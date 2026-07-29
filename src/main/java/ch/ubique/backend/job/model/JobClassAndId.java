@@ -9,11 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotBlank;
 
-import org.jspecify.annotations.NullMarked;
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-
 public record JobClassAndId(
         @JsonProperty(required = true) int id,
         @JsonProperty(required = true) @NotBlank String canonicalClassName) {

@@ -9,7 +9,6 @@ import ch.ubique.backend.job.service.JobService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +42,7 @@ public final class DedicatedJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(
-            final Job job, final JobRunContext jobRunContext) {
+    public synchronized boolean submit(final Job job, final JobRunContext jobRunContext) {
         if (future != null) {
             logger.warn("Only one job is allowed to be submitted to the dedicated job runner.");
             return false;

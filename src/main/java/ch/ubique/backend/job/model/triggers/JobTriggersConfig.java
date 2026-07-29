@@ -1,7 +1,6 @@
 package ch.ubique.backend.job.model.triggers;
 
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -13,8 +12,7 @@ public final class JobTriggersConfig {
     private final Collection<TriggerDefinition> triggerDefinitions;
 
     private JobTriggersConfig(
-            final boolean isFixed,
-             final Collection<TriggerDefinition> triggerDefinitions) {
+            final boolean isFixed, final Collection<TriggerDefinition> triggerDefinitions) {
         this.isFixed = isFixed;
         this.triggerDefinitions = Collections.unmodifiableCollection(triggerDefinitions);
     }
