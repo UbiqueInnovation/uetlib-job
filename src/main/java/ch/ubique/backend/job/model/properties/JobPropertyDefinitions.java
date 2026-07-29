@@ -9,6 +9,7 @@ import ch.ubique.backend.job.model.runner.RunnerGroup;
 import com.pivovarit.function.ThrowingFunction;
 
 import org.jspecify.annotations.Nullable;
+
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -152,16 +153,17 @@ public final class JobPropertyDefinitions {
                     null,
                     JsonMapper.shared(),
                     new TypeReference<>() {});
-    public static final JobPropertyDefinition<@Nullable KubernetesPodTolerations> K8S_POD_TOLERATIONS =
-            new GenericPropertyDefinition<>(
-                    "K8S_POD_TOLERATIONS",
-                    "K8S_POD_TOLERATIONS to be set for for the k8s job pod.",
-                    JobPropertyDefinitionGroup.RUNNER,
-                    true,
-                    null,
-                    null,
-                    JsonMapper.shared(),
-                    new TypeReference<>() {});
+    public static final JobPropertyDefinition<@Nullable KubernetesPodTolerations>
+            K8S_POD_TOLERATIONS =
+                    new GenericPropertyDefinition<>(
+                            "K8S_POD_TOLERATIONS",
+                            "K8S_POD_TOLERATIONS to be set for for the k8s job pod.",
+                            JobPropertyDefinitionGroup.RUNNER,
+                            true,
+                            null,
+                            null,
+                            JsonMapper.shared(),
+                            new TypeReference<>() {});
     public static final JobPropertyDefinition<@Nullable Map<String, String>> K8S_POD_NODE_SELECTOR =
             new GenericPropertyDefinition<>(
                     "K8S_POD_NODE_SELECTOR",

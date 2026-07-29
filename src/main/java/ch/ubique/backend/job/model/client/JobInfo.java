@@ -7,8 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.NotNull;
 
-import org.jspecify.annotations.NullMarked;
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobInfo(
         @JsonProperty(required = true) int id,

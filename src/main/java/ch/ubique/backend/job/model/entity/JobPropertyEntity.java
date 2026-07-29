@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.properties.JobProperty;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
@@ -15,8 +17,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-
-import static java.util.Objects.requireNonNull;
 
 @Entity
 @IdClass(JobPropertyId.class)

@@ -144,7 +144,8 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
             logger.warn("Failed to insert log events to database.", warnNoretryException);
         }
         if (warnRetryException != null) {
-            logger.warn("Failed to insert log events to database (will retry).", warnRetryException);
+            logger.warn(
+                    "Failed to insert log events to database (will retry).", warnRetryException);
         }
         logQueue.addAll(retryEvents);
         return anySuccess;

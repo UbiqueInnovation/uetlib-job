@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.model.client.triggers;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 

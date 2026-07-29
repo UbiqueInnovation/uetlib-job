@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.service.triggers;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
@@ -8,8 +10,6 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 import org.springframework.core.GenericTypeResolver;
 
 import java.util.function.Consumer;
-
-import static java.util.Objects.requireNonNull;
 
 public interface TriggerService<T extends TriggerDefinition> {
 

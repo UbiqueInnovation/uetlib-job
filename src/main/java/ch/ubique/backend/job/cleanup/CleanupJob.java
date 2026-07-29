@@ -20,7 +20,6 @@ import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
-import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,12 +54,12 @@ public class CleanupJob implements Job {
     }
 
     @Override
-    public  JobTriggersConfig triggersConfig() {
+    public JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.fixed(new CronTrigger("0 0 2 * * ?")); // Every day at 2am
     }
 
     @Override
-    public  JobPropertiesConfig propertiesConfig() {
+    public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.fixed(
                 JobPropertyDefinitions.RUNNER_GROUP.createProperty(runnerGroup()),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(1),
@@ -70,7 +69,7 @@ public class CleanupJob implements Job {
     }
 
     @Override
-    public  JobRunState run(final JobRunContext jobRunContext) {
+    public JobRunState run(final JobRunContext jobRunContext) {
         clearUnknownJobProperties();
         return cleanJobRuns();
     }
@@ -79,7 +78,7 @@ public class CleanupJob implements Job {
         jobDataService.clearUnknownJobProperties();
     }
 
-    private  JobRunState cleanJobRuns() {
+    private JobRunState cleanJobRuns() {
         var hasWarnings = false;
         for (final var job : jobService.getAllJobClassesWithId()) {
             final var success = cleanJob(job);

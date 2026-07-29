@@ -11,7 +11,6 @@ import jakarta.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.jspecify.annotations.NonNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -22,7 +21,7 @@ public record JobRunContext(
         @JsonProperty(required = true) @NotNull @Valid JobProperties properties) {
 
     @Override
-    public  String toString() {
+    public String toString() {
         return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
                 .append("runId", jobRun.id())
                 .append("arguments", arguments)

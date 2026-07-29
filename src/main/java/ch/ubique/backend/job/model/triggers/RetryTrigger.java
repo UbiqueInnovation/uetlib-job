@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.model.triggers;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Duration;

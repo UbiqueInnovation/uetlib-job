@@ -5,21 +5,17 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.triggers.JobTriggersConfig;
 
-import org.jspecify.annotations.NonNull;
-
 public interface Job {
 
     @SuppressWarnings("java:S112")
     JobRunState run(final JobRunContext jobRunContext) throws Exception;
 
     /** You can override this method to set initial or fixed properties for this job. */
-
     default JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.unset();
     }
 
     /** You can override this method to set initial or fixed triggers for this job. */
-
     default JobTriggersConfig triggersConfig() {
         return JobTriggersConfig.unset();
     }

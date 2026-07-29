@@ -12,7 +12,6 @@ import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckLevel;
 import ch.ubique.backend.monitoring.check.models.CheckStatus;
 
-import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -62,15 +61,16 @@ public class JobScheduledStateCheck implements StatusCheck {
         return CheckStatus.CHECK_PASSED;
     }
 
-
     private List<JobClassAndId> failedJobsScheduledForTooLong(
             final Collection<JobClassAndId> jobs) {
         final var jobsById = jobs.stream().collect(Collectors.toMap(JobClassAndId::id, job -> job));
         return jobDataService.findJobRunsInState(jobsById.keySet(), JobRunState.SCHEDULED).stream()
-                .filter(scheduledRun -> {
-                    final var job = jobsById.get(scheduledRun.jobId());
-                    return job != null && exceedsMaxDurationInScheduledState(job, scheduledRun);
-                })
+                .filter(
+                        scheduledRun -> {
+                            final var job = jobsById.get(scheduledRun.jobId());
+                            return job != null
+                                    && exceedsMaxDurationInScheduledState(job, scheduledRun);
+                        })
                 .map(jobRun -> jobsById.get(jobRun.jobId()))
                 .filter(java.util.Objects::nonNull)
                 .distinct()

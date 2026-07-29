@@ -6,7 +6,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.ubique.backend.job.logging.AccumulatedLogLines;
 import ch.ubique.backend.job.logging.LoggingEvent;
 
-import org.jspecify.annotations.NonNull;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -42,7 +41,7 @@ public class LogFormatterService {
         return encodeAsUtf8(patternLayoutEncoder.encode(event));
     }
 
-    private static  String encodeAsUtf8(final byte[] messageBytes) {
+    private static String encodeAsUtf8(final byte[] messageBytes) {
         final var value = new String(messageBytes, StandardCharsets.UTF_8);
         if (value.contains("\0")) {
             return value.replace('\0', '\uFFFD');

@@ -4,10 +4,9 @@ import ch.ubique.backend.job.model.triggers.TriggerType;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.jspecify.annotations.Nullable;
-import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

@@ -1,12 +1,12 @@
 package ch.ubique.backend.job.model.input;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.core.file.ByteFile;
 import ch.ubique.backend.job.model.JobRun;
-
 import ch.ubique.backend.job.model.JobRunInput;
-import jakarta.validation.constraints.NotBlank;
 
-import static java.util.Objects.requireNonNull;
+import jakarta.validation.constraints.NotBlank;
 
 public record JobRunInputDeclaration(int jobRunId, @NotBlank String path, @NotBlank String hash) {
 
@@ -15,10 +15,16 @@ public record JobRunInputDeclaration(int jobRunId, @NotBlank String path, @NotBl
     }
 
     public static JobRunInputDeclaration from(final JobRun jobRun, final ByteFile file) {
-        return new JobRunInputDeclaration(jobRun.id(), requireNonNull(file.getFileName()), requireNonNull(file.getFileHash()));
+        return new JobRunInputDeclaration(
+                jobRun.id(),
+                requireNonNull(file.getFileName()),
+                requireNonNull(file.getFileHash()));
     }
 
     public static JobRunInputDeclaration from(final JobRunInput input) {
-        return new JobRunInputDeclaration(requireNonNull(input.getRunId()), requireNonNull(input.getName()), requireNonNull(input.getHash()));
+        return new JobRunInputDeclaration(
+                requireNonNull(input.getRunId()),
+                requireNonNull(input.getName()),
+                requireNonNull(input.getHash()));
     }
 }

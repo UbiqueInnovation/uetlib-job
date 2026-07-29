@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.model.properties;
 
-
 import org.apache.commons.lang3.BooleanUtils;
 import org.jspecify.annotations.Nullable;
 

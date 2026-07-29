@@ -11,7 +11,6 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.JobRunStateTransition;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 
-import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -143,7 +142,7 @@ class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
         assertTrue(jobDataService.findLatestJobRunByState(1, JobRunState.SKIPPED).isEmpty());
     }
 
-    private  List<JobRunState> getJobRunStates(final JobRun jobRun) {
+    private List<JobRunState> getJobRunStates(final JobRun jobRun) {
         return jobDataService.findJobRunStateTransitionsByJobRunId(jobRun.id()).stream()
                 .map(JobRunStateTransition::state)
                 .toList();

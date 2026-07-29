@@ -3,7 +3,6 @@ package ch.ubique.backend.job.config;
 import ch.ubique.backend.job.exception.WebSocketException;
 import ch.ubique.backend.job.service.logs.LogService;
 
-import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -47,8 +46,8 @@ public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionClosed(
-            final WebSocketSession session, final  CloseStatus status) throws Exception {
+    public void afterConnectionClosed(final WebSocketSession session, final CloseStatus status)
+            throws Exception {
         activeSessions.remove(session.getId());
         super.afterConnectionClosed(session, status);
     }

@@ -58,10 +58,11 @@ public class RetryTriggerService implements TriggerService<RetryTrigger> {
 
     private Collection<Integer> retryTriggerIdsOfJob(final int jobId) {
         return registeredTriggers.keySet().stream()
-                .filter(triggerId -> {
-                    final var job = jobsByTriggerId.get(triggerId);
-                    return job != null && job.id() == jobId;
-                })
+                .filter(
+                        triggerId -> {
+                            final var job = jobsByTriggerId.get(triggerId);
+                            return job != null && job.id() == jobId;
+                        })
                 .toList();
     }
 

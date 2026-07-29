@@ -1,6 +1,5 @@
 package ch.ubique.backend.job.service.watcher;
 
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;

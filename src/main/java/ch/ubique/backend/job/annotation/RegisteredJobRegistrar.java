@@ -3,10 +3,12 @@ package ch.ubique.backend.job.annotation;
 import static ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils.classForName;
 import static ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils.getBasePackages;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.RegisteredJob;
 import ch.ubique.backend.storage.spring.annotations.utils.EnableAnnotationUtils;
 
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
@@ -27,10 +29,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.jspecify.annotations.Nullable;
-
-import static java.util.Objects.requireNonNull;
-
 class RegisteredJobRegistrar
         implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
@@ -39,8 +37,7 @@ class RegisteredJobRegistrar
     private @Nullable ResourceLoader resourceLoader;
     private @Nullable Environment environment;
 
-    private static Class<?> loadEnableJobsClass(
-            final AnnotationMetadata importingClassMetadata) {
+    private static Class<?> loadEnableJobsClass(final AnnotationMetadata importingClassMetadata) {
         try {
             return Class.forName(importingClassMetadata.getClassName());
         } catch (final ClassNotFoundException e) {
@@ -93,7 +90,9 @@ class RegisteredJobRegistrar
         if (org.apache.commons.lang3.ArrayUtils.isEmpty(jobs)) {
             final var scanner =
                     EnableAnnotationUtils.getScanner(
-                            requireNonNull(environment), requireNonNull(resourceLoader), RegisteredJob.class);
+                            requireNonNull(environment),
+                            requireNonNull(resourceLoader),
+                            RegisteredJob.class);
             final var basePackages =
                     getBasePackages(
                             enableJobsAnnotation.basePackages(),
@@ -111,17 +110,19 @@ class RegisteredJobRegistrar
         return candidateComponents.stream()
                 .filter(AnnotatedBeanDefinition.class::isInstance)
                 .map(AnnotatedBeanDefinition.class::cast)
-                .map(beanDefinition -> classForName(requireNonNull(beanDefinition.getBeanClassName())))
+                .map(
+                        beanDefinition ->
+                                classForName(requireNonNull(beanDefinition.getBeanClassName())))
                 .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
-    public void setResourceLoader(final  ResourceLoader resourceLoader) {
+    public void setResourceLoader(final ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
 
     @Override
-    public void setEnvironment(final  Environment environment) {
+    public void setEnvironment(final Environment environment) {
         this.environment = environment;
     }
 }

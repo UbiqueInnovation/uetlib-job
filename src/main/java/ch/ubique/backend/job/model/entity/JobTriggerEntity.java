@@ -1,5 +1,7 @@
 package ch.ubique.backend.job.model.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.job.model.converters.TriggerDefinitionToStringConverter;
 import ch.ubique.backend.job.model.triggers.Trigger;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
@@ -14,8 +16,6 @@ import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-
-import static java.util.Objects.requireNonNull;
 
 @Entity
 @Table(name = "t_job_trigger")
@@ -57,7 +57,9 @@ public class JobTriggerEntity {
     }
 
     private JobTriggerEntity(
-            final @Nullable Integer id, final int jobId, final TriggerDefinition triggerDefinition) {
+            final @Nullable Integer id,
+            final int jobId,
+            final TriggerDefinition triggerDefinition) {
         this.id = id;
         this.jobId = jobId;
         this.triggerDefinition = requireNonNull(triggerDefinition);

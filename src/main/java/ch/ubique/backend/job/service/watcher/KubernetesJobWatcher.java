@@ -27,7 +27,6 @@ import io.kubernetes.client.openapi.models.V1PodStatus;
 import io.kubernetes.client.util.Watch;
 import io.kubernetes.client.util.Watch.Response;
 
-import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -157,7 +156,7 @@ public class KubernetesJobWatcher {
                                 .fieldSelector("metadata.name=" + podName)
                                 .watch(true)
                                 .buildCall(null),
-                        new TypeToken< Response<V1Pod>>() {}.getType())) {
+                        new TypeToken<Response<V1Pod>>() {}.getType())) {
 
             for (final var event : watch) {
                 final var pod = event.object;
@@ -187,8 +186,7 @@ public class KubernetesJobWatcher {
     private Watch<V1Job> createWatch(final String jobName) throws ApiException {
         final var client = kubernetesService.apiClient();
         final var listJob = jobListRequest(jobName).watch(true).buildCall(null);
-        return Watch.createWatch(
-                client, listJob, new TypeToken< Response<V1Job>>() {}.getType());
+        return Watch.createWatch(client, listJob, new TypeToken<Response<V1Job>>() {}.getType());
     }
 
     private APIlistNamespacedJobRequest jobListRequest(final String jobName) {

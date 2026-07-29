@@ -7,7 +7,6 @@ import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.JobPropertiesConfig;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 
-import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,7 @@ public class TestJob implements Job {
     }
 
     @Override
-    public  JobPropertiesConfig propertiesConfig() {
+    public JobPropertiesConfig propertiesConfig() {
         return JobPropertiesConfig.initial(
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofDays(10000)));
     }

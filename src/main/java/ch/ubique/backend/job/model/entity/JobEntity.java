@@ -12,7 +12,6 @@ import jakarta.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -49,7 +48,8 @@ public class JobEntity {
     }
 
     public JobClassAndId toRecord() {
-        return new JobClassAndId(Objects.requireNonNull(id), Objects.requireNonNull(canonicalClassName));
+        return new JobClassAndId(
+                Objects.requireNonNull(id), Objects.requireNonNull(canonicalClassName));
     }
 
     public String canonicalClassName() {

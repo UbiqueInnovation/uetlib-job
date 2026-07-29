@@ -2,7 +2,6 @@ package ch.ubique.backend.job.service.k8s;
 
 import io.kubernetes.client.util.Config;
 
-import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.ConditionContext;
@@ -10,7 +9,6 @@ import org.springframework.context.annotation.ConfigurationCondition;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 import java.io.IOException;
-
 
 public class KubernetesAvailableConfigurationCondition implements ConfigurationCondition {
 

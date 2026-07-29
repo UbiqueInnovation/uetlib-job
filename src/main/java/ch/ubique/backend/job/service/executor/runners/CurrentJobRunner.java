@@ -1,6 +1,7 @@
 package ch.ubique.backend.job.service.executor.runners;
 
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.RUNNER_GROUP;
+
 import static java.util.Objects.requireNonNull;
 
 import ch.ubique.backend.job.Job;
@@ -13,7 +14,6 @@ import ch.ubique.backend.job.service.JobService;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,8 +62,7 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
-        return requireNonNull(
-                jobRunContext.properties().get(RUNNER_GROUP).value());
+        return requireNonNull(jobRunContext.properties().get(RUNNER_GROUP).value());
     }
 
     @Override
@@ -72,8 +71,7 @@ public final class CurrentJobRunner implements JobRunner {
     }
 
     @Override
-    public synchronized boolean submit(
-            final Job job, final JobRunContext jobRunContext) {
+    public synchronized boolean submit(final Job job, final JobRunContext jobRunContext) {
         final var runnerGroup = runnerGroup(jobRunContext);
         if (!isRunnerGroupAllowed(job, runnerGroup)) {
             return false;
@@ -136,7 +134,7 @@ public final class CurrentJobRunner implements JobRunner {
 
     @Override
     @Nullable
-    public JobRunState resolveJobRunState(final  JobRun jobRun) {
+    public JobRunState resolveJobRunState(final JobRun jobRun) {
         final var future = futuresByJobRun.get(jobRun.id());
         if (future == null) {
             return null;

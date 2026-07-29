@@ -13,7 +13,8 @@ public class LoggingEventEntity {
 
     public LoggingEventEntity() {}
 
-    public LoggingEventEntity(final int jobRunId, final Instant timestamp, final String formattedMessage) {
+    public LoggingEventEntity(
+            final int jobRunId, final Instant timestamp, final String formattedMessage) {
         this.jobRunId = jobRunId;
         this.timestamp = timestamp;
         this.formattedMessage = formattedMessage;

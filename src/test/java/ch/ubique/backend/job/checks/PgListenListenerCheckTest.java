@@ -15,7 +15,8 @@ import java.util.Map;
 
 class PgListenListenerCheckTest {
 
-    private final PgListenTriggerService pgListenTriggerService = mock(PgListenTriggerService.class);
+    private final PgListenTriggerService pgListenTriggerService =
+            mock(PgListenTriggerService.class);
     private final PgListenListenerCheck check =
             new PgListenListenerCheck(CheckLevel.ERROR, pgListenTriggerService);
 

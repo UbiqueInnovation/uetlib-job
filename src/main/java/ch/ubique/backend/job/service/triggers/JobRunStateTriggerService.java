@@ -98,7 +98,11 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                                 logger.debug("Calling callback for {}.", entry.getValue());
                                 consumer.accept(
                                         new JobRunArguments(
-                                                false, TriggerType.JOB_RUN_STATE, null, null, null));
+                                                false,
+                                                TriggerType.JOB_RUN_STATE,
+                                                null,
+                                                null,
+                                                null));
                             }
                         });
     }

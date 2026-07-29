@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Positive;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
