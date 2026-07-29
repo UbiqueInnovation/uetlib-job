@@ -25,7 +25,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
-import java.util.Optional;
 
 public abstract class BaseStateJob<T> implements Job {
 
@@ -188,7 +187,7 @@ public abstract class BaseStateJob<T> implements Job {
             return false;
         }
 
-        if (latestSuccessfulRun(jobRunContext.job()).isEmpty()) {
+        if (latestSuccessfulRun(jobRunContext.job()) == null) {
             logger.debug("No successful runs so far.");
             return false;
         }
@@ -196,8 +195,8 @@ public abstract class BaseStateJob<T> implements Job {
         return true;
     }
 
-    private Optional<JobRun> latestSuccessfulRun(final JobClassAndId job) {
-        return jobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE);
+    private @Nullable JobRun latestSuccessfulRun(final JobClassAndId job) {
+        return jobDataService.findLatestJobRunByState(job.id(), JobRunState.DONE).orElse(null);
     }
 
     private void saveState(final T state, final JobRunContext jobRunContext) throws IOException {
@@ -209,7 +208,10 @@ public abstract class BaseStateJob<T> implements Job {
 
     private @Nullable T loadPreviousState(final JobRunContext jobRunContext) {
         final var lastRun = latestSuccessfulRun(jobRunContext.job());
-        return lastRun.map(this::loadState).orElse(null);
+        if (lastRun == null) {
+            return null;
+        }
+        return loadState(lastRun);
     }
 
     private @Nullable T loadState(final JobRun jobRun) {

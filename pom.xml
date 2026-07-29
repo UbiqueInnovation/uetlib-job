@@ -22,7 +22,6 @@
         <sonar.coverage.module>uetlib-job</sonar.coverage.module>
     </properties>
 
-
     <dependencies>
         <!-- uetlib -->
         <dependency>
