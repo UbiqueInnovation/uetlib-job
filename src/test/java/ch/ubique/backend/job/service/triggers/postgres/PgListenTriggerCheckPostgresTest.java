@@ -23,7 +23,7 @@ class PgListenTriggerCheckPostgresTest {
 
     private static final String CHANNEL = "test_channel";
 
-    private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17");
+    private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
 
     @BeforeAll
     static void startContainer() {
