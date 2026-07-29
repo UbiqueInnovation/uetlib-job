@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
 
 public abstract class BaseInputJob<T> implements Job {
 
-    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+    private static final RetryTemplate DEFAULT_RETRY_TEMPLATE;
 
     static {
-        DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER =
+        DEFAULT_RETRY_TEMPLATE =
                 new RetryTemplate(
                         RetryPolicy.builder()
                                 .includes(Exception.class)
@@ -45,7 +45,7 @@ public abstract class BaseInputJob<T> implements Job {
                                 .multiplier(2)
                                 .jitter(Duration.ofSeconds(1))
                                 .build());
-        DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER.setRetryListener(new LoggingRetryListener());
+        DEFAULT_RETRY_TEMPLATE.setRetryListener(new LoggingRetryListener());
     }
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -64,7 +64,7 @@ public abstract class BaseInputJob<T> implements Job {
                 requireNonNullElse(
                         applicationContext.getBean(BuildProperties.class).getVersion(), "unknown");
 
-        this.retryTemplate = DEFAULT_RETRY_TEMPLATE_WITHOUT_LISTENER;
+        this.retryTemplate = DEFAULT_RETRY_TEMPLATE;
     }
 
     @Override
