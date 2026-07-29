@@ -80,11 +80,7 @@ public class JobApplicationArgsParser {
             return Optional.empty();
         }
 
-        final var jobToStart = getJobToStart(command);
-        if (jobToStart == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new JobApplicationArgs(jobToStart));
+        return Optional.of(new JobApplicationArgs(getJobToStart(command)));
     }
 
     private void printHelp(final HelpFormatter helpFormatter) {
