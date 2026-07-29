@@ -206,14 +206,12 @@ public abstract class BaseStateJob<T> implements Job {
         jobRunInputManager.save(inputDeclaration, output);
     }
 
-    @Nullable
-    private T loadPreviousState(final JobRunContext jobRunContext) {
+    private @Nullable T loadPreviousState(final JobRunContext jobRunContext) {
         final var lastRun = latestSuccessfulRun(jobRunContext.job());
         return lastRun.map(this::loadState).orElse(null);
     }
 
-    @Nullable
-    private T loadState(final JobRun jobRun) {
+    private @Nullable T loadState(final JobRun jobRun) {
         logger.debug("Loading state of run {}.", jobRun.id());
         try (final var inputStream = getStateInputStream(jobRun)) {
             final var previousState = jsonMapper.readValue(inputStream, stateTypeReference());
@@ -232,8 +230,7 @@ public abstract class BaseStateJob<T> implements Job {
         return jobRunInputManager.getJobRunInput(stateInputDeclaration(jobRun));
     }
 
-    @Nullable
-    private T loadStateIfPresent(final JobRun jobRun) {
+    private @Nullable T loadStateIfPresent(final JobRun jobRun) {
         if (!hasStateForRun(jobRun)) {
             return null;
         }
