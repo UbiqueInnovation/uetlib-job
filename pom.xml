@@ -15,9 +15,13 @@
     <packaging>jar</packaging>
 
     <properties>
-        <!-- westemeyer version config -->
+<!-- westemeyer version config -->
         <westemeyer-version-package-name>ch.ubique.backend.job.version</westemeyer-version-package-name>
+        <!-- Sonar -->
+        <sonar.projectName>uetlib-job</sonar.projectName>
+        <sonar.coverage.module>uetlib-job</sonar.coverage.module>
     </properties>
+
 
     <dependencies>
         <!-- uetlib -->
@@ -133,25 +137,21 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-test</artifactId>
-            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
-            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
-            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
-            <version>2.1.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -212,6 +212,27 @@
                 <artifactId>uetlib-spring-boot-security</artifactId>
                 <version>2.6.2</version>
             </dependency>
+
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-test</artifactId>
+                <version>2.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-testcontainers-mysql</artifactId>
+                <version>2.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-testcontainers-postgresql</artifactId>
+                <version>2.1.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-testcontainers-mariadb</artifactId>
+                <version>2.1.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -220,14 +241,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>build-info</id>
-                        <goals>
-                            <goal>build-info</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

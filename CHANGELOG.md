@@ -1,8 +1,16 @@
 # CHANGELOG
 
-## unreleased
+## 5.0.0
+
+### Breaking Changes
+
+- `BaseStateJob#runnerForProcessing` takes `T latestState` as parameter instead of none
+- null-marked
+
+## 4.3.0
 
 - null-marked
+- update uetlib and github actions version
 
 ## 4.2.1
 

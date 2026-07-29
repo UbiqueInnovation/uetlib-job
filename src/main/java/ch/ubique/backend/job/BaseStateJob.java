@@ -98,7 +98,7 @@ public abstract class BaseStateJob<T> implements Job {
      * runner is allowed to differ from the runner specified in the job properties.
      */
     @Nullable
-    protected JobRunnerKey runnerForProcessing() {
+    protected JobRunnerKey runnerForProcessing(@SuppressWarnings("unused") final T latestState) {
         return null;
     }
 
@@ -129,7 +129,8 @@ public abstract class BaseStateJob<T> implements Job {
 
         // Run processing on a different runner, if requested
         final var currentRunnerKey = currentJobRun.runnerKey();
-        final var processingRunnerKey = requireNonNullElse(runnerForProcessing(), currentRunnerKey);
+        final var processingRunnerKey =
+                requireNonNullElse(runnerForProcessing(latestState), currentRunnerKey);
         if (currentRunnerKey != processingRunnerKey) {
             logger.info("Requested to run processing on runner {}.", processingRunnerKey);
             final var submission =
