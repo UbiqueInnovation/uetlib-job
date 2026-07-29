@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -15,12 +15,6 @@
     <packaging>jar</packaging>
 
     <properties>
-        <uetlib-core.version>2.4.0</uetlib-core.version>
-        <uetlib-monitoring.version>2.3.1</uetlib-monitoring.version>
-        <uetlib-db.version>2.1.0</uetlib-db.version>
-        <uetlib-storage-spring-boot.version>2.2.0</uetlib-storage-spring-boot.version>
-        <uetlib-spring-boot.version>2.3.0</uetlib-spring-boot.version>
-
         <!-- westemeyer version config -->
         <westemeyer-version-package-name>ch.ubique.backend.job.version</westemeyer-version-package-name>
     </properties>
@@ -30,32 +24,26 @@
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-core</artifactId>
-            <version>${uetlib-core.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-monitoring</artifactId>
-            <version>${uetlib-monitoring.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-db</artifactId>
-            <version>${uetlib-db.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-storage-spring-boot</artifactId>
-            <version>${uetlib-storage-spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot</artifactId>
-            <version>${uetlib-spring-boot.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.ubique</groupId>
             <artifactId>uetlib-spring-boot-security</artifactId>
-            <version>${uetlib-spring-boot.version}</version>
         </dependency>
 
         <!-- Spring Boot -->
@@ -192,23 +180,40 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <id>ubique-artifactory</id>
-            <name>backend</name>
-            <url>https://artifactory.ubique.ch/artifactory/backend</url>
-        </repository>
-        <repository>
-            <id>ubique-artifactory-virtual</id>
-            <name>ubique</name>
-            <url>https://artifactory.ubique.ch/artifactory/ubique</url>
-        </repository>
-        <repository>
-            <id>osgeo</id>
-            <name>Open Source Geospatial Foundation Repository</name>
-            <url>https://repo.osgeo.org/repository/release/</url>
-        </repository>
-    </repositories>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-core</artifactId>
+                <version>2.4.1</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-monitoring</artifactId>
+                <version>2.3.1</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-db</artifactId>
+                <version>2.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-storage-spring-boot</artifactId>
+                <version>2.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-spring-boot</artifactId>
+                <version>2.6.2</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.ubique</groupId>
+                <artifactId>uetlib-spring-boot-security</artifactId>
+                <version>2.6.2</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
