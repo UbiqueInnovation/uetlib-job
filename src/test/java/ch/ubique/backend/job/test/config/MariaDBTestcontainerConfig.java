@@ -14,6 +14,6 @@ public class MariaDBTestcontainerConfig {
     @Bean
     @ServiceConnection
     MariaDBContainer mariaDBContainer() {
-        return new MariaDBContainer(DockerImageName.parse("mariadb:11.8"));
+        return new MariaDBContainer(DockerImageName.parse("mariadb:12.3"));
     }
 }
