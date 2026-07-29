@@ -54,8 +54,7 @@ class RegisteredJobRegistrar
             final AnnotationMetadata importingClassMetadata,
             final BeanDefinitionRegistry registry) {
         // This would be a problem if this RegisteredJobDefinitions gets created if the profile
-        // job-run is active, but
-        // it is not needed, so we skip it
+        // job-run is active, but it is not needed, so we skip it
         if (environment != null && environment.matchesProfiles("job-run")) {
             return;
         }
