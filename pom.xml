@@ -8,6 +8,7 @@
         <groupId>ch.ubique</groupId>
         <artifactId>uetlib-parent</artifactId>
         <version>2026.7.4</version>
+        <relativePath/>
     </parent>
 
     <artifactId>uetlib-job</artifactId>
@@ -15,11 +16,12 @@
     <packaging>jar</packaging>
 
     <properties>
-<!-- westemeyer version config -->
+        <!-- westemeyer version config -->
         <westemeyer-version-package-name>ch.ubique.backend.job.version</westemeyer-version-package-name>
+
         <!-- Sonar -->
         <sonar.projectName>uetlib-job</sonar.projectName>
-        <sonar.coverage.module>uetlib-job</sonar.coverage.module>
+        <sonar.coverage.module>.</sonar.coverage.module>
     </properties>
 
     <dependencies>
