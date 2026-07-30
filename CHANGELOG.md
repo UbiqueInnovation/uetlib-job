@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 5.0.3
+
+- Fix `k8sJobName` nullability and NPE
+
+## 5.0.2
+
+- Fix `JobApplication` startup
+
 ## 5.0.1
 
 ### Breaking Changes
