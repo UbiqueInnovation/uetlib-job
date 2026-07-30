@@ -579,9 +579,7 @@ public class JobDataService {
 
     @Transactional(readOnly = true)
     public Optional<String> findK8sJobName(final int jobRunId) {
-        return k8sJobRepository.findBy(
-                Example.of(new K8sJobEntity(jobRunId, null)),
-                entity -> entity.first().map(K8sJobEntity::k8sJobName));
+        return k8sJobRepository.findFirstByJobRunId(jobRunId).map(K8sJobEntity::k8sJobName);
     }
 
     @Transactional(readOnly = true)
