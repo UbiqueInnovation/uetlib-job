@@ -3,6 +3,7 @@
 ## 5.0.4
 
 - uetlib versions updated
+- updated actions to not run tests twice for sonar
 
 ## 5.0.3
 
