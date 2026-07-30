@@ -1,7 +1,5 @@
 package ch.ubique.backend.job.model.entity;
 
-import static java.util.Objects.requireNonNull;
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
@@ -45,8 +43,9 @@ public class K8sJobEntity {
         this.k8sJobName = k8sJobName;
     }
 
+    @Nullable
     public String k8sJobName() {
-        return requireNonNull(k8sJobName);
+        return k8sJobName;
     }
 
     @Nullable
