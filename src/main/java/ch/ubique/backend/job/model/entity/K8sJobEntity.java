@@ -26,7 +26,7 @@ public class K8sJobEntity {
 
     @NotBlank
     @Column(name = "k8s_job_name", nullable = false)
-    private @Nullable String k8sJobName;
+    private String k8sJobName;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -38,12 +38,11 @@ public class K8sJobEntity {
 
     protected K8sJobEntity() {}
 
-    public K8sJobEntity(final int jobRunId, final @Nullable String k8sJobName) {
+    public K8sJobEntity(final int jobRunId, final String k8sJobName) {
         this.jobRunId = jobRunId;
         this.k8sJobName = k8sJobName;
     }
 
-    @Nullable
     public String k8sJobName() {
         return k8sJobName;
     }
