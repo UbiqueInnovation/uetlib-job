@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 5.0.4
+
+- uetlib versions updated
+
 ## 5.0.3
 
 - Fix `k8sJobName` nullability and NPE
