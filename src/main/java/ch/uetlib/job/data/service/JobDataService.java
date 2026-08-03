@@ -13,6 +13,7 @@ import ch.uetlib.job.model.input.JobRunInputDeclaration;
 import ch.uetlib.job.model.properties.*;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 import ch.uetlib.job.model.triggers.*;
 import ch.uetlib.job.model.triggers.TriggerDefinition;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
@@ -37,6 +38,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 @Service
@@ -215,7 +217,9 @@ public class JobDataService {
     }
 
     @Transactional
-    public void insertNewJobs(final Collection<Class<? extends Job>> jobClass) {
+    public void insertNewJobs(
+            final Collection<Class<? extends Job>> jobClass,
+            final ToIntFunction<Class<? extends Job>> priorityResolver) {
         final var existingJobs =
                 jobRepository.findAll().stream()
                         .map(JobEntity::canonicalClassName)
@@ -230,7 +234,10 @@ public class JobDataService {
             return;
         }
 
-        final var newEntities = toInsert.stream().map(JobEntity::newForClass).toList();
+        final var newEntities =
+                toInsert.stream()
+                        .map(cls -> JobEntity.newForClass(cls, priorityResolver.applyAsInt(cls)))
+                        .toList();
         jobRepository.saveAll(newEntities);
     }
 
@@ -264,7 +271,7 @@ public class JobDataService {
             final @Nullable Integer priority,
             final String versionTag,
             final JobRunArguments arguments,
-            final Set<String> taints,
+            final Set<JobRunnerTaint> taints,
             final boolean allowMultipleQueuedRuns) {
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
@@ -689,7 +696,8 @@ public class JobDataService {
                         jobQueuedRun.jobQueuedRunId(),
                         jobQueuedRun.queueState(),
                         JobRunQueueState.CLAIMED,
-                        runnerInstanceName);
+                        runnerInstanceName,
+                        Instant.now());
         return updated == 1;
     }
 
@@ -697,6 +705,40 @@ public class JobDataService {
         final var entity =
                 jobQueuedRunRepository.findById(jobQueuedRun.jobQueuedRunId()).orElseThrow();
         jobQueuedRunRepository.save(entity.setRunId(runId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<JobQueuedRun> findQueuedRunsByState(final JobRunQueueState state) {
+        return jobQueuedRunRepository.findAllByQueueState(state).stream()
+                .map(JobQueuedRunEntity::toJobQueuedRun)
+                .toList();
+    }
+
+    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}. */
+    @Transactional
+    public int resetStaleClaims(final Instant staleBefore) {
+        return jobQueuedRunRepository.resetStaleClaims(
+                JobRunQueueState.CLAIMED, JobRunQueueState.QUEUED, staleBefore);
+    }
+
+    @Transactional
+    public void touchQueuedRunHeartbeat(final int jobQueuedRunId) {
+        jobQueuedRunRepository.touchHeartbeat(jobQueuedRunId, Instant.now());
+    }
+
+    /**
+     * Unconditional delete for internal cleanup once a linked job run has actually finished -
+     * unlike {@link #deleteQueuedRunIfNotRunning}, this is not meant for admin use.
+     */
+    @Transactional
+    public void deleteQueuedRunById(final int jobQueuedRunId) {
+        jobQueuedRunRepository.deleteById(jobQueuedRunId);
+    }
+
+    /** Unconditionally resets a single row back to {@link JobRunQueueState#QUEUED}. */
+    @Transactional
+    public void resetQueuedRunById(final int jobQueuedRunId) {
+        jobQueuedRunRepository.forceReset(jobQueuedRunId, JobRunQueueState.QUEUED);
     }
 
     private Predicate buildQueuedRunsPredicate(

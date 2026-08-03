@@ -2,6 +2,7 @@ package ch.uetlib.job.model.client;
 
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -28,7 +29,7 @@ public record JobQueueEntryInfo(
         @Nullable Instant lastHeartbeat,
         @JsonProperty(required = true) @NotNull Instant createdAt,
         @JsonProperty(required = true) @NotNull Instant updatedAt,
-        @JsonProperty(required = true) @NotNull Set<String> taints) {
+        @JsonProperty(required = true) @NotNull Set<JobRunnerTaint> taints) {
 
     public static JobQueueEntryInfo from(final JobQueuedRun run, @Nullable final String jobName) {
         return new JobQueueEntryInfo(

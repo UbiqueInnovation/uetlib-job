@@ -5,6 +5,7 @@ import ch.uetlib.job.model.properties.enums.JobManualTriggerMode;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.properties.enums.StateCheckStrategy;
 import ch.uetlib.job.model.runner.RunnerGroup;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 
 import com.pivovarit.function.ThrowingFunction;
 
@@ -203,7 +204,7 @@ public final class JobPropertyDefinitions {
                             + " context.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobManualTriggerMode.NEW_RUN_ALLOWED);
-    public static final JobPropertyDefinition<Set<String>> JOB_RUN_TAINTS =
+    public static final JobPropertyDefinition<Set<JobRunnerTaint>> JOB_RUN_TAINTS =
             new GenericPropertyDefinition<>(
                     "JOB_RUN_TAINTS",
                     "Taints to be set for the job run. Taints are used to prevent certain jobs from"

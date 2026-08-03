@@ -7,6 +7,7 @@ import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.uetlib.job.model.converters.StringSetToStringConverter;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
@@ -18,6 +19,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "t_job_run_queue")
@@ -80,12 +82,12 @@ public class JobQueuedRunEntity {
             final @Nullable Integer priority,
             final String versionTag,
             final JobRunArguments jobRunArguments,
-            final Set<String> taints) {
+            final Set<JobRunnerTaint> taints) {
         this.jobId = jobId;
         this.priority = priority;
         this.versionTag = versionTag;
         this.queueState = JobRunQueueState.QUEUED;
-        this.taints = taints;
+        this.taints = taints.stream().map(JobRunnerTaint::value).collect(Collectors.toSet());
         this.jobRunArguments = jobRunArguments;
     }
 
@@ -101,12 +103,14 @@ public class JobQueuedRunEntity {
                 lastHeartbeat,
                 requireNonNull(createdAt),
                 requireNonNull(updatedAt),
-                taints,
+                taints.stream().map(JobRunnerTaint::new).collect(Collectors.toSet()),
                 jobRunArguments);
     }
 
     public JobQueuedRunEntity setRunId(final int runId) {
         this.jobRunId = runId;
+        this.queueState = JobRunQueueState.RUNNING;
+        this.lastHeartbeat = Instant.now();
         return this;
     }
 }
