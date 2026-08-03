@@ -2,7 +2,8 @@ create table t_job
 (
     pk_job_id  integer auto_increment not null primary key,
     clazz      text                   not null,
-    enabled boolean not null default true,
+    enabled    boolean                not null default true,
+    priority   integer                not null,
     created_at timestamp              not null,
     updated_at timestamp              not null
 ) charset = utf8mb4;
@@ -30,7 +31,7 @@ create table t_job_run
     updated_at        timestamp              not null,
     started_at        timestamp              not null,
     finished_at       timestamp              null,
-    latest_state text not null,
+    latest_state      text                   not null,
     job_run_arguments json,
     index (started_at),
     index (finished_at),
@@ -55,7 +56,7 @@ create table t_logging_event
     pk_logging_event_id integer auto_increment not null primary key,
     fk_job_run_id       integer                not null references t_job_run (pk_job_run_id) on delete cascade on update cascade,
     timestamp           timestamp              not null,
-    formatted_message text not null,
+    formatted_message   text                   not null,
     index (fk_job_run_id, timestamp asc)
 ) charset = utf8mb4;
 
@@ -64,7 +65,7 @@ create table t_job_trigger
 (
     pk_job_trigger_id  integer auto_increment not null primary key,
     fk_job_id          integer                not null references t_job (pk_job_id) on delete cascade on update cascade,
-    type               text                   not null,
+    type               varchar(100)           not null, -- mysql requires a limit on keys / indices, whereas mariadb does not
     trigger_definition json                   not null,
     created_at         timestamp              not null,
     updated_at         timestamp              not null,
@@ -121,3 +122,22 @@ from t_job_run r
                where finished_at is not null
                group by fk_job_id) m
               on m.latest_job_run_pk = r.pk_job_run_id;
+
+CREATE TABLE t_job_run_queue
+(
+    pk_job_run_queue_id INTEGER AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    fk_job_id           INTEGER                NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE,
+    version_tag         TEXT                   NOT NULL,
+    created_at          TIMESTAMP              NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP              NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    queue_state         VARCHAR(8)             NOT NULL,
+
+    fk_job_run_id       INTEGER REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE,
+    runner              TEXT,
+    heartbeat_at        TIMESTAMP,
+
+    taints              JSON                   NOT NULL,
+    job_run_arguments   JSON                   NOT NULL,
+    INDEX (fk_job_id)
+) charset = utf8mb4;

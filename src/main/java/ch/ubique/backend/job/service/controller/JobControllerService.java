@@ -107,7 +107,8 @@ public class JobControllerService {
         this.jobRunnerInfoService = jobRunnerInfoService;
     }
 
-    private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
+    private static List<JobProperty<? extends Object>> getPropertiesFromMap(
+            final Map<String, String> properties) {
         final var list = new ArrayList<JobProperty<?>>(properties.size());
         for (final var entry : properties.entrySet()) {
             list.add(

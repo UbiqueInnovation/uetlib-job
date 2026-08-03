@@ -2,6 +2,7 @@ package ch.ubique.backend.job.data.repository;
 
 import ch.ubique.backend.job.model.entity.JobRunStateTransitionEntity;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,5 +18,6 @@ public interface JobRunStateTransitionRepository
 
     Stream<JobRunStateTransitionEntity> findAllByJobRunId(int jobRunId);
 
-    JobRunStateTransitionEntity findFirstByJobRunIdOrderByTransitionedAtDesc(int jobRunId);
+    @Nullable JobRunStateTransitionEntity findFirstByJobRunIdOrderByTransitionedAtDesc(
+            int jobRunId);
 }

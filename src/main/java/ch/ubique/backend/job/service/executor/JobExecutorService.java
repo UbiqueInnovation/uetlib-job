@@ -1,18 +1,20 @@
 package ch.ubique.backend.job.service.executor;
 
+import static ch.ubique.backend.job.model.properties.enums.JobRunnerKey.*;
+
+import static java.util.Objects.requireNonNullElse;
+
 import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.job.Job;
 import ch.ubique.backend.job.model.*;
-import ch.ubique.backend.job.model.executer.JobSubmissionResult;
-import ch.ubique.backend.job.model.executer.JobSubmissionStatus;
-import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
-import ch.ubique.backend.job.model.executer.UnsuccessfulSubmissionResult;
+import ch.ubique.backend.job.model.executer.*;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,19 @@ public class JobExecutorService {
 
     public JobSubmissionResult submit(final Class<? extends Job> jobClass) {
         return submit(jobClass, null);
+    }
+
+    public JobSubmissionResult submit(final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
+        if (jobQueuedRun.jobRunId() != null) {
+            // TODO: Implement this
+            throw new NotImplementedException("Behavior of rescheduling jobs is TBD");
+        }
+        final var jobClass = jobService.findJobById(jobQueuedRun.jobId()).orElseThrow();
+        return submit(
+                jobService.getJobClassOrThrow(jobClass),
+                jobQueuedRun.arguments(),
+                null,
+                isDedicated ? DEDICATED_K8S_JOB : CURRENT);
     }
 
     public JobSubmissionResult submit(
@@ -93,7 +108,7 @@ public class JobExecutorService {
         return new SuccessfulSubmissionResult(runner.key(), jobRunContext, jobRun.id());
     }
 
-    private boolean tryToSchedule(
+    protected boolean tryToSchedule(
             final JobRunner runner, final Job job, final JobRunContext jobRunContext) {
         try {
             logger.info(
@@ -130,8 +145,7 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
-        final var arguments =
-                Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
+        final var arguments = requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
         final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
@@ -155,7 +169,7 @@ public class JobExecutorService {
     }
 
     private JobRunnerKey getRunnerKeyFromJobProperties(final JobProperties jobProperties) {
-        return java.util.Objects.requireNonNullElse(
+        return requireNonNullElse(
                 jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
                 JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow());
     }
