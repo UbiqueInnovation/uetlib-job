@@ -125,9 +125,10 @@ order by fk_job_id, pk_job_run_id desc;
 
 CREATE TABLE t_job_run_queue
 (
-    pk_job_run_queue_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pk_job_run_queue_id INTEGER     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     fk_job_id           INTEGER     NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE,
     version_tag         TEXT        NOT NULL,
+    priority            INTEGER,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
