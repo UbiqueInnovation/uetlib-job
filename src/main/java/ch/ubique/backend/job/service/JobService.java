@@ -218,17 +218,20 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public JobQueuedRun queueNewRun(final JobClassAndId job, final JobRunArguments arguments) {
+    public JobQueuedRun queueNewRun(
+            final JobClassAndId job,
+            final JobRunArguments arguments,
+            final @Nullable Integer priority) {
         final var j = requireNonNull(jobClassesById.get(job.id()));
         final var properties = getJobProperties(job.id(), instantiateJob(j));
         final var taints =
                 requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
-        // TODO: Notify current after queueing
         final var allowMultipleQueuedRuns =
                 requireNonNull(
                         properties.get(JobPropertyDefinitions.ALLOW_MULTIPLE_QUEUED_RUNS).value());
+        // TODO: Notify current after queueing
         return jobDataService.queueNewRun(
-                job.id(), versionTag, arguments, taints, allowMultipleQueuedRuns);
+                job.id(), priority, versionTag, arguments, taints, allowMultipleQueuedRuns);
     }
 
     public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {

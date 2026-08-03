@@ -5,17 +5,33 @@ import ch.ubique.backend.job.model.queue.JobRunQueueState;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
 @Repository
-public interface JobQueuedRunRepository extends JpaRepository<JobQueuedRunEntity, Integer> {
+public interface JobQueuedRunRepository
+        extends JpaRepository<JobQueuedRunEntity, Integer>,
+                JpaSpecificationExecutor<JobQueuedRunEntity> {
     List<JobQueuedRunEntity> findAllByJobId(int jobId);
+
+    /** Never deletes a {@link JobRunQueueState#RUNNING} row, regardless of its own state. */
+    long deleteByJobQueuedRunIdAndQueueStateNot(int jobQueuedRunId, JobRunQueueState excludedState);
+
+    /** Never deletes a {@link JobRunQueueState#RUNNING} row: callers must exclude it from {@code states}. */
+    long deleteByJobIdInAndQueueStateIn(
+            Collection<Integer> jobIds, Collection<JobRunQueueState> states);
+
+    Optional<JobQueuedRunEntity> findFirstByOrderByCreatedAtAsc();
+
+    Optional<JobQueuedRunEntity> findFirstByOrderByCreatedAtDesc();
 
     @Query(
             """
@@ -33,7 +49,7 @@ public interface JobQueuedRunRepository extends JpaRepository<JobQueuedRunEntity
                         ) jt
                         WHERE jt.taint NOT IN :instanceTaints
                     )
-                    ORDER BY job.priority DESC
+                    ORDER BY COALESCE(j.priority, job.priority) DESC
                     """)
     Stream<JobQueuedRunEntity> findByTaints(Set<String> instanceTaints, final Pageable pageable);
 

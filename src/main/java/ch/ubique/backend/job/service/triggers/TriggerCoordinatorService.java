@@ -6,7 +6,6 @@ import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.service.JobService;
-import ch.ubique.backend.job.service.executor.JobExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,19 +32,16 @@ public class TriggerCoordinatorService {
     private final JobDataService jobDataService;
 
     private final JobService jobService;
-    private final JobExecutorService jobExecutorService;
 
     private final Map<TriggerType, TriggerService<?>> triggerServices;
 
     public TriggerCoordinatorService(
             final JobDataService jobDataService,
             final JobService jobService,
-            final JobExecutorService jobExecutorService,
             final Collection<TriggerService<?>> triggerServices,
             final Environment environment) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
-        this.jobExecutorService = jobExecutorService;
         this.triggerServices =
                 triggerServices.stream()
                         .collect(
@@ -165,8 +161,9 @@ public class TriggerCoordinatorService {
                             jobClass.getSimpleName());
         }
         return jobRunArguments -> {
-            logger.info("Submitting job {}", jobClass);
-            jobExecutorService.submit(jobClass, jobRunArguments);
+            logger.info("Queueing job {}", jobClass);
+            jobService.queueNewRun(
+                    jobService.jobClassAndIdOrThrow(jobClass), jobRunArguments, null);
         };
     }
 }

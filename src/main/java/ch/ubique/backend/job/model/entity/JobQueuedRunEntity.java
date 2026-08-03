@@ -28,6 +28,10 @@ public class JobQueuedRunEntity {
     @Column(name = "pk_job_run_queue_id", nullable = false, updatable = false)
     private @Nullable Integer jobQueuedRunId;
 
+    @PositiveOrZero
+    @Column(name = "priority")
+    private @Nullable Integer priority;
+
     @Positive
     @Column(name = "fk_job_id", nullable = false, updatable = false)
     private int jobId;
@@ -73,10 +77,12 @@ public class JobQueuedRunEntity {
 
     public JobQueuedRunEntity(
             final int jobId,
+            final @Nullable Integer priority,
             final String versionTag,
             final JobRunArguments jobRunArguments,
             final Set<String> taints) {
         this.jobId = jobId;
+        this.priority = priority;
         this.versionTag = versionTag;
         this.queueState = JobRunQueueState.QUEUED;
         this.taints = taints;
@@ -86,12 +92,15 @@ public class JobQueuedRunEntity {
     public JobQueuedRun toJobQueuedRun() {
         return new JobQueuedRun(
                 requireNonNull(jobQueuedRunId),
+                priority,
                 jobId,
                 versionTag,
                 queueState,
                 jobRunId,
                 runner,
                 lastHeartbeat,
+                requireNonNull(createdAt),
+                requireNonNull(updatedAt),
                 taints,
                 jobRunArguments);
     }

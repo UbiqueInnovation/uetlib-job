@@ -25,6 +25,7 @@ import jakarta.validation.constraints.Positive;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Range;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -264,11 +265,13 @@ public class JobDataService {
     @Transactional
     public JobQueuedRun queueNewRun(
             final int jobId,
+            final @Nullable Integer priority,
             final String versionTag,
             final JobRunArguments arguments,
             final Set<String> taints,
             final boolean allowMultipleQueuedRuns) {
-        final var queuedRunEntity = new JobQueuedRunEntity(jobId, versionTag, arguments, taints);
+        final var queuedRunEntity =
+                new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
         if (!allowMultipleQueuedRuns) {
             // TODO: Default behavior is to keep the latest job run only, is there another
             //  reasonable behavior we need to support?
@@ -702,5 +705,83 @@ public class JobDataService {
         final var entity =
                 jobQueuedRunRepository.findById(jobQueuedRun.jobQueuedRunId()).orElseThrow();
         jobQueuedRunRepository.save(entity.setRunId(runId));
+    }
+
+    private Predicate buildQueuedRunsPredicate(
+            final List<Integer> jobIds,
+            final Collection<JobRunQueueState> states,
+            final Optional<Range<Instant>> dateTimeRange,
+            final Root<JobQueuedRunEntity> root,
+            final CriteriaBuilder criteriaBuilder) {
+
+        final var predicates = new ArrayList<Predicate>();
+
+        if (!jobIds.isEmpty()) {
+            predicates.add(root.get("jobId").in(jobIds));
+        }
+
+        if (CollectionUtils.isNotEmpty(states)) {
+            predicates.add(root.get("queueState").in(states));
+        }
+
+        dateTimeRange.ifPresent(
+                range ->
+                        predicates.add(
+                                criteriaBuilder.between(
+                                        root.get("createdAt"),
+                                        range.getMinimum(),
+                                        range.getMaximum())));
+
+        return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<JobQueuedRun> findQueuedRuns(
+            final Pageable pageable,
+            final List<Integer> includeJobIds,
+            final Collection<JobRunQueueState> states,
+            final Optional<Range<Instant>> fromToRange) {
+        return jobQueuedRunRepository
+                .findAll(
+                        (root, query, criteriaBuilder) ->
+                                buildQueuedRunsPredicate(
+                                        includeJobIds, states, fromToRange, root, criteriaBuilder),
+                        pageable)
+                .map(JobQueuedRunEntity::toJobQueuedRun);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<JobQueuedRun> findOldestQueuedRun() {
+        return jobQueuedRunRepository
+                .findFirstByOrderByCreatedAtAsc()
+                .map(JobQueuedRunEntity::toJobQueuedRun);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<JobQueuedRun> findNewestQueuedRun() {
+        return jobQueuedRunRepository
+                .findFirstByOrderByCreatedAtDesc()
+                .map(JobQueuedRunEntity::toJobQueuedRun);
+    }
+
+    /** Never removes a {@link JobRunQueueState#RUNNING} row. */
+    @Transactional
+    public boolean deleteQueuedRunIfNotRunning(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.deleteByJobQueuedRunIdAndQueueStateNot(
+                        jobQueuedRunId, JobRunQueueState.RUNNING)
+                > 0;
+    }
+
+    /**
+     * Never removes a {@link JobRunQueueState#RUNNING} row - callers must exclude it from {@code
+     * states} themselves; this method does not filter it out.
+     */
+    @Transactional
+    public long deleteQueuedRuns(
+            final Collection<Integer> jobIds, final Collection<JobRunQueueState> states) {
+        if (jobIds.isEmpty() || states.isEmpty()) {
+            return 0;
+        }
+        return jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(jobIds, states);
     }
 }

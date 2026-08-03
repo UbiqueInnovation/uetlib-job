@@ -4,7 +4,6 @@ import static java.util.Objects.requireNonNull;
 
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobQueuedRun;
-import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.executer.SuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.ubique.backend.job.model.properties.JobPropertyDefinitions;
@@ -54,11 +53,6 @@ public class JobRunQueueService {
         this.instanceName = instanceName;
         this.instanceTaints = Set.copyOf(Optional.ofNullable(instanceTaints).orElse(List.of()));
         this.maxRunnablePerCheck = maxRunnablePerCheck;
-    }
-
-    public JobQueuedRun queueNewRun(
-            final JobClassAndId jobClassAndId, final JobRunArguments arguments) {
-        return jobService.queueNewRun(jobClassAndId, arguments);
     }
 
     @Scheduled(cron = "*/5 * * * * ?")
