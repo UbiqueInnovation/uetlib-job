@@ -107,6 +107,8 @@ public class JobQueuedRunEntity {
 
     public JobQueuedRunEntity setRunId(final int runId) {
         this.jobRunId = runId;
+        this.queueState = JobRunQueueState.RUNNING;
+        this.lastHeartbeat = Instant.now();
         return this;
     }
 }

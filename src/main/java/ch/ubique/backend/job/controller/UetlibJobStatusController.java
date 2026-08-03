@@ -172,7 +172,7 @@ public class UetlibJobStatusController {
                     new QueueSubmissionSuccess(
                             jobControllerService.startJobManual(jobIdOrClassName, forceRun)));
         } catch (final ManualTriggerNotAllowedException e) {
-            return ResponseEntity.badRequest().body(new QueueSubmissionFailure(e.getMessage()));
+            return ResponseEntity.badRequest().body(new QueueSubmissionFailure(e.toString()));
         }
     }
 
