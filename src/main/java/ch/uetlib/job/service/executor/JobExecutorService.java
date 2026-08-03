@@ -1,5 +1,10 @@
 package ch.uetlib.job.service.executor;
 
+import static ch.uetlib.job.model.properties.enums.JobRunnerKey.CURRENT;
+import static ch.uetlib.job.model.properties.enums.JobRunnerKey.DEDICATED_K8S_JOB;
+
+import static java.util.Objects.requireNonNullElse;
+
 import ch.uetlib.core.utils.MapCollectors;
 import ch.uetlib.job.Job;
 import ch.uetlib.job.model.*;
@@ -13,6 +18,7 @@ import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.executor.runners.JobRunner;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +44,19 @@ public class JobExecutorService {
 
     public JobSubmissionResult submit(final Class<? extends Job> jobClass) {
         return submit(jobClass, null);
+    }
+
+    public JobSubmissionResult submit(final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
+        if (jobQueuedRun.jobRunId() != null) {
+            // TODO: Implement rescheduling jobs if required
+            throw new NotImplementedException("Behavior of rescheduling jobs is TBD");
+        }
+        final var jobClass = jobService.findJobById(jobQueuedRun.jobId()).orElseThrow();
+        return submit(
+                jobService.getJobClassOrThrow(jobClass),
+                jobQueuedRun.arguments(),
+                null,
+                isDedicated ? DEDICATED_K8S_JOB : CURRENT);
     }
 
     public JobSubmissionResult submit(
@@ -93,7 +112,7 @@ public class JobExecutorService {
         return new SuccessfulSubmissionResult(runner.key(), jobRunContext, jobRun.id());
     }
 
-    private boolean tryToSchedule(
+    protected boolean tryToSchedule(
             final JobRunner runner, final Job job, final JobRunContext jobRunContext) {
         try {
             logger.info(
@@ -130,8 +149,7 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
-        final var arguments =
-                Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
+        final var arguments = requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
         final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
@@ -155,7 +173,7 @@ public class JobExecutorService {
     }
 
     private JobRunnerKey getRunnerKeyFromJobProperties(final JobProperties jobProperties) {
-        return java.util.Objects.requireNonNullElse(
+        return requireNonNullElse(
                 jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
                 JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow());
     }

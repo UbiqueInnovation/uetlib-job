@@ -2,15 +2,13 @@ package ch.uetlib.job.service;
 
 import static ch.uetlib.job.model.JobRunState.CANCELLED;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
 import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.Job;
 import ch.uetlib.job.data.service.JobDataService;
-import ch.uetlib.job.model.JobClassAndId;
-import ch.uetlib.job.model.JobRun;
-import ch.uetlib.job.model.JobRunArguments;
-import ch.uetlib.job.model.JobRunState;
+import ch.uetlib.job.model.*;
 import ch.uetlib.job.model.properties.JobProperties;
 import ch.uetlib.job.model.properties.JobProperty;
 import ch.uetlib.job.model.properties.JobPropertyDefinition;
@@ -64,7 +62,7 @@ public class JobService {
         this.jobDataService = jobDataService;
         this.applicationContext = applicationContext;
         this.retryTemplate = new RetryTemplate(RetryPolicy.builder().maxRetries(9).build());
-        this.versionTag = Objects.requireNonNull(buildProperties.getVersion());
+        this.versionTag = requireNonNull(buildProperties.getVersion());
         this.enabledJobsCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
@@ -220,6 +218,19 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
+    public JobQueuedRun queueNewRun(final JobClassAndId job, final JobRunArguments arguments) {
+        final var j = requireNonNull(jobClassesById.get(job.id()));
+        final var properties = getJobProperties(job.id(), instantiateJob(j));
+        final var taints =
+                requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
+        // TODO: Notify current after queueing
+        final var allowMultipleQueuedRuns =
+                requireNonNull(
+                        properties.get(JobPropertyDefinitions.ALLOW_MULTIPLE_QUEUED_RUNS).value());
+        return jobDataService.queueNewRun(
+                job.id(), versionTag, arguments, taints, allowMultipleQueuedRuns);
+    }
+
     public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), startedAt);
     }
@@ -304,5 +315,23 @@ public class JobService {
                 applicationContext
                         .getAutowireCapableBeanFactory()
                         .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
+    }
+
+    public List<JobQueuedRun> findQueuedByTaints(final int max, final Set<String> instanceTaints) {
+        return jobDataService.findFirstQueuedByNoOtherTaints(max, instanceTaints);
+    }
+
+    public boolean claimQueuedRun(
+            final JobQueuedRun jobQueuedRun, final String runnerInstanceName) {
+        return jobDataService.claimQueuedRun(jobQueuedRun, runnerInstanceName);
+    }
+
+    public void setRunId(final JobQueuedRun jobQueuedRun, final int runId) {
+        jobDataService.setRunId(jobQueuedRun, runId);
+    }
+
+    public boolean hasRunner(final JobRunnerKey jobRunnerKey) {
+        return applicationContext.getBeansOfType(JobRunner.class).values().stream()
+                .anyMatch(runner -> runner.key() == jobRunnerKey);
     }
 }
