@@ -24,7 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run")
+@Profile({"!job-run", "job-primary-triggers"})
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
@@ -50,7 +50,9 @@ public class TriggerCoordinatorService {
                 triggerServices.stream()
                         .collect(
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
-        this.allTriggersDisabled = environment.acceptsProfiles(Profiles.of("job-disable-triggers"));
+        this.allTriggersDisabled =
+                environment.acceptsProfiles(Profiles.of("job-disable-triggers"))
+                        || !environment.acceptsProfiles(Profiles.of("job-primary-triggers"));
     }
 
     @EventListener(ApplicationReadyEvent.class)

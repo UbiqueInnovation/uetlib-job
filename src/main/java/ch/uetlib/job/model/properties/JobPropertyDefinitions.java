@@ -17,10 +17,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -206,6 +203,24 @@ public final class JobPropertyDefinitions {
                             + " context.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobManualTriggerMode.NEW_RUN_ALLOWED);
+    public static final JobPropertyDefinition<Set<String>> JOB_RUN_TAINTS =
+            new GenericPropertyDefinition<>(
+                    "JOB_RUN_TAINTS",
+                    "Taints to be set for the job run. Taints are used to prevent certain jobs from"
+                            + " running on certain runners.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    Set.of(),
+                    null,
+                    JsonMapper.shared(),
+                    new TypeReference<>() {});
+    public static final JobPropertyDefinition<Boolean> ALLOW_MULTIPLE_QUEUED_RUNS =
+            new BooleanPropertyDefinition(
+                    "ALLOW_MULTIPLE_QUEUED_RUNS",
+                    "If true, multiple non-running runs of the same job can be queued at the same time. If false,"
+                            + " only one run can be queued at a time.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false);
 
     // ------------------------------------
     // Helpers to get fields declared above
