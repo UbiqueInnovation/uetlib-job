@@ -53,6 +53,10 @@ public class TriggerCoordinatorService {
 
     @EventListener(ApplicationReadyEvent.class)
     private void onStartup() {
+        if (allTriggersDisabled) {
+            logger.info("Not registering live triggers on this instance.");
+            return;
+        }
         logger.info("Evaluating triggers of all jobs");
         final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         for (final var jobClass : jobService.getAllJobClasses()) {
@@ -86,6 +90,10 @@ public class TriggerCoordinatorService {
 
     public void addTrigger(
             final int jobId, final Class<? extends Job> jobClass, final Trigger trigger) {
+        if (allTriggersDisabled) {
+            logger.debug("Not registering trigger {} live on this instance.", trigger);
+            return;
+        }
         getTriggerService(trigger.definition())
                 .addTrigger(
                         trigger.id(),
@@ -96,6 +104,11 @@ public class TriggerCoordinatorService {
     }
 
     public void removeTrigger(final Trigger trigger) {
+        if (allTriggersDisabled) {
+            logger.debug(
+                    "No live trigger registration for {} to remove on this instance.", trigger);
+            return;
+        }
         getTriggerService(trigger.definition()).removeTrigger(trigger.id());
         logger.info("Removed trigger {}", trigger);
     }
