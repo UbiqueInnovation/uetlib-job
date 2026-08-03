@@ -2,6 +2,7 @@ package ch.uetlib.job.model;
 
 import ch.uetlib.job.model.queue.JobRunQueueState;
 
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -18,5 +19,5 @@ public record JobQueuedRun(
         @Nullable Instant lastHeartbeat,
         Instant createdAt,
         Instant updatedAt,
-        Set<String> taints,
+        Set<JobRunnerTaint> taints,
         JobRunArguments arguments) {}

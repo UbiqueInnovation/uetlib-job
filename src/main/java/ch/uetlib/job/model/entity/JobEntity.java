@@ -43,13 +43,11 @@ public class JobEntity {
     @Column(name = "updated_at", nullable = false)
     private @Nullable Instant updatedAt;
 
-    public static JobEntity newForClass(final Class<? extends Job> jobClass) {
+    public static JobEntity newForClass(final Class<? extends Job> jobClass, final int priority) {
         final var jobEntity = new JobEntity();
         jobEntity.enabled = true;
         jobEntity.canonicalClassName = jobClass.getCanonicalName();
-        // Maybe this could be fixed, but the `JobPriorityService` will clean this up when the
-        // application is ready.
-        jobEntity.priority = 0;
+        jobEntity.priority = priority;
         return jobEntity;
     }
 
