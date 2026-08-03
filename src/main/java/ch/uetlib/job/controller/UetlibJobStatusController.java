@@ -7,7 +7,10 @@ import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.client.*;
 import ch.uetlib.job.model.client.info.JobSystemInfoResponse;
 import ch.uetlib.job.model.client.triggers.JobTriggers;
-import ch.uetlib.job.model.executer.JobSubmissionResult;
+import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.queue.QueueSubmissionFailure;
+import ch.uetlib.job.model.queue.QueueSubmissionResult;
+import ch.uetlib.job.model.queue.QueueSubmissionSuccess;
 import ch.uetlib.job.model.response.StringResponse;
 import ch.uetlib.job.model.response.SuccessResponse;
 import ch.uetlib.job.model.response.files.JobRunFileListResponse;
@@ -82,6 +85,44 @@ public class UetlibJobStatusController {
                 to);
     }
 
+    @GetMapping("/queue")
+    public JobQueueInfosContainer queue(
+            @RequestParam(required = false, defaultValue = "0") final int page,
+            @RequestParam(required = false, defaultValue = "50") final int perPage,
+            @RequestParam(required = false, defaultValue = "createdAt") final List<String> orderBy,
+            @RequestParam(required = false, defaultValue = "ASC")
+                    final List<Sort.Direction> directions,
+            @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
+            @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
+            @RequestParam(required = false) final Instant from,
+            @RequestParam(required = false) final Instant to,
+            @RequestParam(required = false, defaultValue = "")
+                    final Collection<JobRunQueueState> state)
+            throws ClassNotFoundException {
+        return jobControllerService.getQueueInfo(
+                toPageableWithDefaultDirection(page, perPage, orderBy, directions),
+                state,
+                includeJobs,
+                excludeJobs,
+                from,
+                to);
+    }
+
+    @DeleteMapping("/queue/{jobQueuedRunId}")
+    public SuccessResponse deleteQueuedRun(@PathVariable final int jobQueuedRunId) {
+        return jobControllerService.deleteQueuedRun(jobQueuedRunId);
+    }
+
+    @DeleteMapping("/queue")
+    public SuccessResponse deleteQueuedRuns(
+            @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
+            @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
+            @RequestParam(required = false, defaultValue = "")
+                    final Collection<JobRunQueueState> state)
+            throws ClassNotFoundException {
+        return jobControllerService.deleteQueuedRuns(includeJobs, excludeJobs, state);
+    }
+
     @GetMapping("/info")
     public JobSystemInfoResponse info() {
         return jobControllerService.getInfo();
@@ -122,15 +163,17 @@ public class UetlibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/start")
-    public ResponseEntity<JobSubmissionResult> startJob(
+    public ResponseEntity<QueueSubmissionResult> startJob(
             @PathVariable final String jobIdOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
             throws ClassNotFoundException {
-        final var result = jobControllerService.startJobManual(jobIdOrClassName, forceRun);
-        if (result.status().isSuccess()) {
-            return ResponseEntity.ok(result);
+        try {
+            return ResponseEntity.ok(
+                    new QueueSubmissionSuccess(
+                            jobControllerService.startJobManual(jobIdOrClassName, forceRun)));
+        } catch (final ManualTriggerNotAllowedException e) {
+            return ResponseEntity.badRequest().body(new QueueSubmissionFailure(e.getMessage()));
         }
-        return ResponseEntity.badRequest().body(result);
     }
 
     @PostMapping("/job/{jobIdOrClassName}/enable")
