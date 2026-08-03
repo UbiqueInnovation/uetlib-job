@@ -1,5 +1,5 @@
-insert into t_job(clazz, enabled, created_at, updated_at)
-values ('ch.ubique.backend.job.testjob.TestJob', true, now() - interval 11 hour,
+insert into t_job(clazz, enabled, priority, created_at, updated_at)
+values ('ch.ubique.backend.job.testjob.TestJob', true, 0, now() - interval 11 hour,
         now() - interval 10 hour);
 
 insert

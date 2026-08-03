@@ -9,8 +9,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Set;
 
-@Converter(autoApply = true)
-public class StringSetToStringConverter<T> extends ObjectMapperToStringConverter<Set<T>> {
+@Converter
+public class StringSetToStringConverter extends ObjectMapperToStringConverter<Set<String>> {
 
     public StringSetToStringConverter(final JsonMapper jsonMapper) {
         super(jsonMapper, new TypeReference<>() {});

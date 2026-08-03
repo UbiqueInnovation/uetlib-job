@@ -13,6 +13,7 @@ import ch.ubique.backend.job.model.input.JobRunInputDeclaration;
 import ch.ubique.backend.job.model.properties.*;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
+import ch.ubique.backend.job.model.runner.conditions.JobRunnerTaint;
 import ch.ubique.backend.job.model.triggers.*;
 import ch.ubique.backend.job.model.triggers.TriggerDefinition;
 import ch.ubique.backend.job.service.triggers.TriggerCoordinatorService;
@@ -37,6 +38,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 @Service
@@ -218,7 +220,9 @@ public class JobDataService {
     }
 
     @Transactional
-    public void insertNewJobs(final Collection<Class<? extends Job>> jobClass) {
+    public void insertNewJobs(
+            final Collection<Class<? extends Job>> jobClass,
+            final ToIntFunction<Class<? extends Job>> priorityResolver) {
         final var existingJobs =
                 jobRepository.findAll().stream()
                         .map(JobEntity::canonicalClassName)
@@ -233,7 +237,10 @@ public class JobDataService {
             return;
         }
 
-        final var newEntities = toInsert.stream().map(JobEntity::newForClass).toList();
+        final var newEntities =
+                toInsert.stream()
+                        .map(cls -> JobEntity.newForClass(cls, priorityResolver.applyAsInt(cls)))
+                        .toList();
         jobRepository.saveAll(newEntities);
     }
 
@@ -268,7 +275,7 @@ public class JobDataService {
             final @Nullable Integer priority,
             final String versionTag,
             final JobRunArguments arguments,
-            final Set<String> taints,
+            final Set<JobRunnerTaint> taints,
             final boolean allowMultipleQueuedRuns) {
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
