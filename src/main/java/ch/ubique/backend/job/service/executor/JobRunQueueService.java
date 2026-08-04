@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +45,6 @@ public class JobRunQueueService {
     private final int maxRunnablePerCheck;
 
     private final AtomicBoolean checkForRunnableInProgress = new AtomicBoolean(false);
-    private final AtomicBoolean checkForRunnableDedicatedInProgress = new AtomicBoolean(false);
 
     public JobRunQueueService(
             final JobService jobService,
@@ -68,17 +66,7 @@ public class JobRunQueueService {
     @Scheduled(cron = "*/5 * * * * ?")
     public void checkForRunnableAndSchedule() {
         runExclusively(
-                checkForRunnableInProgress,
-                "checkForRunnableAndSchedule",
-                () -> processQueue(instanceTaints, this::claimAndExecuteQueuedRun));
-    }
-
-    @Scheduled(cron = "*/5 * * * * ?")
-    public void checkForRunnableDedicatedAndSchedule() {
-        runExclusively(
-                checkForRunnableDedicatedInProgress,
-                "checkForRunnableDedicatedAndSchedule",
-                () -> processQueue(getDedicatedTaints(), this::claimAndExecuteDedicatedQueuedRun));
+                checkForRunnableInProgress, "checkForRunnableAndSchedule", this::processQueue);
     }
 
     /**
@@ -101,26 +89,30 @@ public class JobRunQueueService {
     }
 
     /**
-     * Processes a queue of job runs, claiming and executing those that match the specified taints.
-     * Oldest first, once a page has a schedulable run, the rest of the page is processed and no
-     * more pages are loaded.
+     * Pages through queued runs, highest priority and oldest first, claiming/executing every row on
+     * a page that matches this instance (plain or dedicated - see {@link
+     * #claimIfMatchesThisRunner}) before considering the next page. Keeps fetching further pages
+     * only while a page had no match at all, so a queue whose front this instance can't run doesn't
+     * starve out matching rows further back; as soon as a page has any match, this stops for now -
+     * the next tick (or a NOTIFY-triggered {@link #checkForRunnable}) picks up anything left.
      */
-    private void processQueue(final Set<String> taints, final Consumer<JobQueuedRun> claimer) {
+    private void processQueue() {
         var pageNumber = 0;
         while (true) {
             final var page =
                     jobService.findQueuedRunsPage(PageRequest.of(pageNumber, maxRunnablePerCheck));
-            final var matches =
-                    page.getContent().stream().filter(run -> matchesTaints(run, taints)).toList();
-            if (!matches.isEmpty()) {
-                matches.forEach(claimer);
+            var anyMatch = false;
+            for (final var jobQueuedRun : page.getContent()) {
+                anyMatch |= claimIfMatchesThisRunner(jobQueuedRun);
+            }
+            if (anyMatch) {
                 return;
             }
             if (!page.hasNext()) {
                 logger.trace(
-                        "No more job runs to run on this runner (instanceName={}, taints={})",
+                        "No more job runs to run on this runner (instanceName={}, instanceTaints={})",
                         instanceName,
-                        taints);
+                        instanceTaints);
                 return;
             }
             pageNumber++;
@@ -131,8 +123,8 @@ public class JobRunQueueService {
      * Fast path for {@link PgQueueInsertionListenService}: instead of re-running the full paged
      * poll, fetches exactly the notified rows and claims/executes only those that actually match
      * this instance's taints. Newly-inserted rows this instance doesn't match are ignored here -
-     * they're still picked up normally by {@link #checkForRunnableAndSchedule} / {@link
-     * #checkForRunnableDedicatedAndSchedule} on whichever instance they do match.
+     * they're still picked up normally by {@link #checkForRunnableAndSchedule} on whichever
+     * instance they do match.
      */
     public void checkForRunnable(final List<Pair<Integer, Integer>> jobIdToQueueRunId) {
         final var newInserts =
@@ -140,15 +132,26 @@ public class JobRunQueueService {
         newInserts.forEach(this::claimIfMatchesThisRunner);
     }
 
-    private void claimIfMatchesThisRunner(final JobQueuedRun jobQueuedRun) {
+    /**
+     * Claims and executes {@code jobQueuedRun} if it matches this instance.
+     *
+     * @return whether it matched, regardless of whether the subsequent claim attempt actually
+     *     succeeded (it may lose a race to another instance, or a plain match may be skipped for
+     *     lack of capacity)
+     */
+    private boolean claimIfMatchesThisRunner(final JobQueuedRun jobQueuedRun) {
         if (jobQueuedRun.queueState() != JobRunQueueState.QUEUED) {
-            return;
+            return false;
         }
         if (matchesTaints(jobQueuedRun, instanceTaints)) {
             claimAndExecuteQueuedRun(jobQueuedRun);
-        } else if (matchesTaints(jobQueuedRun, getDedicatedTaints())) {
-            claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
+            return true;
         }
+        if (matchesTaints(jobQueuedRun, getDedicatedTaints())) {
+            claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
+            return true;
+        }
+        return false;
     }
 
     /** The single place taint subset-matching (row's taints ⊆ {@code taints}) is implemented. */

@@ -30,9 +30,9 @@ import java.util.Set;
 
 /**
  * Taint subset-matching used to live in a JSON_TABLE-based SQL query; it is now Java-side logic
- * ({@link JobRunQueueService#matchesTaints}) exercised here via the dedicated-runner path, which is
- * the simplest one to drive with mocks (it skips the runner-group capacity check that the plain
- * path needs). Also covers the paging strategy and the no-concurrent-execution guard.
+ * ({@code JobRunQueueService#matchesTaints}) exercised here via the dedicated-runner match path,
+ * which is the simplest one to drive with mocks (it skips the runner-group capacity check the plain
+ * match path needs). Also covers the paging strategy and the no-concurrent-execution guard.
  */
 class JobRunQueueServiceTest {
 
@@ -56,14 +56,17 @@ class JobRunQueueServiceTest {
     void keepsPagingUntilAPageHasAMatch() {
         final var nonMatching = queuedRun(1, Set.of(new JobRunnerTaint("unadvertised")));
         final var matching =
-                queuedRun(2, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT, new JobRunnerTaint("gpu")));
+                queuedRun(
+                        2, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT, new JobRunnerTaint("gpu")));
         stubDedicatedClaimAttempt();
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
-                .thenReturn(new SliceImpl<>(List.of(nonMatching), PageRequest.of(0, PAGE_SIZE), true));
+                .thenReturn(
+                        new SliceImpl<>(List.of(nonMatching), PageRequest.of(0, PAGE_SIZE), true));
         when(jobService.findQueuedRunsPage(PageRequest.of(1, PAGE_SIZE)))
-                .thenReturn(new SliceImpl<>(List.of(matching), PageRequest.of(1, PAGE_SIZE), false));
+                .thenReturn(
+                        new SliceImpl<>(List.of(matching), PageRequest.of(1, PAGE_SIZE), false));
 
-        service.checkForRunnableDedicatedAndSchedule();
+        service.checkForRunnableAndSchedule();
 
         verify(jobService).findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE));
         verify(jobService).findQueuedRunsPage(PageRequest.of(1, PAGE_SIZE));
@@ -78,7 +81,7 @@ class JobRunQueueServiceTest {
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(new SliceImpl<>(List.of(matching), PageRequest.of(0, PAGE_SIZE), true));
 
-        service.checkForRunnableDedicatedAndSchedule();
+        service.checkForRunnableAndSchedule();
 
         verify(jobService).findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE));
         verify(jobService, never()).findQueuedRunsPage(PageRequest.of(1, PAGE_SIZE));
@@ -88,9 +91,10 @@ class JobRunQueueServiceTest {
     void stopsAtTheLastPageWhenNothingEverMatches() {
         final var nonMatching = queuedRun(1, Set.of(new JobRunnerTaint("unadvertised")));
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
-                .thenReturn(new SliceImpl<>(List.of(nonMatching), PageRequest.of(0, PAGE_SIZE), false));
+                .thenReturn(
+                        new SliceImpl<>(List.of(nonMatching), PageRequest.of(0, PAGE_SIZE), false));
 
-        service.checkForRunnableDedicatedAndSchedule();
+        service.checkForRunnableAndSchedule();
 
         verify(jobService).findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE));
         verify(jobService, never()).claimQueuedRun(any(), any());
@@ -106,11 +110,12 @@ class JobRunQueueServiceTest {
         when(jobService.findQueuedRunsPage(any()))
                 .thenAnswer(
                         invocation -> {
-                            service.checkForRunnableDedicatedAndSchedule();
-                            return new SliceImpl<>(List.of(run), PageRequest.of(0, PAGE_SIZE), false);
+                            service.checkForRunnableAndSchedule();
+                            return new SliceImpl<>(
+                                    List.of(run), PageRequest.of(0, PAGE_SIZE), false);
                         });
 
-        service.checkForRunnableDedicatedAndSchedule();
+        service.checkForRunnableAndSchedule();
 
         verify(jobService, times(1)).findQueuedRunsPage(any());
     }
