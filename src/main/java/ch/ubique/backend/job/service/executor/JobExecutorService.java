@@ -2,6 +2,7 @@ package ch.ubique.backend.job.service.executor;
 
 import static ch.ubique.backend.job.model.properties.enums.JobRunnerKey.*;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.backend.core.utils.MapCollectors;
@@ -145,7 +146,8 @@ public class JobExecutorService {
             @Nullable final Integer runId,
             final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
-        final var arguments = requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
+        final var arguments =
+                requireNonNull(requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT));
         final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
@@ -165,12 +167,13 @@ public class JobExecutorService {
                     "Could not find a runner for the given runner key " + selectedJobRunnerKey);
         }
 
-        return selectedJobRunnerKey;
+        return requireNonNull(selectedJobRunnerKey);
     }
 
     private JobRunnerKey getRunnerKeyFromJobProperties(final JobProperties jobProperties) {
-        return requireNonNullElse(
-                jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
-                JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow());
+        return requireNonNull(
+                requireNonNullElse(
+                        jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
+                        JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow()));
     }
 }
