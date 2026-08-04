@@ -2,6 +2,7 @@ package ch.uetlib.job;
 
 import ch.uetlib.job.commands.JobApplicationArgsParser;
 import ch.uetlib.job.commands.JobApplicationJobToStartArgs;
+import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalData;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalDataString;
@@ -11,6 +12,7 @@ import ch.uetlib.job.model.runner.JobApplicationExitStatus;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.executor.JobExecutorService;
+import ch.uetlib.job.service.executor.JobRunQueueService;
 import ch.uetlib.job.service.executor.runners.DedicatedJobRunner;
 
 import org.apache.commons.lang3.StringUtils;
@@ -97,6 +99,8 @@ public final class JobApplication {
                 return JobApplicationExitStatus.COULD_NOT_SCHEDULE;
             }
 
+            var _ = recordAsRunningInQueue(applicationContext, successfulSubmissionResult);
+
             logger.info("Waiting for job to finish.");
             applicationContext.getBean(DedicatedJobRunner.class).awaitCompletion();
 
@@ -112,6 +116,27 @@ public final class JobApplication {
             logger.error("Unexpected exception.", e);
             return JobApplicationExitStatus.UNCAUGHT_EXCEPTION;
         }
+    }
+
+    /**
+     * A dedicated {@code --job} run bypasses the queue entirely on submission (see {@link
+     * JobExecutorService#submit(Class, JobRunArguments, Integer, JobRunnerKey)
+     * JobExecutorService.submit})
+     */
+    private static JobQueuedRun recordAsRunningInQueue(
+            final ConfigurableApplicationContext applicationContext,
+            final SuccessfulSubmissionResult submissionResult) {
+        final var runnerInstanceName =
+                applicationContext
+                        .getEnvironment()
+                        .getRequiredProperty(JobRunQueueService.RUNNER_INSTANCE_NAME_PROP);
+        return applicationContext
+                .getBean(JobService.class)
+                .queueRunningRun(
+                        submissionResult.jobRunContext().job(),
+                        submissionResult.jobRunContext().arguments(),
+                        submissionResult.jobRunId(),
+                        runnerInstanceName);
     }
 
     private static JobApplicationExitStatus exitCodeFromJobRunState(

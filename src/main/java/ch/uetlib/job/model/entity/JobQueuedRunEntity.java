@@ -91,6 +91,28 @@ public class JobQueuedRunEntity {
         this.jobRunArguments = jobRunArguments;
     }
 
+    /**
+     * For a run that is dispatched directly (bypassing the normal QUEUED/CLAIMED steps, (a
+     * dedicated {@code --job} CLI run)
+     */
+    public JobQueuedRunEntity(
+            final int jobId,
+            final String versionTag,
+            final JobRunArguments jobRunArguments,
+            final Set<JobRunnerTaint> taints,
+            final int jobRunId,
+            final String runner) {
+        this.jobId = jobId;
+        this.priority = null;
+        this.versionTag = versionTag;
+        this.queueState = JobRunQueueState.RUNNING;
+        this.taints = taints.stream().map(JobRunnerTaint::value).collect(Collectors.toSet());
+        this.jobRunArguments = jobRunArguments;
+        this.jobRunId = jobRunId;
+        this.runner = runner;
+        this.lastHeartbeat = Instant.now();
+    }
+
     public JobQueuedRun toJobQueuedRun() {
         return new JobQueuedRun(
                 requireNonNull(jobQueuedRunId),
@@ -103,7 +125,7 @@ public class JobQueuedRunEntity {
                 lastHeartbeat,
                 requireNonNull(createdAt),
                 requireNonNull(updatedAt),
-                taints.stream().map(JobRunnerTaint::new).collect(Collectors.toSet()),
+                taints.stream().map(JobRunnerTaint::from).collect(Collectors.toSet()),
                 jobRunArguments);
     }
 

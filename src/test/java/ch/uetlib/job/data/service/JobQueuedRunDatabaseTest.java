@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import ch.uetlib.job.data.BaseJobDatabaseTest;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
+import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -96,5 +101,203 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         .map(JobQueuedRun::jobQueuedRunId)
                         .toList();
         queued.forEach(run -> assertTrue(idsAcrossBothPages.contains(run.jobQueuedRunId())));
+    }
+
+    @Test
+    void claimQueuedRunMovesQueuedToClaimedAndRejectsASecondClaimOfTheSameSnapshot() {
+        final var run = queueOne();
+
+        assertTrue(jobDataService.claimQueuedRun(run, "runner-a"));
+        assertFalse(
+                jobDataService.claimQueuedRun(run, "runner-b"),
+                "the row is now CLAIMED, so a claim attempt using the pre-claim (QUEUED) snapshot"
+                        + " must fail");
+    }
+
+    @Test
+    void setRunIdMovesClaimedToRunningWithTheGivenJobRunId() {
+        final var run = queueOne();
+        jobDataService.claimQueuedRun(run, "runner-a");
+
+        jobDataService.setRunId(run, EXISTING_JOB_RUN_ID);
+
+        final var running = jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING);
+        final var reloaded =
+                running.stream()
+                        .filter(r -> r.jobQueuedRunId() == run.jobQueuedRunId())
+                        .findFirst()
+                        .orElseThrow();
+        assertEquals(EXISTING_JOB_RUN_ID, reloaded.jobRunId());
+    }
+
+    @Test
+    void updateQueuedRunPriorityUpdatesAQueuedRow() {
+        final var run = queueOne();
+
+        assertTrue(jobDataService.updateQueuedRunPriority(run.jobQueuedRunId(), 42));
+
+        final var reloaded = findInQueue(run.jobQueuedRunId()).orElseThrow();
+        assertEquals(42, reloaded.priority());
+    }
+
+    @Test
+    void updateQueuedRunPriorityCanClearTheOverrideBackToNull() {
+        final var run = queueOne();
+        jobDataService.updateQueuedRunPriority(run.jobQueuedRunId(), 42);
+
+        assertTrue(jobDataService.updateQueuedRunPriority(run.jobQueuedRunId(), null));
+
+        assertNull(findInQueue(run.jobQueuedRunId()).orElseThrow().priority());
+    }
+
+    @Test
+    void updateQueuedRunPriorityNeverUpdatesARunningRow() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        assertFalse(jobDataService.updateQueuedRunPriority(runningRunId, 42));
+    }
+
+    @Test
+    void deleteQueuedRunIfNotRunningDeletesAQueuedRow() {
+        final var run = queueOne();
+
+        assertTrue(jobDataService.deleteQueuedRunIfNotRunning(run.jobQueuedRunId()));
+        assertTrue(findInQueue(run.jobQueuedRunId()).isEmpty());
+    }
+
+    @Test
+    void deleteQueuedRunIfNotRunningNeverDeletesARunningRow() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        assertFalse(jobDataService.deleteQueuedRunIfNotRunning(runningRunId));
+        assertEquals(
+                1,
+                jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING).stream()
+                        .filter(r -> r.jobQueuedRunId() == runningRunId)
+                        .count());
+    }
+
+    @Test
+    void deleteQueuedRunsBulkDeletesOnlyRowsInTheGivenStates() {
+        final var toDelete = queueOne();
+        jobDataService.claimQueuedRun(toDelete, "runner-a");
+        final var stillQueued = queueOne();
+
+        final var removed =
+                jobDataService.deleteQueuedRuns(
+                        List.of(TEST_JOB_ID), Set.of(JobRunQueueState.CLAIMED));
+
+        assertEquals(1, removed);
+        assertTrue(findInQueue(toDelete.jobQueuedRunId()).isEmpty());
+        assertTrue(
+                findInQueue(stillQueued.jobQueuedRunId()).isPresent(),
+                "a row not in the requested state(s) must not be touched");
+    }
+
+    @Test
+    void findOldestAndNewestQueuedRunReturnTheSameSingleRowWhenOnlyOneIsQueued() {
+        final var only = queueOne();
+
+        assertEquals(
+                only.jobQueuedRunId(), jobDataService.findOldestQueuedRun().orElseThrow().jobQueuedRunId());
+        assertEquals(
+                only.jobQueuedRunId(), jobDataService.findNewestQueuedRun().orElseThrow().jobQueuedRunId());
+    }
+
+    @Test
+    void findOldestAndNewestQueuedRunAreEmptyWhenNothingIsQueued() {
+        assertTrue(jobDataService.findOldestQueuedRun().isEmpty());
+        assertTrue(jobDataService.findNewestQueuedRun().isEmpty());
+    }
+
+    @Test
+    void findQueuedRunsFiltersByJobAndState() {
+        final var queued = queueOne();
+        final var claimed = queueOne();
+        jobDataService.claimQueuedRun(claimed, "runner-a");
+
+        final var onlyQueued =
+                jobDataService.findQueuedRuns(
+                        PageRequest.of(0, 10),
+                        List.of(TEST_JOB_ID),
+                        Set.of(JobRunQueueState.QUEUED),
+                        Optional.empty());
+
+        final var ids = onlyQueued.stream().map(JobQueuedRun::jobQueuedRunId).toList();
+        assertTrue(ids.contains(queued.jobQueuedRunId()));
+        assertFalse(ids.contains(claimed.jobQueuedRunId()));
+    }
+
+    @Test
+    void queueNewRunNeverDeletesARunningRowWhenDedupingToTheLatest() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        jobDataService.queueNewRun(
+                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+
+        assertTrue(
+                findInQueue(runningRunId).isPresent(),
+                "a job's trigger firing again must not delete its already-RUNNING queue row");
+    }
+
+    @Test
+    void queueNewRunDeletesAnExistingQueuedRowWhenDedupingToTheLatest() {
+        final var previouslyQueued = queueOne();
+
+        jobDataService.queueNewRun(
+                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+
+        assertTrue(findInQueue(previouslyQueued.jobQueuedRunId()).isEmpty());
+    }
+
+    @Test
+    void resetStaleClaimsResetsClaimsOlderThanTheGivenThreshold() {
+        final var run = queueOne();
+        jobDataService.claimQueuedRun(run, "runner-a");
+
+        // The heartbeat was just set to Instant.now() by claimQueuedRun, so a staleBefore in the
+        // future makes it "stale" without needing to fabricate an old heartbeat timestamp.
+        final var reset =
+                jobDataService.resetStaleClaims(
+                        Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        assertEquals(1, reset);
+        assertTrue(findInQueue(run.jobQueuedRunId()).isPresent());
+    }
+
+    @Test
+    void resetStaleClaimsLeavesFreshClaimsAlone() {
+        final var run = queueOne();
+        jobDataService.claimQueuedRun(run, "runner-a");
+
+        final var reset =
+                jobDataService.resetStaleClaims(
+                        Map.of(TEST_JOB_ID, Instant.now().minusSeconds(60)));
+
+        assertEquals(0, reset);
+    }
+
+    /** An existing {@code t_job_run} row from the fixtures, valid as {@code fk_job_run_id}. */
+    private static final int EXISTING_JOB_RUN_ID = 2;
+
+    private JobQueuedRun queueOne() {
+        return jobDataService.queueNewRun(
+                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+    }
+
+    private int queueClaimAndRunToRunning() {
+        final var run = queueOne();
+        jobDataService.claimQueuedRun(run, "runner-a");
+        jobDataService.setRunId(run, EXISTING_JOB_RUN_ID);
+        return run.jobQueuedRunId();
+    }
+
+    private Optional<JobQueuedRun> findInQueue(final int jobQueuedRunId) {
+        return Stream.concat(
+                        jobDataService.findQueuedRunsPage(PageRequest.of(0, 100)).getContent()
+                                .stream(),
+                        jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING).stream())
+                .filter(r -> r.jobQueuedRunId() == jobQueuedRunId)
+                .findFirst();
     }
 }

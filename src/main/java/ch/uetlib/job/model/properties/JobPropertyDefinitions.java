@@ -229,8 +229,18 @@ public final class JobPropertyDefinitions {
                             + "running for longer than this timeout, it will be reset to queued and can be claimed "
                             + "by another runner.",
                     JobPropertyDefinitionGroup.RUNNER,
-                    true,
-                    null);
+                    false,
+                    Duration.ofMinutes(2));
+    public static final JobPropertyDefinition<Duration> HEARTBEAT_TIMEOUT =
+            new DurationPropertyDefinition(
+                    "HEARTBEAT_TIMEOUT",
+                    "Override the default timeout for a running job's heartbeat. The runner executing"
+                            + " the job touches its queue row's heartbeat while it runs; if it goes"
+                            + " silent for longer than this timeout, the run is considered abandoned"
+                            + " (its runner died or is stuck) and is marked as an error.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    Duration.ofMinutes(1));
 
     // ------------------------------------
     // Helpers to get fields declared above

@@ -32,8 +32,6 @@ import org.apache.commons.lang3.Range;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +57,6 @@ public class JobDataService {
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final K8sJobRepository k8sJobRepository;
     private final LoggingEventRepository loggingEventRepository;
-    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final JdbcTemplate jobJdbcTemplate;
 
     @SuppressWarnings("NullAway.Init")
@@ -77,7 +74,6 @@ public class JobDataService {
             final JobQueuedRunRepository jobQueuedRunRepository,
             final K8sJobRepository k8sJobRepository,
             final LoggingEventRepository loggingEventRepository,
-            final NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             final JdbcTemplate jobJdbcTemplate) {
         this.jobRepository = jobRepository;
         this.jobTriggerRepository = jobTriggerRepository;
@@ -89,7 +85,6 @@ public class JobDataService {
         this.jobQueuedRunRepository = jobQueuedRunRepository;
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
-        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.jobJdbcTemplate = jobJdbcTemplate;
     }
 
@@ -286,11 +281,26 @@ public class JobDataService {
         if (!allowMultipleQueuedRuns) {
             // TODO: Default behavior is to keep the latest job run only, is there another
             //  reasonable behavior we need to support?
-            final var existing = jobQueuedRunRepository.findAllByJobId(jobId);
-            if (!existing.isEmpty()) {
-                jobQueuedRunRepository.deleteAll(existing);
-            }
+            // Excludes RUNNING: a job already running (including a dedicated --job run recorded via
+            // queueRunningRun) must not have its queue row deleted out from under it just because
+            // its
+            // trigger fired again.
+            jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(
+                    Set.of(jobId), Set.of(QUEUED, CLAIMED));
         }
+        return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
+    }
+
+    @Transactional
+    public JobQueuedRun queueRunningRun(
+            final int jobId,
+            final String versionTag,
+            final JobRunArguments arguments,
+            final Set<JobRunnerTaint> taints,
+            final int jobRunId,
+            final String runner) {
+        final var queuedRunEntity =
+                new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId, runner);
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
     }
 
@@ -724,35 +734,20 @@ public class JobDataService {
                 .toList();
     }
 
-    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore} */
+    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}. */
     @Transactional
     public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
-        return Arrays.stream(
-                        namedParameterJdbcTemplate.batchUpdate(
-                                """
-                                UPDATE t_job_run_queue
-                                SET queue_state = :resetState, runner = null, heartbeat_at = null, updated_at = :now
-                                WHERE fk_job_id = :fkJobId AND queue_state = :staleState
-                                  AND (heartbeat_at IS NULL OR heartbeat_at < :staleBefore)
-                                """,
-                                staleBefore.entrySet().stream()
-                                        .map(entry -> {
-                                            final var jobId = entry.getKey();
-                                            final var staleBeforeVal = entry.getValue();
-                                            return new MapSqlParameterSource()
-                                                    .addValue("fkJobId", jobId)
-                                                    .addValue("resetState", QUEUED)
-                                                    .addValue("staleState", CLAIMED)
-                                                    .addValue("staleBefore", staleBeforeVal)
-                                                    .addValue("now", Instant.now());
-                                        })
-                                        .toArray(MapSqlParameterSource[]::new)))
+        final var now = Instant.now();
+        return staleBefore.entrySet().stream()
+                .mapToInt(entry ->
+                        jobQueuedRunRepository.resetStaleClaimsForJob(
+                                entry.getKey(), CLAIMED, QUEUED, entry.getValue(), now))
                 .sum();
     }
 
     @Transactional
-    public void touchQueuedRunHeartbeat(final int jobQueuedRunId) {
-        jobQueuedRunRepository.touchHeartbeat(jobQueuedRunId, Instant.now());
+    public void touchQueuedRunHeartbeatByJobRunId(final int jobRunId) {
+        jobQueuedRunRepository.touchHeartbeatByJobRunId(jobRunId, Instant.now());
     }
 
     /**
@@ -768,6 +763,18 @@ public class JobDataService {
     @Transactional
     public void resetQueuedRunById(final int jobQueuedRunId) {
         jobQueuedRunRepository.forceReset(jobQueuedRunId, QUEUED, Instant.now());
+    }
+
+    /**
+     * Never updates a {@link JobRunQueueState#RUNNING} row's priority. Returns whether a row was
+     * updated.
+     */
+    @Transactional
+    public boolean updateQueuedRunPriority(
+            final int jobQueuedRunId, final @Nullable Integer priority) {
+        return jobQueuedRunRepository.updatePriority(
+                        jobQueuedRunId, priority, JobRunQueueState.RUNNING)
+                == 1;
     }
 
     private Predicate buildQueuedRunsPredicate(
