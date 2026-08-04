@@ -59,7 +59,7 @@ public class UetlibJobStatusController {
     }
 
     @GetMapping("/jobs")
-    public JobInfosContainer jobs() throws ClassNotFoundException {
+    public JobInfosContainer jobs() {
         return jobControllerService.getJobInfos();
     }
 
@@ -74,8 +74,8 @@ public class UetlibJobStatusController {
             @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
             @RequestParam(required = false) final Instant from,
             @RequestParam(required = false) final Instant to,
-            @RequestParam(required = false, defaultValue = "") final Collection<JobRunState> state)
-            throws ClassNotFoundException {
+            @RequestParam(required = false, defaultValue = "")
+                    final Collection<JobRunState> state) {
         return jobControllerService.findJobRuns(
                 toPageableWithDefaultDirection(page, perPage, orderBy, directions),
                 state,
@@ -97,8 +97,7 @@ public class UetlibJobStatusController {
             @RequestParam(required = false) final Instant from,
             @RequestParam(required = false) final Instant to,
             @RequestParam(required = false, defaultValue = "")
-                    final Collection<JobRunQueueState> state)
-            throws ClassNotFoundException {
+                    final Collection<JobRunQueueState> state) {
         return jobControllerService.getQueueInfo(
                 toPageableWithDefaultDirection(page, perPage, orderBy, directions),
                 state,
@@ -129,44 +128,38 @@ public class UetlibJobStatusController {
     }
 
     @GetMapping("/run/{jobRunId}")
-    public JobRunInfoContainer jobRun(@PathVariable final int jobRunId)
-            throws ClassNotFoundException {
+    public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
         return jobControllerService.findJobRun(jobRunId);
     }
 
     @GetMapping("/job/{jobIdOrClassName}/properties")
-    public Collection<JobPropertyInfo> getProperties(@PathVariable final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    public Collection<JobPropertyInfo> getProperties(@PathVariable final String jobIdOrClassName) {
         return jobControllerService.getJobProperties(jobIdOrClassName);
     }
 
     @PostMapping("/job/{jobIdOrClassName}/properties")
     public Collection<JobPropertyInfo> updateProperties(
             @PathVariable final String jobIdOrClassName,
-            @RequestBody final Map<String, String> updatedValues)
-            throws ClassNotFoundException {
+            @RequestBody final Map<String, String> updatedValues) {
         return jobControllerService.updateJobProperties(jobIdOrClassName, updatedValues);
     }
 
     @GetMapping("/job/{jobIdOrClassName}/triggers")
-    public JobTriggers getTriggers(@PathVariable final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    public JobTriggers getTriggers(@PathVariable final String jobIdOrClassName) {
         return jobControllerService.getJobTriggers(jobIdOrClassName);
     }
 
     @PostMapping("/job/{jobIdOrClassName}/triggers")
     public JobTriggers updateTriggers(
             @PathVariable final String jobIdOrClassName,
-            @RequestBody @Valid final JobTriggers updatedValues)
-            throws ClassNotFoundException {
+            @RequestBody @Valid final JobTriggers updatedValues) {
         return jobControllerService.updateJobTriggers(jobIdOrClassName, updatedValues);
     }
 
     @PostMapping("/job/{jobIdOrClassName}/start")
     public ResponseEntity<QueueSubmissionResult> startJob(
             @PathVariable final String jobIdOrClassName,
-            @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
-            throws ClassNotFoundException {
+            @RequestParam(required = false, defaultValue = "false") final boolean forceRun) {
         try {
             return ResponseEntity.ok(
                     new QueueSubmissionSuccess(
@@ -177,23 +170,20 @@ public class UetlibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/enable")
-    public ResponseEntity<StringResponse> enable(@PathVariable final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    public ResponseEntity<StringResponse> enable(@PathVariable final String jobIdOrClassName) {
         jobControllerService.setEnabled(jobIdOrClassName, true);
         return ResponseEntity.ok(new StringResponse("Job enabled"));
     }
 
     @PostMapping("/job/{jobIdOrClassName}/disable")
-    public ResponseEntity<StringResponse> disable(@PathVariable final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    public ResponseEntity<StringResponse> disable(@PathVariable final String jobIdOrClassName) {
         jobControllerService.setEnabled(jobIdOrClassName, false);
         return ResponseEntity.ok(new StringResponse("Job disabled"));
     }
 
     @PostMapping("/job/start_all")
     public void startAllJobs(
-            @RequestParam(required = false, defaultValue = "false") final boolean forceRun)
-            throws ClassNotFoundException {
+            @RequestParam(required = false, defaultValue = "false") final boolean forceRun) {
         jobControllerService.startAllJobs(forceRun);
     }
 
@@ -246,8 +236,7 @@ public class UetlibJobStatusController {
 
     @PostMapping("/job/{jobIdOrClassName}/replay_run/{jobRunId}")
     public ResponseEntity<StringResponse> replayRun(
-            @PathVariable final String jobIdOrClassName, @PathVariable final int jobRunId)
-            throws ClassNotFoundException {
+            @PathVariable final String jobIdOrClassName, @PathVariable final int jobRunId) {
         try {
             jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
             return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
@@ -260,8 +249,7 @@ public class UetlibJobStatusController {
     }
 
     @PostMapping("/job/{jobIdOrClassName}/replay_run")
-    public ResponseEntity<StringResponse> replayRun(@PathVariable final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    public ResponseEntity<StringResponse> replayRun(@PathVariable final String jobIdOrClassName) {
         try {
             jobControllerService.replayJobRun(jobIdOrClassName);
             return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
