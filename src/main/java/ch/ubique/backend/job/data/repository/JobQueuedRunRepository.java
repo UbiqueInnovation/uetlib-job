@@ -39,23 +39,48 @@ public interface JobQueuedRunRepository
 
     Optional<JobQueuedRunEntity> findFirstByOrderByCreatedAtDesc();
 
+    /**
+     * A queued run's {@code taints} must be a subset of {@code instanceTaints} to match. A row is
+     * excluded if it has any taint outside {@code instanceTaints}; that "any" is computed via a
+     * {@code json_table(...)} lateral join local to the subquery's own {@code FROM} clause - not
+     * correlated to the outer query - since Hibernate cannot translate a {@code JSON_TABLE(...)}
+     * correlated to an outer alias inside a {@code NOT EXISTS}/{@code NOT IN} subquery's {@code
+     * FROM} clause ("Could not construct set-returning function. Maybe you forgot to use
+     * 'lateral'?"). The same restriction is why the taint-count tiebreaker below is a correlated
+     * scalar subquery whose own {@code json_table(...)} is only lateral-joined to its own local
+     * root ({@code q3}), with the correlation to the outer row expressed as a plain {@code WHERE}
+     * equality instead - there is no dedicated "json array length" HQL function, so counting the
+     * exploded {@code json_table} rows is the only portable way to get it.
+     */
     @Query(
             """
-                    SELECT j
-                    FROM JobQueuedRunEntity j
-                    INNER JOIN JobEntity job ON job.id = j.jobId
-                    WHERE NOT EXISTS
+                    SELECT q
+                    FROM JobQueuedRunEntity q
+                    INNER JOIN JobEntity job ON job.id = q.jobId
+                    WHERE q.jobQueuedRunId NOT IN
                     (
-                        SELECT 1
-                        FROM JSON_TABLE(
-                            j.taints,
+                        SELECT q2.jobQueuedRunId
+                        FROM JobQueuedRunEntity q2
+                        JOIN LATERAL json_table(
+                            q2.taints,
                             '$[*]' COLUMNS (
                                 taint String PATH '$'
                             )
-                        ) jt
-                        WHERE jt.taint NOT IN :instanceTaints
+                        ) not_taints
+                        WHERE not_taints.taint NOT IN :instanceTaints
                     )
-                    ORDER BY COALESCE(j.priority, job.priority) DESC
+                    ORDER BY COALESCE(q.priority, job.priority) DESC,
+                    (
+                        SELECT COUNT(existing_taints.taint)
+                        FROM JobQueuedRunEntity q3
+                        JOIN LATERAL json_table(
+                            q3.taints,
+                            '$[*]' COLUMNS (
+                                taint String PATH '$'
+                            )
+                        ) existing_taints
+                        WHERE q3.jobQueuedRunId = q.jobQueuedRunId
+                    ) DESC
                     """)
     Stream<JobQueuedRunEntity> findByTaints(Set<String> instanceTaints, final Pageable pageable);
 
