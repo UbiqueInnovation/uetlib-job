@@ -860,6 +860,6 @@ public class JobDataService {
     public List<JobQueuedRun> findQueuedRunsByIds(final Collection<Integer> queueRunIds) {
         return jobQueuedRunRepository.findAllById(queueRunIds).stream()
                 .map(JobQueuedRunEntity::toJobQueuedRun)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
