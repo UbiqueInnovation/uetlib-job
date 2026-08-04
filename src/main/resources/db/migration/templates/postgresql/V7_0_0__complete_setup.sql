@@ -125,7 +125,7 @@ order by fk_job_id, pk_job_run_id desc;
 
 CREATE TABLE t_job_run_queue
 (
-    pk_job_run_queue_id INTEGER     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pk_job_run_queue_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     fk_job_id           INTEGER     NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE,
     version_tag         TEXT        NOT NULL,
     priority            INTEGER,
@@ -151,7 +151,7 @@ $$
 BEGIN
     PERFORM pg_notify(
             'new_job_queued_run',
-            NEW.fk_job_id::text
+            NEW.fk_job_id::text || '|' || NEW.pk_job_run_queue_id::text
             );
     RETURN NEW;
 END;

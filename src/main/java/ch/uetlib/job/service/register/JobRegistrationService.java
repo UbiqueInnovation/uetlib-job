@@ -76,11 +76,11 @@ public class JobRegistrationService {
     }
 
     /**
-     * Best-effort: this runs during this bean's own construction, very early in context startup,
-     * so autowiring a job that itself (transitively) depends on a bean not yet created here can
-     * fail (e.g. a job depending on JobService, which is @DependsOn this very bean). Falling back
-     * to 0 is safe - JobPriorityService reconciles every job's priority again once the application
-     * is fully up, so a job whose priority couldn't be resolved yet here is corrected shortly after.
+     * Best-effort: this runs during this bean's own construction, very early in context startup, so
+     * autowiring a job that itself (transitively) depends on a bean not yet created here can fail
+     * (e.g. a job depending on JobService, which is @DependsOn this very bean). Falling back to 0
+     * is safe - JobPriorityService reconciles every job's priority again once the application is
+     * fully up, so a job whose priority couldn't be resolved yet here is corrected shortly after.
      */
     private int resolvePriority(final Class<? extends Job> jobClass) {
         try {
