@@ -43,14 +43,14 @@ public final class SerializableMatchResult implements MatchResult {
 
     @JsonProperty(required = true)
     @NotNull
-    private final List<String> groups;
+    private final List<@Nullable String> groups;
 
     @JsonCreator
     public SerializableMatchResult(
             final int first,
             final int last,
             final int groupCount,
-            final @NotNull List<String> groups,
+            final @NotNull List<@Nullable String> groups,
             final int[] groupIndices,
             final @Nullable String text,
             final @NotNull Map<String, Integer> namedGroups) {
@@ -73,16 +73,19 @@ public final class SerializableMatchResult implements MatchResult {
                         .flatMap(g -> IntStream.of(matchResult.start(g), matchResult.end(g)))
                         .toArray();
 
-        final List<String> groups;
+        final List<@Nullable String> groups;
         if (text != null) {
             groups =
                     IntStream.rangeClosed(0, matchResult.groupCount())
                             .boxed()
-                            .map(
+                            .<@Nullable String>map(
                                     g ->
-                                            text.substring(
-                                                    groupIndices[g * 2] - first,
-                                                    groupIndices[g * 2 + 1] - first))
+                                            (groupIndices[g * 2] == -1
+                                                            || groupIndices[g * 2 + 1] == -1)
+                                                    ? null
+                                                    : text.substring(
+                                                            groupIndices[g * 2] - first,
+                                                            groupIndices[g * 2 + 1] - first))
                             .toList();
         } else {
             groups = List.of();
@@ -129,7 +132,7 @@ public final class SerializableMatchResult implements MatchResult {
         return groupCount;
     }
 
-    public List<String> groups() {
+    public List<@Nullable String> groups() {
         return groups;
     }
 
