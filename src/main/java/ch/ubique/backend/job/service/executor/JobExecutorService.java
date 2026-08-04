@@ -15,7 +15,6 @@ import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.executor.runners.JobRunner;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +44,14 @@ public class JobExecutorService {
 
     public JobSubmissionResult submit(final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
         if (jobQueuedRun.jobRunId() != null) {
-            // TODO: Implement this
-            throw new NotImplementedException("Behavior of rescheduling jobs is TBD");
+            /*
+             * {@code jobQueuedRun.jobRunId()} is always null here: a queue row only ever gets a jobRunId
+             * together with transitioning to RUNNING (see {@code JobQueuedRunEntity#setRunId}), and
+             * every path that resets a row back to QUEUED - the only state this is called for - only ever
+             * does so for rows that never reached RUNNING in the first place.
+             */
+            throw new UnsupportedOperationException(
+                    "Behavior of rescheduling jobs that have been started is TBD, this branch is unreachable at the moment anyway.");
         }
         final var jobClass = jobService.findJobById(jobQueuedRun.jobId()).orElseThrow();
         return submit(
