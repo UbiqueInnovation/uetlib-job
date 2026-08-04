@@ -229,7 +229,6 @@ public class JobService {
         final var allowMultipleQueuedRuns =
                 requireNonNull(
                         properties.get(JobPropertyDefinitions.ALLOW_MULTIPLE_QUEUED_RUNS).value());
-        // TODO: Notify current after queueing
         return jobDataService.queueNewRun(
                 job.id(), priority, versionTag, arguments, taints, allowMultipleQueuedRuns);
     }
@@ -331,6 +330,11 @@ public class JobService {
 
     public void setRunId(final JobQueuedRun jobQueuedRun, final int runId) {
         jobDataService.setRunId(jobQueuedRun, runId);
+    }
+
+    /** Releases a claim back to {@code QUEUED} - e.g. after a claimed run failed to schedule. */
+    public void releaseQueuedRun(final JobQueuedRun jobQueuedRun) {
+        jobDataService.resetQueuedRunById(jobQueuedRun.jobQueuedRunId());
     }
 
     public boolean hasRunner(final JobRunnerKey jobRunnerKey) {

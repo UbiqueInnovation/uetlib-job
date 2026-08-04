@@ -3,10 +3,13 @@ package ch.ubique.backend.job.service.executor;
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.CLAIM_TIMEOUT;
 
 import ch.ubique.backend.core.utils.MapCollectors;
+import ch.ubique.backend.core.utils.SingleCache;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobQueuedRun;
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
 import ch.ubique.backend.job.service.JobService;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +48,7 @@ public class JobQueueWatcherService {
     private final JobDataService jobDataService;
     private final Duration defaultClaimTimeout;
 
-    private final Map<Integer, Duration> jobClaimTimeout;
+    private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
 
     public JobQueueWatcherService(
             final JobService jobService,
@@ -55,24 +58,39 @@ public class JobQueueWatcherService {
         this.jobService = jobService;
         this.jobDataService = jobDataService;
         this.defaultClaimTimeout = defaultClaimTimeout;
+        this.jobClaimTimeoutCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
+    }
 
-        this.jobClaimTimeout =
-                jobService.getAllJobs().stream()
-                        .collect(
-                                Collectors.toMap(
-                                        job -> jobService.findJobId(job.getClass()).orElseThrow(),
-                                        job ->
-                                                jobService
-                                                        .getProperties(job)
-                                                        .get(CLAIM_TIMEOUT)
-                                                        .valueMaybe()
-                                                        .orElse(defaultClaimTimeout)));
+    /**
+     * Per-job {@link ch.ubique.backend.job.model.properties.JobPropertyDefinitions#CLAIM_TIMEOUT}
+     * overrides, cached for 30s - not computed once at startup, since an operator can change this
+     * property live via the job properties API and this watcher should pick that up without
+     * requiring a restart.
+     */
+    private Map<Integer, Duration> jobClaimTimeout() {
+        return jobClaimTimeoutCache.get(
+                () ->
+                        jobService.getAllJobs().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                job ->
+                                                        jobService
+                                                                .findJobId(job.getClass())
+                                                                .orElseThrow(),
+                                                job ->
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(CLAIM_TIMEOUT)
+                                                                .valueMaybe()
+                                                                .orElse(defaultClaimTimeout))));
     }
 
     @Scheduled(cron = "${ch.ubique.backend.job.runner.reset-abandoned-claims.cron:14/15 * * * * ?}")
     public void resetAbandonedClaims() {
         final var staleBeforeByJobId =
-                jobClaimTimeout.entrySet().stream()
+                jobClaimTimeout().entrySet().stream()
                         .collect(MapCollectors.entriesToMapWithValueMapper(Instant.now()::minus));
         final var reset = jobDataService.resetStaleClaims(staleBeforeByJobId);
         if (reset > 0) {

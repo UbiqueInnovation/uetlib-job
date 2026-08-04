@@ -117,15 +117,16 @@ public class JobRunQueueService {
                             final var runId) ->
                     jobService.setRunId(jobQueuedRun, runId);
             case UnsuccessfulSubmissionResult(final var status) -> {
+                jobService.releaseQueuedRun(jobQueuedRun);
                 switch (status) {
                     case SUBMITTED ->
                             logger.warn(
-                                    "UnsuccessfulSubmissionResult should not receive submitted");
+                                    "UnsuccessfulSubmissionResult should not receive submitted, but has been released again.");
                     case DISALLOWED ->
                             logger.warn(
-                                    "Failed to submit job with status: {}, this is unlikely to solve itself",
+                                    "Failed to submit job with status: {}, released for retry.",
                                     status);
-                    case FAILED -> logger.info("Failed to submit job, will retry.");
+                    case FAILED -> logger.info("Failed to submit job, released for retry.");
                 }
             }
         }

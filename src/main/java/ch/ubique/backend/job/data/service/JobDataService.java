@@ -730,7 +730,9 @@ public class JobDataService {
                 .toList();
     }
 
-    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}. */
+    /**
+     * Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}
+     */
     @Transactional
     public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
         return Arrays.stream(
@@ -738,7 +740,8 @@ public class JobDataService {
                                 """
                                         UPDATE t_job_run_queue
                                         SET queue_state = :resetState, runner = null, heartbeat_at = null, updated_at = :now
-                                        WHERE fk_job_id = :jobId AND queue_state = :staleState AND heartbeat_at < :staleBefore
+                                        WHERE fk_job_id = :fkJobId AND queue_state = :staleState
+                                          AND (heartbeat_at IS NULL OR heartbeat_at < :staleBefore)
                                         """,
                                 staleBefore.entrySet().stream()
                                         .map(
@@ -746,7 +749,7 @@ public class JobDataService {
                                                     final var jobId = entry.getKey();
                                                     final var staleBeforeVal = entry.getValue();
                                                     return new MapSqlParameterSource()
-                                                            .addValue("jobId", jobId)
+                                                            .addValue("fkJobId", jobId)
                                                             .addValue("resetState", QUEUED)
                                                             .addValue("staleState", CLAIMED)
                                                             .addValue("staleBefore", staleBeforeVal)
