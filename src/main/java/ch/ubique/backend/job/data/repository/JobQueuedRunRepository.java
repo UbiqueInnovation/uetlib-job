@@ -28,7 +28,10 @@ public interface JobQueuedRunRepository
     /** Never deletes a {@link JobRunQueueState#RUNNING} row, regardless of its own state. */
     long deleteByJobQueuedRunIdAndQueueStateNot(int jobQueuedRunId, JobRunQueueState excludedState);
 
-    /** Never deletes a {@link JobRunQueueState#RUNNING} row: callers must exclude it from {@code states}. */
+    /**
+     * Never deletes a {@link JobRunQueueState#RUNNING} row: callers must exclude it from {@code
+     * states}.
+     */
     long deleteByJobIdInAndQueueStateIn(
             Collection<Integer> jobIds, Collection<JobRunQueueState> states);
 
@@ -70,21 +73,6 @@ public interface JobQueuedRunRepository
             String runner,
             Instant now);
 
-    /**
-     * Reclaims rows that were claimed but never progressed to {@link JobRunQueueState#RUNNING}
-     * (e.g. the claiming instance died before submitting) - detected via a stale heartbeat, not
-     * {@code updatedAt}, since {@code @Modifying} queries bypass {@code @UpdateTimestamp}.
-     */
-    @Modifying(clearAutomatically = true)
-    @Query(
-            """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :resetState, j.runner = null, j.lastHeartbeat = null
-                    WHERE j.queueState = :staleState AND j.lastHeartbeat < :staleBefore
-                    """)
-    int resetStaleClaims(
-            JobRunQueueState staleState, JobRunQueueState resetState, Instant staleBefore);
-
     @Modifying(clearAutomatically = true)
     @Query("UPDATE JobQueuedRunEntity j SET j.lastHeartbeat = :now WHERE j.jobQueuedRunId = :id")
     void touchHeartbeat(int id, Instant now);
@@ -94,8 +82,8 @@ public interface JobQueuedRunRepository
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :newState, j.runner = null, j.lastHeartbeat = null
+                    SET j.queueState = :newState, j.runner = null, j.lastHeartbeat = null, j.updatedAt = :now
                     WHERE j.jobQueuedRunId = :id
                     """)
-    void forceReset(int id, JobRunQueueState newState);
+    void forceReset(int id, JobRunQueueState newState, Instant now);
 }
