@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 /**
  * @param jobRun JobRunInfo
  * @param job JobInfo
- * @param jobName deprecated, use {@link #job().jobName()}
+ * @param jobName deprecated, use {@link #job()}.{@link JobInfo#name()}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobRunInfoContainer(
