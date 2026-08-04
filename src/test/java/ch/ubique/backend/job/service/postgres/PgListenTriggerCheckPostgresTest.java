@@ -42,7 +42,7 @@ class PgListenTriggerCheckPostgresTest {
                 new PgChannelListenerRegistry(
                         dataSourceProperties(), Duration.ofSeconds(1), Duration.ofSeconds(4));
         final var service = new PgListenTriggerService(registry);
-        final var check = new PgListenListenerCheck(CheckLevel.ERROR, registry);
+        final var check = new PgListenListenerCheck(CheckLevel.ERROR, List.of(registry));
         try {
             // No channels registered yet -> nothing to monitor -> passes.
             assertTrue(check.check().passed());

@@ -1,5 +1,6 @@
 package ch.ubique.backend.job.service.triggers.postgres;
 
+import ch.ubique.backend.job.config.PgChannelListenerRegistryConfig;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.triggers.PgListenTrigger;
@@ -11,6 +12,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +30,9 @@ public class PgListenTriggerService implements TriggerService<PgListenTrigger> {
 
     private final Collection<TriggerInfo> triggerInfos = new ConcurrentLinkedQueue<>();
 
-    public PgListenTriggerService(final PgChannelListenerRegistry channelListenerRegistry) {
+    public PgListenTriggerService(
+            @Qualifier(PgChannelListenerRegistryConfig.JOB_TRIGGER_REGISTRY)
+                    final PgChannelListenerRegistry channelListenerRegistry) {
         this.channelListenerRegistry = channelListenerRegistry;
     }
 

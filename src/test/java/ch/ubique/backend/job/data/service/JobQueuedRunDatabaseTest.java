@@ -3,22 +3,25 @@ package ch.ubique.backend.job.data.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.backend.job.data.BaseJobDatabaseTest;
+import ch.ubique.backend.job.model.JobQueuedRun;
 import ch.ubique.backend.job.model.JobRunArguments;
-import ch.ubique.backend.job.model.runner.conditions.JobRunnerTaint;
-import ch.ubique.backend.job.model.runner.conditions.JobRunnerTaints;
 import ch.ubique.backend.job.service.inputs.JobRunInputManager;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Set;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
- * Exercises {@code t_job_run_queue}'s taint-matching query directly, since {@link
- * ch.ubique.backend.job.service.executor.JobRunQueueService}'s two polls
- * (checkForRunnableAndSchedule / checkForRunnableDedicatedAndSchedule) rely entirely on it and
- * have no dedicated coverage of their own.
+ * Exercises {@code t_job_run_queue}'s ordered/paged listing query ({@link
+ * ch.ubique.backend.job.data.repository.JobQueuedRunRepository#findByQueueStateOrderedByPriority}),
+ * which {@link ch.ubique.backend.job.service.executor.JobRunQueueService} pages through and filters
+ * by taint in Java - taint matching itself has no SQL counterpart anymore and is covered by a plain
+ * unit test instead ({@code JobRunQueueServiceTest}).
  */
 class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
 
@@ -28,82 +31,70 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     @MockitoBean JobRunInputManager jobRunInputManager;
 
     @Test
-    void untaggedRunIsFoundByPlainPoll() {
-        jobDataService.queueNewRun(
-                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+    void onlyQueuedStateRunsAreReturned() {
+        final var stillQueued =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+        final var claimed =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+        jobDataService.claimQueuedRun(claimed, "test-runner");
 
-        final var found = jobDataService.findFirstQueuedByNoOtherTaints(10, Set.of());
-        assertTrue(
-                found.stream().anyMatch(r -> r.jobId() == TEST_JOB_ID),
-                "an untagged queued run should be visible to a poller with no taints");
+        final var page = jobDataService.findQueuedRunsPage(PageRequest.of(0, 10));
+
+        final var ids = page.getContent().stream().map(JobQueuedRun::jobQueuedRunId).toList();
+        assertTrue(ids.contains(stillQueued.jobQueuedRunId()));
+        assertFalse(
+                ids.contains(claimed.jobQueuedRunId()),
+                "a CLAIMED row must not appear in the queued listing");
     }
 
     @Test
-    void untaggedRunIsAlsoFoundByDedicatedPoll() {
-        // This demonstrates a real bug: checkForRunnableDedicatedAndSchedule() polls with
-        // instanceTaints + "dedicated-k8s", and the underlying query is a subset match (row
-        // taints subseteq poller taints) - so a row with NO taints at all also satisfies that
-        // query, even though it was never tagged for dedicated/k8s dispatch. A plain CURRENT-
-        // runner job can therefore be claimed by the dedicated poll and get routed to
-        // KubernetesJobRunner purely by which @Scheduled poll wins the race.
-        jobDataService.queueNewRun(
-                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+    void ordersByPriorityDescending() {
+        // Not asserting oldest-first *within* the same priority here: created_at has whole-second
+        // resolution on some dialects, so two rows queued microseconds apart in a test can tie.
+        final var low =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID, 1, "1.0.0", new JobRunArguments(), Set.of(), true);
+        final var high =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID, 5, "1.0.0", new JobRunArguments(), Set.of(), true);
 
-        final var dedicatedPollTaints = Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.value());
-        final var found =
-                jobDataService.findFirstQueuedByNoOtherTaints(10, dedicatedPollTaints);
+        final var page = jobDataService.findQueuedRunsPage(PageRequest.of(0, 10));
 
+        final var ids = page.getContent().stream().map(JobQueuedRun::jobQueuedRunId).toList();
         assertTrue(
-                found.stream().anyMatch(r -> r.jobId() == TEST_JOB_ID),
-                "BUG: an untagged run should NOT be claimable by the dedicated-only poll, but"
-                        + " the subset-match query finds it anyway");
+                ids.indexOf(high.jobQueuedRunId()) < ids.indexOf(low.jobQueuedRunId()),
+                "the higher-priority row must be ordered before the lower-priority one");
     }
 
     @Test
-    void dedicatedTaggedRunIsNotFoundByPlainPoll() {
-        jobDataService.queueNewRun(
-                TEST_JOB_ID,
-                null,
-                "1.0.0",
-                new JobRunArguments(),
-                Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT),
-                true);
+    void pagesWhenMoreRowsThanPageSize() {
+        final var queued =
+                IntStream.range(0, 3)
+                        .mapToObj(
+                                i ->
+                                        jobDataService.queueNewRun(
+                                                TEST_JOB_ID,
+                                                null,
+                                                "1.0.0",
+                                                new JobRunArguments(),
+                                                Set.of(),
+                                                true))
+                        .toList();
 
-        final var found = jobDataService.findFirstQueuedByNoOtherTaints(10, Set.of());
-        assertTrue(
-                found.stream().noneMatch(r -> r.jobId() == TEST_JOB_ID),
-                "a run tagged dedicated-k8s must not be claimable by the plain (no-taint) poll");
-    }
+        final var firstPage = jobDataService.findQueuedRunsPage(PageRequest.of(0, 2));
+        assertEquals(2, firstPage.getContent().size());
+        assertTrue(firstPage.hasNext(), "3 queued rows with page size 2 must have a next page");
 
-    @Test
-    void dedicatedTaggedRunIsFoundByDedicatedPoll() {
-        jobDataService.queueNewRun(
-                TEST_JOB_ID,
-                null,
-                "1.0.0",
-                new JobRunArguments(),
-                Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT),
-                true);
+        final var secondPage = jobDataService.findQueuedRunsPage(PageRequest.of(1, 2));
+        assertEquals(1, secondPage.getContent().size());
+        assertFalse(secondPage.hasNext());
 
-        final var dedicatedPollTaints = Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.value());
-        final var found =
-                jobDataService.findFirstQueuedByNoOtherTaints(10, dedicatedPollTaints);
-        assertTrue(found.stream().anyMatch(r -> r.jobId() == TEST_JOB_ID));
-    }
-
-    @Test
-    void runRequiringAnUnadvertisedTaintIsNeverFound() {
-        jobDataService.queueNewRun(
-                TEST_JOB_ID,
-                null,
-                "1.0.0",
-                new JobRunArguments(),
-                Set.of(new JobRunnerTaint("gpu")),
-                true);
-
-        final var found = jobDataService.findFirstQueuedByNoOtherTaints(10, Set.of());
-        assertTrue(
-                found.stream().noneMatch(r -> r.jobId() == TEST_JOB_ID),
-                "a run requiring a taint the poller doesn't advertise must not be claimable");
+        final var idsAcrossBothPages =
+                Stream.concat(firstPage.getContent().stream(), secondPage.getContent().stream())
+                        .map(JobQueuedRun::jobQueuedRunId)
+                        .toList();
+        queued.forEach(run -> assertTrue(idsAcrossBothPages.contains(run.jobQueuedRunId())));
     }
 }

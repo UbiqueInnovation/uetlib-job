@@ -1,14 +1,9 @@
 package ch.ubique.backend.job.service.postgres;
 
-import ch.ubique.backend.job.model.spring.PgListenDataSourceProvider;
-
 import jakarta.annotation.PreDestroy;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.DatabaseDriver;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -18,12 +13,14 @@ import java.util.function.Consumer;
 
 /**
  * Manages the lifecycle of {@link PgChannelListener}s: at most one listener is kept per PostgreSQL
- * {@code LISTEN} channel, shared between every caller registered on that channel. Used both by
- * job-specific {@code PG_LISTEN} triggers and by other components that need to react to a {@code
- * NOTIFY} on a given channel without being tied to a specific job.
+ * {@code LISTEN} channel, shared between every caller registered on that channel.
+ *
+ * <p>Not a Spring-managed singleton itself, since two independent registries typically coexist -
+ * one for job-defined {@code PG_LISTEN} triggers (application datasource) and one for the job
+ * library's own internal queue notifications (job datasource); see {@code
+ * PgChannelListenerRegistryConfig}, which produces both as distinctly-qualified beans, each backed
+ * by its own datasource provider.
  */
-@Service
-@Profile("!job-run")
 public class PgChannelListenerRegistry {
 
     private final DataSourceProperties dataSourceProperties;
@@ -32,15 +29,14 @@ public class PgChannelListenerRegistry {
 
     private final Map<String, PgChannelListener> channelListeners = new ConcurrentHashMap<>();
 
-    @Autowired
-    public PgChannelListenerRegistry(final PgListenDataSourceProvider pgListenDataSourceProvider) {
+    public PgChannelListenerRegistry(final DataSourceProperties dataSourceProperties) {
         this(
-                pgListenDataSourceProvider.getDataSourceProperties(),
+                dataSourceProperties,
                 PgChannelListener.DEFAULT_KEEPALIVE_INTERVAL,
                 PgChannelListener.DEFAULT_MAX_SILENCE);
     }
 
-    PgChannelListenerRegistry(
+    public PgChannelListenerRegistry(
             final DataSourceProperties dataSourceProperties,
             final Duration keepAliveInterval,
             final Duration maxSilence) {
@@ -58,6 +54,14 @@ public class PgChannelListenerRegistry {
         channelListeners.computeIfAbsent(channel, c -> createChannelListener(c, onEvents));
     }
 
+    /**
+     * Whether the configured datasource is PostgreSQL, i.e. whether {@link #listen} can be used.
+     */
+    public boolean isPostgres() {
+        return DatabaseDriver.fromJdbcUrl(dataSourceProperties.determineUrl())
+                == DatabaseDriver.POSTGRESQL;
+    }
+
     /** Stops and removes the listener for the given channel, if one is running. */
     public void stopListening(final String channel) {
         final var listener = channelListeners.remove(channel);
@@ -68,9 +72,7 @@ public class PgChannelListenerRegistry {
 
     private PgChannelListener createChannelListener(
             final String channel, final Consumer<Collection<String>> onEvents) {
-        final var url = dataSourceProperties.determineUrl();
-        final var driver = DatabaseDriver.fromJdbcUrl(url);
-        if (driver != DatabaseDriver.POSTGRESQL) {
+        if (!isPostgres()) {
             throw new IllegalArgumentException(
                     "Only PostgreSQL is supported for listening to PostgreSQL channels.");
         }

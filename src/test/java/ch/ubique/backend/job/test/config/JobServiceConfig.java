@@ -5,7 +5,9 @@ import static org.mockito.Mockito.mock;
 import ch.ubique.backend.job.annotation.EnableJobs;
 import ch.ubique.backend.job.annotation.RegisteredJobDefinitions;
 import ch.ubique.backend.job.config.HibernateJsonConfiguration;
+import ch.ubique.backend.job.config.PgChannelListenerRegistryConfig;
 import ch.ubique.backend.job.config.UetlibJobPgListenDataSourceProviderConfig;
+import ch.ubique.backend.job.config.UetlibJobQueueDataSourceProviderConfig;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.register.JobRegistrationService;
@@ -33,7 +35,12 @@ import java.util.List;
 import javax.sql.DataSource;
 
 @SpringBootConfiguration
-@Import({UetlibJobPgListenDataSourceProviderConfig.class, HibernateJsonConfiguration.class})
+@Import({
+    UetlibJobPgListenDataSourceProviderConfig.class,
+    UetlibJobQueueDataSourceProviderConfig.class,
+    PgChannelListenerRegistryConfig.class,
+    HibernateJsonConfiguration.class
+})
 @ComponentScan({"ch.ubique.backend.job.data.service", "ch.ubique.backend.job.service"})
 @EnableJobs("ch.ubique.backend.job.testjob")
 @EnableJpaRepositories(basePackages = "ch.ubique.backend.job.data.repository")

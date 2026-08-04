@@ -28,6 +28,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -319,8 +321,8 @@ public class JobService {
                         .autowire(jobClass, AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR, true);
     }
 
-    public List<JobQueuedRun> findQueuedByTaints(final int max, final Set<String> instanceTaints) {
-        return jobDataService.findFirstQueuedByNoOtherTaints(max, instanceTaints);
+    public Slice<JobQueuedRun> findQueuedRunsPage(final Pageable pageable) {
+        return jobDataService.findQueuedRunsPage(pageable);
     }
 
     public boolean claimQueuedRun(
@@ -340,5 +342,9 @@ public class JobService {
     public boolean hasRunner(final JobRunnerKey jobRunnerKey) {
         return applicationContext.getBeansOfType(JobRunner.class).values().stream()
                 .anyMatch(runner -> runner.key() == jobRunnerKey);
+    }
+
+    public List<JobQueuedRun> findQueuedByIds(final Collection<Integer> queueRunIds) {
+        return jobDataService.findQueuedRunsByIds(queueRunIds);
     }
 }

@@ -4,6 +4,7 @@ import ch.ubique.backend.job.model.entity.JobQueuedRunEntity;
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,8 +15,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
 
 @Repository
 public interface JobQueuedRunRepository
@@ -39,50 +38,16 @@ public interface JobQueuedRunRepository
 
     Optional<JobQueuedRunEntity> findFirstByOrderByCreatedAtDesc();
 
-    /**
-     * A queued run's {@code taints} must be a subset of {@code instanceTaints} to match. A row is
-     * excluded if it has any taint outside {@code instanceTaints}; that "any" is computed via a
-     * {@code json_table(...)} lateral join local to the subquery's own {@code FROM} clause - not
-     * correlated to the outer query - since Hibernate cannot translate a {@code JSON_TABLE(...)}
-     * correlated to an outer alias inside a {@code NOT EXISTS}/{@code NOT IN} subquery's {@code
-     * FROM} clause ("Could not construct set-returning function. Maybe you forgot to use
-     * 'lateral'?"). The same restriction is why the taint-count tiebreaker below is a correlated
-     * scalar subquery whose own {@code json_table(...)} is only lateral-joined to its own local
-     * root ({@code q3}), with the correlation to the outer row expressed as a plain {@code WHERE}
-     * equality instead - there is no dedicated "json array length" HQL function, so counting the
-     * exploded {@code json_table} rows is the only portable way to get it.
-     */
     @Query(
             """
                     SELECT q
                     FROM JobQueuedRunEntity q
                     INNER JOIN JobEntity job ON job.id = q.jobId
-                    WHERE q.jobQueuedRunId NOT IN
-                    (
-                        SELECT q2.jobQueuedRunId
-                        FROM JobQueuedRunEntity q2
-                        JOIN LATERAL json_table(
-                            q2.taints,
-                            '$[*]' COLUMNS (
-                                taint String PATH '$'
-                            )
-                        ) not_taints
-                        WHERE not_taints.taint NOT IN :instanceTaints
-                    )
-                    ORDER BY COALESCE(q.priority, job.priority) DESC,
-                    (
-                        SELECT COUNT(existing_taints.taint)
-                        FROM JobQueuedRunEntity q3
-                        JOIN LATERAL json_table(
-                            q3.taints,
-                            '$[*]' COLUMNS (
-                                taint String PATH '$'
-                            )
-                        ) existing_taints
-                        WHERE q3.jobQueuedRunId = q.jobQueuedRunId
-                    ) DESC
+                    WHERE q.queueState = :state
+                    ORDER BY COALESCE(q.priority, job.priority) DESC, q.createdAt ASC
                     """)
-    Stream<JobQueuedRunEntity> findByTaints(Set<String> instanceTaints, final Pageable pageable);
+    Slice<JobQueuedRunEntity> findByQueueStateOrderedByPriority(
+            JobRunQueueState state, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query(

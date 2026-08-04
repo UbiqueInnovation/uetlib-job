@@ -18,7 +18,7 @@ class PgListenListenerCheckTest {
     private final PgChannelListenerRegistry channelListenerRegistry =
             mock(PgChannelListenerRegistry.class);
     private final PgListenListenerCheck check =
-            new PgListenListenerCheck(CheckLevel.ERROR, channelListenerRegistry);
+            new PgListenListenerCheck(CheckLevel.ERROR, List.of(channelListenerRegistry));
 
     @Test
     void passesWhenAllListenersHealthy() {
@@ -40,5 +40,24 @@ class PgListenListenerCheckTest {
         final var failed = assertInstanceOf(CheckFailed.class, status);
         final var context = assertInstanceOf(Map.class, failed.context());
         assertEquals(List.of("new_dataset_run", "other_channel"), context.get("channels"));
+    }
+
+    @Test
+    void aggregatesUnhealthyChannelsAcrossBothRegistries() {
+        // The job-trigger registry (application datasource) and the job-queue registry (job
+        // datasource) are independent beans; an outage on either must be reported.
+        final var otherRegistry = mock(PgChannelListenerRegistry.class);
+        final var checkOverBoth =
+                new PgListenListenerCheck(
+                        CheckLevel.ERROR, List.of(channelListenerRegistry, otherRegistry));
+        when(channelListenerRegistry.unhealthyChannels()).thenReturn(List.of("app_channel"));
+        when(otherRegistry.unhealthyChannels()).thenReturn(List.of("new_job_queued_run"));
+
+        final var status = checkOverBoth.check();
+
+        assertFalse(status.passed());
+        final var failed = assertInstanceOf(CheckFailed.class, status);
+        final var context = assertInstanceOf(Map.class, failed.context());
+        assertEquals(List.of("app_channel", "new_job_queued_run"), context.get("channels"));
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,19 +18,23 @@ import java.util.Map;
  * monitored. A listener can silently stop working (e.g. a half-open connection that is never
  * detected, or a dead listener thread) while the application keeps running, which causes {@code
  * PG_LISTEN}-triggered jobs to stop firing without any restart or error.
+ *
+ * <p>There are two independent {@link PgChannelListenerRegistry} beans (job-defined triggers and
+ * the job library's own internal queue notifications, potentially on different datasources) -
+ * Spring collects all of them here so both are covered by a single check.
  */
 @Service
 @Profile("!job-run")
 public class PgListenListenerCheck implements StatusCheck {
 
     private final CheckLevel level;
-    private final PgChannelListenerRegistry channelListenerRegistry;
+    private final List<PgChannelListenerRegistry> channelListenerRegistries;
 
     public PgListenListenerCheck(
             @Value("${ch.ubique.backend.job.check.pg-listen:ERROR}") final CheckLevel level,
-            final PgChannelListenerRegistry channelListenerRegistry) {
+            final List<PgChannelListenerRegistry> channelListenerRegistries) {
         this.level = level;
-        this.channelListenerRegistry = channelListenerRegistry;
+        this.channelListenerRegistries = channelListenerRegistries;
     }
 
     @Override
@@ -39,7 +44,10 @@ public class PgListenListenerCheck implements StatusCheck {
 
     @Override
     public CheckStatus check() {
-        final var unhealthyChannels = channelListenerRegistry.unhealthyChannels();
+        final var unhealthyChannels =
+                channelListenerRegistries.stream()
+                        .flatMap(registry -> registry.unhealthyChannels().stream())
+                        .toList();
         if (!unhealthyChannels.isEmpty()) {
             return new CheckFailed(
                     "Some PostgreSQL LISTEN channels are no longer being monitored.",

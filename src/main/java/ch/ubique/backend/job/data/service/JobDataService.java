@@ -469,7 +469,7 @@ public class JobDataService {
                         .map(JobRunEntity::toJobRun)
                         .map(
                                 jobRun ->
-                                        Objects.requireNonNull(jobRun.finishedAt())
+                                        requireNonNull(jobRun.finishedAt())
                                                 .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.EPOCH);
         final var pageable = PageRequest.of(0, chunkSize);
@@ -695,13 +695,15 @@ public class JobDataService {
         return savedJobRun;
     }
 
+    /**
+     * Ordered, paged view of queued runs - see {@link
+     * JobQueuedRunRepository#findByQueueStateOrderedByPriority}.
+     */
     @Transactional(readOnly = true)
-    public List<JobQueuedRun> findFirstQueuedByNoOtherTaints(
-            final int number, final Set<String> instanceTaints) {
+    public Slice<JobQueuedRun> findQueuedRunsPage(final Pageable pageable) {
         return jobQueuedRunRepository
-                .findByTaints(instanceTaints, Pageable.ofSize(number))
-                .map(JobQueuedRunEntity::toJobQueuedRun)
-                .toList();
+                .findByQueueStateOrderedByPriority(QUEUED, pageable)
+                .map(JobQueuedRunEntity::toJobQueuedRun);
     }
 
     @Transactional
@@ -711,7 +713,7 @@ public class JobDataService {
                 jobQueuedRunRepository.setState(
                         jobQueuedRun.jobQueuedRunId(),
                         jobQueuedRun.queueState(),
-                        JobRunQueueState.CLAIMED,
+                        CLAIMED,
                         runnerInstanceName,
                         Instant.now());
         return updated == 1;
@@ -730,9 +732,7 @@ public class JobDataService {
                 .toList();
     }
 
-    /**
-     * Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}
-     */
+    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore} */
     @Transactional
     public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
         return Arrays.stream(
@@ -855,5 +855,11 @@ public class JobDataService {
             return 0;
         }
         return jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(jobIds, states);
+    }
+
+    public List<JobQueuedRun> findQueuedRunsByIds(final Collection<Integer> queueRunIds) {
+        return jobQueuedRunRepository.findAllById(queueRunIds).stream()
+                .map(JobQueuedRunEntity::toJobQueuedRun)
+                .collect(Collectors.toList());
     }
 }
