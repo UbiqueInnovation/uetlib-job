@@ -114,9 +114,11 @@ class SerializableMatchResultTest {
     @Test
     void testGroupByName() {
         assertEquals("BBBB", TEST_SERIALIZABLE_MATCH_RESULT.group("blockB"));
-        assertEquals(TEST_MATCH_RESULT.group("blockB"), TEST_SERIALIZABLE_MATCH_RESULT.group("blockB"));
+        assertEquals(
+                TEST_MATCH_RESULT.group("blockB"), TEST_SERIALIZABLE_MATCH_RESULT.group("blockB"));
         assertEquals("CCCC", TEST_SERIALIZABLE_MATCH_RESULT.group("blockC"));
-        assertEquals(TEST_MATCH_RESULT.group("blockC"), TEST_SERIALIZABLE_MATCH_RESULT.group("blockC"));
+        assertEquals(
+                TEST_MATCH_RESULT.group("blockC"), TEST_SERIALIZABLE_MATCH_RESULT.group("blockC"));
         assertThrowsWithMessage(
                 IllegalArgumentException.class,
                 () -> TEST_MATCH_RESULT.group("blockD"),
@@ -143,7 +145,39 @@ class SerializableMatchResultTest {
         final var firstMatchResultNamedGroupValues =
                 TEST_MATCH_RESULT.namedGroups().entrySet().stream()
                         .collect(
-                                toMap(Entry::getKey, entry -> TEST_MATCH_RESULT.group(entry.getValue())));
-        assertEquals(firstMatchResultNamedGroupValues, TEST_SERIALIZABLE_MATCH_RESULT.namedGroupValues());
+                                toMap(
+                                        Entry::getKey,
+                                        entry -> TEST_MATCH_RESULT.group(entry.getValue())));
+        assertEquals(
+                firstMatchResultNamedGroupValues,
+                TEST_SERIALIZABLE_MATCH_RESULT.namedGroupValues());
+    }
+
+    @Test
+    void testRegexWithNonCapturingGroups() {
+        final var pattern =
+                Pattern.compile(
+                        "(?:(?:Kamerabilder)?(?:XXXX|VRKJ)\\d{2}\\.|roundshot_\\d{4}_)\\d{6}\\.jpg");
+        final var matcher = pattern.matcher("VRKJ01.123456.jpg");
+        assertTrue(matcher.matches());
+        final var result = SerializableMatchResult.fromMatcher(matcher);
+        assertTrue(result.hasMatch());
+        assertEquals(0, result.groupCount());
+        assertEquals("VRKJ01.123456.jpg", result.group());
+    }
+
+    @Test
+    void testRegexWithCapturingGroupsBug() {
+        final var pattern =
+                Pattern.compile(
+                        "(((Kamerabilder)?(XXXX|VRKJ)\\d{2}\\.)|(roundshot_\\d{4}_))\\d{6}\\.jpg");
+        final var matcher = pattern.matcher("VRKJ01.123456.jpg");
+        assertTrue(matcher.matches());
+        // This documents a bug: fromMatcher fails when optional capturing groups
+        // don't participate in the match (group indices are -1)
+        assertThrowsWithMessage(
+                StringIndexOutOfBoundsException.class,
+                () -> SerializableMatchResult.fromMatcher(matcher),
+                "Range [-1, -1) out of bounds for length 17");
     }
 }
