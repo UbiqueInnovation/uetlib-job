@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.checks;
 
-import ch.ubique.backend.job.service.triggers.postgres.PgListenTriggerService;
+import ch.ubique.backend.job.service.postgres.PgChannelListenerRegistry;
 import ch.ubique.backend.monitoring.check.StatusCheck;
 import ch.ubique.backend.monitoring.check.models.CheckFailed;
 import ch.ubique.backend.monitoring.check.models.CheckLevel;
@@ -23,13 +23,13 @@ import java.util.Map;
 public class PgListenListenerCheck implements StatusCheck {
 
     private final CheckLevel level;
-    private final PgListenTriggerService pgListenTriggerService;
+    private final PgChannelListenerRegistry channelListenerRegistry;
 
     public PgListenListenerCheck(
             @Value("${ch.ubique.backend.job.check.pg-listen:ERROR}") final CheckLevel level,
-            final PgListenTriggerService pgListenTriggerService) {
+            final PgChannelListenerRegistry channelListenerRegistry) {
         this.level = level;
-        this.pgListenTriggerService = pgListenTriggerService;
+        this.channelListenerRegistry = channelListenerRegistry;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class PgListenListenerCheck implements StatusCheck {
 
     @Override
     public CheckStatus check() {
-        final var unhealthyChannels = pgListenTriggerService.unhealthyChannels();
+        final var unhealthyChannels = channelListenerRegistry.unhealthyChannels();
         if (!unhealthyChannels.isEmpty()) {
             return new CheckFailed(
                     "Some PostgreSQL LISTEN channels are no longer being monitored.",

@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service.triggers.postgres;
+package ch.ubique.backend.job.service.postgres;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
