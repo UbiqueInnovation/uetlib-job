@@ -14,11 +14,11 @@ public class UetlibJobPgListenDataSourceProviderConfig {
     /**
      * Built from {@link JdbcConnectionDetails} rather than autowiring {@link DataSourceProperties}
      * directly: {@code DataSourceProperties} is only populated from {@code spring.datasource.*}
-     * properties, which stay empty when the datasource comes from a Testcontainers {@code
-     * @ServiceConnection} (or any other {@link JdbcConnectionDetails} bean) instead - in that case
-     * {@code DataSourceProperties#determineUrl()} has nothing to fall back to and throws. {@code
-     * JdbcConnectionDetails} is the abstraction Spring Boot itself resolves uniformly for both
-     * cases, so building the properties from it works everywhere.
+     * properties, which stay empty when the datasource comes from a Testcontainers
+     * {@code @ServiceConnection} (or any other {@link JdbcConnectionDetails} bean) instead - in
+     * that case {@code DataSourceProperties#determineUrl()} has nothing to fall back to and throws.
+     * {@code JdbcConnectionDetails} is the abstraction Spring Boot itself resolves uniformly for
+     * both cases, so building the properties from it works everywhere.
      */
     @Bean
     @ConditionalOnMissingBean

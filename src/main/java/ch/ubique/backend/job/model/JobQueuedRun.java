@@ -1,8 +1,8 @@
 package ch.ubique.backend.job.model;
 
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
-
 import ch.ubique.backend.job.model.runner.conditions.JobRunnerTaint;
+
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
