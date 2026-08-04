@@ -1,6 +1,6 @@
 package ch.uetlib.job.config;
 
-import ch.uetlib.job.model.spring.PgListenDataSourceProvider;
+import ch.uetlib.job.model.spring.PgListenJobTriggerDataSourceProvider;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
@@ -22,8 +22,9 @@ public class UetlibJobPgListenDataSourceProviderConfig {
      */
     @Bean
     @ConditionalOnMissingBean
-    public PgListenDataSourceProvider pgListenDataSourceProvider(
-            final JdbcConnectionDetails jdbcConnectionDetails) {
+    public PgListenJobTriggerDataSourceProvider pgListenDataSourceProvider(
+            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+                    final JdbcConnectionDetails jdbcConnectionDetails) {
         final var properties = new DataSourceProperties();
         properties.setUrl(jdbcConnectionDetails.getJdbcUrl());
         properties.setUsername(jdbcConnectionDetails.getUsername());

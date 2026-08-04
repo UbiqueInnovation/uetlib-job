@@ -20,7 +20,8 @@ public class UetlibJobQueueDataSourceProviderConfig {
     @Bean
     @ConditionalOnMissingBean
     public JobQueueDataSourceProvider jobQueueDataSourceProvider(
-            final JdbcConnectionDetails jdbcConnectionDetails) {
+            @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+                    final JdbcConnectionDetails jdbcConnectionDetails) {
         final var properties = new DataSourceProperties();
         properties.setUrl(jdbcConnectionDetails.getJdbcUrl());
         properties.setUsername(jdbcConnectionDetails.getUsername());

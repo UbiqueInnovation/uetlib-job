@@ -235,6 +235,28 @@ public class JobService {
                 job.id(), priority, versionTag, arguments, taints, allowMultipleQueuedRuns);
     }
 
+    /**
+     * For a run dispatched directly, bypassing the queue's normal QUEUED/CLAIMED steps (e.g. a
+     * dedicated {@code --job} CLI run): records it in the queue as already RUNNING
+     */
+    public JobQueuedRun queueRunningRun(
+            final JobClassAndId job,
+            final JobRunArguments arguments,
+            final int jobRunId,
+            final String runner) {
+        final var j = requireNonNull(jobClassesById.get(job.id()));
+        final var properties = getJobProperties(job.id(), instantiateJob(j));
+        final var taints =
+                requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
+        return jobDataService.queueRunningRun(
+                job.id(), versionTag, arguments, taints, jobRunId, runner);
+    }
+
+    /** Prove Job Run is still live */
+    public void touchRunningHeartbeat(final int jobRunId) {
+        jobDataService.touchQueuedRunHeartbeatByJobRunId(jobRunId);
+    }
+
     public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), startedAt);
     }

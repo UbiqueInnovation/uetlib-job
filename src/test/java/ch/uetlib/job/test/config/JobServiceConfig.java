@@ -11,6 +11,7 @@ import ch.uetlib.job.config.UetlibJobQueueDataSourceProviderConfig;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.register.JobRegistrationService;
+import ch.uetlib.job.storage.JobRunStorage;
 
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -92,6 +93,16 @@ public class JobServiceConfig {
     @Bean
     CloseableHttpClient httpClient() {
         return HttpClients.createSystem();
+    }
+
+    /**
+     * {@code ch.uetlib} is always scanned by {@link EnableJobs}, which discovers {@code
+     * CleanupJob} here too - it needs a {@link JobRunStorage} bean to be instantiable. Mocked
+     * rather than wired for real, same as in other DB tests in this module.
+     */
+    @Bean
+    JobRunStorage jobRunStorage() {
+        return mock(JobRunStorage.class);
     }
 
     @Bean
