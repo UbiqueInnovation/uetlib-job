@@ -173,11 +173,19 @@ class SerializableMatchResultTest {
                         "(((Kamerabilder)?(XXXX|VRKJ)\\d{2}\\.)|(roundshot_\\d{4}_))\\d{6}\\.jpg");
         final var matcher = pattern.matcher("VRKJ01.123456.jpg");
         assertTrue(matcher.matches());
-        // This documents a bug: fromMatcher fails when optional capturing groups
-        // don't participate in the match (group indices are -1)
-        assertThrowsWithMessage(
-                StringIndexOutOfBoundsException.class,
-                () -> SerializableMatchResult.fromMatcher(matcher),
-                "Range [-1, -1) out of bounds for length 17");
+        final var result = SerializableMatchResult.fromMatcher(matcher);
+        assertTrue(result.hasMatch());
+        assertEquals(5, result.groupCount());
+        assertEquals("VRKJ01.123456.jpg", result.group());
+        // Group 1: ((Kamerabilder)?(XXXX|VRKJ)\d{2}\.) -> "VRKJ01."
+        assertEquals("VRKJ01.", result.group(1));
+        // Group 2: ((Kamerabilder)?(XXXX|VRKJ)\d{2}\.) inner -> "VRKJ01."
+        assertEquals("VRKJ01.", result.group(2));
+        // Group 3: (Kamerabilder)? -> didn't participate
+        assertNull(result.group(3));
+        // Group 4: (XXXX|VRKJ) -> "VRKJ"
+        assertEquals("VRKJ", result.group(4));
+        // Group 5: (roundshot_\d{4}_) -> didn't participate
+        assertNull(result.group(5));
     }
 }
