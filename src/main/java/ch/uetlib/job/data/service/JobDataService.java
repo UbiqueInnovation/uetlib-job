@@ -1,5 +1,8 @@
 package ch.uetlib.job.data.service;
 
+import static ch.uetlib.job.model.queue.JobRunQueueState.CLAIMED;
+import static ch.uetlib.job.model.queue.JobRunQueueState.QUEUED;
+
 import static java.util.Objects.requireNonNull;
 
 import ch.uetlib.core.exception.ResourceNotFoundException;
@@ -29,6 +32,8 @@ import org.apache.commons.lang3.Range;
 import org.jspecify.annotations.Nullable;
 import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +59,7 @@ public class JobDataService {
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final K8sJobRepository k8sJobRepository;
     private final LoggingEventRepository loggingEventRepository;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
     private final JdbcTemplate jobJdbcTemplate;
 
     @SuppressWarnings("NullAway.Init")
@@ -71,6 +77,7 @@ public class JobDataService {
             final JobQueuedRunRepository jobQueuedRunRepository,
             final K8sJobRepository k8sJobRepository,
             final LoggingEventRepository loggingEventRepository,
+            final NamedParameterJdbcTemplate namedParameterJdbcTemplate,
             final JdbcTemplate jobJdbcTemplate) {
         this.jobRepository = jobRepository;
         this.jobTriggerRepository = jobTriggerRepository;
@@ -82,6 +89,7 @@ public class JobDataService {
         this.jobQueuedRunRepository = jobQueuedRunRepository;
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.jobJdbcTemplate = jobJdbcTemplate;
     }
 
@@ -455,7 +463,7 @@ public class JobDataService {
                                 jobId, JobRunState.DONE)
                         .map(JobRunEntity::toJobRun)
                         .map(jobRun ->
-                                Objects.requireNonNull(jobRun.finishedAt())
+                                requireNonNull(jobRun.finishedAt())
                                         .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.EPOCH);
         final var pageable = PageRequest.of(0, chunkSize);
@@ -679,13 +687,15 @@ public class JobDataService {
         return savedJobRun;
     }
 
+    /**
+     * Ordered, paged view of queued runs - see {@link
+     * JobQueuedRunRepository#findByQueueStateOrderedByPriority}.
+     */
     @Transactional(readOnly = true)
-    public List<JobQueuedRun> findFirstQueuedByNoOtherTaints(
-            final int number, final Set<String> instanceTaints) {
+    public Slice<JobQueuedRun> findQueuedRunsPage(final Pageable pageable) {
         return jobQueuedRunRepository
-                .findByTaints(instanceTaints, Pageable.ofSize(number))
-                .map(JobQueuedRunEntity::toJobQueuedRun)
-                .toList();
+                .findByQueueStateOrderedByPriority(QUEUED, pageable)
+                .map(JobQueuedRunEntity::toJobQueuedRun);
     }
 
     @Transactional
@@ -695,7 +705,7 @@ public class JobDataService {
                 jobQueuedRunRepository.setState(
                         jobQueuedRun.jobQueuedRunId(),
                         jobQueuedRun.queueState(),
-                        JobRunQueueState.CLAIMED,
+                        CLAIMED,
                         runnerInstanceName,
                         Instant.now());
         return updated == 1;
@@ -714,11 +724,30 @@ public class JobDataService {
                 .toList();
     }
 
-    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}. */
+    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore} */
     @Transactional
-    public int resetStaleClaims(final Instant staleBefore) {
-        return jobQueuedRunRepository.resetStaleClaims(
-                JobRunQueueState.CLAIMED, JobRunQueueState.QUEUED, staleBefore);
+    public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
+        return Arrays.stream(
+                        namedParameterJdbcTemplate.batchUpdate(
+                                """
+                                UPDATE t_job_run_queue
+                                SET queue_state = :resetState, runner = null, heartbeat_at = null, updated_at = :now
+                                WHERE fk_job_id = :fkJobId AND queue_state = :staleState
+                                  AND (heartbeat_at IS NULL OR heartbeat_at < :staleBefore)
+                                """,
+                                staleBefore.entrySet().stream()
+                                        .map(entry -> {
+                                            final var jobId = entry.getKey();
+                                            final var staleBeforeVal = entry.getValue();
+                                            return new MapSqlParameterSource()
+                                                    .addValue("fkJobId", jobId)
+                                                    .addValue("resetState", QUEUED)
+                                                    .addValue("staleState", CLAIMED)
+                                                    .addValue("staleBefore", staleBeforeVal)
+                                                    .addValue("now", Instant.now());
+                                        })
+                                        .toArray(MapSqlParameterSource[]::new)))
+                .sum();
     }
 
     @Transactional
@@ -738,7 +767,7 @@ public class JobDataService {
     /** Unconditionally resets a single row back to {@link JobRunQueueState#QUEUED}. */
     @Transactional
     public void resetQueuedRunById(final int jobQueuedRunId) {
-        jobQueuedRunRepository.forceReset(jobQueuedRunId, JobRunQueueState.QUEUED);
+        jobQueuedRunRepository.forceReset(jobQueuedRunId, QUEUED, Instant.now());
     }
 
     private Predicate buildQueuedRunsPredicate(
@@ -758,13 +787,10 @@ public class JobDataService {
             predicates.add(root.get("queueState").in(states));
         }
 
-        dateTimeRange.ifPresent(
-                range ->
-                        predicates.add(
-                                criteriaBuilder.between(
-                                        root.get("createdAt"),
-                                        range.getMinimum(),
-                                        range.getMaximum())));
+        dateTimeRange.ifPresent(range ->
+                predicates.add(
+                        criteriaBuilder.between(
+                                root.get("createdAt"), range.getMinimum(), range.getMaximum())));
 
         return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
@@ -817,5 +843,11 @@ public class JobDataService {
             return 0;
         }
         return jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(jobIds, states);
+    }
+
+    public List<JobQueuedRun> findQueuedRunsByIds(final Collection<Integer> queueRunIds) {
+        return jobQueuedRunRepository.findAllById(queueRunIds).stream()
+                .map(JobQueuedRunEntity::toJobQueuedRun)
+                .toList();
     }
 }

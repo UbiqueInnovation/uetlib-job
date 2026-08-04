@@ -29,7 +29,7 @@ $$
 BEGIN
     PERFORM pg_notify(
             'new_job_queued_run',
-            NEW.fk_job_id::text
+            NEW.fk_job_id::text || '|' || NEW.pk_job_run_queue_id::text
             );
     RETURN NEW;
 END;

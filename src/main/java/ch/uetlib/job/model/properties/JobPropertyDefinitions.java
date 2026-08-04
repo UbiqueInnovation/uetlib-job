@@ -222,6 +222,15 @@ public final class JobPropertyDefinitions {
                             + " only one run can be queued at a time.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false);
+    public static final JobPropertyDefinition<Duration> CLAIM_TIMEOUT =
+            new DurationPropertyDefinition(
+                    "CLAIM_TIMEOUT",
+                    "Override the default timeout for claimed queue runs. If a job is claimed but not "
+                            + "running for longer than this timeout, it will be reset to queued and can be claimed "
+                            + "by another runner.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null);
 
     // ------------------------------------
     // Helpers to get fields declared above

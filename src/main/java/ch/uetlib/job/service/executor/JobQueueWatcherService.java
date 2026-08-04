@@ -1,8 +1,15 @@
 package ch.uetlib.job.service.executor;
 
+import static ch.uetlib.job.model.properties.JobPropertyDefinitions.CLAIM_TIMEOUT;
+
+import ch.uetlib.core.utils.MapCollectors;
+import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.service.JobService;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +20,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Keeps {@code t_job_run_queue} honest once a row has been claimed:
@@ -25,8 +34,8 @@ import java.time.Instant;
  *       state: removed once that run has finished, otherwise its heartbeat is refreshed
  * </ul>
  *
- * Deliberately does not duplicate stuck/timed-out-job-run detection - that's already handled at
- * the job run level (e.g. {@code JobTimeoutWatcher}). This only concerns the queue row's own
+ * Deliberately does not duplicate stuck/timed-out-job-run detection - that's already handled at the
+ * job run level (e.g. {@code JobTimeoutWatcher}). This only concerns the queue row's own
  * bookkeeping.
  */
 @Service
@@ -35,28 +44,61 @@ public class JobQueueWatcherService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobQueueWatcherService.class);
 
+    private final JobService jobService;
     private final JobDataService jobDataService;
-    private final Duration claimTimeout;
+    private final Duration defaultClaimTimeout;
+
+    private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
 
     public JobQueueWatcherService(
+            final JobService jobService,
             final JobDataService jobDataService,
-            @Value("${ch.uetlib.job.runner.claim.timeout:2m}") final Duration claimTimeout) {
+            @Value("${ch.uetlib.job.runner.claim.timeout:2m}")
+                    final Duration defaultClaimTimeout) {
+        this.jobService = jobService;
         this.jobDataService = jobDataService;
-        this.claimTimeout = claimTimeout;
+        this.defaultClaimTimeout = defaultClaimTimeout;
+        this.jobClaimTimeoutCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
     }
 
-    @Scheduled(
-            cron =
-                    "${ch.uetlib.job.runner.reset-abandoned-claims.cron:*/15 * * * * ?}")
+    /**
+     * Per-job {@link ch.uetlib.job.model.properties.JobPropertyDefinitions#CLAIM_TIMEOUT}
+     * overrides, cached for 30s - not computed once at startup, since an operator can change this
+     * property live via the job properties API and this watcher should pick that up without
+     * requiring a restart.
+     */
+    private Map<Integer, Duration> jobClaimTimeout() {
+        return jobClaimTimeoutCache.get(
+                () ->
+                        jobService.getAllJobs().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                job ->
+                                                        jobService
+                                                                .findJobId(job.getClass())
+                                                                .orElseThrow(),
+                                                job ->
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(CLAIM_TIMEOUT)
+                                                                .valueMaybe()
+                                                                .orElse(defaultClaimTimeout))));
+    }
+
+    @Scheduled(cron = "${ch.uetlib.job.runner.reset-abandoned-claims.cron:14/15 * * * * ?}")
     public void resetAbandonedClaims() {
-        final var staleBefore = Instant.now().minus(claimTimeout);
-        final var reset = jobDataService.resetStaleClaims(staleBefore);
+        final var staleBeforeByJobId =
+                jobClaimTimeout().entrySet().stream()
+                        .collect(MapCollectors.entriesToMapWithValueMapper(Instant.now()::minus));
+        final var reset = jobDataService.resetStaleClaims(staleBeforeByJobId);
         if (reset > 0) {
             logger.info("Reset {} abandoned claim(s) back to queued.", reset);
         }
     }
 
-    @Scheduled(cron = "${ch.uetlib.job.runner.reconcile-running.cron:*/15 * * * * ?}")
+    @Scheduled(cron = "${ch.uetlib.job.runner.reconcile-running.cron:13/15 * * * * ?}")
     public void reconcileRunningQueuedRuns() {
         final var runningQueuedRuns =
                 jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING);

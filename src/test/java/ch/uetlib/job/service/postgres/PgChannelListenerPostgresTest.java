@@ -1,4 +1,4 @@
-package ch.uetlib.job.service.triggers.postgres;
+package ch.uetlib.job.service.postgres;
 
 import static org.junit.jupiter.api.Assertions.*;
 

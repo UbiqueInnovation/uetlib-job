@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## 7.0.0
+
+Job dispatch is now queue-based: triggers no longer run a job directly, they insert a row into the
+new `t_job_run_queue`.
+Each instance claims and executes matching rows - polled every 5s + NOTIFY/LISTEN for PG.
+
+### Improvements / Additions
+
+- New, optional job properties - no action needed to keep current behavior:
+  - `JOB_RUN_TAINTS` - restrict a job's runs to instances advertising matching taints.
+  - `ALLOW_MULTIPLE_QUEUED_RUNS` - allow more than one queued (non-running) run per job at a time.
+  - `CLAIM_TIMEOUT` - override how long a claimed-but-not-yet-running row is held before being
+    released back to the queue.
+
+### Breaking Changes
+
+- Database migration required: run `update_uetlib_7_0_0.sql` (adds `t_job_run_queue`, `t_job.priority`,
+  and, on PostgreSQL, a `NOTIFY` trigger).
+- New required property `ch.uetlib.job.runner.instance.name` - a unique identifier per
+  running instance, used to track claims. Example: '${CLUSTER_NAME}-primary'
+- `POST /job/{id}/start` no longer returns the job's execution result, only whether it was
+  successfully *queued*. Response body changed from `JobSubmissionResult` to the new sealed
+  `QueueSubmissionResult`:
+  ```diff
+  - { "status": "SUBMITTED", "runnerKey": "CURRENT", "jobRunId": 42 }
+  + { "queuedRun": { "jobQueuedRunId": 7, "jobId": 3, "queueState": "QUEUED", ... } }
+  ```
+  A failed request now returns `400` with `{ "reason": "..." }` (`QueueSubmissionFailure`).
+- `PgChannelListenerRegistry` is no longer a single autowired bean; direct injections of it now
+  need `@Qualifier("jobTriggerPgChannelListenerRegistry")` or
+  `@Qualifier("jobQueuePgChannelListenerRegistry")` (see below).
+
+### Necessary Adjustments in Projects
+
+- Set `ch.uetlib.job.runner.instance.name` for every deployed instance.
+- Apps with **more than one datasource**: the job library needs to know which datasource its own
+  queue table lives on, separately from the datasource job-defined `PG_LISTEN` triggers listen on.
+  Supply a bean (only for whichever one the ambient/primary datasource is wrong for):
+  ```java
+  @Bean
+  JobQueueDataSourceProvider jobQueueDataSourceProvider(final JdbcConnectionDetails jobDbConnectionDetails) {
+      return () -> propertiesFor(jobDbConnectionDetails); // e.g. via DataSourceProperties setters
+  }
+  ```
+  Single-datasource apps need no changes here; both default to the ambient datasource.
+
 ## 6.0.2
 
 - Deprecate `ch.ubique.backend.job.interface.secret` in configuration metadata in favor of
