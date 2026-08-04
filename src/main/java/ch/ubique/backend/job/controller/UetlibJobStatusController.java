@@ -18,6 +18,7 @@ import ch.ubique.backend.job.service.controller.JobControllerService;
 import ch.ubique.backend.spring.validation.ValidateResponse;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.InputStreamResource;
@@ -112,13 +113,19 @@ public class UetlibJobStatusController {
         return jobControllerService.deleteQueuedRun(jobQueuedRunId);
     }
 
+    @PatchMapping("/queue/{jobQueuedRunId}/priority")
+    public SuccessResponse updateQueuedRunPriority(
+            @PathVariable final int jobQueuedRunId,
+            @RequestParam(required = false) final @PositiveOrZero Integer priority) {
+        return jobControllerService.updateQueuedRunPriority(jobQueuedRunId, priority);
+    }
+
     @DeleteMapping("/queue")
     public SuccessResponse deleteQueuedRuns(
             @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
             @RequestParam(required = false, defaultValue = "") final Collection<String> excludeJobs,
             @RequestParam(required = false, defaultValue = "")
-                    final Collection<JobRunQueueState> state)
-            throws ClassNotFoundException {
+                    final Collection<JobRunQueueState> state) {
         return jobControllerService.deleteQueuedRuns(includeJobs, excludeJobs, state);
     }
 

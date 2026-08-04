@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import ch.ubique.backend.job.model.JobClassAndId;
 import ch.ubique.backend.job.model.JobQueuedRun;
 import ch.ubique.backend.job.model.JobRunArguments;
+import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
 import ch.ubique.backend.job.model.runner.conditions.JobRunnerTaint;
@@ -112,6 +113,31 @@ class JobRunQueueServiceTest {
         service.checkForRunnableAndSchedule();
 
         verify(jobService, times(1)).findQueuedRunsPage(any());
+    }
+
+    @Test
+    void anUntaggedRowIsRoutedToThePlainPathNotDedicated() {
+        // Regression test: taint subset-matching means an untagged row's taints (the empty set)
+        // are trivially a subset of *both* the plain and the dedicated taint set. Plain must be
+        // tried first (see claimIfMatchesThisRunner) so an ordinary job never ends up routed to a
+        // dedicated K8s runner just because it also happens to satisfy the dedicated match.
+        final var untagged = queuedRun(1, Set.of());
+        stubPlainClaimAttempt();
+        when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
+                .thenReturn(new SliceImpl<>(List.of(untagged), PageRequest.of(0, PAGE_SIZE), false));
+
+        service.checkForRunnableAndSchedule();
+
+        verify(jobService).claimQueuedRun(untagged, INSTANCE_NAME);
+        verify(jobService, never()).hasRunner(JobRunnerKey.DEDICATED_K8S_JOB);
+    }
+
+    private void stubPlainClaimAttempt() {
+        when(jobService.findJobById(anyInt()))
+                .thenReturn(Optional.of(new JobClassAndId(1, "ch.ubique.backend.job.TestJob")));
+        when(jobService.getProperties(any(JobClassAndId.class)))
+                .thenReturn(new JobProperties(List.of()));
+        when(jobService.claimQueuedRun(any(), any())).thenReturn(false);
     }
 
     private void stubDedicatedClaimAttempt() {

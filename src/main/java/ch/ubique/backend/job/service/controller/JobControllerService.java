@@ -256,6 +256,16 @@ public class JobControllerService {
         return new SuccessResponse(false, "Queued run not found or currently running.");
     }
 
+    /** {@code null} clears the override, falling back to the job's own default priority. */
+    public SuccessResponse updateQueuedRunPriority(
+            final int jobQueuedRunId, final @Nullable Integer priority) {
+        final var updated = jobDataService.updateQueuedRunPriority(jobQueuedRunId, priority);
+        if (updated) {
+            return new SuccessResponse(true, "Priority updated.");
+        }
+        return new SuccessResponse(false, "Queued run not found or currently running.");
+    }
+
     /**
      * Deletes queued runs matching the given job and state filters, grouped implicitly by (job,
      * state). {@link JobRunQueueState#RUNNING} is never removable, even if explicitly requested.
@@ -263,8 +273,7 @@ public class JobControllerService {
     public SuccessResponse deleteQueuedRuns(
             final Collection<String> includeJobNamesOrIds,
             final Collection<String> excludeJobNamesOrIds,
-            final Collection<JobRunQueueState> states)
-            throws ClassNotFoundException {
+            final Collection<JobRunQueueState> states) {
         final var jobIds =
                 getJobClassAndIds(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
                         .map(JobClassAndId::id)
