@@ -191,11 +191,7 @@ public class JobRunQueueService {
             return;
         }
         switch (jobExecutorService.submit(jobQueuedRun, isDedicated)) {
-            // TODO: Java 25 unnamed patterns
-            case SuccessfulSubmissionResult(
-                            final var ignored,
-                            final var ignored1,
-                            final var runId) ->
+            case SuccessfulSubmissionResult(_, _, final var runId) ->
                     jobService.setRunId(jobQueuedRun, runId);
             case UnsuccessfulSubmissionResult(final var status) -> {
                 jobService.releaseQueuedRun(jobQueuedRun);
