@@ -1,14 +1,19 @@
 # CHANGELOG
 
+## 5.0.6
+
+### Fixes
+
+- Fix `RunnerGroup` deserialization without `allowedJobs`
+
 ## 5.0.5
 
 ### Fixes
 
-- Fix `SerializableMatchResult.fromMatcher` crashing with `StringIndexOutOfBoundsException` when
-  the regex contains non-participating capturing groups (e.g. optional groups or unmatched
-  alternation branches)
-- Fix `SerializableMatchResult.group(int)` to use precomputed group values instead of recomputing
-  via `text.substring()`, which also broke with lookbehind captures
+- Fix `SerializableMatchResult.fromMatcher` crashing with `StringIndexOutOfBoundsException` when the regex contains
+  non-participating capturing groups (e.g. optional groups or unmatched alternation branches)
+- Fix `SerializableMatchResult.group(int)` to use precomputed group values instead of recomputing via
+  `text.substring()`, which also broke with lookbehind captures
 - Remove unused `text` field from `SerializableMatchResult`
 
 ## 5.0.4
@@ -76,11 +81,11 @@
 
 ### Fixes
 
-- `PG_LISTEN` triggers are now resilient to silently dropped (half-open) `LISTEN` connections: the
-  connection enables TCP keepalive and a bounded socket timeout, and a periodic keepalive query
-  forces a round-trip so a dead connection surfaces as an error and the listener reconnects instead
-  of going permanently deaf. Added a `StatusCheck` (`PgListenListenerCheck`) that reports via the
-  monitoring endpoint when a channel is no longer being actively monitored.
+- `PG_LISTEN` triggers are now resilient to silently dropped (half-open) `LISTEN` connections: the connection enables
+  TCP keepalive and a bounded socket timeout, and a periodic keepalive query forces a round-trip so a dead connection
+  surfaces as an error and the listener reconnects instead of going permanently deaf. Added a `StatusCheck`
+  (`PgListenListenerCheck`) that reports via the monitoring endpoint when a channel is no longer being actively
+  monitored.
 
 ## 4.0.4
 
@@ -119,8 +124,8 @@
 ### Improvements
 
 - Kubernetes support can be locallly disabled by setting the profile `disable-k8s`
-- JDBC template used by this module was renamed to `jobJdbcTemplate` to make it easier for projects
-  to configure this specific JDBC template
+- JDBC template used by this module was renamed to `jobJdbcTemplate` to make it easier for projects to configure this
+  specific JDBC template
 
 ### Fixes
 
@@ -201,18 +206,17 @@ Retreat 2025 Edition
 
 ### New Features
 
-- Added an option to kill jobs automatically after they exceeded their run-time or schedule-time
-  limit. The behavior can be controlled using the job properties.
+- Added an option to kill jobs automatically after they exceeded their run-time or schedule-time limit. The behavior can
+  be controlled using the job properties.
 - Job Info endpoint now includes runner groups.
 - Job runs persist the version tag of the image that was used to run the job.
 - Added new `ACKNOWLEDGED` state and endpoint to acknowledge for job runs.
-- Added new `CANCELLED` state to differentiate between a run that was willfully canceled from a run
-  that could not complete (i.e. `UNFINISHED`).
+- Added new `CANCELLED` state to differentiate between a run that was willfully canceled from a run that could not
+  complete (i.e. `UNFINISHED`).
 - Added `RetryTrigger` to enable retrying failed job runs with a constant backoff.
-- `JobStateCheck` can use new `StateCheckStrategy` for monitoring checks. The strategies can be set
-  as JobProperty for each Job.
-- Added option to disable jobs. A disabled job will never be triggered and cannot be started unless
-  enabled again.
+- `JobStateCheck` can use new `StateCheckStrategy` for monitoring checks. The strategies can be set as JobProperty for
+  each Job.
+- Added option to disable jobs. A disabled job will never be triggered and cannot be started unless enabled again.
 
 ### Database migrations
 
@@ -254,8 +258,8 @@ Retreat 2025 Edition
 
 ### New Features
 
-- The job module can now watch state changes and logs of Kubernetes jobs. This is particularly
-  useful for running arbitrary images as jobs.
+- The job module can now watch state changes and logs of Kubernetes jobs. This is particularly useful for running
+  arbitrary images as jobs.
 
 ### Improvements
 
@@ -265,8 +269,7 @@ Retreat 2025 Edition
 
 ### Fixes
 
-- Added `-job` suffix to dedicated k8s-job `app`-label to avoid selectors for the main app to also
-  affect the job pods.
+- Added `-job` suffix to dedicated k8s-job `app`-label to avoid selectors for the main app to also affect the job pods.
 
 ## 1.3.4
 
@@ -297,9 +300,8 @@ Retreat 2025 Edition
 ### Breaking Changes
 
 - Status logs are now served from base path `/v1/status` to be protected under the security config.
-    - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires
-      implementing projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from
-      their security config, e.g.:
+    - `/v1/status/**` specific `SecurityFilterChain` and `JwtDecoder` moved to Uetlib. This requires implementing
+      projects to remove the `JwtDecoder` and `securityMatcher("/v1/status/**")` from their security config, e.g.:
       ```diff
       - http.securityMatcher("/v1/status/**")
       -       .authorizeHttpRequests(
@@ -320,9 +322,8 @@ Retreat 2025 Edition
       -             .build();
       - }
       ```
-    - Additionally, you have to add a separate filter chain for the actuator endpoints. The
-      following three filter chains suffice for the minimal job module security config with no
-      additional exposed endpoints:
+    - Additionally, you have to add a separate filter chain for the actuator endpoints. The following three filter
+      chains suffice for the minimal job module security config with no additional exposed endpoints:
       ```
       /** Probably keep this one as-is to have the swagger documentation adequately protected */
       @Bean
@@ -387,8 +388,8 @@ Retreat 2025 Edition
 
 ### Improvements
 
-- Jobs that produced log outputs within the last minute are never set to unfinished. This should
-  improve the ability to run multiple replicas.
+- Jobs that produced log outputs within the last minute are never set to unfinished. This should improve the ability to
+  run multiple replicas.
 
 ## 1.1.6
 
@@ -439,8 +440,7 @@ Retreat 2025 Edition
 
 - Support for job-run files. Any job-run files can be downloaded in the status interface now.
     - To use this feature, you can use the `JobRunInputManager` Bean.
-    - Implement `JobRunInputProvider` in your Job if you want to customize the loading of input
-      files.
+    - Implement `JobRunInputProvider` in your Job if you want to customize the loading of input files.
 - Disable triggers by activating the `job-disable-triggers` profile.
 
 ### Fixes
