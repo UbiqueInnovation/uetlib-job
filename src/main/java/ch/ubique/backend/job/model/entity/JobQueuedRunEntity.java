@@ -103,7 +103,7 @@ public class JobQueuedRunEntity {
                 lastHeartbeat,
                 requireNonNull(createdAt),
                 requireNonNull(updatedAt),
-                taints.stream().map(JobRunnerTaint::new).collect(Collectors.toSet()),
+                taints.stream().map(JobRunnerTaint::from).collect(Collectors.toSet()),
                 jobRunArguments);
     }
 

@@ -10,6 +10,6 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
  * JobQueueDataSourceProvider} for that one. Implement this as a Spring bean to override the default
  * (the application's ambient/primary datasource).
  */
-public interface PgListenDataSourceProvider {
+public interface PgListenJobTriggerDataSourceProvider {
     DataSourceProperties getDataSourceProperties();
 }

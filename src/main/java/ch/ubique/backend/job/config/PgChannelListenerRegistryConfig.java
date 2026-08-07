@@ -1,7 +1,7 @@
 package ch.ubique.backend.job.config;
 
 import ch.ubique.backend.job.model.spring.JobQueueDataSourceProvider;
-import ch.ubique.backend.job.model.spring.PgListenDataSourceProvider;
+import ch.ubique.backend.job.model.spring.PgListenJobTriggerDataSourceProvider;
 import ch.ubique.backend.job.service.postgres.PgChannelListenerRegistry;
 
 import org.springframework.context.annotation.Bean;
@@ -10,10 +10,11 @@ import org.springframework.context.annotation.Profile;
 
 /**
  * Produces the two {@link PgChannelListenerRegistry} beans as distinct, independently-datasourced
- * instances - never a single shared one - since {@link PgListenDataSourceProvider} (job-defined
- * {@code PG_LISTEN} triggers, application datasource) and {@link JobQueueDataSourceProvider} (the
- * job library's own internal queue notifications) can point at entirely different databases in a
- * multi-datasource application. Consumers select the one they need by bean name.
+ * instances - never a single shared one - since {@link PgListenJobTriggerDataSourceProvider}
+ * (job-defined {@code PG_LISTEN} triggers, application datasource) and {@link
+ * JobQueueDataSourceProvider} (the job library's own internal queue notifications) can point at
+ * entirely different databases in a multi-datasource application. Consumers select the one they
+ * need by bean name.
  */
 @Configuration
 @Profile("!job-run")
@@ -24,8 +25,9 @@ public class PgChannelListenerRegistryConfig {
 
     @Bean(JOB_TRIGGER_REGISTRY)
     public PgChannelListenerRegistry jobTriggerPgChannelListenerRegistry(
-            final PgListenDataSourceProvider pgListenDataSourceProvider) {
-        return new PgChannelListenerRegistry(pgListenDataSourceProvider.getDataSourceProperties());
+            final PgListenJobTriggerDataSourceProvider pgListenJobTriggerDataSourceProvider) {
+        return new PgChannelListenerRegistry(
+                pgListenJobTriggerDataSourceProvider.getDataSourceProperties());
     }
 
     @Bean(JOB_QUEUE_REGISTRY)

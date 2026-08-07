@@ -113,7 +113,7 @@ public class UetlibJobStatusController {
         return jobControllerService.deleteQueuedRun(jobQueuedRunId);
     }
 
-    @PatchMapping("/queue/{jobQueuedRunId}/priority")
+    @PutMapping("/queue/{jobQueuedRunId}/priority")
     public SuccessResponse updateQueuedRunPriority(
             @PathVariable final int jobQueuedRunId,
             @RequestParam(required = false) final @PositiveOrZero Integer priority) {

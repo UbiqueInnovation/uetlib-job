@@ -49,10 +49,13 @@ class JobRunQueueServiceTest {
 
     @Test
     void keepsPagingUntilAPageHasAMatch() {
-        final var nonMatching = queuedRun(1, Set.of(new JobRunnerTaint("unadvertised")));
+        final var nonMatching = queuedRun(1, Set.of(JobRunnerTaint.from("unadvertised")));
         final var matching =
                 queuedRun(
-                        2, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT, new JobRunnerTaint("gpu")));
+                        2,
+                        Set.of(
+                                JobRunnerTaints.DEDICATED_K8S_TAINT.taint(),
+                                JobRunnerTaint.from("gpu")));
         stubDedicatedClaimAttempt();
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(
@@ -71,7 +74,7 @@ class JobRunQueueServiceTest {
 
     @Test
     void stopsPagingAsSoonAsAPageHasAMatch() {
-        final var matching = queuedRun(1, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT));
+        final var matching = queuedRun(1, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.taint()));
         stubDedicatedClaimAttempt();
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(new SliceImpl<>(List.of(matching), PageRequest.of(0, PAGE_SIZE), true));
@@ -84,7 +87,7 @@ class JobRunQueueServiceTest {
 
     @Test
     void stopsAtTheLastPageWhenNothingEverMatches() {
-        final var nonMatching = queuedRun(1, Set.of(new JobRunnerTaint("unadvertised")));
+        final var nonMatching = queuedRun(1, Set.of(JobRunnerTaint.from("unadvertised")));
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(
                         new SliceImpl<>(List.of(nonMatching), PageRequest.of(0, PAGE_SIZE), false));
@@ -97,7 +100,7 @@ class JobRunQueueServiceTest {
 
     @Test
     void aConcurrentInvocationIsSkippedRatherThanRunInParallel() {
-        final var run = queuedRun(1, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT));
+        final var run = queuedRun(1, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.taint()));
         stubDedicatedClaimAttempt();
         // Simulates a second scheduled tick arriving while the first check is still in progress:
         // re-entering from inside the mocked call, on the same thread, hits the exact same
@@ -124,7 +127,8 @@ class JobRunQueueServiceTest {
         final var untagged = queuedRun(1, Set.of());
         stubPlainClaimAttempt();
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
-                .thenReturn(new SliceImpl<>(List.of(untagged), PageRequest.of(0, PAGE_SIZE), false));
+                .thenReturn(
+                        new SliceImpl<>(List.of(untagged), PageRequest.of(0, PAGE_SIZE), false));
 
         service.checkForRunnableAndSchedule();
 
