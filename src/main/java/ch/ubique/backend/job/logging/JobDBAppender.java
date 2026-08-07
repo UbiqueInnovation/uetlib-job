@@ -154,7 +154,7 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
     @Override
     public void start() {
         super.start();
-        scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 0, 5, TimeUnit.SECONDS);
+        scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 5, 5, TimeUnit.SECONDS);
     }
 
     @Override
