@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
 public class JobRunQueueService {
     private static final Logger logger = LoggerFactory.getLogger(JobRunQueueService.class);
 
+    public static final String RUNNER_INSTANCE_NAME_PROP =
+            "ch.ubique.backend.job.runner.instance.name";
+
     private final JobService jobService;
     private final JobRunnerInfoService jobRunnerServiceInfo;
     private final JobExecutorService jobExecutorService;
@@ -50,7 +53,7 @@ public class JobRunQueueService {
             final JobService jobService,
             final JobRunnerInfoService jobRunnerServiceInfo,
             final JobExecutorService jobExecutorService,
-            @Value("${ch.ubique.backend.job.runner.instance.name}") final String instanceName,
+            @Value("${" + RUNNER_INSTANCE_NAME_PROP + "}") final String instanceName,
             @Value("${ch.ubique.backend.job.runner.instance.taints:null}")
                     final @Nullable List<String> instanceTaints,
             @Value("${ch.ubique.backend.job.runner.max.runnable.per.check:8}")

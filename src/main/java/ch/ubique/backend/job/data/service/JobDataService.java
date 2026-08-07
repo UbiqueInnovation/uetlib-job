@@ -294,6 +294,19 @@ public class JobDataService {
     }
 
     @Transactional
+    public JobQueuedRun queueRunningRun(
+            final int jobId,
+            final String versionTag,
+            final JobRunArguments arguments,
+            final Set<JobRunnerTaint> taints,
+            final int jobRunId,
+            final String runner) {
+        final var queuedRunEntity =
+                new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId, runner);
+        return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
+    }
+
+    @Transactional
     public JobRun startJobRun(final int jobRunId, final Instant startedAt) {
         return jobRunRepository
                 .findById(jobRunId)

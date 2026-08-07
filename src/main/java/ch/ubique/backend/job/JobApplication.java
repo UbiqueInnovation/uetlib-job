@@ -2,6 +2,7 @@ package ch.ubique.backend.job;
 
 import ch.ubique.backend.job.commands.JobApplicationArgsParser;
 import ch.ubique.backend.job.commands.JobApplicationJobToStartArgs;
+import ch.ubique.backend.job.model.JobQueuedRun;
 import ch.ubique.backend.job.model.JobRunArguments;
 import ch.ubique.backend.job.model.JobRunArgumentsAdditionalData;
 import ch.ubique.backend.job.model.JobRunArgumentsAdditionalDataString;
@@ -11,6 +12,7 @@ import ch.ubique.backend.job.model.runner.JobApplicationExitStatus;
 import ch.ubique.backend.job.service.JobService;
 import ch.ubique.backend.job.service.core.ClassLoaderService;
 import ch.ubique.backend.job.service.executor.JobExecutorService;
+import ch.ubique.backend.job.service.executor.JobRunQueueService;
 import ch.ubique.backend.job.service.executor.runners.DedicatedJobRunner;
 
 import org.apache.commons.lang3.StringUtils;
@@ -97,6 +99,8 @@ public final class JobApplication {
                 return JobApplicationExitStatus.COULD_NOT_SCHEDULE;
             }
 
+            var _ = recordAsRunningInQueue(applicationContext, successfulSubmissionResult);
+
             logger.info("Waiting for job to finish.");
             applicationContext.getBean(DedicatedJobRunner.class).awaitCompletion();
 
@@ -112,6 +116,26 @@ public final class JobApplication {
             logger.error("Unexpected exception.", e);
             return JobApplicationExitStatus.UNCAUGHT_EXCEPTION;
         }
+    }
+
+    /**
+     * A dedicated {@code --job} run bypasses the queue entirely on submission (see {@link
+     * JobExecutorService#submit})
+     */
+    private static JobQueuedRun recordAsRunningInQueue(
+            final ConfigurableApplicationContext applicationContext,
+            final SuccessfulSubmissionResult submissionResult) {
+        final var runnerInstanceName =
+                applicationContext
+                        .getEnvironment()
+                        .getRequiredProperty(JobRunQueueService.RUNNER_INSTANCE_NAME_PROP);
+        return applicationContext
+                .getBean(JobService.class)
+                .queueRunningRun(
+                        submissionResult.jobRunContext().job(),
+                        submissionResult.jobRunContext().arguments(),
+                        submissionResult.jobRunId(),
+                        runnerInstanceName);
     }
 
     private static JobApplicationExitStatus exitCodeFromJobRunState(
