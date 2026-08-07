@@ -65,40 +65,30 @@ public final class SerializableMatchResult implements MatchResult {
 
     public static SerializableMatchResult fromMatcher(final Matcher matcher) {
         final var matchResult = matcher.toMatchResult();
+        final var hasMatch = matcher.hasMatch();
+
+        final var groupCount = matchResult.groupCount();
+        final var namedGroups = matchResult.namedGroups();
+
+        if (!hasMatch) {
+            return new SerializableMatchResult(
+                    -1, -1, groupCount, List.of(), new int[0], null, namedGroups);
+        }
+
         final var first = matchResult.start();
         final var last = matchResult.end();
-        final var text = matcher.hasMatch() ? matcher.group() : null;
+        final var text = matcher.group();
         final var groupIndices =
                 IntStream.rangeClosed(0, matchResult.groupCount())
                         .flatMap(g -> IntStream.of(matchResult.start(g), matchResult.end(g)))
                         .toArray();
-
-        final List<@Nullable String> groups;
-        if (text != null) {
-            groups =
-                    IntStream.rangeClosed(0, matchResult.groupCount())
-                            .boxed()
-                            .<@Nullable String>map(
-                                    g ->
-                                            (groupIndices[g * 2] == -1
-                                                            || groupIndices[g * 2 + 1] == -1)
-                                                    ? null
-                                                    : text.substring(
-                                                            groupIndices[g * 2] - first,
-                                                            groupIndices[g * 2 + 1] - first))
-                            .toList();
-        } else {
-            groups = List.of();
-        }
-
+        final var groups =
+                IntStream.rangeClosed(0, matchResult.groupCount())
+                        .boxed()
+                        .<@Nullable String>map(matchResult::group)
+                        .toList();
         return new SerializableMatchResult(
-                first,
-                last,
-                matchResult.groupCount(),
-                groups,
-                groupIndices,
-                text,
-                matchResult.namedGroups());
+                first, last, groupCount, groups, groupIndices, text, namedGroups);
     }
 
     @Override
@@ -148,11 +138,7 @@ public final class SerializableMatchResult implements MatchResult {
     public String group(final int group) {
         checkMatch();
         checkGroup(group);
-        if ((groupIndices[group * 2] == -1) || (groupIndices[group * 2 + 1] == -1)) {
-            return null;
-        }
-        return java.util.Objects.requireNonNull(text)
-                .substring(groupIndices[group * 2] - first, groupIndices[group * 2 + 1] - first);
+        return groups.get(group);
     }
 
     @Override
