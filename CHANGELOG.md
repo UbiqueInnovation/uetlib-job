@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 5.0.5
+
+### Fixes
+
+- Fix `SerializableMatchResult.fromMatcher` crashing with `StringIndexOutOfBoundsException` when
+  the regex contains non-participating capturing groups (e.g. optional groups or unmatched
+  alternation branches)
+- Fix `SerializableMatchResult.group(int)` to use precomputed group values instead of recomputing
+  via `text.substring()`, which also broke with lookbehind captures
+- Remove unused `text` field from `SerializableMatchResult`
+
 ## 5.0.4
 
 - uetlib versions updated
