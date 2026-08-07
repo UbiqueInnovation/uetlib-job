@@ -1,6 +1,6 @@
 package ch.ubique.backend.job.data;
 
-import ch.ubique.backend.job.test.config.JobServiceConfig;
+import ch.ubique.backend.job.test.config.JobServiceTestConfig;
 import ch.ubique.backend.job.test.config.TestcontainerConfig;
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 // @ActiveProfiles({"test", "no-security", "postgres"})
 @SpringBootTest(
         classes = {
-            JobServiceConfig.class,
+            JobServiceTestConfig.class,
             TestcontainerConfig.class,
         })
 @Transactional

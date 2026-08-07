@@ -22,7 +22,7 @@ public class UetlibJobPgListenDataSourceProviderConfig {
      */
     @Bean
     @ConditionalOnMissingBean
-    public PgListenJobTriggerDataSourceProvider pgListenDataSourceProvider(
+    public PgListenJobTriggerDataSourceProvider pgListenJobTriggerDataSourceProvider(
             @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
                     final JdbcConnectionDetails jdbcConnectionDetails) {
         final var properties = new DataSourceProperties();

@@ -5,19 +5,43 @@
 Job dispatch is now queue-based: triggers no longer run a job directly, they insert a row into the
 new `t_job_run_queue`.
 Each instance claims and executes matching rows - polled every 5s + NOTIFY/LISTEN for PG.
+Running jobs now maintain a heartbeat; see `SCHEDULING.md` for how dispatch, handoff, and liveness
+detection fit together.
 
 ### Improvements / Additions
 
 - New, optional job properties - no action needed to keep current behavior:
-  - `JOB_RUN_TAINTS` - restrict a job's runs to instances advertising matching taints.
-  - `ALLOW_MULTIPLE_QUEUED_RUNS` - allow more than one queued (non-running) run per job at a time.
-  - `CLAIM_TIMEOUT` - override how long a claimed-but-not-yet-running row is held before being
-    released back to the queue.
+    - `JOB_RUN_TAINTS` - restrict a job's runs to instances advertising matching taints.
+    - `ALLOW_MULTIPLE_QUEUED_RUNS` - allow more than one queued (non-running) run per job at a time.
+    - `CLAIM_TIMEOUT` - override how long a claimed-but-not-yet-running row is held before being
+      released back to the queue.
+    - `HEARTBEAT_TIMEOUT` - override how long a running job's heartbeat may go stale before it's
+      considered abandoned (default 1 minute).
+- `PUT /queue/{jobQueuedRunId}/priority` - reorder a still-queued run.
+- Running job runs now maintain a heartbeat on their queue row - covers in-process runs, dedicated
+  `--job` pods, and Kubernetes-dispatched jobs (pod status + log activity). A run whose heartbeat
+  goes stale is marked `UNFINISHED` and its queue row removed. See `SCHEDULING.md`.
+- Dedicated `--job` runs are now also recorded in the queue as `RUNNING` (previously invisible to
+  it), so a job's own trigger firing again while it's already running no longer churns.
+
+### Fixes
+
+- `resetStaleClaims` (reclaiming a job abandoned by a dead instance) was completely broken on all
+  dialects - a claimed job could get stuck forever. Fixed.
+- A job's trigger firing again while it was already `RUNNING` could delete its `RUNNING` queue row
+  (via the queue's "keep latest queued run only" cleanup). Fixed - `RUNNING` rows are never
+  touched by it.
+- `@EnableJobs`'s "`ch.ubique.backend` is always included" doc claim wasn't actually implemented -
+  now true. May surface `CleanupJob`/`HealthCheckJob` for projects not already listing that package
+  explicitly.
+- `-a/--additionalData` and `-c/--additionalDataClass` CLI flags were silently ignored (never
+  registered). Now functional.
 
 ### Breaking Changes
 
 - Database migration required: run `update_uetlib_6_0_0.sql` (adds `t_job_run_queue`, `t_job.priority`,
-  and, on PostgreSQL, a `NOTIFY` trigger).
+  and, on PostgreSQL, a `NOTIFY` trigger). No further migration needed for the heartbeat/priority
+  additions above - they reuse existing columns.
 - New required property `ch.ubique.backend.job.runner.instance.name` - a unique identifier per
   running instance, used to track claims. Example: '${CLUSTER_NAME}-primary'
 - `POST /job/{id}/start` no longer returns the job's execution result, only whether it was
@@ -37,7 +61,8 @@ Each instance claims and executes matching rows - polled every 5s + NOTIFY/LISTE
 - Set `ch.ubique.backend.job.runner.instance.name` for every deployed instance.
 - Apps with **more than one datasource**: the job library needs to know which datasource its own
   queue table lives on, separately from the datasource job-defined `PG_LISTEN` triggers listen on.
-  Supply a bean (only for whichever one the ambient/primary datasource is wrong for):
+  Supply a bean (only for whichever one the ambient/primary datasource is wrong for,
+  `PgListenJobTriggerDataSourceProvider` or `JobQueueDataSourceProvider`):
   ```java
   @Bean
   JobQueueDataSourceProvider jobQueueDataSourceProvider(final JdbcConnectionDetails jobDbConnectionDetails) {

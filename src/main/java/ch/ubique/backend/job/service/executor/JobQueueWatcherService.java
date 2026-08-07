@@ -3,6 +3,8 @@ package ch.ubique.backend.job.service.executor;
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.CLAIM_TIMEOUT;
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.HEARTBEAT_TIMEOUT;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.core.utils.SingleCache;
 import ch.ubique.backend.job.data.service.JobDataService;
@@ -11,6 +13,7 @@ import ch.ubique.backend.job.model.JobRun;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
 import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.heartbeat.HeartbeatRegistry;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -35,7 +38,7 @@ import java.util.stream.Collectors;
  *   <li>a {@link JobRunQueueState#RUNNING} row whose linked job run has actually finished is
  *       removed; one whose heartbeat has gone stale - the executing runner (see {@code
  *       JobRunnerHelper}) is no longer proving itself alive - is treated as abandoned: the job run
- *       is marked {@link JobRunState#ERROR} and the row is removed
+ *       is marked {@link JobRunState#UNFINISHED} (cause unknown from here) and the row is removed
  * </ul>
  *
  * Deliberately does not duplicate max-duration-based timeout detection - that's already handled at
@@ -50,14 +53,18 @@ public class JobQueueWatcherService {
 
     private final JobService jobService;
     private final JobDataService jobDataService;
+    private final HeartbeatRegistry heartbeatRegistry;
 
     private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
     private final SingleCache<Map<Integer, Duration>> jobHeartbeatTimeoutCache;
 
     public JobQueueWatcherService(
-            final JobService jobService, final JobDataService jobDataService) {
+            final JobService jobService,
+            final JobDataService jobDataService,
+            final HeartbeatRegistry heartbeatRegistry) {
         this.jobService = jobService;
         this.jobDataService = jobDataService;
+        this.heartbeatRegistry = heartbeatRegistry;
         this.jobClaimTimeoutCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
@@ -142,6 +149,11 @@ public class JobQueueWatcherService {
 
         final var jobRun = jobDataService.findJobRunById(jobRunId);
         if (jobRun.isEmpty() || !jobRun.get().latestState().isRunning()) {
+            // Its own runner should already have stopped this locally (see JobRunnerHelper), but
+            // stop it here too in case something else caused the run to finish without that path
+            // ever firing - e.g. its state was changed directly (KubernetesJobWatcher) while a
+            // stuck-but-alive worker thread's own heartbeat never noticed on its own.
+            heartbeatRegistry.stop(jobRunId);
             jobDataService.deleteQueuedRunById(queuedRun.jobQueuedRunId());
             return;
         }
@@ -152,18 +164,30 @@ public class JobQueueWatcherService {
     }
 
     private boolean isHeartbeatStale(final JobQueuedRun queuedRun) {
-        final var timeout = jobHeartbeatTimeout().get(queuedRun.jobId());
-        final var lastHeartbeat = queuedRun.lastHeartbeat();
-        return lastHeartbeat == null || lastHeartbeat.isBefore(Instant.now().minus(timeout));
+        final var timeout = requireNonNull(jobHeartbeatTimeout().get(queuedRun.jobId()));
+        return queuedRun.isHeartbeatStale(timeout, Instant.now());
     }
 
+    /**
+     * {@link #reconcileRunningQueuedRuns} runs on every {@code !job-run} instance without regard to
+     * which one is recorded as {@link JobQueuedRun#runner()} - it may well be this same instance
+     * reconciling its own stuck job. Either way, this only has a stale heartbeat to go on, not the
+     * actual cause (dead runner, stuck runner, network partition, ...), so it uses {@link
+     * JobRunState#UNFINISHED} rather than {@link JobRunState#ERROR} or {@link
+     * JobRunState#CANCELLED}, both of which would imply a known cause.
+     */
     private void abandon(final JobQueuedRun queuedRun, final JobRun jobRun) {
         logger.warn(
                 "Queued run {} has a stale heartbeat; its runner appears to be dead or stuck."
-                        + " Marking job run {} as failed.",
+                        + " Marking job run {} as unfinished.",
                 queuedRun,
                 jobRun);
-        jobService.updateJobRunState(jobRun, JobRunState.ERROR, Instant.now());
+        jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
         jobDataService.deleteQueuedRunById(queuedRun.jobQueuedRunId());
+        // Closes the one gap a stale-heartbeat-only check can't: a worker thread that's alive but
+        // truly stuck (e.g. a permanent deadlock) never dies, so its own ThreadProgressCheckIn
+        // would
+        // otherwise keep ticking here forever even after this instance itself gave up on it.
+        heartbeatRegistry.stop(jobRun.id());
     }
 }

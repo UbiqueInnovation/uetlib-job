@@ -6,6 +6,7 @@ import ch.ubique.backend.job.model.JobRunContext;
 import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.heartbeat.HeartbeatRegistry;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -28,9 +29,12 @@ public final class DedicatedJobRunner implements JobRunner {
     private final ExecutorService executorService;
 
     private final JobService jobService;
+    private final HeartbeatRegistry heartbeatRegistry;
 
-    public DedicatedJobRunner(final JobService jobService) {
+    public DedicatedJobRunner(
+            final JobService jobService, final HeartbeatRegistry heartbeatRegistry) {
         this.jobService = jobService;
+        this.heartbeatRegistry = heartbeatRegistry;
         final var threadFactory =
                 new ThreadFactoryBuilder().setNameFormat("dedicated-job-runner").build();
         this.executorService = Executors.newSingleThreadExecutor(threadFactory);
@@ -48,7 +52,11 @@ public final class DedicatedJobRunner implements JobRunner {
             return false;
         }
         activeJobRun = jobRunContext.jobRun();
-        future = executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
+        future =
+                executorService.submit(
+                        () ->
+                                JobRunnerHelper.run(
+                                        job, jobService, heartbeatRegistry, jobRunContext));
         return true;
     }
 

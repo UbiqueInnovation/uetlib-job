@@ -283,17 +283,21 @@ public class JobDataService {
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
         if (!allowMultipleQueuedRuns) {
-            // TODO: Default behavior is to keep the latest job run only, is there another
-            //  reasonable behavior we need to support?
-            // Excludes RUNNING: a job already running (including a dedicated --job run recorded via
-            // queueRunningRun) must not have its queue row deleted out from under it just because its
-            // trigger fired again.
+            // TODO: Default behavior is to keep the latest job run (= delete all existing and then
+            //  insert the new one within one transaction) only, is there another reasonable
+            //  behavior we need to support?
             jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(
                     Set.of(jobId), Set.of(QUEUED, CLAIMED));
         }
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
     }
 
+    /**
+     * Idempotent: a job run dispatched through the normal queue flow (e.g. a Kubernetes-taint-
+     * matched job, claimed and dispatched to a new pod that then re-enters via {@code --job --run
+     * <id>}) already has a RUNNING row from that claim by the time this is called - in that case,
+     * the existing row is returned as-is rather than creating a duplicate.
+     */
     @Transactional
     public JobQueuedRun queueRunningRun(
             final int jobId,
@@ -302,6 +306,12 @@ public class JobDataService {
             final Set<JobRunnerTaint> taints,
             final int jobRunId,
             final String runner) {
+        final var existing =
+                jobQueuedRunRepository.findByJobRunIdAndQueueState(
+                        jobRunId, JobRunQueueState.RUNNING);
+        if (existing.isPresent()) {
+            return existing.get().toJobQueuedRun();
+        }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId, runner);
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();

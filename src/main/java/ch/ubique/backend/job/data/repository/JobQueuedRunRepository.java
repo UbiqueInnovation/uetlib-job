@@ -25,6 +25,9 @@ public interface JobQueuedRunRepository
 
     List<JobQueuedRunEntity> findAllByQueueState(JobRunQueueState queueState);
 
+    Optional<JobQueuedRunEntity> findByJobRunIdAndQueueState(
+            int jobRunId, JobRunQueueState queueState);
+
     /** Never deletes a {@link JobRunQueueState#RUNNING} row, regardless of its own state. */
     long deleteByJobQueuedRunIdAndQueueStateNot(int jobQueuedRunId, JobRunQueueState excludedState);
 

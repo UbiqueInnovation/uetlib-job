@@ -13,20 +13,25 @@ import ch.ubique.backend.job.model.*;
 import ch.ubique.backend.job.model.properties.JobProperties;
 import ch.ubique.backend.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.backend.job.service.JobService;
+import ch.ubique.backend.job.service.executor.heartbeat.HeartbeatRegistry;
 import ch.ubique.backend.job.storage.JobRunStorage;
 
 import org.junit.jupiter.api.Test;
 
 class CurrentJobRunnerTest {
 
+    private final HeartbeatRegistry heartbeatRegistry = new HeartbeatRegistry();
+
     @Test
     void key() {
-        assertEquals(JobRunnerKey.CURRENT, new CurrentJobRunner(mock(JobService.class)).key());
+        assertEquals(
+                JobRunnerKey.CURRENT,
+                new CurrentJobRunner(mock(JobService.class), heartbeatRegistry).key());
     }
 
     @Test
     void submit() {
-        final var runner = new CurrentJobRunner(mock(JobService.class));
+        final var runner = new CurrentJobRunner(mock(JobService.class), heartbeatRegistry);
         final var jobProperties = mock(JobProperties.class);
         when(jobProperties.get(RUNNER_GROUP))
                 .thenReturn(RUNNER_GROUP.createProperty(HealthCheckJob.runnerGroup()));

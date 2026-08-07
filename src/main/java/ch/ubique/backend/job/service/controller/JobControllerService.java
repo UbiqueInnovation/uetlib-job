@@ -57,6 +57,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -243,9 +244,20 @@ public class JobControllerService {
     }
 
     private JobQueueEntryInfo toQueueEntryInfo(final JobQueuedRun run) {
-        final var jobName =
-                jobService.findJobById(run.jobId()).map(JobClassAndId::name).orElse(null);
-        return JobQueueEntryInfo.from(run, jobName);
+        final var jobClassAndId = jobService.findJobById(run.jobId());
+        final var jobName = jobClassAndId.map(JobClassAndId::name).orElse(null);
+        final var heartbeatTimeout =
+                run.queueState() == JobRunQueueState.RUNNING
+                        ? jobClassAndId.map(this::heartbeatTimeout).orElse(null)
+                        : null;
+        return JobQueueEntryInfo.from(run, jobName, heartbeatTimeout);
+    }
+
+    private Duration heartbeatTimeout(final JobClassAndId jobClassAndId) {
+        return jobService
+                .getProperties(jobClassAndId)
+                .get(JobPropertyDefinitions.HEARTBEAT_TIMEOUT)
+                .valueNonNull();
     }
 
     public SuccessResponse deleteQueuedRun(final int jobQueuedRunId) {
