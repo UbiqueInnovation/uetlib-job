@@ -25,8 +25,15 @@ public interface JobQueuedRunRepository
 
     List<JobQueuedRunEntity> findAllByQueueState(JobRunQueueState queueState);
 
-    /** Never deletes a {@link JobRunQueueState#RUNNING} row, regardless of its own state. */
-    long deleteByJobQueuedRunIdAndQueueStateNot(int jobQueuedRunId, JobRunQueueState excludedState);
+    Optional<JobQueuedRunEntity> findByJobRunIdAndQueueState(
+            int jobRunId, JobRunQueueState queueState);
+
+    /**
+     * Only ever deletes a {@link JobRunQueueState#QUEUED} row - once a row is claimed, a runner
+     * already has it and may already have a linked job run; deleting the queue row at that point
+     * would just orphan that job run instead of stopping it. Cancel the job run instead.
+     */
+    long deleteByJobQueuedRunIdAndQueueState(int jobQueuedRunId, JobRunQueueState queueState);
 
     /**
      * Never deletes a {@link JobRunQueueState#RUNNING} row: callers must exclude it from {@code
@@ -99,15 +106,15 @@ public interface JobQueuedRunRepository
     void forceReset(int id, JobRunQueueState newState, Instant now);
 
     /**
-     * Never updates a {@link JobRunQueueState#RUNNING} row's priority: callers must pass it as
-     * {@code excludedState} - reordering an already-running run is meaningless.
+     * Only ever updates a {@link JobRunQueueState#QUEUED} row's priority: once a row is claimed (or
+     * running), a runner already has it, so reordering it is meaningless.
      */
     @Modifying(clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
                     SET j.priority = :priority
-                    WHERE j.jobQueuedRunId = :id AND j.queueState <> :excludedState
+                    WHERE j.jobQueuedRunId = :id AND j.queueState = :allowedState
                     """)
-    int updatePriority(int id, @Nullable Integer priority, JobRunQueueState excludedState);
+    int updatePriority(int id, @Nullable Integer priority, JobRunQueueState allowedState);
 }

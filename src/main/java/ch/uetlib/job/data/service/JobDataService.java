@@ -279,18 +279,21 @@ public class JobDataService {
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
         if (!allowMultipleQueuedRuns) {
-            // TODO: Default behavior is to keep the latest job run only, is there another
-            //  reasonable behavior we need to support?
-            // Excludes RUNNING: a job already running (including a dedicated --job run recorded via
-            // queueRunningRun) must not have its queue row deleted out from under it just because
-            // its
-            // trigger fired again.
+            // TODO: Default behavior is to keep the latest job run (= delete all existing and then
+            //  insert the new one within one transaction) only, is there another reasonable
+            //  behavior we need to support?
             jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(
                     Set.of(jobId), Set.of(QUEUED, CLAIMED));
         }
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
     }
 
+    /**
+     * Idempotent: a job run dispatched through the normal queue flow (e.g. a Kubernetes-taint-
+     * matched job, claimed and dispatched to a new pod that then re-enters via {@code --job --run
+     * <id>}) already has a RUNNING row from that claim by the time this is called - in that case,
+     * the existing row is returned as-is rather than creating a duplicate.
+     */
     @Transactional
     public JobQueuedRun queueRunningRun(
             final int jobId,
@@ -299,6 +302,12 @@ public class JobDataService {
             final Set<JobRunnerTaint> taints,
             final int jobRunId,
             final String runner) {
+        final var existing =
+                jobQueuedRunRepository.findByJobRunIdAndQueueState(
+                        jobRunId, JobRunQueueState.RUNNING);
+        if (existing.isPresent()) {
+            return existing.get().toJobQueuedRun();
+        }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId, runner);
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
@@ -752,7 +761,7 @@ public class JobDataService {
 
     /**
      * Unconditional delete for internal cleanup once a linked job run has actually finished -
-     * unlike {@link #deleteQueuedRunIfNotRunning}, this is not meant for admin use.
+     * unlike {@link #deleteQueuedRunIfQueued}, this is not meant for admin use.
      */
     @Transactional
     public void deleteQueuedRunById(final int jobQueuedRunId) {
@@ -766,14 +775,14 @@ public class JobDataService {
     }
 
     /**
-     * Never updates a {@link JobRunQueueState#RUNNING} row's priority. Returns whether a row was
-     * updated.
+     * Only updates a {@link JobRunQueueState#QUEUED} row's priority - once claimed (or running), a
+     * runner already has it. Returns whether a row was updated.
      */
     @Transactional
     public boolean updateQueuedRunPriority(
             final int jobQueuedRunId, final @Nullable Integer priority) {
         return jobQueuedRunRepository.updatePriority(
-                        jobQueuedRunId, priority, JobRunQueueState.RUNNING)
+                        jobQueuedRunId, priority, JobRunQueueState.QUEUED)
                 == 1;
     }
 
@@ -831,11 +840,14 @@ public class JobDataService {
                 .map(JobQueuedRunEntity::toJobQueuedRun);
     }
 
-    /** Never removes a {@link JobRunQueueState#RUNNING} row. */
+    /**
+     * Only removes a {@link JobRunQueueState#QUEUED} row - once claimed, a runner already has it
+     * (and likely already has a linked job run); cancel that job run instead of deleting the queue
+     * row out from under it.
+     */
     @Transactional
-    public boolean deleteQueuedRunIfNotRunning(final int jobQueuedRunId) {
-        return jobQueuedRunRepository.deleteByJobQueuedRunIdAndQueueStateNot(
-                        jobQueuedRunId, JobRunQueueState.RUNNING)
+    public boolean deleteQueuedRunIfQueued(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.deleteByJobQueuedRunIdAndQueueState(jobQueuedRunId, QUEUED)
                 > 0;
     }
 

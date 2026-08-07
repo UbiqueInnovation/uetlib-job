@@ -1,5 +1,7 @@
 package ch.uetlib.job.service.executor;
 
+import static ch.uetlib.job.model.properties.JobPropertyDefinitions.HEARTBEAT_TIMEOUT;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -10,9 +12,11 @@ import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.properties.JobProperties;
+import ch.uetlib.job.model.properties.JobProperty;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.JobService;
+import ch.uetlib.job.service.executor.heartbeat.HeartbeatRegistry;
 import ch.uetlib.job.testjob.TestJob;
 
 import org.junit.jupiter.api.Test;
@@ -36,9 +40,10 @@ class JobQueueWatcherServiceTest {
 
     private final JobService jobService = mock(JobService.class);
     private final JobDataService jobDataService = mock(JobDataService.class);
+    private final HeartbeatRegistry heartbeatRegistry = mock(HeartbeatRegistry.class);
 
     private final JobQueueWatcherService service =
-            new JobQueueWatcherService(jobService, jobDataService);
+            new JobQueueWatcherService(jobService, jobDataService, heartbeatRegistry);
 
     @Test
     void resetAbandonedClaimsUsesDefaultTimeoutWhenNoPropertyOverride() {
@@ -70,6 +75,7 @@ class JobQueueWatcherServiceTest {
         service.reconcileRunningQueuedRuns();
 
         verify(jobDataService).deleteQueuedRunById(1);
+        verify(heartbeatRegistry).stop(42);
     }
 
     @Test
@@ -82,10 +88,12 @@ class JobQueueWatcherServiceTest {
         service.reconcileRunningQueuedRuns();
 
         verify(jobDataService).deleteQueuedRunById(1);
+        verify(heartbeatRegistry).stop(42);
     }
 
     @Test
     void reconcileLeavesARunningRowAloneWhileItsHeartbeatIsFresh() {
+        stubHeartbeatTimeout(1, DEFAULT_HEARTBEAT_TIMEOUT);
         final var queuedRun = queuedRun(1, 42, Instant.now());
         when(jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING))
                 .thenReturn(List.of(queuedRun));
@@ -99,6 +107,7 @@ class JobQueueWatcherServiceTest {
 
     @Test
     void reconcileAbandonsARunningRowWhoseHeartbeatHasGoneStale() {
+        stubHeartbeatTimeout(1, DEFAULT_HEARTBEAT_TIMEOUT);
         final var staleHeartbeat = Instant.now().minus(DEFAULT_HEARTBEAT_TIMEOUT).minusSeconds(5);
         final var queuedRun = queuedRun(1, 42, staleHeartbeat);
         final var jobRun = jobRun(JobRunState.BUSY);
@@ -108,8 +117,11 @@ class JobQueueWatcherServiceTest {
 
         service.reconcileRunningQueuedRuns();
 
-        verify(jobService).updateJobRunState(eq(jobRun), eq(JobRunState.ERROR), any());
+        // Reason unknown from here (could be a dead runner, a network partition, or just a very
+        // slow job) - UNFINISHED, not ERROR/CANCELLED which imply a known cause.
+        verify(jobService).updateJobRunState(eq(jobRun), eq(JobRunState.UNFINISHED), any());
         verify(jobDataService).deleteQueuedRunById(1);
+        verify(heartbeatRegistry).stop(42);
     }
 
     @Test
@@ -122,6 +134,16 @@ class JobQueueWatcherServiceTest {
 
         verify(jobDataService).resetQueuedRunById(1);
         verify(jobDataService, never()).findJobRunById(anyInt());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void stubHeartbeatTimeout(final int jobId, final Duration timeout) {
+        final var job = new TestJob();
+        final var property =
+                (JobProperty<Object>) (JobProperty<?>) HEARTBEAT_TIMEOUT.createProperty(timeout);
+        when(jobService.getAllJobs()).thenReturn(List.of(job));
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(jobId));
+        when(jobService.getProperties(job)).thenReturn(new JobProperties(List.of(property)));
     }
 
     private static JobQueuedRun queuedRun(final int id, final Integer jobRunId) {

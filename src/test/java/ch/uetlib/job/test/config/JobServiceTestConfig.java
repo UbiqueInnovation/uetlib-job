@@ -46,14 +46,14 @@ import javax.sql.DataSource;
 @EnableJobs("ch.uetlib.job.testjob")
 @EnableJpaRepositories(basePackages = "ch.uetlib.job.data.repository")
 @EntityScan(basePackages = "ch.uetlib.job.model.entity")
-public class JobServiceConfig {
+public class JobServiceTestConfig {
 
     private final DataSource dataSource;
 
     @Qualifier("databaseSpecificInitializationScripts")
     private final List<ClassPathResource> databaseSpecificInitializationScripts;
 
-    public JobServiceConfig(
+    public JobServiceTestConfig(
             final DataSource dataSource,
             final List<ClassPathResource> databaseSpecificInitializationScripts) {
         this.dataSource = dataSource;
@@ -95,11 +95,6 @@ public class JobServiceConfig {
         return HttpClients.createSystem();
     }
 
-    /**
-     * {@code ch.uetlib} is always scanned by {@link EnableJobs}, which discovers {@code
-     * CleanupJob} here too - it needs a {@link JobRunStorage} bean to be instantiable. Mocked
-     * rather than wired for real, same as in other DB tests in this module.
-     */
     @Bean
     JobRunStorage jobRunStorage() {
         return mock(JobRunStorage.class);
