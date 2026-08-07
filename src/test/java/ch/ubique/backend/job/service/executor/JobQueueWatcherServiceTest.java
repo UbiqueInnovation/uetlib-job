@@ -38,8 +38,7 @@ class JobQueueWatcherServiceTest {
     private final JobDataService jobDataService = mock(JobDataService.class);
 
     private final JobQueueWatcherService service =
-            new JobQueueWatcherService(
-                    jobService, jobDataService, DEFAULT_CLAIM_TIMEOUT, DEFAULT_HEARTBEAT_TIMEOUT);
+            new JobQueueWatcherService(jobService, jobDataService);
 
     @Test
     void resetAbandonedClaimsUsesDefaultTimeoutWhenNoPropertyOverride() {
@@ -57,7 +56,8 @@ class JobQueueWatcherServiceTest {
         assertEquals(Set.of(7), captor.getValue().keySet());
         final var staleBefore = captor.getValue().get(7);
         final var expected = Instant.now().minus(DEFAULT_CLAIM_TIMEOUT);
-        assertTrue(Duration.between(staleBefore, expected).abs().compareTo(Duration.ofSeconds(5)) < 0);
+        assertTrue(
+                Duration.between(staleBefore, expected).abs().compareTo(Duration.ofSeconds(5)) < 0);
     }
 
     @Test

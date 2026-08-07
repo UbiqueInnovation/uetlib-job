@@ -16,7 +16,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -51,23 +50,14 @@ public class JobQueueWatcherService {
 
     private final JobService jobService;
     private final JobDataService jobDataService;
-    private final Duration defaultClaimTimeout;
-    private final Duration defaultHeartbeatTimeout;
 
     private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
     private final SingleCache<Map<Integer, Duration>> jobHeartbeatTimeoutCache;
 
     public JobQueueWatcherService(
-            final JobService jobService,
-            final JobDataService jobDataService,
-            @Value("${ch.ubique.backend.job.runner.claim.timeout:2m}")
-                    final Duration defaultClaimTimeout,
-            @Value("${ch.ubique.backend.job.runner.heartbeat.timeout:1m}")
-                    final Duration defaultHeartbeatTimeout) {
+            final JobService jobService, final JobDataService jobDataService) {
         this.jobService = jobService;
         this.jobDataService = jobDataService;
-        this.defaultClaimTimeout = defaultClaimTimeout;
-        this.defaultHeartbeatTimeout = defaultHeartbeatTimeout;
         this.jobClaimTimeoutCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
@@ -96,13 +86,13 @@ public class JobQueueWatcherService {
                                                         jobService
                                                                 .getProperties(job)
                                                                 .get(CLAIM_TIMEOUT)
-                                                                .valueMaybe()
-                                                                .orElse(defaultClaimTimeout))));
+                                                                .valueNonNull())));
     }
 
     /**
-     * Per-job {@link ch.ubique.backend.job.model.properties.JobPropertyDefinitions#HEARTBEAT_TIMEOUT}
-     * overrides, cached the same way as {@link #jobClaimTimeout()}.
+     * Per-job {@link
+     * ch.ubique.backend.job.model.properties.JobPropertyDefinitions#HEARTBEAT_TIMEOUT} overrides,
+     * cached the same way as {@link #jobClaimTimeout()}.
      */
     private Map<Integer, Duration> jobHeartbeatTimeout() {
         return jobHeartbeatTimeoutCache.get(
@@ -118,8 +108,7 @@ public class JobQueueWatcherService {
                                                         jobService
                                                                 .getProperties(job)
                                                                 .get(HEARTBEAT_TIMEOUT)
-                                                                .valueMaybe()
-                                                                .orElse(defaultHeartbeatTimeout))));
+                                                                .valueNonNull())));
     }
 
     @Scheduled(cron = "${ch.ubique.backend.job.runner.reset-abandoned-claims.cron:14/15 * * * * ?}")
@@ -160,14 +149,10 @@ public class JobQueueWatcherService {
         if (isHeartbeatStale(queuedRun)) {
             abandon(queuedRun, jobRun.get());
         }
-        // Otherwise: leave the heartbeat alone. Only the runner actually executing the job (see
-        // JobRunnerHelper) touches it now - refreshing it here too would defeat the point, since a
-        // dead runner's row would then look alive forever.
     }
 
     private boolean isHeartbeatStale(final JobQueuedRun queuedRun) {
-        final var timeout =
-                jobHeartbeatTimeout().getOrDefault(queuedRun.jobId(), defaultHeartbeatTimeout);
+        final var timeout = jobHeartbeatTimeout().get(queuedRun.jobId());
         final var lastHeartbeat = queuedRun.lastHeartbeat();
         return lastHeartbeat == null || lastHeartbeat.isBefore(Instant.now().minus(timeout));
     }

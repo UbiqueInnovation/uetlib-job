@@ -58,4 +58,8 @@ public record JobProperty<T extends @Nullable Object>(
     public Optional<@NonNull T> valueMaybe() {
         return ofNullable(value);
     }
+
+    public @NonNull T valueNonNull() {
+        return requireNonNull(value);
+    }
 }
