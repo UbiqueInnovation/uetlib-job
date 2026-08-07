@@ -229,6 +229,28 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
+    void queueNewRunNeverDeletesARunningRowWhenDedupingToTheLatest() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        jobDataService.queueNewRun(
+                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+
+        assertTrue(
+                findInQueue(runningRunId).isPresent(),
+                "a job's trigger firing again must not delete its already-RUNNING queue row");
+    }
+
+    @Test
+    void queueNewRunDeletesAnExistingQueuedRowWhenDedupingToTheLatest() {
+        final var previouslyQueued = queueOne();
+
+        jobDataService.queueNewRun(
+                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+
+        assertTrue(findInQueue(previouslyQueued.jobQueuedRunId()).isEmpty());
+    }
+
+    @Test
     void resetStaleClaimsResetsClaimsOlderThanTheGivenThreshold() {
         final var run = queueOne();
         jobDataService.claimQueuedRun(run, "runner-a");

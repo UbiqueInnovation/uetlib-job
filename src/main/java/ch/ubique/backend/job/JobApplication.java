@@ -120,7 +120,8 @@ public final class JobApplication {
 
     /**
      * A dedicated {@code --job} run bypasses the queue entirely on submission (see {@link
-     * JobExecutorService#submit})
+     * JobExecutorService#submit(Class, JobRunArguments, Integer, JobRunnerKey)
+     * JobExecutorService.submit})
      */
     private static JobQueuedRun recordAsRunningInQueue(
             final ConfigurableApplicationContext applicationContext,

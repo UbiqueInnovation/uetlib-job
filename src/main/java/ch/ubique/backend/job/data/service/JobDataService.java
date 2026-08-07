@@ -285,10 +285,11 @@ public class JobDataService {
         if (!allowMultipleQueuedRuns) {
             // TODO: Default behavior is to keep the latest job run only, is there another
             //  reasonable behavior we need to support?
-            final var existing = jobQueuedRunRepository.findAllByJobId(jobId);
-            if (!existing.isEmpty()) {
-                jobQueuedRunRepository.deleteAll(existing);
-            }
+            // Excludes RUNNING: a job already running (including a dedicated --job run recorded via
+            // queueRunningRun) must not have its queue row deleted out from under it just because its
+            // trigger fired again.
+            jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(
+                    Set.of(jobId), Set.of(QUEUED, CLAIMED));
         }
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
     }
@@ -753,8 +754,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public void touchQueuedRunHeartbeat(final int jobQueuedRunId) {
-        jobQueuedRunRepository.touchHeartbeat(jobQueuedRunId, Instant.now());
+    public void touchQueuedRunHeartbeatByJobRunId(final int jobRunId) {
+        jobQueuedRunRepository.touchHeartbeatByJobRunId(jobRunId, Instant.now());
     }
 
     /**

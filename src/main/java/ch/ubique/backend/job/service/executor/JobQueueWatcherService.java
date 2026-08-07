@@ -1,11 +1,14 @@
 package ch.ubique.backend.job.service.executor;
 
 import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.CLAIM_TIMEOUT;
+import static ch.ubique.backend.job.model.properties.JobPropertyDefinitions.HEARTBEAT_TIMEOUT;
 
 import ch.ubique.backend.core.utils.MapCollectors;
 import ch.ubique.backend.core.utils.SingleCache;
 import ch.ubique.backend.job.data.service.JobDataService;
 import ch.ubique.backend.job.model.JobQueuedRun;
+import ch.ubique.backend.job.model.JobRun;
+import ch.ubique.backend.job.model.JobRunState;
 import ch.ubique.backend.job.model.queue.JobRunQueueState;
 import ch.ubique.backend.job.service.JobService;
 
@@ -30,13 +33,15 @@ import java.util.stream.Collectors;
  *   <li>a row stuck in {@link JobRunQueueState#CLAIMED} (the claiming instance died before ever
  *       submitting, so it never reached {@link JobRunQueueState#RUNNING}) is reset back to {@link
  *       JobRunQueueState#QUEUED} for another instance to retry
- *   <li>a {@link JobRunQueueState#RUNNING} row is reconciled against its linked job run's actual
- *       state: removed once that run has finished, otherwise its heartbeat is refreshed
+ *   <li>a {@link JobRunQueueState#RUNNING} row whose linked job run has actually finished is
+ *       removed; one whose heartbeat has gone stale - the executing runner (see {@code
+ *       JobRunnerHelper}) is no longer proving itself alive - is treated as abandoned: the job run
+ *       is marked {@link JobRunState#ERROR} and the row is removed
  * </ul>
  *
- * Deliberately does not duplicate stuck/timed-out-job-run detection - that's already handled at the
- * job run level (e.g. {@code JobTimeoutWatcher}). This only concerns the queue row's own
- * bookkeeping.
+ * Deliberately does not duplicate max-duration-based timeout detection - that's already handled at
+ * the job run level (e.g. {@code JobTimeoutWatcher}). This is a liveness check: it fires regardless
+ * of configured duration limits, as soon as the runner stops proving it's alive.
  */
 @Service
 @Profile("!job-run")
@@ -47,18 +52,26 @@ public class JobQueueWatcherService {
     private final JobService jobService;
     private final JobDataService jobDataService;
     private final Duration defaultClaimTimeout;
+    private final Duration defaultHeartbeatTimeout;
 
     private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
+    private final SingleCache<Map<Integer, Duration>> jobHeartbeatTimeoutCache;
 
     public JobQueueWatcherService(
             final JobService jobService,
             final JobDataService jobDataService,
             @Value("${ch.ubique.backend.job.runner.claim.timeout:2m}")
-                    final Duration defaultClaimTimeout) {
+                    final Duration defaultClaimTimeout,
+            @Value("${ch.ubique.backend.job.runner.heartbeat.timeout:1m}")
+                    final Duration defaultHeartbeatTimeout) {
         this.jobService = jobService;
         this.jobDataService = jobDataService;
         this.defaultClaimTimeout = defaultClaimTimeout;
+        this.defaultHeartbeatTimeout = defaultHeartbeatTimeout;
         this.jobClaimTimeoutCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
+        this.jobHeartbeatTimeoutCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
     }
@@ -85,6 +98,28 @@ public class JobQueueWatcherService {
                                                                 .get(CLAIM_TIMEOUT)
                                                                 .valueMaybe()
                                                                 .orElse(defaultClaimTimeout))));
+    }
+
+    /**
+     * Per-job {@link ch.ubique.backend.job.model.properties.JobPropertyDefinitions#HEARTBEAT_TIMEOUT}
+     * overrides, cached the same way as {@link #jobClaimTimeout()}.
+     */
+    private Map<Integer, Duration> jobHeartbeatTimeout() {
+        return jobHeartbeatTimeoutCache.get(
+                () ->
+                        jobService.getAllJobs().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                job ->
+                                                        jobService
+                                                                .findJobId(job.getClass())
+                                                                .orElseThrow(),
+                                                job ->
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(HEARTBEAT_TIMEOUT)
+                                                                .valueMaybe()
+                                                                .orElse(defaultHeartbeatTimeout))));
     }
 
     @Scheduled(cron = "${ch.ubique.backend.job.runner.reset-abandoned-claims.cron:14/15 * * * * ?}")
@@ -122,6 +157,28 @@ public class JobQueueWatcherService {
             return;
         }
 
-        jobDataService.touchQueuedRunHeartbeat(queuedRun.jobQueuedRunId());
+        if (isHeartbeatStale(queuedRun)) {
+            abandon(queuedRun, jobRun.get());
+        }
+        // Otherwise: leave the heartbeat alone. Only the runner actually executing the job (see
+        // JobRunnerHelper) touches it now - refreshing it here too would defeat the point, since a
+        // dead runner's row would then look alive forever.
+    }
+
+    private boolean isHeartbeatStale(final JobQueuedRun queuedRun) {
+        final var timeout =
+                jobHeartbeatTimeout().getOrDefault(queuedRun.jobId(), defaultHeartbeatTimeout);
+        final var lastHeartbeat = queuedRun.lastHeartbeat();
+        return lastHeartbeat == null || lastHeartbeat.isBefore(Instant.now().minus(timeout));
+    }
+
+    private void abandon(final JobQueuedRun queuedRun, final JobRun jobRun) {
+        logger.warn(
+                "Queued run {} has a stale heartbeat; its runner appears to be dead or stuck."
+                        + " Marking job run {} as failed.",
+                queuedRun,
+                jobRun);
+        jobService.updateJobRunState(jobRun, JobRunState.ERROR, Instant.now());
+        jobDataService.deleteQueuedRunById(queuedRun.jobQueuedRunId());
     }
 }

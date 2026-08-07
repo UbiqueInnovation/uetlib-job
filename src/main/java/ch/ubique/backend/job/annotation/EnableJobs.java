@@ -12,7 +12,10 @@ import java.lang.annotation.*;
  * Place this annotation on any class in a package that matches (or is prefixed by) your maven
  * artifact group id. This annotation is only discovered in a package below the group id.
  *
- * <p>The package 'ch.ubique.backend' is always included.
+ * <p>The package 'ch.ubique.backend' is always included, so this framework's own jobs (e.g. {@code
+ * CleanupJob}) are always registered alongside whatever {@link #basePackages()} (or {@link
+ * #basePackageClasses()}) resolves to. This does not apply when {@link #jobs()} is set, since that
+ * disables classpath scanning entirely.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

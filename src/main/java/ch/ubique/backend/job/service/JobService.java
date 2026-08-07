@@ -252,6 +252,11 @@ public class JobService {
                 job.id(), versionTag, arguments, taints, jobRunId, runner);
     }
 
+    /** Prove Job Run is still live */
+    public void touchRunningHeartbeat(final int jobRunId) {
+        jobDataService.touchQueuedRunHeartbeatByJobRunId(jobRunId);
+    }
+
     public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), startedAt);
     }

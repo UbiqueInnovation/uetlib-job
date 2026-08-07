@@ -32,12 +32,14 @@ import java.util.Set;
 class JobQueueWatcherServiceTest {
 
     private static final Duration DEFAULT_CLAIM_TIMEOUT = Duration.ofMinutes(2);
+    private static final Duration DEFAULT_HEARTBEAT_TIMEOUT = Duration.ofMinutes(1);
 
     private final JobService jobService = mock(JobService.class);
     private final JobDataService jobDataService = mock(JobDataService.class);
 
     private final JobQueueWatcherService service =
-            new JobQueueWatcherService(jobService, jobDataService, DEFAULT_CLAIM_TIMEOUT);
+            new JobQueueWatcherService(
+                    jobService, jobDataService, DEFAULT_CLAIM_TIMEOUT, DEFAULT_HEARTBEAT_TIMEOUT);
 
     @Test
     void resetAbandonedClaimsUsesDefaultTimeoutWhenNoPropertyOverride() {
@@ -68,7 +70,6 @@ class JobQueueWatcherServiceTest {
         service.reconcileRunningQueuedRuns();
 
         verify(jobDataService).deleteQueuedRunById(1);
-        verify(jobDataService, never()).touchQueuedRunHeartbeat(anyInt());
     }
 
     @Test
@@ -84,16 +85,31 @@ class JobQueueWatcherServiceTest {
     }
 
     @Test
-    void reconcileTouchesTheHeartbeatWhileTheLinkedJobRunIsStillRunning() {
-        final var queuedRun = queuedRun(1, 42);
+    void reconcileLeavesARunningRowAloneWhileItsHeartbeatIsFresh() {
+        final var queuedRun = queuedRun(1, 42, Instant.now());
         when(jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING))
                 .thenReturn(List.of(queuedRun));
         when(jobDataService.findJobRunById(42)).thenReturn(Optional.of(jobRun(JobRunState.BUSY)));
 
         service.reconcileRunningQueuedRuns();
 
-        verify(jobDataService).touchQueuedRunHeartbeat(1);
         verify(jobDataService, never()).deleteQueuedRunById(anyInt());
+        verify(jobService, never()).updateJobRunState(any(), any(), any());
+    }
+
+    @Test
+    void reconcileAbandonsARunningRowWhoseHeartbeatHasGoneStale() {
+        final var staleHeartbeat = Instant.now().minus(DEFAULT_HEARTBEAT_TIMEOUT).minusSeconds(5);
+        final var queuedRun = queuedRun(1, 42, staleHeartbeat);
+        final var jobRun = jobRun(JobRunState.BUSY);
+        when(jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING))
+                .thenReturn(List.of(queuedRun));
+        when(jobDataService.findJobRunById(42)).thenReturn(Optional.of(jobRun));
+
+        service.reconcileRunningQueuedRuns();
+
+        verify(jobService).updateJobRunState(eq(jobRun), eq(JobRunState.ERROR), any());
+        verify(jobDataService).deleteQueuedRunById(1);
     }
 
     @Test
@@ -109,6 +125,11 @@ class JobQueueWatcherServiceTest {
     }
 
     private static JobQueuedRun queuedRun(final int id, final Integer jobRunId) {
+        return queuedRun(id, jobRunId, Instant.now());
+    }
+
+    private static JobQueuedRun queuedRun(
+            final int id, final Integer jobRunId, final Instant lastHeartbeat) {
         final var now = Instant.now();
         return new JobQueuedRun(
                 id,
@@ -118,7 +139,7 @@ class JobQueueWatcherServiceTest {
                 JobRunQueueState.RUNNING,
                 jobRunId,
                 "runner",
-                now,
+                lastHeartbeat,
                 now,
                 now,
                 Set.of(),

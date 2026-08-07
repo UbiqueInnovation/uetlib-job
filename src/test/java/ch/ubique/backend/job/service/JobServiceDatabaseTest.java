@@ -3,7 +3,9 @@ package ch.ubique.backend.job.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.backend.job.Job;
+import ch.ubique.backend.job.cleanup.CleanupJob;
 import ch.ubique.backend.job.data.BaseJobDatabaseTest;
+import ch.ubique.backend.job.health.HealthCheckJob;
 import ch.ubique.backend.job.storage.JobRunStorage;
 import ch.ubique.backend.job.testjob.ProfileDisabledTestJob;
 import ch.ubique.backend.job.testjob.ProfileEnabledTestJob;
@@ -36,6 +38,14 @@ class JobServiceDatabaseTest extends BaseJobDatabaseTest {
                         .map(Job::getClass)
                         .collect(Collectors.toUnmodifiableSet());
         assertFalse(allInstantiatedJobClasses.contains(ProfileDisabledTestJob.class));
-        assertEquals(Set.of(TestJob.class, ProfileEnabledTestJob.class), allInstantiatedJobClasses);
+        // ch.ubique.backend is always scanned by @EnableJobs, so the framework's own jobs are
+        // discovered here too, alongside this test's own job packages.
+        assertEquals(
+                Set.of(
+                        TestJob.class,
+                        ProfileEnabledTestJob.class,
+                        CleanupJob.class,
+                        HealthCheckJob.class),
+                allInstantiatedJobClasses);
     }
 }

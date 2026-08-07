@@ -10,12 +10,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class JobRunnerHelper {
 
     private static final Logger logger = LoggerFactory.getLogger(JobRunnerHelper.class);
+
+    /**
+     * How often the runner actually executing a job proves it is still alive by touching its queue
+     * row's heartbeat. Comfortably below {@link
+     * ch.ubique.backend.job.model.properties.JobPropertyDefinitions#HEARTBEAT_TIMEOUT}'s default so
+     * a couple of missed beats don't immediately look like an abandoned run.
+     */
+    private static final Duration HEARTBEAT_INTERVAL = Duration.ofSeconds(15);
 
     private JobRunnerHelper() {}
 
@@ -40,6 +52,7 @@ public final class JobRunnerHelper {
 
     static void runJob(
             final Job job, final JobRunContext jobRunContext, final JobService jobService) {
+        final var heartbeat = startHeartbeat(jobService, jobRunContext.jobRun().id());
         try {
             logger.info(
                     "Running {} on {} with {}",
@@ -59,7 +72,38 @@ public final class JobRunnerHelper {
                 logger.error("Exception running job: ", e);
                 updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
             }
+        } finally {
+            heartbeat.shutdownNow();
         }
+    }
+
+    /**
+     * Proves this run is actually alive for as long as {@code job.run(...)} is executing, regardless
+     * of what {@code t_job_run}'s own state says - see {@link
+     * ch.ubique.backend.job.service.executor.JobQueueWatcherService#reconcile}, which treats a
+     * RUNNING queue row whose heartbeat goes stale as abandoned.
+     */
+    private static ScheduledExecutorService startHeartbeat(
+            final JobService jobService, final int jobRunId) {
+        final var executor =
+                Executors.newSingleThreadScheduledExecutor(
+                        r -> {
+                            final var thread = new Thread(r, "job-run-heartbeat-" + jobRunId);
+                            thread.setDaemon(true);
+                            return thread;
+                        });
+        executor.scheduleWithFixedDelay(
+                () -> {
+                    try {
+                        jobService.touchRunningHeartbeat(jobRunId);
+                    } catch (final Exception e) {
+                        logger.warn("Failed to touch heartbeat for job run {}.", jobRunId, e);
+                    }
+                },
+                HEARTBEAT_INTERVAL.toSeconds(),
+                HEARTBEAT_INTERVAL.toSeconds(),
+                TimeUnit.SECONDS);
+        return executor;
     }
 
     /**

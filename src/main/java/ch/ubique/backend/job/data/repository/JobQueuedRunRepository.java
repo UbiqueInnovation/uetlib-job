@@ -65,8 +65,13 @@ public interface JobQueuedRunRepository
             Instant now);
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE JobQueuedRunEntity j SET j.lastHeartbeat = :now WHERE j.jobQueuedRunId = :id")
-    void touchHeartbeat(int id, Instant now);
+    @Query(
+            """
+                    UPDATE JobQueuedRunEntity j
+                    SET j.lastHeartbeat = :now
+                    WHERE j.jobRunId = :jobRunId AND j.queueState = ch.ubique.backend.job.model.queue.JobRunQueueState.RUNNING
+                    """)
+    void touchHeartbeatByJobRunId(int jobRunId, Instant now);
 
     @Modifying(clearAutomatically = true)
     @Query(
