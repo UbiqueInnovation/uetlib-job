@@ -11,6 +11,7 @@ import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.runner.RunnerGroup;
 import ch.uetlib.job.service.JobService;
+import ch.uetlib.job.service.executor.heartbeat.HeartbeatRegistry;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -39,9 +40,12 @@ public final class CurrentJobRunner implements JobRunner {
     private final Map<RunnerGroup, Collection<CurrentRunnerItem>> activeJobRuns;
 
     private final JobService jobService;
+    private final HeartbeatRegistry heartbeatRegistry;
 
-    public CurrentJobRunner(final JobService jobService) {
+    public CurrentJobRunner(
+            final JobService jobService, final HeartbeatRegistry heartbeatRegistry) {
         this.jobService = jobService;
+        this.heartbeatRegistry = heartbeatRegistry;
         executorServices = new ConcurrentHashMap<>();
         futuresByJobRun = new ConcurrentHashMap<>();
         runnerGroupByJobRun = new ConcurrentHashMap<>();
@@ -94,7 +98,8 @@ public final class CurrentJobRunner implements JobRunner {
                             try {
                                 runnerGroupActive.add(item);
                                 runnerGroupQueue.remove(item);
-                                JobRunnerHelper.run(job, jobService, jobRunContext);
+                                JobRunnerHelper.run(
+                                        job, jobService, heartbeatRegistry, jobRunContext);
                                 futuresByJobRun.remove(jobRunId);
                                 runnerGroupByJobRun.remove(jobRunId);
                             } finally {
@@ -176,6 +181,7 @@ public final class CurrentJobRunner implements JobRunner {
                 runnerGroupThreadPoolSize == 1
                         ? runnerGroupIdentifier
                         : runnerGroupIdentifier + "-%d";
+        // Platform threads, not virtual, to allow ThreadMXBean to detect CPU Time.
         final var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat(nameFormat).build();
 
         return new ThreadPoolExecutor(

@@ -57,6 +57,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -243,32 +244,57 @@ public class JobControllerService {
     }
 
     private JobQueueEntryInfo toQueueEntryInfo(final JobQueuedRun run) {
-        final var jobName =
-                jobService.findJobById(run.jobId()).map(JobClassAndId::name).orElse(null);
-        return JobQueueEntryInfo.from(run, jobName);
+        final var jobClassAndId = jobService.findJobById(run.jobId());
+        final var jobName = jobClassAndId.map(JobClassAndId::name).orElse(null);
+        final var heartbeatTimeout =
+                run.queueState() == JobRunQueueState.RUNNING
+                        ? jobClassAndId.map(this::heartbeatTimeout).orElse(null)
+                        : null;
+        return JobQueueEntryInfo.from(run, jobName, heartbeatTimeout);
     }
 
+    private Duration heartbeatTimeout(final JobClassAndId jobClassAndId) {
+        return jobService
+                .getProperties(jobClassAndId)
+                .get(JobPropertyDefinitions.HEARTBEAT_TIMEOUT)
+                .valueNonNull();
+    }
+
+    /**
+     * Only a still-{@code QUEUED} row can be deleted this way - once claimed, a runner already has
+     * it, so deleting the queue row would just orphan its (likely already-dispatched) job run
+     * rather than stopping it. Cancel that job run instead ({@link #cancelJobRun}).
+     */
     public SuccessResponse deleteQueuedRun(final int jobQueuedRunId) {
-        final var deleted = jobDataService.deleteQueuedRunIfNotRunning(jobQueuedRunId);
+        final var deleted = jobDataService.deleteQueuedRunIfQueued(jobQueuedRunId);
         if (deleted) {
             return new SuccessResponse(true, "Queued run removed.");
         }
-        return new SuccessResponse(false, "Queued run not found or currently running.");
+        return new SuccessResponse(
+                false, "Queued run not found, already claimed, or currently running.");
     }
 
-    /** {@code null} clears the override, falling back to the job's own default priority. */
+    /**
+     * {@code null} clears the override, falling back to the job's own default priority. Only a
+     * still-{@code QUEUED} row can be reordered - once claimed (or running), a runner already has
+     * it, so reordering it is meaningless.
+     */
     public SuccessResponse updateQueuedRunPriority(
             final int jobQueuedRunId, final @Nullable Integer priority) {
         final var updated = jobDataService.updateQueuedRunPriority(jobQueuedRunId, priority);
         if (updated) {
             return new SuccessResponse(true, "Priority updated.");
         }
-        return new SuccessResponse(false, "Queued run not found or currently running.");
+        return new SuccessResponse(
+                false, "Queued run not found, already claimed, or currently running.");
     }
 
     /**
      * Deletes queued runs matching the given job and state filters, grouped implicitly by (job,
-     * state). {@link JobRunQueueState#RUNNING} is never removable, even if explicitly requested.
+     * state). Only {@link JobRunQueueState#QUEUED} rows are ever removable, even if {@link
+     * JobRunQueueState#CLAIMED}/{@link JobRunQueueState#RUNNING} are explicitly requested - a
+     * claimed row's runner already has it (and likely already has a linked job run), so deleting
+     * the queue row would just orphan that run rather than stopping it. Cancel the job run instead.
      */
     public SuccessResponse deleteQueuedRuns(
             final Collection<String> includeJobNamesOrIds,
@@ -279,15 +305,15 @@ public class JobControllerService {
                         .map(JobClassAndId::id)
                         .toList();
         final var deletableStates =
-                (CollectionUtils.isEmpty(states)
-                                ? EnumSet.of(JobRunQueueState.QUEUED, JobRunQueueState.CLAIMED)
-                                : states)
+                (CollectionUtils.isEmpty(states) ? EnumSet.of(JobRunQueueState.QUEUED) : states)
                         .stream()
-                                .filter(state -> state != JobRunQueueState.RUNNING)
+                                .filter(state -> state == JobRunQueueState.QUEUED)
                                 .collect(Collectors.toSet());
         if (deletableStates.isEmpty()) {
             return new SuccessResponse(
-                    false, "No removable state selected; running queued runs cannot be removed.");
+                    false,
+                    "No removable state selected; only queued (not yet claimed or running) runs can"
+                            + " be removed.");
         }
         final var removed = jobDataService.deleteQueuedRuns(jobIds, deletableStates);
         return new SuccessResponse(true, "Removed " + removed + " queued run(s).");
@@ -368,7 +394,8 @@ public class JobControllerService {
             } catch (final ManualTriggerNotAllowedException e) {
                 logger.info(
                         "Skipping {} in start_all: manual execution not allowed.",
-                        jobClass.getCanonicalName());
+                        jobClass.getCanonicalName(),
+                        e);
             }
         }
     }
@@ -511,7 +538,7 @@ public class JobControllerService {
             final var job =
                     jobService.findJobById(Integer.parseInt(jobIdOrClassName)).orElseThrow();
             return jobService.getJobClassOrThrow(job);
-        } catch (final NumberFormatException ignored) {
+        } catch (final NumberFormatException _) {
             return jobService.getJobClassOrThrow(jobIdOrClassName);
         }
     }
@@ -519,7 +546,7 @@ public class JobControllerService {
     private @Nullable Integer getJobId(final String jobIdOrClassName) {
         try {
             return Integer.parseInt(jobIdOrClassName);
-        } catch (final NumberFormatException ignored) {
+        } catch (final NumberFormatException _) {
             return jobService.findJobId(jobIdOrClassName).orElse(null);
         }
     }

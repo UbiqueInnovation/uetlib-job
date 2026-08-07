@@ -237,7 +237,7 @@ public final class JobPropertyDefinitions {
                     "Override the default timeout for a running job's heartbeat. The runner executing"
                             + " the job touches its queue row's heartbeat while it runs; if it goes"
                             + " silent for longer than this timeout, the run is considered abandoned"
-                            + " (its runner died or is stuck) and is marked as an error.",
+                            + " (its runner died or is stuck) and is marked UNFINISHED.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofMinutes(1));

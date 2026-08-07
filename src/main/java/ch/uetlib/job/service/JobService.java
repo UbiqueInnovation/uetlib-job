@@ -237,7 +237,9 @@ public class JobService {
 
     /**
      * For a run dispatched directly, bypassing the queue's normal QUEUED/CLAIMED steps (e.g. a
-     * dedicated {@code --job} CLI run): records it in the queue as already RUNNING
+     * dedicated {@code --job} CLI run): records it in the queue as already RUNNING. Idempotent - a
+     * run that already has a RUNNING row (e.g. claimed through the normal queue flow before being
+     * dispatched to a new pod) is left as-is rather than duplicated.
      */
     public JobQueuedRun queueRunningRun(
             final JobClassAndId job,
@@ -252,7 +254,19 @@ public class JobService {
                 job.id(), versionTag, arguments, taints, jobRunId, runner);
     }
 
-    /** Prove Job Run is still live */
+    /**
+     * Proves a job run is still live. Called automatically every tick by {@code RunHeartbeat} while
+     * {@code job.run(...)} is executing, based on the worker thread's own CPU progress - so most
+     * jobs never need to call this themselves.
+     *
+     * <p>One case does need to: a job that fans work out to its own child threads (e.g. a bunch of
+     * virtual threads, each doing a long-running sub-task) and then has its main thread just wait -
+     * {@code Future#get}, {@code invokeAll}, a {@code StructuredTaskScope} join - makes no CPU
+     * progress on the main thread for the whole wait, even though the job as a whole is working
+     * fine. The automatic check-in has no visibility into those child threads, so such a job should
+     * call this itself (e.g. once per completed sub-task) to keep its heartbeat honest during that
+     * time.
+     */
     public void touchRunningHeartbeat(final int jobRunId) {
         jobDataService.touchQueuedRunHeartbeatByJobRunId(jobRunId);
     }

@@ -35,9 +35,7 @@ class JobApplicationArgsParserTest {
                             "--job", "ch.uetlib.job.TestJob", "--server.port=8080"
                         });
 
-        assertTrue(
-                result.isEmpty(),
-                "--job does not make other, unrecognized args acceptable");
+        assertTrue(result.isEmpty(), "--job does not make other, unrecognized args acceptable");
     }
 
     @Test
