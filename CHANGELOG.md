@@ -5,6 +5,7 @@
 ### Fixes
 
 - Fix `RunnerGroup` deserialization without `allowedJobs`
+- Fix flaky `JobDBAppenderTest.testAppendPutsToQueue` by avoiding async background scheduler execution during tests
 
 ## 5.0.5
 
