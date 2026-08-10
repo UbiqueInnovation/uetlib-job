@@ -27,7 +27,6 @@ class JobDBAppenderTest {
         jobDataService = mock(JobDataService.class);
         logFormatterService = mock(LogFormatterService.class);
         appender = new JobDBAppender(jobDataService, logFormatterService, null);
-        appender.start();
     }
 
     @Test
