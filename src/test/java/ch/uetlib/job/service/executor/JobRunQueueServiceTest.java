@@ -1,5 +1,7 @@
 package ch.uetlib.job.service.executor;
 
+import static ch.uetlib.job.model.properties.JobPropertyDefinitions.RUNNER;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -7,11 +9,13 @@ import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.properties.JobProperties;
+import ch.uetlib.job.model.properties.JobProperty;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
+import ch.uetlib.job.testjob.TestJob;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
@@ -122,10 +126,10 @@ class JobRunQueueServiceTest {
 
     @Test
     void anUntaggedRowIsRoutedToThePlainPathNotDedicated() {
-        // Regression test: taint subset-matching means an untagged row's taints (the empty set)
-        // are trivially a subset of *both* the plain and the dedicated taint set. Plain must be
-        // tried first (see claimIfMatchesThisRunner) so an ordinary job never ends up routed to a
-        // dedicated K8s runner just because it also happens to satisfy the dedicated match.
+        // An untagged row's taints (the empty set) are trivially a subset of any taint set. Which
+        // path applies is decided by the job's own RUNNER property (default CURRENT, not stubbed
+        // otherwise here), not by taint-matching order, so this must never reach the dedicated path
+        // just because the empty set also happens to satisfy it.
         final var untagged = queuedRun(1, Set.of());
         stubPlainClaimAttempt();
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
@@ -136,6 +140,43 @@ class JobRunQueueServiceTest {
 
         verify(jobService).claimQueuedRun(untagged, INSTANCE_NAME);
         verify(jobService, never()).hasRunner(JobRunnerKey.DEDICATED_K8S_JOB);
+    }
+
+    @Test
+    void aDedicatedJobWithNoTaintsOfItsOwnStillRoutesToTheDedicatedPath() {
+        // Regression test: routing must come from the job's own RUNNER property, not from its
+        // taints. A DEDICATED_K8S_JOB with no taints of its own must still be dispatched as
+        // dedicated, never fall through to the plain CurrentJobRunner path just because the empty
+        // set trivially satisfies the taint check.
+        final var untaggedButDedicated = queuedRun(1, Set.of());
+        stubDedicatedClaimAttempt();
+        when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
+                .thenReturn(
+                        new SliceImpl<>(
+                                List.of(untaggedButDedicated), PageRequest.of(0, PAGE_SIZE), false));
+
+        service.checkForRunnableAndSchedule();
+
+        verify(jobService).hasRunner(JobRunnerKey.DEDICATED_K8S_JOB);
+        verify(jobService).claimQueuedRun(untaggedButDedicated, INSTANCE_NAME);
+    }
+
+    @Test
+    void aPlainJobIsNeverRoutedToDedicatedEvenIfItsTaintsIncludeTheDedicatedMarker() {
+        // The inverse of the above: taints alone must not be able to force dedicated routing for a
+        // job whose RUNNER is (the default) CURRENT.
+        final var taggedButNotDedicated =
+                queuedRun(1, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.taint()));
+        stubJobRunnerKey(JobRunnerKey.CURRENT);
+        when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
+                .thenReturn(
+                        new SliceImpl<>(
+                                List.of(taggedButNotDedicated), PageRequest.of(0, PAGE_SIZE), false));
+
+        service.checkForRunnableAndSchedule();
+
+        verify(jobService, never()).hasRunner(any());
+        verify(jobService, never()).claimQueuedRun(any(), any());
     }
 
     @Test
@@ -189,6 +230,22 @@ class JobRunQueueServiceTest {
         // Claim "fails" (already claimed elsewhere) so the test doesn't need to also stub a full
         // successful submission through JobExecutorService - only that a claim was attempted.
         when(jobService.claimQueuedRun(any(), any())).thenReturn(false);
+        stubJobRunnerKey(JobRunnerKey.DEDICATED_K8S_JOB);
+    }
+
+    /**
+     * Which claim path even applies is decided by the job's own {@code RUNNER} property (see {@link
+     * JobRunQueueService#claimIfMatchesThisRunner}), read via {@link JobService#getAllJobs()}/{@link
+     * JobService#getProperties(ch.uetlib.job.Job)} - the same per-job property cache pattern
+     * as elsewhere in this codebase.
+     */
+    @SuppressWarnings("unchecked")
+    private void stubJobRunnerKey(final JobRunnerKey runnerKey) {
+        final var job = new TestJob();
+        final var property = (JobProperty<Object>) (JobProperty<?>) RUNNER.createProperty(runnerKey);
+        when(jobService.getAllJobs()).thenReturn(List.of(job));
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(1));
+        when(jobService.getProperties(job)).thenReturn(new JobProperties(List.of(property)));
     }
 
     private static JobQueuedRun queuedRun(final int id, final Set<JobRunnerTaint> taints) {

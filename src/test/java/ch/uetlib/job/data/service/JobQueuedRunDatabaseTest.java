@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -265,13 +266,49 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
-    void queueNewRunDeletesAnExistingQueuedRowWhenDedupingToTheLatest() {
+    void queueNewRunStillQueuesANewRunEvenWhileOneIsAlreadyRunningByDefault() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        final var newlyQueued =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+
+        final var allRowsForJob = allQueueRowsForJob();
+        assertEquals(
+                Set.of(runningRunId, newlyQueued.jobQueuedRunId()),
+                allRowsForJob.stream().map(JobQueuedRun::jobQueuedRunId).collect(Collectors.toSet()),
+                "a RUNNING row isn't 'waiting' - ALLOW_MULTIPLE_WAITING_QUEUED_RUNS being off must"
+                        + " only dedupe against other waiting (QUEUED/CLAIMED) rows, not block a new"
+                        + " run from being queued behind an already-running one");
+        assertEquals(
+                JobRunQueueState.QUEUED,
+                findInQueue(newlyQueued.jobQueuedRunId()).orElseThrow().queueState());
+    }
+
+    @Test
+    void queueNewRunDeletesAnExistingWaitingRowWhenDedupingToTheLatestByDefault() {
         final var previouslyQueued = queueOne();
 
         jobDataService.queueNewRun(
                 TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
 
         assertTrue(findInQueue(previouslyQueued.jobQueuedRunId()).isEmpty());
+    }
+
+    @Test
+    void queueNewRunKeepsAnExistingWaitingRowWhenMultipleWaitingRunsAreAllowed() {
+        final var previouslyQueued = queueOne();
+
+        final var newlyQueued =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+
+        final var allRowsForJob = allQueueRowsForJob();
+        assertEquals(
+                Set.of(previouslyQueued.jobQueuedRunId(), newlyQueued.jobQueuedRunId()),
+                allRowsForJob.stream().map(JobQueuedRun::jobQueuedRunId).collect(Collectors.toSet()),
+                "with ALLOW_MULTIPLE_WAITING_QUEUED_RUNS on, an existing QUEUED (waiting) row must"
+                        + " not be replaced by a new one");
     }
 
     @Test
@@ -461,6 +498,17 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         jobDataService.claimQueuedRun(run, "runner-a");
         jobDataService.setRunId(run, EXISTING_JOB_RUN_ID);
         return run.jobQueuedRunId();
+    }
+
+    /** Every queue row for {@link #TEST_JOB_ID}, regardless of state. */
+    private List<JobQueuedRun> allQueueRowsForJob() {
+        return jobDataService
+                .findQueuedRuns(
+                        PageRequest.of(0, 100),
+                        List.of(TEST_JOB_ID),
+                        List.of(JobRunQueueState.values()),
+                        Optional.empty())
+                .getContent();
     }
 
     private Optional<JobQueuedRun> findInQueue(final int jobQueuedRunId) {

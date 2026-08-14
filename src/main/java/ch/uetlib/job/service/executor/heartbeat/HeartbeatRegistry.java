@@ -77,11 +77,15 @@ public class HeartbeatRegistry {
     }
 
     /** Schedule a task similar to a {@link RunHeartbeat} on the same thread pool. */
-    public ScheduledFuture<?> scheduleWithFixedDelay(
+    @SuppressWarnings("unchecked")
+    public ScheduledFuture<Void> scheduleWithFixedDelay(
             final Runnable command,
             final long initialDelay,
             final long delay,
             final TimeUnit timeUnit) {
-        return scheduler.scheduleWithFixedDelay(command, initialDelay, delay, timeUnit);
+        // A Runnable has no result, so the JDK's own overload returns ScheduledFuture<?> - cast to
+        // Void (the only type it could ever produce) so callers don't have to deal with a wildcard.
+        return (ScheduledFuture<Void>)
+                scheduler.scheduleWithFixedDelay(command, initialDelay, delay, timeUnit);
     }
 }

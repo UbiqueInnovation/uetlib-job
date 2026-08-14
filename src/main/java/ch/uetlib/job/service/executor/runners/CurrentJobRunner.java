@@ -82,11 +82,9 @@ public final class CurrentJobRunner implements JobRunner {
         }
 
         final var runnerGroupQueue =
-                queuedJobRuns.computeIfAbsent(
-                        runnerGroup, ignored -> new ConcurrentLinkedDeque<>());
+                queuedJobRuns.computeIfAbsent(runnerGroup, _ -> new ConcurrentLinkedDeque<>());
         final var runnerGroupActive =
-                activeJobRuns.computeIfAbsent(
-                        runnerGroup, ignored -> new ConcurrentLinkedDeque<>());
+                activeJobRuns.computeIfAbsent(runnerGroup, _ -> new ConcurrentLinkedDeque<>());
         final var jobRunId = jobRunContext.jobRun().id();
         runnerGroupByJobRun.put(jobRunId, runnerGroup);
         final var item = new CurrentRunnerItem(job.getClass(), jobRunContext.jobRun().id());

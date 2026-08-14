@@ -30,6 +30,8 @@
 - `@EnableJobs`'s "`ch.uetlib` is always included" doc claim wasn't actually implemented -
   now true. May add `CleanupJob`/`HealthCheckJob` for projects not already listing that package
   explicitly.
+- A job's fixed trigger list changing (e.g. adding a new trigger) deleted and reinserted *all* of
+  that job's DB trigger rows. Now, only changed triggers are updated, deleted and inserted.
 
 ### Breaking Changes
 

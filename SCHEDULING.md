@@ -45,15 +45,34 @@ pods), every 5s (`@Scheduled`) plus a Postgres `LISTEN`/`NOTIFY` fast path for l
 
 1. Page through `QUEUED` rows, highest priority / oldest first.
 2. For each, check whether *this instance* matches: its own build version must **exactly** equal
-   the row's `versionTag` (see "Version-pinned claiming" below) - only then are taints considered:
-   either this instance's own taints (`ch.uetlib.job.runner.instance.taints`) are a superset
-   of the row's required taints (`JOB_RUN_TAINTS` job property), or - for a row that wants
-   `DEDICATED_K8S_JOB` - this instance has a dedicated-runner bean available.
+   the row's `versionTag` (see "Version-pinned claiming" below); the job's `RUNNER` property then
+   decides which of the two paths applies (see "Runner kind vs. taints" below) - `CURRENT` requires
+   this instance's own taints (`ch.uetlib.job.runner.instance.taints`) to be a superset of
+   the row's required taints (`JOB_RUN_TAINTS` job property); `DEDICATED_K8S_JOB` requires the same
+   taint check *plus* a dedicated-runner bean available on this instance.
 3. On a match: atomically claim it (`QUEUED` → `CLAIMED`, tagged with
    `ch.uetlib.job.runner.instance.name`), then dispatch to the matching `JobRunner`.
 4. On successful submission: `CLAIMED` → `RUNNING`, linked to the new `t_job_run` row.
 5. On failure, or if a `CLAIMED` row's claiming instance died before ever reaching `RUNNING`
    (`CLAIM_TIMEOUT`, default 2m): released back to `QUEUED` for another instance to retry.
+
+**Runner kind vs. taints [library, entirely].** These are two different, orthogonal decisions, both
+made by `JobRunQueueService#claimIfMatchesThisRunner`, in this order:
+
+1. *Which kind of runner does this job want* - `CURRENT` (in-process, the default) or
+   `DEDICATED_K8S_JOB` (its own K8s pod)? Decided **solely** by the job's own `RUNNER` property
+   (cached per job, same 30s-refresh pattern as the timeout properties in §7) - never by taints.
+2. *Given that kind, does this specific instance qualify* - taint subset-matching, as described
+   above (§1's `JOB_RUN_TAINTS`/`ch.uetlib.job.runner.instance.taints`), plus (for
+   `DEDICATED_K8S_JOB` only) whether this instance actually has a dedicated-runner bean at all.
+
+A `DEDICATED_K8S_JOB` row with no `JOB_RUN_TAINTS` of its own - the common case, since a project
+sets `RUNNER`, not a synthetic taint - must still only ever be claimed via the dedicated path. Taint
+subset-matching alone can't tell the two paths apart: the empty set is trivially a subset of *any*
+taint set, so a row with no taints would otherwise satisfy the plain path too, and (being checked
+first) would end up dispatched to a `CurrentJobRunner` instance instead of K8s. This was a real bug,
+fixed by making the `RUNNER` property decide which path even applies before either taint check runs,
+rather than trying to distinguish the two paths by taint content.
 
 **Version-pinned claiming [library, entirely].** Every queued row is tagged with the enqueueing
 instance's own build version (`JobService#versionTag`, from `BuildProperties`); `JobRunQueueService`

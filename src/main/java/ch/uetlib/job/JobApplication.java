@@ -14,6 +14,7 @@ import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.executor.JobExecutorService;
 import ch.uetlib.job.service.executor.JobRunQueueService;
 import ch.uetlib.job.service.executor.runners.DedicatedJobRunner;
+import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -59,9 +60,14 @@ public final class JobApplication {
             final JobApplicationJobToStartArgs jobToStartArgs,
             final String[] args) {
 
+        // spring.profiles.active may contain job-primary-triggers (via the config map / properties
+        //  file); exclude it here
         final var applicationContext =
                 new SpringApplicationBuilder(applicationClass)
                         .profiles("job-run", "no-security")
+                        .listeners(
+                                ProfileExclusion.excluding(
+                                        TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE))
                         .web(WebApplicationType.NONE)
                         .run(args);
 
