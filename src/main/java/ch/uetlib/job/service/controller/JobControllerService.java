@@ -290,6 +290,26 @@ public class JobControllerService {
     }
 
     /**
+     * Acknowledges (deletes) a single {@link JobRunQueueState#CANCELLED} queue row - a run that was
+     * never picked up (see {@code QUEUE_TIMEOUT}), not a {@code JobRun} that was cancelled while
+     * running. Distinct from {@link #acknowledgeJobRun}.
+     */
+    public SuccessResponse acknowledgeQueuedRun(final int jobQueuedRunId) {
+        final var acknowledged = jobDataService.acknowledgeQueuedRun(jobQueuedRunId);
+        if (acknowledged) {
+            return new SuccessResponse(true, "Cancelled queued run acknowledged.");
+        }
+        return new SuccessResponse(false, "Queued run not found or not cancelled.");
+    }
+
+    /** Acknowledges (deletes) every {@link JobRunQueueState#CANCELLED} queue row. */
+    public SuccessResponse acknowledgeAllCancelledQueuedRuns() {
+        final var acknowledged = jobDataService.acknowledgeAllCancelledQueuedRuns();
+        return new SuccessResponse(
+                true, "Acknowledged " + acknowledged + " cancelled queued run(s).");
+    }
+
+    /**
      * Deletes queued runs matching the given job and state filters, grouped implicitly by (job,
      * state). Only {@link JobRunQueueState#QUEUED} rows are ever removable, even if {@link
      * JobRunQueueState#CLAIMED}/{@link JobRunQueueState#RUNNING} are explicitly requested - a

@@ -241,6 +241,27 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofMinutes(1));
+    public static final JobPropertyDefinition<Duration> QUEUE_TIMEOUT =
+            new DurationPropertyDefinition(
+                    "QUEUE_TIMEOUT",
+                    "Override the default timeout for how long a run may sit queued without activity"
+                            + " before it's considered unclaimable and marked CANCELLED - e.g. no"
+                            + " currently running instance matches its version or taints. Measured"
+                            + " from the run's last activity (a claim attempt, however unsuccessful),"
+                            + " not from when it was first queued - a run still being actively"
+                            + " retried keeps getting more time.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    Duration.ofMinutes(30));
+    public static final JobPropertyDefinition<Duration> CANCELLED_QUEUE_RETENTION =
+            new DurationPropertyDefinition(
+                    "CANCELLED_QUEUE_RETENTION",
+                    "Override how long a CANCELLED queue row (see QUEUE_TIMEOUT) is kept before being"
+                            + " automatically deleted. Acknowledging it in the status interface"
+                            + " deletes it immediately, independent of this timeout.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    Duration.ofDays(7));
 
     // ------------------------------------
     // Helpers to get fields declared above

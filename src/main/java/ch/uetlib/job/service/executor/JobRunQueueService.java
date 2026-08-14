@@ -137,12 +137,22 @@ public class JobRunQueueService {
     /**
      * Claims and executes {@code jobQueuedRun} if it matches this instance.
      *
+     * <p>Requires an exact {@code versionTag} match ({@link JobService#versionTag}) - not just
+     * taints - before considering a claim at all. During a staggered/rolling release, instances
+     * running different versions can briefly coexist; a run enqueued by one version must only ever
+     * be executed by that same version, since an older instance may not know a newly-added job
+     * class at all, and a newer instance may run different (possibly incompatible) code for it than
+     * whatever enqueued the run intended.
+     *
      * @return whether it matched, regardless of whether the subsequent claim attempt actually
      *     succeeded (it may lose a race to another instance, or a plain match may be skipped for
      *     lack of capacity)
      */
     private boolean claimIfMatchesThisRunner(final JobQueuedRun jobQueuedRun) {
         if (jobQueuedRun.queueState() != JobRunQueueState.QUEUED) {
+            return false;
+        }
+        if (!jobQueuedRun.versionTag().equals(jobService.versionTag())) {
             return false;
         }
         if (matchesTaints(jobQueuedRun, instanceTaints)) {

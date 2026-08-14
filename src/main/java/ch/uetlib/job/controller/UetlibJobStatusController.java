@@ -129,6 +129,16 @@ public class UetlibJobStatusController {
         return jobControllerService.deleteQueuedRuns(includeJobs, excludeJobs, state);
     }
 
+    @PostMapping("/queue/{jobQueuedRunId}/acknowledge")
+    public SuccessResponse acknowledgeQueuedRun(@PathVariable final int jobQueuedRunId) {
+        return jobControllerService.acknowledgeQueuedRun(jobQueuedRunId);
+    }
+
+    @PostMapping("/queue/acknowledge-cancelled")
+    public SuccessResponse acknowledgeAllCancelledQueuedRuns() {
+        return jobControllerService.acknowledgeAllCancelledQueuedRuns();
+    }
+
     @GetMapping("/info")
     public JobSystemInfoResponse info() {
         return jobControllerService.getInfo();

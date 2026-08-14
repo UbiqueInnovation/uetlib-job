@@ -44,15 +44,29 @@ never reordered.
 pods), every 5s (`@Scheduled`) plus a Postgres `LISTEN`/`NOTIFY` fast path for lower latency:
 
 1. Page through `QUEUED` rows, highest priority / oldest first.
-2. For each, check whether *this instance* matches: either its own taints
-   (`ch.uetlib.job.runner.instance.taints`) are a superset of the row's required taints
-   (`JOB_RUN_TAINTS` job property), or - for a row that wants `DEDICATED_K8S_JOB` - this instance
-   has a dedicated-runner bean available.
+2. For each, check whether *this instance* matches: its own build version must **exactly** equal
+   the row's `versionTag` (see "Version-pinned claiming" below) - only then are taints considered:
+   either this instance's own taints (`ch.uetlib.job.runner.instance.taints`) are a superset
+   of the row's required taints (`JOB_RUN_TAINTS` job property), or - for a row that wants
+   `DEDICATED_K8S_JOB` - this instance has a dedicated-runner bean available.
 3. On a match: atomically claim it (`QUEUED` → `CLAIMED`, tagged with
    `ch.uetlib.job.runner.instance.name`), then dispatch to the matching `JobRunner`.
 4. On successful submission: `CLAIMED` → `RUNNING`, linked to the new `t_job_run` row.
 5. On failure, or if a `CLAIMED` row's claiming instance died before ever reaching `RUNNING`
    (`CLAIM_TIMEOUT`, default 2m): released back to `QUEUED` for another instance to retry.
+
+**Version-pinned claiming [library, entirely].** Every queued row is tagged with the enqueueing
+instance's own build version (`JobService#versionTag`, from `BuildProperties`); `JobRunQueueService`
+only ever claims a row whose `versionTag` exactly matches its own. This matters during a staggered
+or rolling release, where instances running different versions briefly coexist: without this check,
+an older instance could claim a row for a job class it doesn't even have yet, or a newer instance
+could run a row using different (possibly incompatible) code than whatever enqueued it intended.
+Only the exact version that enqueued a run may execute it - never an older or newer one.
+
+One consequence worth knowing: if every instance of the version that enqueued a row disappears
+before it's claimed (e.g. a very short-lived old version during a fast rollout), that row is
+version-pinned to nobody. It doesn't stay `QUEUED` forever, though - `expireUnclaimableQueuedRuns`
+(§7) eventually marks it `CANCELLED` once it's had no activity for `QUEUE_TIMEOUT`.
 
 **[project]** only participates by setting `JOB_RUN_TAINTS` on a job (to pin it to specific
 instances) and giving every deployed instance a unique
@@ -192,7 +206,7 @@ before the pod's own JVM is even up, and pods that go quiet without producing lo
 
 ## 7. Watchers (reconciliation and timeouts)
 
-Three independent `@Scheduled` watchers, all **[library]**, all disabled on dedicated `job-run`
+Five independent `@Scheduled` watchers, all **[library]**, all disabled on dedicated `job-run`
 instances (they only make sense on a "primary" instance):
 
 - **`JobQueueWatcherService#resetAbandonedClaims`** (every 15s) - a `CLAIMED` row whose claiming
@@ -203,6 +217,14 @@ instances (they only make sense on a "primary" instance):
   stuck one, or a network partition; distinct from the `CANCELLED` a runner marks when it directly
   observes its own worker died, see §5) and the row removed. Otherwise left alone - it does *not*
   refresh the heartbeat itself; only the runner proving its own liveness does that.
+- **`JobQueueWatcherService#expireUnclaimableQueuedRuns`** (every minute) - a `QUEUED` row with no
+  activity for `QUEUE_TIMEOUT` (default 30m) is marked `JobRunQueueState#CANCELLED` - given up on,
+  because nothing currently running matches it (see "Version-pinned claiming and unclaimable runs"
+  below). "Activity" is a claim attempt, however unsuccessful (same null-safe idiom as
+  `resetAbandonedClaims`): a row still being actively retried keeps getting more time rather than
+  being cancelled out from under it.
+- **`JobQueueWatcherService#deleteOldCancelledQueuedRuns`** (hourly) - purges `CANCELLED` rows past
+  `CANCELLED_QUEUE_RETENTION` (default 7 days). Cleanup only, hence the coarse cadence.
 - **`JobTimeoutWatcher`** - independent, duration-based, **opt-in per job**
   (`KILL_JOBS_RUN_TIMEOUT`/`RUN_TIME_LIMIT`, `KILL_JOBS_SCHEDULE_TIMEOUT`/
   `MAX_DURATION_IN_SCHEDULED_STATE`, both off by default). Kills a run that's simply taken too
@@ -211,6 +233,30 @@ instances (they only make sense on a "primary" instance):
   `SCHEDULED` handoff (§4) may run when nothing else ever reports it finished; the heartbeat
   watchers above deliberately don't duplicate this.
 
+**Version-pinned claiming and unclaimable runs [library, entirely].** Every queued row is tagged
+with the enqueueing instance's own build version (`JobService#versionTag`); `JobRunQueueService`
+only claims a row whose `versionTag` exactly matches its own (see §2) - never an older or newer
+instance, which matters during a staggered/rolling release where multiple versions briefly coexist:
+an older instance may not even know a newly-added job class, and a newer one may run different code
+for it than whatever enqueued the run intended. A consequence of that strictness: if every instance
+of the enqueueing version disappears before a row is claimed, nothing will ever claim it. Rather than
+leaving it `QUEUED` forever, `expireUnclaimableQueuedRuns` above eventually marks it `CANCELLED`.
+
+**`JobRunQueueState#CANCELLED` vs a `JobRun`'s own `CANCELLED` `JobRunState` [distinction worth
+being precise about].** These mean different things and are otherwise unrelated: a queued run
+reaching `JobRunQueueState#CANCELLED` means it was *never picked up* - no `JobRun` ever existed for
+it, `jobRunId` stays `null`. A `JobRun` reaching `JobRunState#CANCELLED` means a worker thread that
+*was* executing it died without completing normally (§5, `ThreadProgressCheckIn`). One is about a row
+never leaving the queue; the other is about an execution that was already underway.
+
+**Acknowledging a cancelled queue row [project, via the status API].** `POST
+/queue/{jobQueuedRunId}/acknowledge` deletes a single `CANCELLED` row immediately, without waiting
+for `CANCELLED_QUEUE_RETENTION`; `POST /queue/acknowledge-cancelled` does the same for every
+`CANCELLED` row at once. Both are no-ops (`success: false` / `0` acknowledged) if nothing matches -
+neither ever touches a `QUEUED`/`CLAIMED`/`RUNNING` row. Distinct from acknowledging a `JobRun`
+(`POST /run/{jobRunId}/acknowledge`), which is about a completed-but-problematic execution, not a
+queue row that never ran at all.
+
 ## 8. Services quick reference
 
 | Service | Role |
@@ -218,7 +264,7 @@ instances (they only make sense on a "primary" instance):
 | `TriggerCoordinatorService` | Fires configured triggers, syncs fixed trigger definitions to the DB |
 | `JobRunQueueService` | Polls/claims/dispatches `QUEUED` rows |
 | `JobExecutorService` | Shared submit path: parallel-run guard, runner selection, `t_job_run` creation |
-| `JobQueueWatcherService` | Claim-staleness and running-row reconciliation (§7) |
+| `JobQueueWatcherService` | Claim-staleness, running-row, and unclaimable-queued-row reconciliation (§7) |
 | `KubernetesJobWatcher` | K8s job/pod state + log watching, heartbeat bridging (§6) |
 | `JobTimeoutWatcher` | Duration-based kill, opt-in (§7) |
 | `JobService` / `JobDataService` | Core orchestration / persistence, used by all of the above |

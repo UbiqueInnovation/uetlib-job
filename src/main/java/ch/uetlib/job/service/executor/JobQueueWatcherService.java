@@ -1,7 +1,9 @@
 package ch.uetlib.job.service.executor;
 
+import static ch.uetlib.job.model.properties.JobPropertyDefinitions.CANCELLED_QUEUE_RETENTION;
 import static ch.uetlib.job.model.properties.JobPropertyDefinitions.CLAIM_TIMEOUT;
 import static ch.uetlib.job.model.properties.JobPropertyDefinitions.HEARTBEAT_TIMEOUT;
+import static ch.uetlib.job.model.properties.JobPropertyDefinitions.QUEUE_TIMEOUT;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,7 +31,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Keeps {@code t_job_run_queue} honest once a row has been claimed:
+ * Keeps {@code t_job_run_queue} honest once a row has been claimed - or never gets claimed at all:
  *
  * <ul>
  *   <li>a row stuck in {@link JobRunQueueState#CLAIMED} (the claiming instance died before ever
@@ -39,6 +41,11 @@ import java.util.stream.Collectors;
  *       removed; one whose heartbeat has gone stale - the executing runner (see {@code
  *       JobRunnerHelper}) is no longer proving itself alive - is treated as abandoned: the job run
  *       is marked {@link JobRunState#UNFINISHED} (cause unknown from here) and the row is removed
+ *   <li>a {@link JobRunQueueState#QUEUED} row with no activity for too long - e.g. nothing
+ *       currently running matches its version or taints - is marked {@link
+ *       JobRunQueueState#CANCELLED} rather than left queued forever; a {@code CANCELLED} row is in
+ *       turn purged once it's been sitting past its own retention (see {@link
+ *       #expireUnclaimableQueuedRuns} / {@link #deleteOldCancelledQueuedRuns})
  * </ul>
  *
  * Deliberately does not duplicate max-duration-based timeout detection - that's already handled at
@@ -57,6 +64,8 @@ public class JobQueueWatcherService {
 
     private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
     private final SingleCache<Map<Integer, Duration>> jobHeartbeatTimeoutCache;
+    private final SingleCache<Map<Integer, Duration>> jobQueueTimeoutCache;
+    private final SingleCache<Map<Integer, Duration>> jobCancelledQueueRetentionCache;
 
     public JobQueueWatcherService(
             final JobService jobService,
@@ -69,6 +78,12 @@ public class JobQueueWatcherService {
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
         this.jobHeartbeatTimeoutCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
+        this.jobQueueTimeoutCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
+        this.jobCancelledQueueRetentionCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
     }
@@ -115,6 +130,49 @@ public class JobQueueWatcherService {
                                                         jobService
                                                                 .getProperties(job)
                                                                 .get(HEARTBEAT_TIMEOUT)
+                                                                .valueNonNull())));
+    }
+
+    /**
+     * Per-job {@link ch.uetlib.job.model.properties.JobPropertyDefinitions#QUEUE_TIMEOUT}
+     * overrides, cached the same way as {@link #jobClaimTimeout()}.
+     */
+    private Map<Integer, Duration> jobQueueTimeout() {
+        return jobQueueTimeoutCache.get(
+                () ->
+                        jobService.getAllJobs().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                job ->
+                                                        jobService
+                                                                .findJobId(job.getClass())
+                                                                .orElseThrow(),
+                                                job ->
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(QUEUE_TIMEOUT)
+                                                                .valueNonNull())));
+    }
+
+    /**
+     * Per-job {@link
+     * ch.uetlib.job.model.properties.JobPropertyDefinitions#CANCELLED_QUEUE_RETENTION}
+     * overrides, cached the same way as {@link #jobClaimTimeout()}.
+     */
+    private Map<Integer, Duration> jobCancelledQueueRetention() {
+        return jobCancelledQueueRetentionCache.get(
+                () ->
+                        jobService.getAllJobs().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                job ->
+                                                        jobService
+                                                                .findJobId(job.getClass())
+                                                                .orElseThrow(),
+                                                job ->
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(CANCELLED_QUEUE_RETENTION)
                                                                 .valueNonNull())));
     }
 
@@ -189,5 +247,40 @@ public class JobQueueWatcherService {
         // would
         // otherwise keep ticking here forever even after this instance itself gave up on it.
         heartbeatRegistry.stop(jobRun.id());
+    }
+
+    /**
+     * Marks {@code QUEUED} rows unclaimable (no activity since {@code QUEUE_TIMEOUT}, e.g. a run
+     * enqueued by a version or with taints nothing currently running matches - see {@link
+     * ch.uetlib.job.service.executor.JobRunQueueService#claimIfMatchesThisRunner}) as
+     * {@link JobRunQueueState#CANCELLED}. Left in the queue - not deleted - for visibility until
+     * acknowledged or purged (see {@link #deleteOldCancelledQueuedRuns}).
+     */
+    @Scheduled(cron = "${ch.uetlib.job.runner.expire-unclaimable-queued.cron:37 * * * * ?}")
+    public void expireUnclaimableQueuedRuns() {
+        final var staleBeforeByJobId =
+                jobQueueTimeout().entrySet().stream()
+                        .collect(MapCollectors.entriesToMapWithValueMapper(Instant.now()::minus));
+        final var expired = jobDataService.expireStaleQueuedRuns(staleBeforeByJobId);
+        if (expired > 0) {
+            logger.info("Marked {} unclaimable queued run(s) as cancelled.", expired);
+        }
+    }
+
+    /**
+     * Purges {@link JobRunQueueState#CANCELLED} rows past {@code CANCELLED_QUEUE_RETENTION} -
+     * cleanup only, not a liveness concern, hence the much coarser cadence than the other watchers
+     * here.
+     */
+    @Scheduled(
+            cron = "${ch.uetlib.job.runner.delete-old-cancelled-queued.cron:0 41 * * * ?}")
+    public void deleteOldCancelledQueuedRuns() {
+        final var retainAfterByJobId =
+                jobCancelledQueueRetention().entrySet().stream()
+                        .collect(MapCollectors.entriesToMapWithValueMapper(Instant.now()::minus));
+        final var deleted = jobDataService.deleteOldCancelledQueuedRuns(retainAfterByJobId);
+        if (deleted > 0) {
+            logger.info("Deleted {} cancelled queued run(s) past their retention.", deleted);
+        }
     }
 }

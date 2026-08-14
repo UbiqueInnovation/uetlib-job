@@ -4,5 +4,6 @@ public enum JobRunQueueState {
     QUEUED,
     CLAIMED,
     RUNNING,
+    CANCELLED,
     ;
 }

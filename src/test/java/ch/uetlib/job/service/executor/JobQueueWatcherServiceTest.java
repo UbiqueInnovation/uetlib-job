@@ -37,6 +37,8 @@ class JobQueueWatcherServiceTest {
 
     private static final Duration DEFAULT_CLAIM_TIMEOUT = Duration.ofMinutes(2);
     private static final Duration DEFAULT_HEARTBEAT_TIMEOUT = Duration.ofMinutes(1);
+    private static final Duration DEFAULT_QUEUE_TIMEOUT = Duration.ofMinutes(30);
+    private static final Duration DEFAULT_CANCELLED_QUEUE_RETENTION = Duration.ofDays(7);
 
     private final JobService jobService = mock(JobService.class);
     private final JobDataService jobDataService = mock(JobDataService.class);
@@ -63,6 +65,46 @@ class JobQueueWatcherServiceTest {
         final var expected = Instant.now().minus(DEFAULT_CLAIM_TIMEOUT);
         assertTrue(
                 Duration.between(staleBefore, expected).abs().compareTo(Duration.ofSeconds(5)) < 0);
+    }
+
+    @Test
+    void expireUnclaimableQueuedRunsUsesDefaultTimeoutWhenNoPropertyOverride() {
+        final var job = new TestJob();
+        when(jobService.getAllJobs()).thenReturn(List.of(job));
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(7));
+        when(jobService.getProperties(job)).thenReturn(new JobProperties(List.of()));
+        when(jobDataService.expireStaleQueuedRuns(anyMap())).thenReturn(0);
+
+        service.expireUnclaimableQueuedRuns();
+
+        @SuppressWarnings("unchecked")
+        final ArgumentCaptor<Map<Integer, Instant>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(jobDataService).expireStaleQueuedRuns(captor.capture());
+        assertEquals(Set.of(7), captor.getValue().keySet());
+        final var staleBefore = captor.getValue().get(7);
+        final var expected = Instant.now().minus(DEFAULT_QUEUE_TIMEOUT);
+        assertTrue(
+                Duration.between(staleBefore, expected).abs().compareTo(Duration.ofSeconds(5)) < 0);
+    }
+
+    @Test
+    void deleteOldCancelledQueuedRunsUsesDefaultRetentionWhenNoPropertyOverride() {
+        final var job = new TestJob();
+        when(jobService.getAllJobs()).thenReturn(List.of(job));
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(7));
+        when(jobService.getProperties(job)).thenReturn(new JobProperties(List.of()));
+        when(jobDataService.deleteOldCancelledQueuedRuns(anyMap())).thenReturn(0);
+
+        service.deleteOldCancelledQueuedRuns();
+
+        @SuppressWarnings("unchecked")
+        final ArgumentCaptor<Map<Integer, Instant>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(jobDataService).deleteOldCancelledQueuedRuns(captor.capture());
+        assertEquals(Set.of(7), captor.getValue().keySet());
+        final var retainAfter = captor.getValue().get(7);
+        final var expected = Instant.now().minus(DEFAULT_CANCELLED_QUEUE_RETENTION);
+        assertTrue(
+                Duration.between(retainAfter, expected).abs().compareTo(Duration.ofSeconds(5)) < 0);
     }
 
     @Test
