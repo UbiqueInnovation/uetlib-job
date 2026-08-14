@@ -42,6 +42,9 @@ public interface JobQueuedRunRepository
     long deleteByJobIdInAndQueueStateIn(
             Collection<Integer> jobIds, Collection<JobRunQueueState> states);
 
+    /** Deletes every row in the given state, regardless of job - for bulk acknowledge-all. */
+    long deleteByQueueState(JobRunQueueState queueState);
+
     Optional<JobQueuedRunEntity> findFirstByOrderByCreatedAtAsc();
 
     Optional<JobQueuedRunEntity> findFirstByOrderByCreatedAtDesc();
@@ -94,6 +97,40 @@ public interface JobQueuedRunRepository
             JobRunQueueState resetState,
             Instant staleBefore,
             Instant now);
+
+    /**
+     * Marks every {@link JobRunQueueState#QUEUED} row of {@code jobId} as {@link
+     * JobRunQueueState#CANCELLED} - unclaimable (see {@code QUEUE_TIMEOUT}) - if its last activity
+     * (its {@code lastHeartbeat} if present, else its {@code updatedAt}) is before {@code
+     * staleBefore}. The same null-safe idiom as {@link #resetStaleClaimsForJob}: every existing
+     * reset path already clears {@code lastHeartbeat}, so in practice this is keyed on {@code
+     * updatedAt} for a row currently {@code QUEUED} - each claim/reset cycle restarts the clock, so
+     * a row still being actively (if unsuccessfully) retried isn't cancelled out from under it.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(
+            """
+                    UPDATE JobQueuedRunEntity j
+                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
+                    WHERE j.jobId = :jobId AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+                      AND (j.lastHeartbeat IS NULL OR j.lastHeartbeat < :staleBefore)
+                      AND j.updatedAt < :staleBefore
+                    """)
+    int expireStaleQueuedRunsForJob(int jobId, Instant staleBefore, Instant now);
+
+    /**
+     * Deletes every {@link JobRunQueueState#CANCELLED} row of {@code jobId} that's been cancelled
+     * (its {@code updatedAt}) since before {@code retainAfter} - see {@code
+     * CANCELLED_QUEUE_RETENTION}.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(
+            """
+                    DELETE FROM JobQueuedRunEntity j
+                    WHERE j.jobId = :jobId AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
+                      AND j.updatedAt < :retainAfter
+                    """)
+    int deleteOldCancelledQueuedRunsForJob(int jobId, Instant retainAfter);
 
     /** Unconditionally resets a single row - for defensive/internal use only. */
     @Modifying(clearAutomatically = true)

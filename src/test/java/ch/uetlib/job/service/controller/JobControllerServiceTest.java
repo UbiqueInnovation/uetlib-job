@@ -127,6 +127,30 @@ class JobControllerServiceTest {
     }
 
     @Test
+    void acknowledgeQueuedRunReportsSuccessWhenACancelledRowWasRemoved() {
+        when(jobDataService.acknowledgeQueuedRun(5)).thenReturn(true);
+
+        assertTrue(service.acknowledgeQueuedRun(5).success());
+    }
+
+    @Test
+    void acknowledgeQueuedRunReportsFailureWhenNothingWasCancelled() {
+        when(jobDataService.acknowledgeQueuedRun(5)).thenReturn(false);
+
+        assertFalse(service.acknowledgeQueuedRun(5).success());
+    }
+
+    @Test
+    void acknowledgeAllCancelledQueuedRunsReportsHowManyWereRemoved() {
+        when(jobDataService.acknowledgeAllCancelledQueuedRuns()).thenReturn(3L);
+
+        final var result = service.acknowledgeAllCancelledQueuedRuns();
+
+        assertTrue(result.success());
+        assertTrue(result.message().contains("3"));
+    }
+
+    @Test
     void deleteQueuedRunsDefaultsToQueuedOnlyWhenNoStatesGiven() {
         when(jobService.getAllJobClassesWithId()).thenReturn(List.of(JOB));
         when(jobDataService.deleteQueuedRuns(any(), any())).thenReturn(3L);

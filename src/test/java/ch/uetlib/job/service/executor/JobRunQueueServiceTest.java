@@ -31,6 +31,7 @@ import java.util.Set;
 class JobRunQueueServiceTest {
 
     private static final String INSTANCE_NAME = "test-instance";
+    private static final String VERSION_TAG = "1.0.0";
     private static final int PAGE_SIZE = 2;
 
     private final JobService jobService = mock(JobService.class);
@@ -45,6 +46,13 @@ class JobRunQueueServiceTest {
                     INSTANCE_NAME,
                     List.of("gpu"),
                     PAGE_SIZE);
+
+    {
+        // Every queuedRun(...) below is tagged VERSION_TAG; matching this instance's own version is
+        // otherwise a precondition for every claim attempt (see claimIfMatchesThisRunner), so stub
+        // it once here rather than repeating it in every test.
+        when(jobService.versionTag()).thenReturn(VERSION_TAG);
+    }
 
     @Test
     void keepsPagingUntilAPageHasAMatch() {
@@ -130,6 +138,42 @@ class JobRunQueueServiceTest {
         verify(jobService, never()).hasRunner(JobRunnerKey.DEDICATED_K8S_JOB);
     }
 
+    @Test
+    void aRowEnqueuedByADifferentVersionIsNeverClaimed() {
+        // Staggered/rolling release: this instance is version VERSION_TAG, but the row was enqueued
+        // by a different version - it must be left for an instance running that exact version,
+        // never claimed here even though taints would otherwise match.
+        final var otherVersion = queuedRun(1, Set.of(JobRunnerTaint.from("gpu")), "2.0.0");
+        when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
+                .thenReturn(
+                        new SliceImpl<>(
+                                List.of(otherVersion), PageRequest.of(0, PAGE_SIZE), false));
+
+        service.checkForRunnableAndSchedule();
+
+        verify(jobService, never()).claimQueuedRun(any(), any());
+        verify(jobService, never()).hasRunner(any());
+    }
+
+    @Test
+    void keepsPagingPastRowsFromAnotherVersionToFindAMatchingOne() {
+        final var otherVersion =
+                queuedRun(1, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.taint()), "2.0.0");
+        final var sameVersion = queuedRun(2, Set.of(JobRunnerTaints.DEDICATED_K8S_TAINT.taint()));
+        stubDedicatedClaimAttempt();
+        when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
+                .thenReturn(
+                        new SliceImpl<>(List.of(otherVersion), PageRequest.of(0, PAGE_SIZE), true));
+        when(jobService.findQueuedRunsPage(PageRequest.of(1, PAGE_SIZE)))
+                .thenReturn(
+                        new SliceImpl<>(List.of(sameVersion), PageRequest.of(1, PAGE_SIZE), false));
+
+        service.checkForRunnableAndSchedule();
+
+        verify(jobService).claimQueuedRun(sameVersion, INSTANCE_NAME);
+        verify(jobService, never()).claimQueuedRun(otherVersion, INSTANCE_NAME);
+    }
+
     private void stubPlainClaimAttempt() {
         when(jobService.findJobById(anyInt()))
                 .thenReturn(Optional.of(new JobClassAndId(1, "ch.uetlib.job.TestJob")));
@@ -148,12 +192,17 @@ class JobRunQueueServiceTest {
     }
 
     private static JobQueuedRun queuedRun(final int id, final Set<JobRunnerTaint> taints) {
+        return queuedRun(id, taints, VERSION_TAG);
+    }
+
+    private static JobQueuedRun queuedRun(
+            final int id, final Set<JobRunnerTaint> taints, final String versionTag) {
         final var now = Instant.now();
         return new JobQueuedRun(
                 id,
                 null,
                 1,
-                "1.0.0",
+                versionTag,
                 JobRunQueueState.QUEUED,
                 null,
                 null,

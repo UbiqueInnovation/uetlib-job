@@ -301,6 +301,120 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
+    void expireStaleQueuedRunsCancelsQueuedRunsOlderThanTheGivenThreshold() {
+        final var run = queueOne();
+
+        // createdAt/updatedAt were just set to Instant.now(), so a staleBefore in the future makes
+        // it "stale" without needing to fabricate an old timestamp - same trick as
+        // resetStaleClaimsResetsClaimsOlderThanTheGivenThreshold.
+        final var expired =
+                jobDataService.expireStaleQueuedRuns(
+                        Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        assertEquals(1, expired);
+        assertEquals(
+                1,
+                jobDataService.findQueuedRunsByState(JobRunQueueState.CANCELLED).stream()
+                        .filter(r -> r.jobQueuedRunId() == run.jobQueuedRunId())
+                        .count());
+    }
+
+    @Test
+    void expireStaleQueuedRunsLeavesFreshQueuedRunsAlone() {
+        queueOne();
+
+        final var expired =
+                jobDataService.expireStaleQueuedRuns(
+                        Map.of(TEST_JOB_ID, Instant.now().minusSeconds(60)));
+
+        assertEquals(0, expired);
+    }
+
+    @Test
+    void expireStaleQueuedRunsNeverTouchesAClaimedRow() {
+        final var run = queueOne();
+        jobDataService.claimQueuedRun(run, "runner-a");
+
+        final var expired =
+                jobDataService.expireStaleQueuedRuns(
+                        Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        assertEquals(
+                0, expired, "only QUEUED rows are eligible - a CLAIMED row must not be cancelled");
+    }
+
+    @Test
+    void deleteOldCancelledQueuedRunsDeletesCancelledRunsPastRetention() {
+        final var run = queueOne();
+        jobDataService.expireStaleQueuedRuns(Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        // updatedAt was just bumped to Instant.now() by expireStaleQueuedRuns, so a retainAfter in
+        // the future makes it "past retention" without needing to fabricate an old timestamp.
+        final var deleted =
+                jobDataService.deleteOldCancelledQueuedRuns(
+                        Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        assertEquals(1, deleted);
+        assertTrue(
+                jobDataService.findQueuedRunsByState(JobRunQueueState.CANCELLED).stream()
+                        .noneMatch(r -> r.jobQueuedRunId() == run.jobQueuedRunId()));
+    }
+
+    @Test
+    void deleteOldCancelledQueuedRunsLeavesRecentCancelledRunsAlone() {
+        final var run = queueOne();
+        jobDataService.expireStaleQueuedRuns(Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        final var deleted =
+                jobDataService.deleteOldCancelledQueuedRuns(
+                        Map.of(TEST_JOB_ID, Instant.now().minusSeconds(60)));
+
+        assertEquals(0, deleted);
+        assertEquals(
+                1,
+                jobDataService.findQueuedRunsByState(JobRunQueueState.CANCELLED).stream()
+                        .filter(r -> r.jobQueuedRunId() == run.jobQueuedRunId())
+                        .count());
+    }
+
+    @Test
+    void acknowledgeQueuedRunDeletesACancelledRow() {
+        final var run = queueOne();
+        jobDataService.expireStaleQueuedRuns(Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+
+        assertTrue(jobDataService.acknowledgeQueuedRun(run.jobQueuedRunId()));
+        assertTrue(
+                jobDataService.findQueuedRunsByState(JobRunQueueState.CANCELLED).stream()
+                        .noneMatch(r -> r.jobQueuedRunId() == run.jobQueuedRunId()));
+    }
+
+    @Test
+    void acknowledgeQueuedRunNeverDeletesAQueuedRow() {
+        final var run = queueOne();
+
+        assertFalse(jobDataService.acknowledgeQueuedRun(run.jobQueuedRunId()));
+        assertTrue(findInQueue(run.jobQueuedRunId()).isPresent());
+    }
+
+    @Test
+    void acknowledgeAllCancelledQueuedRunsOnlyEverTouchesCancelledRows() {
+        final var toCancel = queueOne();
+        jobDataService.expireStaleQueuedRuns(Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
+        // Queued *after* the expiry call above, so this one is untouched by it and stays QUEUED.
+        final var stillQueued = queueOne();
+
+        final var acknowledged = jobDataService.acknowledgeAllCancelledQueuedRuns();
+
+        assertEquals(1, acknowledged);
+        assertTrue(
+                jobDataService.findQueuedRunsByState(JobRunQueueState.CANCELLED).stream()
+                        .noneMatch(r -> r.jobQueuedRunId() == toCancel.jobQueuedRunId()));
+        assertTrue(
+                findInQueue(stillQueued.jobQueuedRunId()).isPresent(),
+                "acknowledge-all must only ever touch CANCELLED rows");
+    }
+
+    @Test
     void queueRunningRunInsertsANewRowWhenNoneExistsForTheGivenJobRunId() {
         final var queued =
                 jobDataService.queueRunningRun(

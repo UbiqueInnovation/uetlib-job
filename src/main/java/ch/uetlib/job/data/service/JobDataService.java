@@ -1,5 +1,6 @@
 package ch.uetlib.job.data.service;
 
+import static ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED;
 import static ch.uetlib.job.model.queue.JobRunQueueState.CLAIMED;
 import static ch.uetlib.job.model.queue.JobRunQueueState.QUEUED;
 
@@ -752,6 +753,52 @@ public class JobDataService {
                         jobQueuedRunRepository.resetStaleClaimsForJob(
                                 entry.getKey(), CLAIMED, QUEUED, entry.getValue(), now))
                 .sum();
+    }
+
+    /**
+     * Marks {@code QUEUED} rows whose last activity is before {@code staleBefore} as {@link
+     * JobRunQueueState#CANCELLED} - unclaimable (see {@code QUEUE_TIMEOUT}).
+     */
+    @Transactional
+    public int expireStaleQueuedRuns(final Map<Integer, Instant> staleBefore) {
+        final var now = Instant.now();
+        return staleBefore.entrySet().stream()
+                .mapToInt(
+                        entry ->
+                                jobQueuedRunRepository.expireStaleQueuedRunsForJob(
+                                        entry.getKey(), entry.getValue(), now))
+                .sum();
+    }
+
+    /**
+     * Deletes {@code CANCELLED} rows cancelled before {@code retainAfter} (see {@code
+     * CANCELLED_QUEUE_RETENTION}).
+     */
+    @Transactional
+    public int deleteOldCancelledQueuedRuns(final Map<Integer, Instant> retainAfter) {
+        return retainAfter.entrySet().stream()
+                .mapToInt(
+                        entry ->
+                                jobQueuedRunRepository.deleteOldCancelledQueuedRunsForJob(
+                                        entry.getKey(), entry.getValue()))
+                .sum();
+    }
+
+    /**
+     * Acknowledges (deletes) a single {@link JobRunQueueState#CANCELLED} row. Distinct from
+     * acknowledging a {@code JobRun} - this concerns a queue row that was never picked up at all.
+     * Returns whether a row was deleted.
+     */
+    @Transactional
+    public boolean acknowledgeQueuedRun(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.deleteByJobQueuedRunIdAndQueueState(jobQueuedRunId, CANCELLED)
+                > 0;
+    }
+
+    /** Acknowledges (deletes) every {@link JobRunQueueState#CANCELLED} row. Returns how many. */
+    @Transactional
+    public long acknowledgeAllCancelledQueuedRuns() {
+        return jobQueuedRunRepository.deleteByQueueState(CANCELLED);
     }
 
     @Transactional

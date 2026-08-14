@@ -2,27 +2,28 @@
 
 ## 7.0.0
 
-Job dispatch is now queue-based: triggers no longer run a job directly, they insert a row into the
-new `t_job_run_queue`.
-Each instance claims and executes matching rows - polled every 5s + NOTIFY/LISTEN for PG.
-Running jobs now maintain a heartbeat; see `SCHEDULING.md` for how dispatch, handoff, and liveness
-detection fit together.
+### New Features
 
-### Improvements / Additions
-
-- New, optional job properties - no action needed to keep current behavior:
-  - `JOB_RUN_TAINTS` - restrict a job's runs to instances advertising matching taints.
-  - `ALLOW_MULTIPLE_QUEUED_RUNS` - allow more than one queued (non-running) run per job at a time.
-  - `CLAIM_TIMEOUT` - override how long a claimed-but-not-yet-running row is held before being
-    released back to the queue.
-  - `HEARTBEAT_TIMEOUT` - override how long a running job's heartbeat may go stale before it's
-    considered abandoned (default 1 minute).
-- `PUT /queue/{jobQueuedRunId}/priority` - reorder a still-queued run.
-- Running job runs now maintain a heartbeat on their queue row - covers in-process runs, dedicated
+- **Job dispatch is now queue-based.** Triggers no longer run a job directly - they insert a row
+  into a new `t_job_run_queue`, and instances poll/claim/execute matching rows (every 5s +
+  NOTIFY/LISTEN for PG for lower latency). Claiming is version-pinned: an instance only ever claims
+  a row enqueued by its own exact build version, so a staggered/rolling release can't have one
+  version pick up work meant for another. See `SCHEDULING.md` for the full picture.
+- **Running job runs maintain a heartbeat** on their queue row - covers in-process runs, dedicated
   `--job` pods, and Kubernetes-dispatched jobs (pod status + log activity). A run whose heartbeat
-  goes stale is marked `UNFINISHED` and its queue row removed. See `SCHEDULING.md`.
-- Dedicated `--job` runs are now also recorded in the queue as `RUNNING` (previously invisible to
-  it), so a job's own trigger firing again while it's already running no longer churns.
+  goes stale is marked `UNFINISHED` and its queue row removed.
+- **A queued run nothing can claim** (e.g. no currently running instance matches its version or
+  taints) is marked `CANCELLED` after `QUEUE_TIMEOUT` (default 30m) rather than left `QUEUED`
+  forever, and purged after `CANCELLED_QUEUE_RETENTION` (default 7 days) unless acknowledged sooner.
+  Distinct from a `JobRun`'s own `CANCELLED` state - this means the run was never picked up at all.
+  Acknowledge (delete) immediately via `POST /queue/{jobQueuedRunId}/acknowledge` or `POST
+  /queue/acknowledge-cancelled` (all).
+- **`PUT /queue/{jobQueuedRunId}/priority`** reorders a still-queued run.
+- **Dedicated `--job` runs are now also recorded in the queue as `RUNNING`**, so a job's own trigger
+  firing again while it's already running doesn't churn its queue row.
+- New job properties configuring the above (all optional, all with defaults that keep the queue
+  working out of the box): `JOB_RUN_TAINTS`, `ALLOW_MULTIPLE_QUEUED_RUNS`, `CLAIM_TIMEOUT`,
+  `HEARTBEAT_TIMEOUT`, `QUEUE_TIMEOUT`, `CANCELLED_QUEUE_RETENTION`.
 
 ### Fixes
 
@@ -33,10 +34,12 @@ detection fit together.
 ### Breaking Changes
 
 - Database migration required: run `update_uetlib_7_0_0.sql` (adds `t_job_run_queue`, `t_job.priority`,
-  and, on PostgreSQL, a `NOTIFY` trigger). No further migration needed for the heartbeat/priority
-  additions above - they reuse existing columns.
+  and, on PostgreSQL, a `NOTIFY` trigger).
 - New required property `ch.uetlib.job.runner.instance.name` - a unique identifier per
   running instance, used to track claims. Example: '${CLUSTER_NAME}-primary'
+- A Job Application's primary instance (only one per job module, over all clusters!) must have a profile
+  `job-primary-triggers`, this is the only instance that queues new job runs according to the configured triggers. All
+  other instances can pick up these runs from the queue and must not have this profile.
 - `POST /job/{id}/start` no longer returns the job's execution result, only whether it was
   successfully *queued*. Response body changed from `JobSubmissionResult` to the new sealed
   `QueueSubmissionResult`:
