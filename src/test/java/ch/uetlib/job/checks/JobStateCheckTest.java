@@ -2,6 +2,7 @@ package ch.uetlib.job.checks;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import ch.uetlib.job.Job;
 import ch.uetlib.job.checks.cache.JobStateCheckEvaluationCache;
@@ -51,10 +52,10 @@ class JobStateCheckTest {
     @BeforeEach
     void beforeEach() {
         jobStateCheckEvaluationCache.purge();
-        Mockito.when(jobService.getEnabledJobClassesWithId()).thenReturn(List.of(job));
-        Mockito.when(jobService.getJobClassMaybe(Mockito.<JobClassAndId>any()))
+        when(jobService.getEnabledJobClassesWithId()).thenReturn(List.of(job));
+        when(jobService.getJobClassMaybe(Mockito.<JobClassAndId>any()))
                 .thenReturn(Optional.of(TestJob.class));
-        Mockito.when(jobService.instantiateJob(Mockito.<Class<? extends Job>>any()))
+        when(jobService.instantiateJob(Mockito.<Class<? extends Job>>any()))
                 .thenReturn(new TestJob());
     }
 
@@ -62,14 +63,14 @@ class JobStateCheckTest {
     void checkFailWithStrategyCheckLatestRunFailed() {
         final var stateCheckStrategy = StateCheckStrategy.CHECK_LATEST_SUCCESSFUL;
         setupMockForStrategy(stateCheckStrategy);
-        Mockito.when(jobDataService.findLatestFinishedJobRuns(List.of(job.id())))
+        when(jobDataService.findLatestFinishedJobRuns(List.of(job.id())))
                 .thenReturn(mockJobRunWith(JobRunState.ERROR));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckFailed.class, checkStatus);
     }
 
     private void setupMockForStrategy(final StateCheckStrategy stateCheckStrategy) {
-        Mockito.when(jobService.getProperties((Job) any()))
+        when(jobService.getProperties((Job) any()))
                 .thenReturn(
                         new JobProperties(
                                 JobPropertiesConfig.fixed(
@@ -82,7 +83,7 @@ class JobStateCheckTest {
     @Test
     void checkPassWithStrategyCheckLatestRunFailed() {
         setupMockForStrategy(StateCheckStrategy.CHECK_LATEST_SUCCESSFUL);
-        Mockito.when(jobDataService.findLatestFinishedJobRuns(List.of(job.id())))
+        when(jobDataService.findLatestFinishedJobRuns(List.of(job.id())))
                 .thenReturn(mockJobRunWith(JobRunState.DONE));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckPassed.class, checkStatus);
@@ -91,7 +92,7 @@ class JobStateCheckTest {
     @Test
     void checkPassWithStrategyCheckSomeRunFailed() {
         setupMockForStrategy(StateCheckStrategy.CHECK_ALL_SUCCESSFUL);
-        Mockito.when(jobDataService.findJobRunStates(List.of(job.id())))
+        when(jobDataService.findJobRunStates(List.of(job.id())))
                 .thenReturn(Map.of(job.id(), JobRunState.allExcept(Set.of(JobRunState.ERROR))));
         // Check passes, even if the job has had runs with problematic states; these will fail the
         // JobStateChecks for the respective problem states.
@@ -102,7 +103,7 @@ class JobStateCheckTest {
     @Test
     void checkFailWithStrategyCheckSomeRunFailed() {
         setupMockForStrategy(StateCheckStrategy.CHECK_ALL_SUCCESSFUL);
-        Mockito.when(jobDataService.findJobRunStates(List.of(job.id())))
+        when(jobDataService.findJobRunStates(List.of(job.id())))
                 .thenReturn(Map.of(job.id(), Set.of(JobRunState.values())));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckFailed.class, checkStatus);
@@ -111,7 +112,7 @@ class JobStateCheckTest {
     @Test
     void checkPassWithStrategyCheckSomeRunInIntervalFailed() {
         setupMockForStrategy(StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL);
-        Mockito.when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
+        when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
                 .thenReturn(Map.of(job.id(), JobRunState.allExcept(Set.of(JobRunState.ERROR))));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckPassed.class, checkStatus);
@@ -120,7 +121,7 @@ class JobStateCheckTest {
     @Test
     void checkFailWithStrategyCheckSomeRunInIntervalFailed() {
         setupMockForStrategy(StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL);
-        Mockito.when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
+        when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
                 .thenReturn(Map.of(job.id(), Set.of(JobRunState.values())));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckFailed.class, checkStatus);
@@ -129,7 +130,7 @@ class JobStateCheckTest {
     @Test
     void checkPassWithStrategyCheckNoRunInIntervalSuccessful() {
         setupMockForStrategy(StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL);
-        Mockito.when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
+        when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
                 .thenReturn(Map.of(job.id(), Set.of(JobRunState.values())));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckPassed.class, checkStatus);
@@ -138,7 +139,7 @@ class JobStateCheckTest {
     @Test
     void checkFailWithStrategyCheckNoRunInIntervalSuccessful() {
         setupMockForStrategy(StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL);
-        Mockito.when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
+        when(jobDataService.findJobRunStatesSince(Mockito.anyMap()))
                 .thenReturn(Map.of(job.id(), JobRunState.allExcept(JobRunState.SUCCESS_STATES)));
         final var checkStatus = jobErrorStateCheck.check();
         assertInstanceOf(CheckFailed.class, checkStatus);

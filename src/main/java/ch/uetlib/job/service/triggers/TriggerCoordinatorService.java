@@ -21,12 +21,18 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
-@Profile({"!job-run", "job-primary-triggers"})
+@Profile("!job-run & " + TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE)
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
+
+    /**
+     * The one instance that evaluates triggers and enqueues new runs; see {@code SCHEDULING.md} §1.
+     */
+    public static final String PRIMARY_TRIGGERS_PROFILE = "job-primary-triggers";
 
     private final boolean allTriggersDisabled;
     private final JobDataService jobDataService;
@@ -48,7 +54,7 @@ public class TriggerCoordinatorService {
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
         this.allTriggersDisabled =
                 environment.acceptsProfiles(Profiles.of("job-disable-triggers"))
-                        || !environment.acceptsProfiles(Profiles.of("job-primary-triggers"));
+                        || !environment.acceptsProfiles(Profiles.of(PRIMARY_TRIGGERS_PROFILE));
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -116,10 +122,11 @@ public class TriggerCoordinatorService {
     /**
      * This method computes the effective job triggers and works as following:
      * <li>Query triggers in database
-     * <li>If job has fixed triggers -> make sure they agree with database (override if not)
+     * <li>If job has fixed triggers -> reconcile with database (add/remove the difference) if not
+     *     already in agreement
      * <li>If job has no fixed triggers and no database triggers -> create database entries for
      *     initial trigger
-     * <li>return (possibly just created / overwritten) triggers from database
+     * <li>return (possibly just reconciled / created) triggers from database
      */
     public Collection<Trigger> getTriggers(
             final Job job, final Map<Integer, List<Trigger>> existingDbTriggersByJob) {
@@ -131,13 +138,26 @@ public class TriggerCoordinatorService {
                 dbTriggers.stream().map(Trigger::definition).collect(Collectors.toSet());
 
         if (job.triggersConfig().isFixed()) {
-            if (dbTriggerDefinitions.equals(new HashSet<>(job.triggersConfig().triggers()))) {
+            final var targetDefinitions = new HashSet<>(job.triggersConfig().triggers());
+            if (dbTriggerDefinitions.equals(targetDefinitions)) {
                 return dbTriggers;
             }
-            // Fixed do not match db triggers -> Replace db triggers
-            jobDataService.deleteTriggerForJob(jobClassAndId.id());
-            return jobDataService.insertTriggers(
-                    jobClassAndId.id(), job.triggersConfig().triggers());
+            final var keptTriggers =
+                    dbTriggers.stream()
+                            .filter(trigger -> targetDefinitions.contains(trigger.definition()))
+                            .toList();
+            dbTriggers.stream()
+                    .filter(trigger -> !targetDefinitions.contains(trigger.definition()))
+                    .forEach(jobDataService::deleteTrigger);
+            final var newDefinitions =
+                    targetDefinitions.stream()
+                            .filter(definition -> !dbTriggerDefinitions.contains(definition))
+                            .toList();
+            final var insertedTriggers =
+                    newDefinitions.isEmpty()
+                            ? List.<Trigger>of()
+                            : jobDataService.insertTriggers(jobClassAndId.id(), newDefinitions);
+            return Stream.concat(keptTriggers.stream(), insertedTriggers.stream()).toList();
         }
 
         // There are triggers present in the database -> return them

@@ -215,7 +215,7 @@ public final class JobPropertyDefinitions {
                     null,
                     JsonMapper.shared(),
                     new TypeReference<>() {});
-    public static final JobPropertyDefinition<Boolean> ALLOW_MULTIPLE_QUEUED_RUNS =
+    public static final JobPropertyDefinition<Boolean> ALLOW_MULTIPLE_WAITING_QUEUED_RUNS =
             new BooleanPropertyDefinition(
                     "ALLOW_MULTIPLE_QUEUED_RUNS",
                     "If true, multiple non-running runs of the same job can be queued at the same time. If false,"

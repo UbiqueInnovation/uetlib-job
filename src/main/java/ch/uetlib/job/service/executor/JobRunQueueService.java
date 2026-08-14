@@ -2,6 +2,7 @@ package ch.uetlib.job.service.executor;
 
 import static java.util.Objects.requireNonNull;
 
+import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
@@ -13,6 +14,8 @@ import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -23,8 +26,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,6 +52,7 @@ public class JobRunQueueService {
     private final int maxRunnablePerCheck;
 
     private final AtomicBoolean checkForRunnableInProgress = new AtomicBoolean(false);
+    private final SingleCache<Map<Integer, JobRunnerKey>> jobRunnerKeyCache;
 
     public JobRunQueueService(
             final JobService jobService,
@@ -63,6 +69,9 @@ public class JobRunQueueService {
         this.instanceName = instanceName;
         this.instanceTaints = Set.copyOf(Optional.ofNullable(instanceTaints).orElse(List.of()));
         this.maxRunnablePerCheck = maxRunnablePerCheck;
+        this.jobRunnerKeyCache =
+                new SingleCache<>(
+                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
     }
 
     @Scheduled(cron = "*/5 * * * * ?")
@@ -144,6 +153,15 @@ public class JobRunQueueService {
      * class at all, and a newer instance may run different (possibly incompatible) code for it than
      * whatever enqueued the run intended.
      *
+     * <p>Which of the two claim paths even applies is decided by the job's own {@code RUNNER}
+     * property, not by whether {@code jobQueuedRun}'s taints happen to include {@link
+     * JobRunnerTaints#DEDICATED_K8S_TAINT} - taints are an orthogonal, general-purpose mechanism
+     * for restricting *which* instances (within a runner kind) may claim a run, not for choosing
+     * the runner kind itself. A job with {@code RUNNER == DEDICATED_K8S_JOB} but no taints of its
+     * own would otherwise trivially satisfy the plain path too (the empty set is a subset of
+     * anything), letting it run on a plain {@code CurrentJobRunner} instance instead of being
+     * dispatched to K8s.
+     *
      * @return whether it matched, regardless of whether the subsequent claim attempt actually
      *     succeeded (it may lose a race to another instance, or a plain match may be skipped for
      *     lack of capacity)
@@ -155,21 +173,45 @@ public class JobRunQueueService {
         if (!jobQueuedRun.versionTag().equals(jobService.versionTag())) {
             return false;
         }
+        if (jobRunnerKeys().get(jobQueuedRun.jobId()) == JobRunnerKey.DEDICATED_K8S_JOB) {
+            if (matchesTaints(jobQueuedRun, getDedicatedTaints())) {
+                claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
+                return true;
+            }
+            return false;
+        }
         if (matchesTaints(jobQueuedRun, instanceTaints)) {
             claimAndExecuteQueuedRun(jobQueuedRun);
-            return true;
-        }
-        if (matchesTaints(jobQueuedRun, getDedicatedTaints())) {
-            claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
             return true;
         }
         return false;
     }
 
-    /** The single place taint subset-matching (row's taints ⊆ {@code taints}) is implemented. */
-    private static boolean matchesTaints(
-            final JobQueuedRun jobQueuedRun, final Set<String> taints) {
-        return taints.containsAll(
+    /**
+     * Per-job {@link JobPropertyDefinitions#RUNNER} overrides, cached for 30s - not computed once
+     * at startup, since an operator can change this property live via the job properties API and
+     * this poller should pick that up without requiring a restart.
+     */
+    private Map<Integer, JobRunnerKey> jobRunnerKeys() {
+        return jobRunnerKeyCache.get(
+                () ->
+                        jobService.getAllJobs().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                job ->
+                                                        jobService
+                                                                .findJobId(job.getClass())
+                                                                .orElseThrow(),
+                                                job ->
+                                                        jobService
+                                                                .getProperties(job)
+                                                                .get(JobPropertyDefinitions.RUNNER)
+                                                                .valueNonNull())));
+    }
+
+    /** The single place taint subset-matching (row's taints ⊆ this instance's) */
+    private boolean matchesTaints(final JobQueuedRun jobQueuedRun) {
+        return instanceTaints.containsAll(
                 jobQueuedRun.taints().stream()
                         .map(JobRunnerTaint::value)
                         .collect(Collectors.toSet()));

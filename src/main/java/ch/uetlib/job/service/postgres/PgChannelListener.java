@@ -203,7 +203,7 @@ class PgChannelListener {
         }
         try {
             DataSourceUtils.releaseConnection(connection, dataSource);
-        } catch (final Exception e) {
+        } catch (final Exception _) {
             // ignore
         }
     }
@@ -211,7 +211,7 @@ class PgChannelListener {
     private void sleepWithInterrupt(final Duration sleep) {
         try {
             Thread.sleep(sleep);
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
         }
     }

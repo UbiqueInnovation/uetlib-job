@@ -287,7 +287,6 @@
                                 <!-- All these Tests are run once per database, see executions below. -->
                                 <!-- All other tests are run once, without a database -->
                                 <exclude>**/*DatabaseTest.java</exclude>
-                                <argLine>-Dspring.profiles.active=test,no-security</argLine>
                             </excludes>
                         </configuration>
                     </execution>
@@ -300,7 +299,9 @@
                             <includes>
                                 <include>**/*DatabaseTest.java</include>
                             </includes>
-                            <argLine>-Dspring.profiles.active=test,no-security,postgres</argLine>
+                            <argLine>
+                                @{argLine} -Dspring.profiles.active=test,no-security,postgres,job-primary-triggers,job-disable-triggers
+                            </argLine>
                         </configuration>
                     </execution>
                     <execution>
@@ -312,7 +313,9 @@
                             <includes>
                                 <include>**/*DatabaseTest.java</include>
                             </includes>
-                            <argLine>-Dspring.profiles.active=test,no-security,mysql</argLine>
+                            <argLine>
+                                @{argLine} -Dspring.profiles.active=test,no-security,mysql,job-primary-triggers,job-disable-triggers
+                            </argLine>
                         </configuration>
                     </execution>
                     <execution>
@@ -324,7 +327,9 @@
                             <includes>
                                 <include>**/*DatabaseTest.java</include>
                             </includes>
-                            <argLine>-Dspring.profiles.active=test,no-security,mariadb</argLine>
+                            <argLine>
+                                @{argLine} -Dspring.profiles.active=test,no-security,mariadb,job-primary-triggers,job-disable-triggers
+                            </argLine>
                         </configuration>
                     </execution>
                 </executions>

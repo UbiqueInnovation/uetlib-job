@@ -4,10 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import ch.uetlib.job.Job;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
+import ch.uetlib.job.model.JobRunContext;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.executer.JobSubmissionStatus;
 import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
@@ -92,6 +94,63 @@ class JobExecutorServiceTest {
     }
 
     @Test
+    void aJobAlreadyRunningIsDisallowedByDefault() {
+        when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
+        doReturn(TestJob.class).when(jobService).getJobClassOrThrow(JOB);
+        when(jobService.isEnabled(TestJob.class.getCanonicalName())).thenReturn(true);
+        when(jobService.instantiateJob(TestJob.class)).thenReturn(new TestJob());
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
+
+        final var result = service.submit(queuedRun(), false);
+
+        final var unsuccessful = assertInstanceOf(UnsuccessfulSubmissionResult.class, result);
+        assertEquals(JobSubmissionStatus.DISALLOWED, unsuccessful.status());
+        verify(currentRunner, never()).submit(any(), any());
+        verify(dedicatedRunner, never()).submit(any(), any());
+    }
+
+    @Test
+    void aJobAlreadyRunningIsAllowedWhenTheJobPermitsParallelRuns() {
+        when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
+        doReturn(ParallelAllowedTestJob.class).when(jobService).getJobClassOrThrow(JOB);
+        when(jobService.isEnabled(ParallelAllowedTestJob.class.getCanonicalName())).thenReturn(true);
+        when(jobService.instantiateJob(ParallelAllowedTestJob.class))
+                .thenReturn(new ParallelAllowedTestJob());
+        when(jobService.getProperties(any(ParallelAllowedTestJob.class)))
+                .thenReturn(new JobProperties(List.of()));
+        when(jobService.jobClassAndIdOrThrow(ParallelAllowedTestJob.class)).thenReturn(JOB);
+        when(jobService.getOrCreateJobRun(any(), any(), any(), any())).thenReturn(jobRun());
+        when(jobService.findJobId(ParallelAllowedTestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
+        when(currentRunner.submit(any(), any())).thenReturn(true);
+
+        final var result = service.submit(queuedRun(), false);
+
+        assertInstanceOf(SuccessfulSubmissionResult.class, result);
+        verify(currentRunner).submit(any(), any());
+    }
+
+    @Test
+    void aForceRunIsAllowedWhileTheJobIsRunning() {
+        when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
+        doReturn(TestJob.class).when(jobService).getJobClassOrThrow(JOB);
+        when(jobService.isEnabled(TestJob.class.getCanonicalName())).thenReturn(true);
+        when(jobService.instantiateJob(TestJob.class)).thenReturn(new TestJob());
+        when(jobService.getProperties(any(TestJob.class))).thenReturn(new JobProperties(List.of()));
+        when(jobService.jobClassAndIdOrThrow(TestJob.class)).thenReturn(JOB);
+        when(jobService.getOrCreateJobRun(any(), any(), any(), any())).thenReturn(jobRun());
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
+        when(currentRunner.submit(any(), any())).thenReturn(true);
+
+        final var result = service.submit(queuedRun(true), false);
+
+        assertInstanceOf(SuccessfulSubmissionResult.class, result);
+        verify(currentRunner).submit(any(), any());
+    }
+
+    @Test
     void aRunThatFailsToScheduleIsUnsuccessfulAndMarksTheJobRunAsError() {
         stubHappyPath();
         when(currentRunner.submit(any(), any())).thenReturn(false);
@@ -114,6 +173,10 @@ class JobExecutorServiceTest {
     }
 
     private static JobQueuedRun queuedRun() {
+        return queuedRun(false);
+    }
+
+    private static JobQueuedRun queuedRun(final boolean forceRun) {
         final var now = Instant.now();
         return new JobQueuedRun(
                 1,
@@ -127,7 +190,7 @@ class JobExecutorServiceTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments());
+                new JobRunArguments(forceRun));
     }
 
     private static JobRun jobRun() {
@@ -141,5 +204,32 @@ class JobExecutorServiceTest {
                 JobRunnerKey.CURRENT,
                 null,
                 null);
+    }
+
+    /** A distinct job run - not this submission's own - whose state is still {@code isRunning()}. */
+    private static JobRun runningLastRun() {
+        return new JobRun(
+                50,
+                JOB.id(),
+                "1.0.0",
+                Instant.now(),
+                null,
+                JobRunState.BUSY,
+                JobRunnerKey.CURRENT,
+                null,
+                null);
+    }
+
+    /** Only differs from {@link TestJob} in opting into parallel runs. */
+    public static final class ParallelAllowedTestJob implements Job {
+        @Override
+        public JobRunState run(final JobRunContext jobRunContext) {
+            return JobRunState.DONE;
+        }
+
+        @Override
+        public boolean allowParallelRuns() {
+            return true;
+        }
     }
 }

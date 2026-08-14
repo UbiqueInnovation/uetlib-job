@@ -240,11 +240,13 @@ public class JobService {
         final var properties = getJobProperties(job.id(), instantiateJob(j));
         final var taints =
                 requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
-        final var allowMultipleQueuedRuns =
+        final var allowMultipleQueuedWaitingRuns =
                 requireNonNull(
-                        properties.get(JobPropertyDefinitions.ALLOW_MULTIPLE_QUEUED_RUNS).value());
+                        properties
+                                .get(JobPropertyDefinitions.ALLOW_MULTIPLE_WAITING_QUEUED_RUNS)
+                                .value());
         return jobDataService.queueNewRun(
-                job.id(), priority, versionTag, arguments, taints, allowMultipleQueuedRuns);
+                job.id(), priority, versionTag, arguments, taints, allowMultipleQueuedWaitingRuns);
     }
 
     /**

@@ -214,7 +214,7 @@ public class KubernetesJobWatcher {
      * for a while, but this at least confirms the pod is still there and hasn't restarted since we
      * started watching it, rather than blindly trusting silence.
      */
-    private ScheduledFuture<?> startQuietPodWatchdog(
+    private ScheduledFuture<Void> startQuietPodWatchdog(
             final String namespace,
             final String podName,
             final int jobRunId,

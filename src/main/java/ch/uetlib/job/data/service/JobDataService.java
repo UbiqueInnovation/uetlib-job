@@ -276,10 +276,10 @@ public class JobDataService {
             final String versionTag,
             final JobRunArguments arguments,
             final Set<JobRunnerTaint> taints,
-            final boolean allowMultipleQueuedRuns) {
+            final boolean allowMultipleQueuedWaitingRuns) {
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
-        if (!allowMultipleQueuedRuns) {
+        if (!allowMultipleQueuedWaitingRuns) {
             // TODO: Default behavior is to keep the latest job run (= delete all existing and then
             //  insert the new one within one transaction) only, is there another reasonable
             //  behavior we need to support?

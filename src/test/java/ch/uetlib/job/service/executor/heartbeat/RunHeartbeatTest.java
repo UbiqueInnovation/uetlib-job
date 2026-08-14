@@ -143,7 +143,8 @@ class RunHeartbeatTest {
                                     constructed.countDown();
                                     try {
                                         releaseWorker.await();
-                                    } catch (final InterruptedException ignored) {
+                                    } catch (final InterruptedException _) {
+                                        // ignored
                                     }
                                 });
         constructed.await();
