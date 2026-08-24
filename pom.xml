@@ -7,21 +7,13 @@
     <parent>
         <groupId>ch.ubique</groupId>
         <artifactId>uetlib-parent</artifactId>
-        <version>2026.8.0</version>
+        <version>2026.8.1</version>
         <relativePath/>
     </parent>
 
     <artifactId>uetlib-job</artifactId>
     <version>5.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-
-    <properties>
-        <!-- westemeyer version config -->
-        <westemeyer-version-package-name>ch.ubique.backend.job.version</westemeyer-version-package-name>
-
-        <!-- Sonar -->
-        <sonar.coverage.module>uetlib-job</sonar.coverage.module>
-    </properties>
 
     <dependencies>
         <!-- uetlib -->
