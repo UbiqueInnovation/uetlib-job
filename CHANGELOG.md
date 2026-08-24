@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 5.0.7
+
+- latest uetlib parent
+- version updates
+
 ## 5.0.6
 
 ### Fixes
