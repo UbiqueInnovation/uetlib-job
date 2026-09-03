@@ -33,7 +33,7 @@ class JobManualTriggerServiceTest {
         service.replayJobRun(5);
 
         final var captor = ArgumentCaptor.forClass(JobRunArguments.class);
-        verify(jobService).queueNewRun(eq(JOB), captor.capture(), isNull());
+        verify(jobService).queueNewRun(eq(JOB), captor.capture());
         assertNotNull(captor.getValue().replayContext());
         assertEquals(5, captor.getValue().replayContext().originalRunId());
     }
@@ -46,7 +46,7 @@ class JobManualTriggerServiceTest {
 
         service.replayJobRun(6);
 
-        verify(jobService).queueNewRun(eq(JOB), any(), isNull());
+        verify(jobService).queueNewRun(eq(JOB), any());
     }
 
     private static JobRun jobRun(final int id, final JobRunArguments arguments) {

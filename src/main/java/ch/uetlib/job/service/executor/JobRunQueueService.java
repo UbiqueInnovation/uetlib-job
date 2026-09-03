@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobQueuedRun;
+import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
 import ch.uetlib.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.uetlib.job.model.properties.JobPropertyDefinitions;
@@ -179,14 +180,11 @@ public class JobRunQueueService {
      * class at all, and a newer instance may run different (possibly incompatible) code for it than
      * whatever enqueued the run intended.
      *
-     * <p>Which of the two claim paths even applies is decided by the job's own {@code RUNNER}
-     * property, not by whether {@code jobQueuedRun}'s taints happen to include {@link
-     * JobRunnerTaints#DEDICATED_K8S_TAINT} - taints are an orthogonal, general-purpose mechanism
-     * for restricting *which* instances (within a runner kind) may claim a run, not for choosing
-     * the runner kind itself. A job with {@code RUNNER == DEDICATED_K8S_JOB} but no taints of its
-     * own would otherwise trivially satisfy the plain path too (the empty set is a subset of
-     * anything), letting it run on a plain {@code CurrentJobRunner} instance instead of being
-     * dispatched to K8s.
+     * <p>Which of the two claim paths applies is decided by {@link #runnerKindFor}: the job's
+     * {@code RUNNER} property normally, or - for a {@link ch.uetlib.job.BaseStateJob}
+     * handoff row, bound to an existing run - that run's own {@code runnerKey}. Not by {@code
+     * jobQueuedRun}'s taints: taints are an orthogonal mechanism for restricting <em>which</em>
+     * instances (within a runner kind) may claim a run, not for choosing the runner kind itself.
      *
      * @return whether it matched, regardless of whether the subsequent claim attempt actually
      *     succeeded (it may lose a race to another instance, or a plain match may be skipped for
@@ -199,7 +197,7 @@ public class JobRunQueueService {
         if (!jobQueuedRun.versionTag().equals(jobService.versionTag())) {
             return false;
         }
-        if (jobRunnerKeys().get(jobQueuedRun.jobId()) == JobRunnerKey.DEDICATED_K8S_JOB) {
+        if (runnerKindFor(jobQueuedRun) == JobRunnerKey.DEDICATED_K8S_JOB) {
             if (matchesTaints(jobQueuedRun, getDedicatedTaints())) {
                 claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
                 return true;
@@ -211,6 +209,22 @@ public class JobRunQueueService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * The runner kind a queued row must go to: the bound run's {@code runnerKey} for a handoff row
+     * (a {@code QUEUED} row that already has a {@code jobRunId} - a {@link
+     * ch.uetlib.job.BaseStateJob} continuation whose processing phase may target a
+     * different runner than the job's {@code RUNNER} property), else that property.
+     */
+    private JobRunnerKey runnerKindFor(final JobQueuedRun jobQueuedRun) {
+        if (jobQueuedRun.jobRunId() != null) {
+            return jobService
+                    .getJobRunMaybe(jobQueuedRun.jobRunId())
+                    .map(JobRun::runnerKey)
+                    .orElseGet(() -> jobRunnerKeys().get(jobQueuedRun.jobId()));
+        }
+        return jobRunnerKeys().get(jobQueuedRun.jobId());
     }
 
     /**

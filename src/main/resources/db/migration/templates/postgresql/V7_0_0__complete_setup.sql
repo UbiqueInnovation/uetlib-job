@@ -3,7 +3,6 @@ create table t_job
     pk_job_id  integer generated always as identity primary key,
     clazz      text                     not null,
     enabled    boolean                  not null default true,
-    priority   integer                  not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null
 );

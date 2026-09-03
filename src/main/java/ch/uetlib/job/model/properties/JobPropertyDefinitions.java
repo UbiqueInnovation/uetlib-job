@@ -2,6 +2,7 @@ package ch.uetlib.job.model.properties;
 
 import ch.uetlib.job.model.k8s.KubernetesPodTolerations;
 import ch.uetlib.job.model.properties.enums.JobManualTriggerMode;
+import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.properties.enums.StateCheckStrategy;
 import ch.uetlib.job.model.runner.RunnerGroup;
@@ -215,13 +216,36 @@ public final class JobPropertyDefinitions {
                     null,
                     JsonMapper.shared(),
                     new TypeReference<>() {});
-    public static final JobPropertyDefinition<Boolean> ALLOW_MULTIPLE_WAITING_QUEUED_RUNS =
+    public static final JobPropertyDefinition<Integer> PRIORITY =
+            new IntPropertyDefinition(
+                    "PRIORITY",
+                    "Higher-priority runs are dequeued first. Stamped onto the queue row when the run"
+                            + " is queued; a still-queued run can be reordered individually via the"
+                            + " status API.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false,
+                    0,
+                    null);
+    public static final JobPropertyDefinition<Boolean> ALLOW_PARALLEL_RUNS =
             new BooleanPropertyDefinition(
-                    "ALLOW_MULTIPLE_QUEUED_RUNS",
-                    "If true, multiple non-running runs of the same job can be queued at the same time. If false,"
-                            + " only one run can be queued at a time.",
+                    "ALLOW_PARALLEL_RUNS",
+                    "If true, a run may start while a previous run of the same job is still running.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false);
+    public static final JobPropertyDefinition<Boolean> FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS =
+            new BooleanPropertyDefinition(
+                    "FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS",
+                    "If true, a force run is allowed to start in parallel even when ALLOW_PARALLEL_RUNS"
+                            + " is false.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true);
+    public static final JobPropertyDefinition<JobQueueBehavior> QUEUE_BEHAVIOR =
+            new EnumPropertyDefinition<>(
+                    "QUEUE_BEHAVIOR",
+                    "What happens when a run is queued for a job that already has one waiting or"
+                            + " running.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    JobQueueBehavior.REPLACE_RUN);
     public static final JobPropertyDefinition<Duration> CLAIM_TIMEOUT =
             new DurationPropertyDefinition(
                     "CLAIM_TIMEOUT",

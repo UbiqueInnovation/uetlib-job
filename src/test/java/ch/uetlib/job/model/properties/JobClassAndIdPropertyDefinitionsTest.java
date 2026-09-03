@@ -14,8 +14,7 @@ class JobClassAndIdPropertyDefinitionsTest {
      * Fields deliberately named differently from their persisted key - kept stable for
      * backward-compatible configs/APIs - while the Java name was clarified.
      */
-    private static final Set<String> NAME_MISMATCH_EXCEPTIONS =
-            Set.of("ALLOW_MULTIPLE_WAITING_QUEUED_RUNS");
+    private static final Set<String> NAME_MISMATCH_EXCEPTIONS = Set.of();
 
     @Test
     void someDefinitions() {

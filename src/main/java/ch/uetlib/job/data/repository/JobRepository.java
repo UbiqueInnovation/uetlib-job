@@ -12,8 +12,4 @@ public interface JobRepository extends JpaRepository<JobEntity, Integer> {
     @Modifying
     @Query("update JobEntity j set j.enabled = :enabled where j.id = :jobId")
     void setEnabled(int jobId, boolean enabled);
-
-    @Modifying
-    @Query("update JobEntity j set j.priority = :priority where j.id = :jobId")
-    void setPriority(int jobId, int priority);
 }

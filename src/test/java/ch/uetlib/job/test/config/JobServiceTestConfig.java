@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
@@ -79,13 +78,11 @@ public class JobServiceTestConfig {
     JobRegistrationService jobRegistrationService(
             final JobDataService jobDataService,
             final ClassLoaderService classLoaderService,
-            final ApplicationContext applicationContext,
             @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
                     final RegisteredJobDefinitions registeredJobDefinitions) {
         return new JobRegistrationService(
                 jobDataService,
                 classLoaderService,
-                applicationContext,
                 mock(Environment.class),
                 registeredJobDefinitions);
     }

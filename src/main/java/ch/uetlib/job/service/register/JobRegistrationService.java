@@ -12,8 +12,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
@@ -27,20 +25,17 @@ public class JobRegistrationService {
 
     private final JobDataService jobDataService;
     private final ClassLoaderService classLoaderService;
-    private final ApplicationContext applicationContext;
 
     private final @Nullable RegisteredJobDefinitions registeredJobDefinitions;
 
     public JobRegistrationService(
             final JobDataService jobDataService,
             final ClassLoaderService classLoaderService,
-            final ApplicationContext applicationContext,
             final Environment environment,
             @Autowired(required = false)
                     final @Nullable RegisteredJobDefinitions registeredJobDefinitions) {
         this.jobDataService = jobDataService;
         this.classLoaderService = classLoaderService;
-        this.applicationContext = applicationContext;
         this.registeredJobDefinitions = registeredJobDefinitions;
 
         if (!environment.matchesProfiles("job-run")) {
@@ -72,36 +67,7 @@ public class JobRegistrationService {
                                 Job.class.getCanonicalName()));
             }
         }
-        jobDataService.insertNewJobs(validJobClasses, this::resolvePriority);
-    }
-
-    /**
-     * Best-effort: this runs during this bean's own construction, very early in context startup, so
-     * autowiring a job that itself (transitively) depends on a bean not yet created here can fail
-     * (e.g. a job depending on JobService, which is @DependsOn this very bean). Falling back to 0
-     * is safe - JobPriorityService reconciles every job's priority again once the application is
-     * fully up, so a job whose priority couldn't be resolved yet here is corrected shortly after.
-     */
-    private int resolvePriority(final Class<? extends Job> jobClass) {
-        try {
-            final var instance =
-                    (Job)
-                            applicationContext
-                                    .getAutowireCapableBeanFactory()
-                                    .autowire(
-                                            jobClass,
-                                            AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR,
-                                            true);
-            return instance.priority();
-        } catch (final Exception e) {
-            logger.warn(
-                    "Could not instantiate {} to resolve its priority at registration time;"
-                            + " defaulting to 0 for now, JobPriorityService will correct this once"
-                            + " the application is ready.",
-                    jobClass,
-                    e);
-            return 0;
-        }
+        jobDataService.insertNewJobs(validJobClasses);
     }
 
     @PostConstruct

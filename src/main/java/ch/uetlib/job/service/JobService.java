@@ -224,21 +224,24 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
-    public JobQueuedRun queueNewRun(
-            final JobClassAndId job,
-            final JobRunArguments arguments,
-            final @Nullable Integer priority) {
-        final var j = requireNonNull(jobClassesById.get(job.id()));
-        final var properties = getJobProperties(job.id(), instantiateJob(j));
-        final var taints =
-                requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
-        final var allowMultipleQueuedWaitingRuns =
-                requireNonNull(
-                        properties
-                                .get(JobPropertyDefinitions.ALLOW_MULTIPLE_WAITING_QUEUED_RUNS)
-                                .value());
+    /** The effective properties of a job about to be queued. */
+    private JobProperties queueProperties(final JobClassAndId job) {
+        return getJobProperties(
+                job.id(), instantiateJob(requireNonNull(jobClassesById.get(job.id()))));
+    }
+
+    private Set<JobRunnerTaint> taintsOf(final JobProperties properties) {
+        return requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
+    }
+
+    public JobQueuedRun queueNewRun(final JobClassAndId job, final JobRunArguments arguments) {
+        final var properties = queueProperties(job);
+        final var taints = taintsOf(properties);
+        final var priority = properties.get(JobPropertyDefinitions.PRIORITY).value();
+        final var queueBehavior =
+                requireNonNull(properties.get(JobPropertyDefinitions.QUEUE_BEHAVIOR).value());
         return jobDataService.queueNewRun(
-                job.id(), priority, versionTag, arguments, taints, allowMultipleQueuedWaitingRuns);
+                job.id(), priority, versionTag, arguments, taints, queueBehavior);
     }
 
     /**
@@ -258,6 +261,23 @@ public class JobService {
                 requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
         return jobDataService.queueRunningRun(
                 job.id(), versionTag, arguments, taints, jobRunId, runner);
+    }
+
+    /**
+     * Enqueues the continuation of {@code jobRun} - its state is already computed and persisted, so
+     * a poller runs only its processing phase - and points the run at {@code processingRunnerKey}
+     * ({@link ch.uetlib.job.BaseStateJob#runnerForProcessing} may pick a different runner
+     * than the one that computed the state). Idempotent if the run already has a {@code RUNNING}
+     * queue row.
+     */
+    public JobQueuedRun queueReprocessingRun(
+            final JobClassAndId job,
+            final JobRun jobRun,
+            final JobRunArguments arguments,
+            final JobRunnerKey processingRunnerKey) {
+        final var taints = taintsOf(queueProperties(job));
+        return jobDataService.queueReprocessingRun(
+                job.id(), jobRun.versionTag(), arguments, taints, jobRun.id(), processingRunnerKey);
     }
 
     /**

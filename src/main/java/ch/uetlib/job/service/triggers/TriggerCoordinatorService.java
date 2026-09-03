@@ -195,8 +195,7 @@ public class TriggerCoordinatorService {
         }
         return jobRunArguments -> {
             logger.info("Queueing job {}", jobClass);
-            jobService.queueNewRun(
-                    jobService.jobClassAndIdOrThrow(jobClass), jobRunArguments, null);
+            jobService.queueNewRun(jobService.jobClassAndIdOrThrow(jobClass), jobRunArguments);
         };
     }
 }

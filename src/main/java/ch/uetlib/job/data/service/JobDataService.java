@@ -3,6 +3,7 @@ package ch.uetlib.job.data.service;
 import static ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED;
 import static ch.uetlib.job.model.queue.JobRunQueueState.CLAIMED;
 import static ch.uetlib.job.model.queue.JobRunQueueState.QUEUED;
+import static ch.uetlib.job.model.queue.JobRunQueueState.RUNNING;
 
 import static java.util.Objects.requireNonNull;
 
@@ -15,6 +16,7 @@ import ch.uetlib.job.model.*;
 import ch.uetlib.job.model.entity.*;
 import ch.uetlib.job.model.input.JobRunInputDeclaration;
 import ch.uetlib.job.model.properties.*;
+import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
@@ -42,7 +44,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 @Service
@@ -221,9 +222,7 @@ public class JobDataService {
     }
 
     @Transactional
-    public void insertNewJobs(
-            final Collection<Class<? extends Job>> jobClass,
-            final ToIntFunction<Class<? extends Job>> priorityResolver) {
+    public void insertNewJobs(final Collection<Class<? extends Job>> jobClass) {
         final var existingJobs =
                 jobRepository.findAll().stream()
                         .map(JobEntity::canonicalClassName)
@@ -238,10 +237,7 @@ public class JobDataService {
             return;
         }
 
-        final var newEntities =
-                toInsert.stream()
-                        .map(cls -> JobEntity.newForClass(cls, priorityResolver.applyAsInt(cls)))
-                        .toList();
+        final var newEntities = toInsert.stream().map(JobEntity::newForClass).toList();
         jobRepository.saveAll(newEntities);
     }
 
@@ -276,16 +272,27 @@ public class JobDataService {
             final String versionTag,
             final JobRunArguments arguments,
             final Set<JobRunnerTaint> taints,
-            final boolean allowMultipleQueuedWaitingRuns) {
-        final var queuedRunEntity =
-                new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
-        if (!allowMultipleQueuedWaitingRuns) {
-            // TODO: Default behavior is to keep the latest job run (= delete all existing and then
-            //  insert the new one within one transaction) only, is there another reasonable
-            //  behavior we need to support?
+            final JobQueueBehavior queueBehavior) {
+        final var blockingStates =
+                switch (queueBehavior) {
+                    case DISCARD_NEW -> Set.of(QUEUED, CLAIMED);
+                    case DISCARD_IF_RUNNING -> Set.of(QUEUED, CLAIMED, RUNNING);
+                    case REPLACE_RUN, ALLOW_MULTIPLE -> Set.<JobRunQueueState>of();
+                };
+        if (!blockingStates.isEmpty()) {
+            final var blocking =
+                    jobQueuedRunRepository.findByJobIdAndQueueStateInOrderByCreatedAtAsc(
+                            jobId, blockingStates);
+            if (!blocking.isEmpty()) {
+                return blocking.getFirst().toJobQueuedRun();
+            }
+        }
+        if (queueBehavior == JobQueueBehavior.REPLACE_RUN) {
             jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(
                     Set.of(jobId), Set.of(QUEUED, CLAIMED));
         }
+        final var queuedRunEntity =
+                new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
     }
 
@@ -311,6 +318,38 @@ public class JobDataService {
         }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId, runner);
+        return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
+    }
+
+    /**
+     * Enqueues a {@code QUEUED} row bound to an existing run whose state is already computed (a
+     * {@code BaseStateJob} handoff) and repoints that run at {@code processingRunnerKey}, so the
+     * claim path dispatches the continuation there. Idempotent: a run that already has a {@code
+     * RUNNING} row is returned as-is.
+     */
+    @Transactional
+    public JobQueuedRun queueReprocessingRun(
+            final int jobId,
+            final String versionTag,
+            final JobRunArguments arguments,
+            final Set<JobRunnerTaint> taints,
+            final int jobRunId,
+            final JobRunnerKey processingRunnerKey) {
+        final var existing =
+                jobQueuedRunRepository.findByJobRunIdAndQueueState(
+                        jobRunId, JobRunQueueState.RUNNING);
+        if (existing.isPresent()) {
+            return existing.get().toJobQueuedRun();
+        }
+        jobRunRepository
+                .findById(jobRunId)
+                .ifPresent(
+                        entity -> {
+                            entity.setRunnerKey(processingRunnerKey);
+                            jobRunRepository.save(entity);
+                        });
+        final var queuedRunEntity =
+                new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId);
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
     }
 
@@ -663,17 +702,6 @@ public class JobDataService {
     @Transactional
     public void setEnabled(final int jobId, final boolean isEnabled) {
         jobRepository.setEnabled(jobId, isEnabled);
-    }
-
-    @Transactional(readOnly = true)
-    public Map<Integer, Integer> getPriorities() {
-        return jobRepository.findAll().stream()
-                .collect(Collectors.toMap(entity -> entity.toRecord().id(), JobEntity::priority));
-    }
-
-    @Transactional
-    public void updatePriority(final int jobId, final int priority) {
-        jobRepository.setPriority(jobId, priority);
     }
 
     private static Supplier<ResourceNotFoundException> throwJobRunNotFound(final int jobRunId) {

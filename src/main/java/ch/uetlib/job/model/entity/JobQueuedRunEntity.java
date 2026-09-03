@@ -92,6 +92,26 @@ public class JobQueuedRunEntity {
     }
 
     /**
+     * A {@code QUEUED} row bound to an existing run whose state is already computed (a {@code
+     * BaseStateJob} handoff): a poller claims it and runs only that run's processing phase, reusing
+     * {@code jobRunId} rather than creating a new run.
+     */
+    public JobQueuedRunEntity(
+            final int jobId,
+            final String versionTag,
+            final JobRunArguments jobRunArguments,
+            final Set<JobRunnerTaint> taints,
+            final int jobRunId) {
+        this.jobId = jobId;
+        this.priority = null;
+        this.versionTag = versionTag;
+        this.queueState = JobRunQueueState.QUEUED;
+        this.taints = taints.stream().map(JobRunnerTaint::value).collect(Collectors.toSet());
+        this.jobRunArguments = jobRunArguments;
+        this.jobRunId = jobRunId;
+    }
+
+    /**
      * For a run that is dispatched directly (bypassing the normal QUEUED/CLAIMED steps, (a
      * dedicated {@code --job} CLI run)
      */
