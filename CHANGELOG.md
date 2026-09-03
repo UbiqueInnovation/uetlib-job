@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 5.1.0
+
+## Fixes
+
+- `@Valid` on container elements, not wrappers
+- Application Args support additional data
+- Fix documentation: `@EnableJobs` does not include `ch.ubique.backend` by default
+
 ## 5.0.7
 
 - latest uetlib parent

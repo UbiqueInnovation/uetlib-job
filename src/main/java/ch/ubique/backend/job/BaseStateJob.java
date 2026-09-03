@@ -141,7 +141,7 @@ public abstract class BaseStateJob<T> implements Job {
                                     currentJobRun.id(),
                                     processingRunnerKey);
             return switch (submission) {
-                case final SuccessfulSubmissionResult ignored -> JobRunState.SCHEDULED;
+                case final SuccessfulSubmissionResult _ -> JobRunState.SCHEDULED;
                 case UnsuccessfulSubmissionResult(final var status) ->
                         switch (status) {
                             case SUBMITTED -> JobRunState.SCHEDULED;

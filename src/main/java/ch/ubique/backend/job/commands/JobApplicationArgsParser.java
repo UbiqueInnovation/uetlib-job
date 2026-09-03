@@ -61,6 +61,8 @@ public class JobApplicationArgsParser {
         options.addOption(jobClassOption);
         options.addOption(jobRunIdOption);
         options.addOption(forceRunOption);
+        options.addOption(additionalData);
+        options.addOption(additionalDataClass);
     }
 
     public Optional<JobApplicationArgs> parse(final String[] args) {
