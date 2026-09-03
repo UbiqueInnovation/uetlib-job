@@ -75,7 +75,7 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
         }
         try {
             return Integer.parseInt(mdc.get("jobRunId"));
-        } catch (final NumberFormatException e) {
+        } catch (final NumberFormatException _) {
             return null;
         }
     }
@@ -108,7 +108,7 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
             logQueue.addAll(drainedEvents);
             logger.warn("Failed to insert log events to database (will retry).", e);
             return false;
-        } catch (final NonTransientDataAccessException e) {
+        } catch (final NonTransientDataAccessException _) {
             return tryInsertIndividually();
         } catch (final Exception e) {
             logger.warn("Failed to insert log events to database.", e);
@@ -175,7 +175,7 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
             if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
         }

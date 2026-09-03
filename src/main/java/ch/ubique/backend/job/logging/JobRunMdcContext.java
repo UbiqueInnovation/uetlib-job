@@ -20,7 +20,7 @@ public class JobRunMdcContext implements AutoCloseable {
     }
 
     public static void runWithJobRunMdcContext(final JobRun jobRun, final Runnable runnable) {
-        try (final var ignored = new JobRunMdcContext(jobRun)) {
+        try (final var _ = new JobRunMdcContext(jobRun)) {
             runnable.run();
         }
     }

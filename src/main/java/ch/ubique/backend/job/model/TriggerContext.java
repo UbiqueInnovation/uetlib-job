@@ -28,8 +28,8 @@ public sealed interface TriggerContext permits FileTriggerContext, RetryTriggerC
     @JsonProperty(required = true)
     default TriggerType type() {
         return switch (this) {
-            case final FileTriggerContext ignored -> TriggerType.FILE;
-            case final RetryTriggerContext ignored -> TriggerType.RETRY;
+            case final FileTriggerContext _ -> TriggerType.FILE;
+            case final RetryTriggerContext _ -> TriggerType.RETRY;
         };
     }
 }

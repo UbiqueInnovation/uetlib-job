@@ -12,7 +12,9 @@ import java.lang.annotation.*;
  * Place this annotation on any class in a package that matches (or is prefixed by) your maven
  * artifact group id. This annotation is only discovered in a package below the group id.
  *
- * <p>The package 'ch.ubique.backend' is always included.
+ * <p>The package 'ch.ubique.backend' is NOT always included, to use the default {@link
+ * ch.ubique.backend.health.HealthCheckJob} and {@link ch.ubique.backend.cleanup.CleanupJob},
+ * include this package or the desired subpackages.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

@@ -25,8 +25,8 @@ public record JobSystemRunnerGroupInfo(
         // Thread pool executor
         @JsonProperty(required = true) int busyThreads,
         @JsonProperty(required = true) int queueLength,
-        @JsonProperty(required = true) @NotNull @Valid Collection<CurrentRunnerItem> queueElements,
-        @JsonProperty(required = true) @NotNull @Valid Collection<CurrentRunnerItem> activeElements,
+        @JsonProperty(required = true) @NotNull Collection<@Valid CurrentRunnerItem> queueElements,
+        @JsonProperty(required = true) @NotNull Collection<@Valid CurrentRunnerItem> activeElements,
         @JsonProperty(required = true) @PositiveOrZero long completedTaskCount,
         @JsonProperty(required = true) @PositiveOrZero int largestPoolSize,
         @JsonProperty(required = true) @PositiveOrZero int currentPoolSize) {}

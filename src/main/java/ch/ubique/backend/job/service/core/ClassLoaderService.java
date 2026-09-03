@@ -24,7 +24,7 @@ public final class ClassLoaderService {
     public @Nullable Class<? extends Job> getJobClassIfExists(final String className) {
         try {
             return getClassForName(className, Job.class);
-        } catch (final ClassNotFoundException e) {
+        } catch (final ClassNotFoundException _) {
             return null;
         }
     }
@@ -39,7 +39,7 @@ public final class ClassLoaderService {
         final var cls = getClassForName(className);
         try {
             return cls.asSubclass(targetClass);
-        } catch (final ClassCastException e) {
+        } catch (final ClassCastException _) {
             throw new ClassCastException("Class " + cls + " can not be assigned to " + targetClass);
         }
     }
