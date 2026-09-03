@@ -50,8 +50,8 @@ pods), every 5s (`@Scheduled`) plus a Postgres `LISTEN`/`NOTIFY` fast path for l
    this instance's own taints (`ch.uetlib.job.runner.instance.taints`) to be a superset of
    the row's required taints (`JOB_RUN_TAINTS` job property); `DEDICATED_K8S_JOB` requires the same
    taint check *plus* a dedicated-runner bean available on this instance.
-3. On a match: atomically claim it (`QUEUED` → `CLAIMED`, tagged with
-   `ch.uetlib.job.runner.instance.name`), then dispatch to the matching `JobRunner`.
+3. On a match: atomically claim it (`QUEUED` → `CLAIMED`, tagged with this instance's claim
+   identifier - see end of §2), then dispatch to the matching `JobRunner`.
 4. On successful submission: `CLAIMED` → `RUNNING`, linked to the new `t_job_run` row.
 5. On failure, or if a `CLAIMED` row's claiming instance died before ever reaching `RUNNING`
    (`CLAIM_TIMEOUT`, default 2m): released back to `QUEUED` for another instance to retry.
@@ -88,8 +88,9 @@ version-pinned to nobody. It doesn't stay `QUEUED` forever, though - `expireUncl
 (§7) eventually marks it `CANCELLED` once it's had no activity for `QUEUE_TIMEOUT`.
 
 **[project]** only participates by setting `JOB_RUN_TAINTS` on a job (to pin it to specific
-instances) and giving every deployed instance a unique
-`ch.uetlib.job.runner.instance.name`.
+instances). Each instance's claim identifier defaults to the `HOSTNAME` env var (the pod name on
+Kubernetes); override it with `ch.uetlib.job.runner.instance.name` only where that isn't
+unique per instance.
 
 ## 3. Runners
 
@@ -298,9 +299,9 @@ queue row that never ran at all.
 
 **Project-defined, required:**
 - `Job` implementations (`run()`, at minimum).
-- `ch.uetlib.job.runner.instance.name` per deployed instance.
 
 **Project-defined, optional, with library defaults:**
+- `ch.uetlib.job.runner.instance.name` (claim identifier; defaults to `HOSTNAME`).
 - Triggers (`Job#triggersConfig()`), taints, priority, runner group, all timeout properties.
 - For Kubernetes jobs: pod spec details (`K8S_*` properties), `KubernetesJob#watchJob()`.
 - For state-driven jobs: `BaseStateJob` subclasses, `runnerForProcessing()`.

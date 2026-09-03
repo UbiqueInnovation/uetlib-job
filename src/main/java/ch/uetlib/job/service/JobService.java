@@ -86,14 +86,6 @@ public class JobService {
         logger.info("Job service started with {} jobs.", jobClassesById.size());
     }
 
-    /**
-     * This instance's own build version - what every {@code JobRun}/{@code JobQueuedRun} it creates
-     * gets tagged with. {@link ch.uetlib.job.service.executor.JobRunQueueService} compares
-     * this against a queued run's own {@code versionTag} before claiming it: a run enqueued by a
-     * different version must only ever be claimed by an instance running that exact version, since
-     * a different version may not even know the job class, or may run an outdated implementation of
-     * it - critical during a staggered/rolling release where multiple versions briefly coexist.
-     */
     public String versionTag() {
         return versionTag;
     }

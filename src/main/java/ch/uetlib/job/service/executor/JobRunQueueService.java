@@ -26,6 +26,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +45,29 @@ public class JobRunQueueService {
     public static final String RUNNER_INSTANCE_NAME_PROP =
             "ch.uetlib.job.runner.instance.name";
 
+    /**
+     * The name this instance claims queue rows under: {@value #RUNNER_INSTANCE_NAME_PROP} if set,
+     * else the {@code HOSTNAME} env var (the pod name on Kubernetes), else the local host name.
+     */
+    public static String resolveInstanceName(final @Nullable String configuredInstanceName) {
+        if (configuredInstanceName != null && !configuredInstanceName.isBlank()) {
+            return configuredInstanceName;
+        }
+        final var hostname = System.getenv("HOSTNAME");
+        if (hostname != null && !hostname.isBlank()) {
+            return hostname;
+        }
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (final UnknownHostException e) {
+            throw new IllegalStateException(
+                    "Cannot determine the job runner instance name: set "
+                            + RUNNER_INSTANCE_NAME_PROP
+                            + " or the HOSTNAME environment variable.",
+                    e);
+        }
+    }
+
     private final JobService jobService;
     private final JobRunnerInfoService jobRunnerServiceInfo;
     private final JobExecutorService jobExecutorService;
@@ -58,7 +83,8 @@ public class JobRunQueueService {
             final JobService jobService,
             final JobRunnerInfoService jobRunnerServiceInfo,
             final JobExecutorService jobExecutorService,
-            @Value("${" + RUNNER_INSTANCE_NAME_PROP + "}") final String instanceName,
+            @Value("${" + RUNNER_INSTANCE_NAME_PROP + ":#{null}}")
+                    final @Nullable String configuredInstanceName,
             @Value("${ch.uetlib.job.runner.instance.taints:null}")
                     final @Nullable List<String> instanceTaints,
             @Value("${ch.uetlib.job.runner.max.runnable.per.check:8}")
@@ -66,7 +92,7 @@ public class JobRunQueueService {
         this.jobService = jobService;
         this.jobRunnerServiceInfo = jobRunnerServiceInfo;
         this.jobExecutorService = jobExecutorService;
-        this.instanceName = instanceName;
+        this.instanceName = resolveInstanceName(configuredInstanceName);
         this.instanceTaints = Set.copyOf(Optional.ofNullable(instanceTaints).orElse(List.of()));
         this.maxRunnablePerCheck = maxRunnablePerCheck;
         this.jobRunnerKeyCache =

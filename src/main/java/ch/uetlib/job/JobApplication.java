@@ -2,7 +2,6 @@ package ch.uetlib.job;
 
 import ch.uetlib.job.commands.JobApplicationArgsParser;
 import ch.uetlib.job.commands.JobApplicationJobToStartArgs;
-import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalData;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalDataString;
@@ -60,8 +59,8 @@ public final class JobApplication {
             final JobApplicationJobToStartArgs jobToStartArgs,
             final String[] args) {
 
-        // spring.profiles.active may contain job-primary-triggers (via the config map / properties
-        //  file); exclude it here
+        // A --job process must never be a primary trigger instance; strip that profile in case
+        // config (config map / properties file) set it. See ProfileExclusion.
         final var applicationContext =
                 new SpringApplicationBuilder(applicationClass)
                         .profiles("job-run", "no-security")
@@ -105,7 +104,7 @@ public final class JobApplication {
                 return JobApplicationExitStatus.COULD_NOT_SCHEDULE;
             }
 
-            var _ = recordAsRunningInQueue(applicationContext, successfulSubmissionResult);
+            recordAsRunningInQueue(applicationContext, successfulSubmissionResult);
 
             logger.info("Waiting for job to finish.");
             applicationContext.getBean(DedicatedJobRunner.class).awaitCompletion();
@@ -124,19 +123,16 @@ public final class JobApplication {
         }
     }
 
-    /**
-     * A dedicated {@code --job} run bypasses the queue entirely on submission (see {@link
-     * JobExecutorService#submit(Class, JobRunArguments, Integer, JobRunnerKey)
-     * JobExecutorService.submit})
-     */
-    private static JobQueuedRun recordAsRunningInQueue(
+    /** A {@code --job} run bypasses the queue on submission; record it as {@code RUNNING} here. */
+    private static void recordAsRunningInQueue(
             final ConfigurableApplicationContext applicationContext,
             final SuccessfulSubmissionResult submissionResult) {
         final var runnerInstanceName =
-                applicationContext
-                        .getEnvironment()
-                        .getRequiredProperty(JobRunQueueService.RUNNER_INSTANCE_NAME_PROP);
-        return applicationContext
+                JobRunQueueService.resolveInstanceName(
+                        applicationContext
+                                .getEnvironment()
+                                .getProperty(JobRunQueueService.RUNNER_INSTANCE_NAME_PROP));
+        applicationContext
                 .getBean(JobService.class)
                 .queueRunningRun(
                         submissionResult.jobRunContext().job(),

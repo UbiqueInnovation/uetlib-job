@@ -43,10 +43,6 @@ public class JobExecutorService {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    public JobSubmissionResult submit(final Class<? extends Job> jobClass) {
-        return submit(jobClass, null);
-    }
-
     public JobSubmissionResult submit(final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
         if (jobQueuedRun.jobRunId() != null) {
             // TODO: Implement rescheduling jobs if required
@@ -58,11 +54,6 @@ public class JobExecutorService {
                 jobQueuedRun.arguments(),
                 null,
                 isDedicated ? DEDICATED_K8S_JOB : CURRENT);
-    }
-
-    public JobSubmissionResult submit(
-            final Class<? extends Job> jobClass, @Nullable final JobRunArguments arguments) {
-        return submit(jobClass, arguments, null, null);
     }
 
     public JobSubmissionResult submit(

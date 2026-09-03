@@ -132,7 +132,7 @@ CREATE TABLE t_job_run_queue
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    queue_state         VARCHAR(32) NOT NULL,
+    queue_state         TEXT        NOT NULL,
 
     fk_job_run_id       INTEGER REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE,
     runner              TEXT,
