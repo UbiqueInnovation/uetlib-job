@@ -4,70 +4,38 @@
 
 ### New Features
 
-- **Job dispatch is now queue-based.** Triggers no longer run a job directly - they insert a row
-  into a new `t_job_run_queue`, and instances poll/claim/execute matching rows (every 5s +
-  NOTIFY/LISTEN for PG for lower latency). Claiming is version-pinned: an instance only ever claims
-  a row enqueued by its own exact build version, so a staggered/rolling release can't have one
-  version pick up work meant for another. See `SCHEDULING.md` for the full picture.
-- **Running job runs maintain a heartbeat** on their queue row - covers in-process runs, dedicated
-  `--job` pods, and Kubernetes-dispatched jobs (pod status + log activity). A run whose heartbeat
-  goes stale is marked `UNFINISHED` and its queue row removed.
-- **A queued run nothing can claim** (e.g. no currently running instance matches its version or
-  taints) is marked `CANCELLED` after `QUEUE_TIMEOUT` (default 30m) rather than left `QUEUED`
-  forever, and purged after `CANCELLED_QUEUE_RETENTION` (default 7 days) unless acknowledged sooner.
-  Distinct from a `JobRun`'s own `CANCELLED` state - this means the run was never picked up at all.
-  Acknowledge (delete) immediately via `POST /queue/{jobQueuedRunId}/acknowledge` or `POST
-  /queue/acknowledge-cancelled` (all).
-- **`PUT /queue/{jobQueuedRunId}/priority`** reorders a still-queued run.
-- **Dedicated `--job` runs are now also recorded in the queue as `RUNNING`**, so a job's own trigger
-  firing again while it's already running doesn't churn its queue row.
-- New job properties configuring the above (all optional, all with defaults that keep the queue
-  working out of the box): `JOB_RUN_TAINTS`, `ALLOW_MULTIPLE_QUEUED_RUNS`, `CLAIM_TIMEOUT`,
-  `HEARTBEAT_TIMEOUT`, `QUEUE_TIMEOUT`, `CANCELLED_QUEUE_RETENTION`.
+- **Job dispatch is now queue-based.** Triggers insert a row into the new `t_job_run_queue` instead of running a job
+  directly; every instance polls that table and claims the rows it can run. Claiming is pinned to the enqueuing
+  instance's exact build version, so a rolling release never has one version run another's work. Adds heartbeat-based
+  liveness for running jobs, per-run priority (`PUT /queue/{jobQueuedRunId}/priority`), and cancellation of runs nothing
+  can claim. See `SCHEDULING.md` for the full model and the new (all-optional) job properties.
 
 ### Fixes
 
-- `@EnableJobs`'s "`ch.uetlib` is always included" doc claim wasn't actually implemented -
-  now true. May add `CleanupJob`/`HealthCheckJob` for projects not already listing that package
-  explicitly.
-- A job's fixed trigger list changing (e.g. adding a new trigger) deleted and reinserted *all* of
-  that job's DB trigger rows. Now, only changed triggers are updated, deleted and inserted.
+- `@EnableJobs` now really always scans `ch.uetlib` (the doc claimed it already did). May add `CleanupJob`/
+  `HealthCheckJob` for projects not already listing that package.
+- A job's fixed trigger list changing now updates only the changed trigger rows instead of deleting and reinserting all
+  of that job's rows.
 
 ### Breaking Changes
 
-- Database migration required: run `update_uetlib_7_0_0.sql` (adds `t_job_run_queue`, `t_job.priority`,
-  and, on PostgreSQL, a `NOTIFY` trigger).
-- New required property `ch.uetlib.job.runner.instance.name` - a unique identifier per
-  running instance, used to track claims. Example: '${CLUSTER_NAME}-primary'
-- A Job Application's primary instance (only one per job module, over all clusters!) must have a profile
-  `job-primary-triggers`, this is the only instance that queues new job runs according to the configured triggers. All
-  other instances can pick up these runs from the queue and must not have this profile.
-- `POST /job/{id}/start` no longer returns the job's execution result, only whether it was
-  successfully *queued*. Response body changed from `JobSubmissionResult` to the new sealed
-  `QueueSubmissionResult`:
-  ```diff
-  - { "status": "SUBMITTED", "runnerKey": "CURRENT", "jobRunId": 42 }
-  + { "queuedRun": { "jobQueuedRunId": 7, "jobId": 3, "queueState": "QUEUED", ... } }
-  ```
-  A failed request now returns `400` with `{ "reason": "..." }` (`QueueSubmissionFailure`).
-- `PgChannelListenerRegistry` is no longer a single autowired bean; direct injections of it now
-  need `@Qualifier("jobTriggerPgChannelListenerRegistry")` or
-  `@Qualifier("jobQueuePgChannelListenerRegistry")` (see below).
+- Run the `update_uetlib_7_0_0.sql` migration (adds `t_job_run_queue`, `t_job.priority`, and a PostgreSQL `NOTIFY`
+  trigger).
+- Exactly one instance per job module (across all clusters) must have the `job-primary-triggers`
+  profile - it is the only one that enqueues runs from triggers. No other instance may have it.
+- `POST /job/{id}/start` now reports only whether the run was *queued*; its response body changes from
+  `JobSubmissionResult` to the sealed `QueueSubmissionResult`, and a failure returns `400`
+  with `{ "reason": "..." }`.
+- `PgChannelListenerRegistry` is no longer a single bean; qualify injections with
+  `@Qualifier("jobTriggerPgChannelListenerRegistry")` or `@Qualifier("jobQueuePgChannelListenerRegistry")`.
 
 ### Necessary Adjustments in Projects
 
-- Set `ch.uetlib.job.runner.instance.name` for every deployed instance.
-- Apps with **more than one datasource**: the job library needs to know which datasource its own
-  queue table lives on, separately from the datasource job-defined `PG_LISTEN` triggers listen on.
-  Supply a bean (only for whichever one the ambient/primary datasource is wrong for,
-  `PgListenJobTriggerDataSourceProvider` or `JobQueueDataSourceProvider`):
-  ```java
-  @Bean
-  JobQueueDataSourceProvider jobQueueDataSourceProvider(final JdbcConnectionDetails jobDbConnectionDetails) {
-      return () -> propertiesFor(jobDbConnectionDetails); // e.g. via DataSourceProperties setters
-  }
-  ```
-  Single-datasource apps need no changes here; both default to the ambient datasource.
+- Optionally set `ch.uetlib.job.runner.instance.name` (a unique-per-instance claim identifier). Defaults to the
+  `HOSTNAME` env var - the pod name on Kubernetes - so most deployments need nothing here.
+- Apps with **more than one datasource** must supply a `JobQueueDataSourceProvider`
+  and/or `PgListenJobTriggerDataSourceProvider` bean (where the queue table and `PG_LISTEN` triggers are).
+  Single-datasource apps need no change.
 
 ## 6.0.2
 
