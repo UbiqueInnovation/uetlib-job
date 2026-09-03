@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import ch.uetlib.job.data.BaseJobDatabaseTest;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
+import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 
@@ -40,10 +41,20 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     void onlyQueuedStateRunsAreReturned() {
         final var stillQueued =
                 jobDataService.queueNewRun(
-                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.ALLOW_MULTIPLE);
         final var claimed =
                 jobDataService.queueNewRun(
-                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.ALLOW_MULTIPLE);
         jobDataService.claimQueuedRun(claimed, "test-runner");
 
         final var page = jobDataService.findQueuedRunsPage(PageRequest.of(0, 10));
@@ -61,10 +72,20 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         // resolution on some dialects, so two rows queued microseconds apart in a test can tie.
         final var low =
                 jobDataService.queueNewRun(
-                        TEST_JOB_ID, 1, "1.0.0", new JobRunArguments(), Set.of(), true);
+                        TEST_JOB_ID,
+                        1,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.ALLOW_MULTIPLE);
         final var high =
                 jobDataService.queueNewRun(
-                        TEST_JOB_ID, 5, "1.0.0", new JobRunArguments(), Set.of(), true);
+                        TEST_JOB_ID,
+                        5,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.ALLOW_MULTIPLE);
 
         final var page = jobDataService.findQueuedRunsPage(PageRequest.of(0, 10));
 
@@ -86,7 +107,7 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                                                 "1.0.0",
                                                 new JobRunArguments(),
                                                 Set.of(),
-                                                true))
+                                                JobQueueBehavior.ALLOW_MULTIPLE))
                         .toList();
 
         final var firstPage = jobDataService.findQueuedRunsPage(PageRequest.of(0, 2));
@@ -258,7 +279,12 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         final var runningRunId = queueClaimAndRunToRunning();
 
         jobDataService.queueNewRun(
-                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+                TEST_JOB_ID,
+                null,
+                "1.0.0",
+                new JobRunArguments(),
+                Set.of(),
+                JobQueueBehavior.REPLACE_RUN);
 
         assertTrue(
                 findInQueue(runningRunId).isPresent(),
@@ -271,12 +297,19 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
 
         final var newlyQueued =
                 jobDataService.queueNewRun(
-                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.REPLACE_RUN);
 
         final var allRowsForJob = allQueueRowsForJob();
         assertEquals(
                 Set.of(runningRunId, newlyQueued.jobQueuedRunId()),
-                allRowsForJob.stream().map(JobQueuedRun::jobQueuedRunId).collect(Collectors.toSet()),
+                allRowsForJob.stream()
+                        .map(JobQueuedRun::jobQueuedRunId)
+                        .collect(Collectors.toSet()),
                 "a RUNNING row isn't 'waiting' - ALLOW_MULTIPLE_WAITING_QUEUED_RUNS being off must"
                         + " only dedupe against other waiting (QUEUED/CLAIMED) rows, not block a new"
                         + " run from being queued behind an already-running one");
@@ -290,7 +323,12 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         final var previouslyQueued = queueOne();
 
         jobDataService.queueNewRun(
-                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), false);
+                TEST_JOB_ID,
+                null,
+                "1.0.0",
+                new JobRunArguments(),
+                Set.of(),
+                JobQueueBehavior.REPLACE_RUN);
 
         assertTrue(findInQueue(previouslyQueued.jobQueuedRunId()).isEmpty());
     }
@@ -301,14 +339,76 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
 
         final var newlyQueued =
                 jobDataService.queueNewRun(
-                        TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.ALLOW_MULTIPLE);
 
         final var allRowsForJob = allQueueRowsForJob();
         assertEquals(
                 Set.of(previouslyQueued.jobQueuedRunId(), newlyQueued.jobQueuedRunId()),
-                allRowsForJob.stream().map(JobQueuedRun::jobQueuedRunId).collect(Collectors.toSet()),
-                "with ALLOW_MULTIPLE_WAITING_QUEUED_RUNS on, an existing QUEUED (waiting) row must"
-                        + " not be replaced by a new one");
+                allRowsForJob.stream()
+                        .map(JobQueuedRun::jobQueuedRunId)
+                        .collect(Collectors.toSet()),
+                "with ALLOW_MULTIPLE, an existing QUEUED (waiting) row must not be replaced");
+    }
+
+    @Test
+    void queueNewRunWithDiscardNewKeepsTheExistingWaitingRowAndReturnsIt() {
+        final var previouslyQueued = queueOne();
+
+        final var result =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.DISCARD_NEW);
+
+        assertEquals(previouslyQueued.jobQueuedRunId(), result.jobQueuedRunId());
+        assertEquals(
+                List.of(previouslyQueued.jobQueuedRunId()),
+                allQueueRowsForJob().stream().map(JobQueuedRun::jobQueuedRunId).toList(),
+                "DISCARD_NEW must not add a second waiting row");
+    }
+
+    @Test
+    void queueNewRunWithDiscardNewStillQueuesWhenNothingIsWaiting() {
+        final var result =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.DISCARD_NEW);
+
+        assertEquals(
+                JobRunQueueState.QUEUED,
+                findInQueue(result.jobQueuedRunId()).orElseThrow().queueState());
+    }
+
+    @Test
+    void queueNewRunWithDiscardIfRunningKeepsTheRunningRowAndDoesNotQueue() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        final var result =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.DISCARD_IF_RUNNING);
+
+        assertEquals(runningRunId, result.jobQueuedRunId());
+        assertEquals(
+                List.of(runningRunId),
+                allQueueRowsForJob().stream().map(JobQueuedRun::jobQueuedRunId).toList(),
+                "DISCARD_IF_RUNNING must not queue a run behind an already-running one");
     }
 
     @Test
@@ -490,7 +590,12 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
 
     private JobQueuedRun queueOne() {
         return jobDataService.queueNewRun(
-                TEST_JOB_ID, null, "1.0.0", new JobRunArguments(), Set.of(), true);
+                TEST_JOB_ID,
+                null,
+                "1.0.0",
+                new JobRunArguments(),
+                Set.of(),
+                JobQueueBehavior.ALLOW_MULTIPLE);
     }
 
     private int queueClaimAndRunToRunning() {

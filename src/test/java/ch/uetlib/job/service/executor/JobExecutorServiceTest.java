@@ -4,17 +4,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import ch.uetlib.job.Job;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
-import ch.uetlib.job.model.JobRunContext;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.executer.JobSubmissionStatus;
 import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
 import ch.uetlib.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.uetlib.job.model.properties.JobProperties;
+import ch.uetlib.job.model.properties.JobProperty;
+import ch.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.JobService;
@@ -99,6 +99,7 @@ class JobExecutorServiceTest {
         doReturn(TestJob.class).when(jobService).getJobClassOrThrow(JOB);
         when(jobService.isEnabled(TestJob.class.getCanonicalName())).thenReturn(true);
         when(jobService.instantiateJob(TestJob.class)).thenReturn(new TestJob());
+        when(jobService.getProperties(any(TestJob.class))).thenReturn(new JobProperties(List.of()));
         when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
         when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
 
@@ -113,15 +114,14 @@ class JobExecutorServiceTest {
     @Test
     void aJobAlreadyRunningIsAllowedWhenTheJobPermitsParallelRuns() {
         when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
-        doReturn(ParallelAllowedTestJob.class).when(jobService).getJobClassOrThrow(JOB);
-        when(jobService.isEnabled(ParallelAllowedTestJob.class.getCanonicalName())).thenReturn(true);
-        when(jobService.instantiateJob(ParallelAllowedTestJob.class))
-                .thenReturn(new ParallelAllowedTestJob());
-        when(jobService.getProperties(any(ParallelAllowedTestJob.class)))
-                .thenReturn(new JobProperties(List.of()));
-        when(jobService.jobClassAndIdOrThrow(ParallelAllowedTestJob.class)).thenReturn(JOB);
+        doReturn(TestJob.class).when(jobService).getJobClassOrThrow(JOB);
+        when(jobService.isEnabled(TestJob.class.getCanonicalName())).thenReturn(true);
+        when(jobService.instantiateJob(TestJob.class)).thenReturn(new TestJob());
+        when(jobService.getProperties(any(TestJob.class)))
+                .thenReturn(jobPropertiesWith(JobPropertyDefinitions.ALLOW_PARALLEL_RUNS, true));
+        when(jobService.jobClassAndIdOrThrow(TestJob.class)).thenReturn(JOB);
         when(jobService.getOrCreateJobRun(any(), any(), any(), any())).thenReturn(jobRun());
-        when(jobService.findJobId(ParallelAllowedTestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
         when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
         when(currentRunner.submit(any(), any())).thenReturn(true);
 
@@ -129,6 +129,14 @@ class JobExecutorServiceTest {
 
         assertInstanceOf(SuccessfulSubmissionResult.class, result);
         verify(currentRunner).submit(any(), any());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> JobProperties jobPropertiesWith(
+            final ch.uetlib.job.model.properties.JobPropertyDefinition<T> definition,
+            final T value) {
+        return new JobProperties(
+                List.of((JobProperty<Object>) (JobProperty<?>) definition.createProperty(value)));
     }
 
     @Test
@@ -206,7 +214,9 @@ class JobExecutorServiceTest {
                 null);
     }
 
-    /** A distinct job run - not this submission's own - whose state is still {@code isRunning()}. */
+    /**
+     * A distinct job run - not this submission's own - whose state is still {@code isRunning()}.
+     */
     private static JobRun runningLastRun() {
         return new JobRun(
                 50,
@@ -218,18 +228,5 @@ class JobExecutorServiceTest {
                 JobRunnerKey.CURRENT,
                 null,
                 null);
-    }
-
-    /** Only differs from {@link TestJob} in opting into parallel runs. */
-    public static final class ParallelAllowedTestJob implements Job {
-        @Override
-        public JobRunState run(final JobRunContext jobRunContext) {
-            return JobRunState.DONE;
-        }
-
-        @Override
-        public boolean allowParallelRuns() {
-            return true;
-        }
     }
 }

@@ -10,17 +10,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 class JobEntityTest {
 
     @Test
-    void newForClassIsEnabledByDefaultWithTheGivenClassAndPriority() {
-        final var entity = JobEntity.newForClass(TestJob.class, 5);
+    void newForClassIsEnabledByDefaultWithTheGivenClass() {
+        final var entity = JobEntity.newForClass(TestJob.class);
 
         assertTrue(entity.isEnabled());
         assertEquals(TestJob.class.getCanonicalName(), entity.canonicalClassName());
-        assertEquals(5, entity.priority());
     }
 
     @Test
     void setEnabledTogglesEnabled() {
-        final var entity = JobEntity.newForClass(TestJob.class, 0);
+        final var entity = JobEntity.newForClass(TestJob.class);
 
         entity.setEnabled(false);
 
@@ -29,7 +28,7 @@ class JobEntityTest {
 
     @Test
     void toRecordMapsIdAndClassName() {
-        final var entity = JobEntity.newForClass(TestJob.class, 0);
+        final var entity = JobEntity.newForClass(TestJob.class);
         ReflectionTestUtils.setField(entity, "id", 7);
 
         final var rec = entity.toRecord();

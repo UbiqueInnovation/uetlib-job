@@ -1,6 +1,3 @@
-ALTER TABLE t_job
-    ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
-
 CREATE TABLE t_job_run_queue
 (
     pk_job_run_queue_id INTEGER    AUTO_INCREMENT NOT NULL PRIMARY KEY,

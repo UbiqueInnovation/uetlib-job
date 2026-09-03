@@ -25,6 +25,9 @@ public interface JobQueuedRunRepository
 
     List<JobQueuedRunEntity> findAllByQueueState(JobRunQueueState queueState);
 
+    List<JobQueuedRunEntity> findByJobIdAndQueueStateInOrderByCreatedAtAsc(
+            int jobId, Collection<JobRunQueueState> queueStates);
+
     Optional<JobQueuedRunEntity> findByJobRunIdAndQueueState(
             int jobRunId, JobRunQueueState queueState);
 
@@ -53,9 +56,8 @@ public interface JobQueuedRunRepository
             """
                     SELECT q
                     FROM JobQueuedRunEntity q
-                    INNER JOIN JobEntity job ON job.id = q.jobId
                     WHERE q.queueState = :state
-                    ORDER BY COALESCE(q.priority, job.priority) DESC, q.createdAt ASC
+                    ORDER BY COALESCE(q.priority, 0) DESC, q.createdAt ASC
                     """)
     Slice<JobQueuedRunEntity> findByQueueStateOrderedByPriority(
             JobRunQueueState state, Pageable pageable);

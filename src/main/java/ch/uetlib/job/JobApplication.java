@@ -6,7 +6,6 @@ import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalData;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalDataString;
 import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
-import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.runner.JobApplicationExitStatus;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.core.ClassLoaderService;
@@ -85,7 +84,7 @@ public final class JobApplication {
             final var submissionResult =
                     applicationContext
                             .getBean(JobExecutorService.class)
-                            .submit(
+                            .submitDedicatedJobRun(
                                     applicationContext
                                             .getBean(ClassLoaderService.class)
                                             .getJobClass(jobToStartArgs.jobClassName()),
@@ -95,8 +94,7 @@ public final class JobApplication {
                                             null,
                                             null,
                                             additionalData),
-                                    jobToStartArgs.jobRunId(),
-                                    JobRunnerKey.DEDICATED_K8S_JOB);
+                                    jobToStartArgs.jobRunId());
 
             if (!(submissionResult
                     instanceof final SuccessfulSubmissionResult successfulSubmissionResult)) {

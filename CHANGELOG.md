@@ -19,8 +19,12 @@
 
 ### Breaking Changes
 
-- Run the `update_uetlib_7_0_0.sql` migration (adds `t_job_run_queue`, `t_job.priority`, and a PostgreSQL `NOTIFY`
-  trigger).
+- Run the `update_uetlib_7_0_0.sql` migration (adds `t_job_run_queue` and a PostgreSQL `NOTIFY` trigger).
+- `Job.priority()`, `Job.allowParallelRuns()` and `Job.forceRunOverridesAllowParallelRuns()` are gone - set the
+  `PRIORITY`, `ALLOW_PARALLEL_RUNS` and `FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS` job properties instead
+  (via `propertiesConfig()` or the properties API). `supportsForceRun()` stays a method.
+- The `ALLOW_MULTIPLE_QUEUED_RUNS` boolean property is replaced by the `QUEUE_BEHAVIOR` enum
+  (`DISCARD_NEW` / `REPLACE_RUN` (default) / `ALLOW_MULTIPLE` / `DISCARD_IF_RUNNING`).
 - Exactly one instance per job module (across all clusters) must have the `job-primary-triggers`
   profile - it is the only one that enqueues runs from triggers. No other instance may have it.
 - `POST /job/{id}/start` now reports only whether the run was *queued*; its response body changes from

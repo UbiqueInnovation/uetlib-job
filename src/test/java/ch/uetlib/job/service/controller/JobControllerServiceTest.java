@@ -214,7 +214,8 @@ class JobControllerServiceTest {
     }
 
     @Test
-    void startJobManualQueuesANewRunWhenEnabledAndAllowed() throws ManualTriggerNotAllowedException {
+    void startJobManualQueuesANewRunWhenEnabledAndAllowed()
+            throws ManualTriggerNotAllowedException {
         when(jobService.getJobClassOrThrow(TestJob.class.getCanonicalName()))
                 .thenAnswer(invocation -> TestJob.class);
         when(jobService.instantiateJob(TestJob.class)).thenReturn(new TestJob());
@@ -222,7 +223,7 @@ class JobControllerServiceTest {
         when(jobService.isEnabled(TestJob.class.getCanonicalName())).thenReturn(true);
         when(jobService.jobClassAndIdOrThrow(TestJob.class)).thenReturn(JOB);
         final var queued = queuedRun(1);
-        when(jobService.queueNewRun(eq(JOB), any(), anyInt())).thenReturn(queued);
+        when(jobService.queueNewRun(eq(JOB), any())).thenReturn(queued);
 
         final var result = service.startJobManual(TestJob.class.getCanonicalName(), false);
 
@@ -240,7 +241,7 @@ class JobControllerServiceTest {
         assertThrows(
                 ManualTriggerNotAllowedException.class,
                 () -> service.startJobManual(TestJob.class.getCanonicalName(), false));
-        verify(jobService, never()).queueNewRun(any(), any(), anyInt());
+        verify(jobService, never()).queueNewRun(any(), any());
     }
 
     @Test
@@ -262,7 +263,7 @@ class JobControllerServiceTest {
         assertThrows(
                 ManualTriggerNotAllowedException.class,
                 () -> service.startJobManual(TestJob.class.getCanonicalName(), false));
-        verify(jobService, never()).queueNewRun(any(), any(), anyInt());
+        verify(jobService, never()).queueNewRun(any(), any());
     }
 
     @Test
@@ -324,7 +325,8 @@ class JobControllerServiceTest {
 
     @Test
     void acknowledgeJobRunUpdatesStateWhenAcknowledgeable() {
-        when(jobDataService.findJobRunById(7)).thenReturn(Optional.of(jobRun(7, JobRunState.ERROR)));
+        when(jobDataService.findJobRunById(7))
+                .thenReturn(Optional.of(jobRun(7, JobRunState.ERROR)));
 
         final var result = service.acknowledgeJobRun(7);
 
@@ -340,14 +342,15 @@ class JobControllerServiceTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static ch.uetlib.job.model.properties.JobProperty<Object>
-            castToObjectProperty(final ch.uetlib.job.model.properties.JobProperty<?> p) {
+    private static ch.uetlib.job.model.properties.JobProperty<Object> castToObjectProperty(
+            final ch.uetlib.job.model.properties.JobProperty<?> p) {
         return (ch.uetlib.job.model.properties.JobProperty<Object>) p;
     }
 
     private static JobRun jobRun(final int id, final JobRunState state) {
         final var now = Instant.now();
-        return new JobRun(id, JOB.id(), "1.0.0", now, null, state, JobRunnerKey.CURRENT, null, null);
+        return new JobRun(
+                id, JOB.id(), "1.0.0", now, null, state, JobRunnerKey.CURRENT, null, null);
     }
 
     private static JobQueuedRun queuedRun(final int id) {

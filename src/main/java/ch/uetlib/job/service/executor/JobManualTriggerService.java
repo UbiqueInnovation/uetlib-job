@@ -23,6 +23,6 @@ public class JobManualTriggerService {
                 requireNonNullElseGet(jobRun.jobRunArguments(), JobRunArguments::new);
         final var jobRunArguments =
                 previousArguments.withReplayContext(new ReplayContext(jobRunId));
-        jobService.queueNewRun(jobClassAndId, jobRunArguments, null);
+        jobService.queueNewRun(jobClassAndId, jobRunArguments);
     }
 }

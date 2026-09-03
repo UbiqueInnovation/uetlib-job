@@ -9,7 +9,7 @@ Throughout this document: **[library]** marks something `uetlib-job` provides an
 ## Concepts
 
 - **Job** **[project implements, library defines the interface]** - a class implementing `Job`
-  (`run(JobRunContext)`, plus optional `propertiesConfig()`/`triggersConfig()`/`priority()`/...).
+  (`run(JobRunContext)`, plus optional `propertiesConfig()`/`triggersConfig()`/`supportsForceRun()`).
   Discovered via `@RegisteredJob` + `@EnableJobs` classpath scanning.
 - **JobRun** **[library]** - one execution attempt of a job, `t_job_run`. Append-only history;
   state only ever moves forward (`BUSY`/`SCHEDULED` → a terminal state).
@@ -33,10 +33,10 @@ Nothing runs a job directly. Everything that wants a job to run inserts a `QUEUE
   dedicated Kubernetes pods (see §3) and available for local/manual single-job runs. Not
   something a project's own code calls; it's a process entry point (`JobApplication`).
 
-A queue row also carries a priority. `t_job_run_queue.priority` is a nullable per-row override;
-dequeue order is `COALESCE(row.priority, job.priority) DESC, createdAt ASC`. Reorder a still-queued
-row via `PUT /queue/{jobQueuedRunId}/priority` **[library, project calls it]**; `RUNNING` rows are
-never reordered.
+A queue row also carries a priority. `t_job_run_queue.priority` is seeded from the job's `PRIORITY`
+property when the row is queued; dequeue order is `COALESCE(row.priority, 0) DESC, createdAt ASC`.
+Reorder a still-queued row via `PUT /queue/{jobQueuedRunId}/priority` **[library, project calls
+it]**; `RUNNING` rows are never reordered.
 
 ## 2. Dispatch
 

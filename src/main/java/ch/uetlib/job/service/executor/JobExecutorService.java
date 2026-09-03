@@ -19,7 +19,6 @@ import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.executor.runners.JobRunner;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,20 +42,35 @@ public class JobExecutorService {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
+    /**
+     * Executes a claimed queue row. {@code jobQueuedRun.jobRunId()} is {@code null} for a normal
+     * claim (a fresh {@code JobRun} is created) and set for a {@link
+     * ch.uetlib.job.BaseStateJob} handoff - a row bound to a run whose state is already
+     * computed, which is reused rather than recreated.
+     */
     public JobSubmissionResult submit(final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
-        if (jobQueuedRun.jobRunId() != null) {
-            // TODO: Implement rescheduling jobs if required
-            throw new NotImplementedException("Behavior of rescheduling jobs is TBD");
-        }
         final var jobClass = jobService.findJobById(jobQueuedRun.jobId()).orElseThrow();
         return submit(
                 jobService.getJobClassOrThrow(jobClass),
                 jobQueuedRun.arguments(),
-                null,
+                jobQueuedRun.jobRunId(),
                 isDedicated ? DEDICATED_K8S_JOB : CURRENT);
     }
 
-    public JobSubmissionResult submit(
+    /**
+     * The terminal executor entry point for a dedicated {@code --job} process (see {@code
+     * JobApplication}): runs the job now on the in-process dedicated runner. The one path that does
+     * not originate from a {@link JobQueuedRun} claim - it <em>is</em> the execution end of the
+     * pipe, downstream of whatever dispatched it (or a standalone local run).
+     */
+    public JobSubmissionResult submitDedicatedJobRun(
+            final Class<? extends Job> jobClass,
+            final JobRunArguments arguments,
+            @Nullable final Integer runId) {
+        return submit(jobClass, arguments, runId, DEDICATED_K8S_JOB);
+    }
+
+    private JobSubmissionResult submit(
             final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
@@ -72,10 +86,17 @@ public class JobExecutorService {
         }
 
         final var job = jobService.instantiateJob(jobClass);
+        final var jobProperties = jobService.getProperties(job);
         final var isForceRun =
                 Optional.ofNullable(arguments).map(JobRunArguments::forceRun).orElse(false);
         final var allowParallelScheduling =
-                job.allowParallelRuns() || (isForceRun && job.forceRunOverridesAllowParallelRuns());
+                Boolean.TRUE.equals(
+                                jobProperties.getValue(JobPropertyDefinitions.ALLOW_PARALLEL_RUNS))
+                        || (isForceRun
+                                && Boolean.TRUE.equals(
+                                        jobProperties.getValue(
+                                                JobPropertyDefinitions
+                                                        .FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS)));
         if (!allowParallelScheduling && isCurrentlyRunning(job) && !isSameAsLastRun(job, runId)) {
             logger.info("Job is already running and parallel runs are disallowed.");
             return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);

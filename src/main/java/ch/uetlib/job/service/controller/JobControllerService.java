@@ -370,9 +370,7 @@ public class JobControllerService {
                             jobClass, manualTriggerMode));
         }
         return jobService.queueNewRun(
-                jobService.jobClassAndIdOrThrow(jobClass),
-                new JobRunArguments(forceRun),
-                jobInstance.priority());
+                jobService.jobClassAndIdOrThrow(jobClass), new JobRunArguments(forceRun));
     }
 
     public void replayJobRun(final String jobIdOrClassName)
