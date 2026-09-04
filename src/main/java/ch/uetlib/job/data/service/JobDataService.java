@@ -280,16 +280,26 @@ public class JobDataService {
                     case REPLACE_RUN, ALLOW_MULTIPLE -> Set.<JobRunQueueState>of();
                 };
         if (!blockingStates.isEmpty()) {
+            // A RUNNING row is bound to a run by definition and does block; a *waiting* row that is
+            // bound is a BaseStateJob continuation - work already under way, not a run waiting to
+            // start - so it must not stand in for the newly requested one.
             final var blocking =
-                    jobQueuedRunRepository.findByJobIdAndQueueStateInOrderByCreatedAtAsc(
-                            jobId, blockingStates);
-            if (!blocking.isEmpty()) {
-                return blocking.getFirst().toJobQueuedRun();
+                    jobQueuedRunRepository
+                            .findByJobIdAndQueueStateInOrderByCreatedAtAsc(jobId, blockingStates)
+                            .stream()
+                            .map(JobQueuedRunEntity::toJobQueuedRun)
+                            .filter(row -> row.queueState() == RUNNING || row.jobRunId() == null)
+                            .findFirst();
+            if (blocking.isPresent()) {
+                return blocking.get();
             }
         }
         if (queueBehavior == JobQueueBehavior.REPLACE_RUN) {
-            jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(
-                    Set.of(jobId), Set.of(QUEUED, CLAIMED));
+            // Only still-waiting rows of a fresh run. A CLAIMED row is already being submitted and
+            // a row bound to a run is a BaseStateJob continuation - deleting either orphans or
+            // strands its job run rather than stopping it.
+            jobQueuedRunRepository.deleteByJobIdInAndJobRunIdIsNullAndQueueStateIn(
+                    Set.of(jobId), Set.of(QUEUED));
         }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
@@ -322,10 +332,13 @@ public class JobDataService {
     }
 
     /**
-     * Enqueues a {@code QUEUED} row bound to an existing run whose state is already computed (a
-     * {@code BaseStateJob} handoff) and repoints that run at {@code processingRunnerKey}, so the
-     * claim path dispatches the continuation there. Idempotent: a run that already has a {@code
-     * RUNNING} row is returned as-is.
+     * Re-queues an existing run whose state is already computed (a {@code BaseStateJob} handoff)
+     * and repoints it at {@code processingRunnerKey}, so the claim path dispatches its processing
+     * phase there.
+     *
+     * <p>Moves the run's own {@code RUNNING} row back to {@code QUEUED} rather than inserting a
+     * second one - a run only ever has one queue row. A row is inserted only for a run that has
+     * none, i.e. one started outside the queue by a standalone {@code --job} process.
      */
     @Transactional
     public JobQueuedRun queueReprocessingRun(
@@ -335,12 +348,6 @@ public class JobDataService {
             final Set<JobRunnerTaint> taints,
             final int jobRunId,
             final JobRunnerKey processingRunnerKey) {
-        final var existing =
-                jobQueuedRunRepository.findByJobRunIdAndQueueState(
-                        jobRunId, JobRunQueueState.RUNNING);
-        if (existing.isPresent()) {
-            return existing.get().toJobQueuedRun();
-        }
         jobRunRepository
                 .findById(jobRunId)
                 .ifPresent(
@@ -348,6 +355,12 @@ public class JobDataService {
                             entity.setRunnerKey(processingRunnerKey);
                             jobRunRepository.save(entity);
                         });
+        if (jobQueuedRunRepository.requeueRunningRunForReprocessing(jobRunId, Instant.now()) > 0) {
+            return jobQueuedRunRepository
+                    .findByJobRunIdAndQueueState(jobRunId, QUEUED)
+                    .orElseThrow()
+                    .toJobQueuedRun();
+        }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId);
         return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
@@ -759,10 +772,15 @@ public class JobDataService {
         return updated == 1;
     }
 
-    public void setRunId(final JobQueuedRun jobQueuedRun, final int runId) {
-        final var entity =
-                jobQueuedRunRepository.findById(jobQueuedRun.jobQueuedRunId()).orElseThrow();
-        jobQueuedRunRepository.save(entity.setRunId(runId));
+    /**
+     * Links a claimed row to the run created for it and marks it {@code RUNNING}. Returns whether
+     * the row was still claimed - not fatal when {@code false}, since the run is already under way.
+     */
+    @Transactional
+    public boolean setRunId(final JobQueuedRun jobQueuedRun, final int runId) {
+        return jobQueuedRunRepository.linkRunAndMarkRunning(
+                        jobQueuedRun.jobQueuedRunId(), runId, Instant.now())
+                == 1;
     }
 
     @Transactional(readOnly = true)
@@ -772,7 +790,10 @@ public class JobDataService {
                 .toList();
     }
 
-    /** Reclaims rows stuck in {@code CLAIMED} whose heartbeat is older than {@code staleBefore}. */
+    /**
+     * Reclaims rows stuck in {@code CLAIMED} whose last update (the claim itself) is older than
+     * {@code staleBefore} - the claiming instance died before ever submitting.
+     */
     @Transactional
     public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
         final var now = Instant.now();
@@ -829,11 +850,6 @@ public class JobDataService {
         return jobQueuedRunRepository.deleteByQueueState(CANCELLED);
     }
 
-    @Transactional
-    public void touchQueuedRunHeartbeatByJobRunId(final int jobRunId) {
-        jobQueuedRunRepository.touchHeartbeatByJobRunId(jobRunId, Instant.now());
-    }
-
     /**
      * Unconditional delete for internal cleanup once a linked job run has actually finished -
      * unlike {@link #deleteQueuedRunIfQueued}, this is not meant for admin use.
@@ -843,10 +859,37 @@ public class JobDataService {
         jobQueuedRunRepository.deleteById(jobQueuedRunId);
     }
 
-    /** Unconditionally resets a single row back to {@link JobRunQueueState#QUEUED}. */
+    /**
+     * Unconditionally resets a single row back to {@link JobRunQueueState#QUEUED}, restoring {@code
+     * jobRunId} to what it was before the claim ({@code null} for a fresh run, the bound run for a
+     * {@code BaseStateJob} continuation).
+     */
     @Transactional
-    public void resetQueuedRunById(final int jobQueuedRunId) {
-        jobQueuedRunRepository.forceReset(jobQueuedRunId, QUEUED, Instant.now());
+    public void resetQueuedRunById(final int jobQueuedRunId, final @Nullable Integer jobRunId) {
+        jobQueuedRunRepository.forceReset(jobQueuedRunId, QUEUED, jobRunId, Instant.now());
+    }
+
+    /**
+     * Marks a still-{@code QUEUED} row {@link JobRunQueueState#CANCELLED} because nothing can ever
+     * execute it (see {@code JobRunQueueService}), rather than deleting it. Returns whether a row
+     * was cancelled.
+     */
+    @Transactional
+    public boolean cancelUnclaimableQueuedRun(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.cancelQueuedRunById(jobQueuedRunId, Instant.now()) == 1;
+    }
+
+    /**
+     * Deletes {@code CANCELLED} rows belonging to no job in {@code knownJobIds} once older than
+     * {@code retainAfter} - the per-job sweep can never reach those.
+     */
+    @Transactional
+    public int deleteOldCancelledQueuedRunsForUnknownJobs(
+            final Collection<Integer> knownJobIds, final Instant retainAfter) {
+        // Job ids are positive; a sentinel keeps NOT IN valid when no jobs are known.
+        final var notIn = knownJobIds.isEmpty() ? Set.of(-1) : knownJobIds;
+        return jobQueuedRunRepository.deleteOldCancelledQueuedRunsForUnknownJobs(
+                notIn, retainAfter);
     }
 
     /**
@@ -922,7 +965,8 @@ public class JobDataService {
      */
     @Transactional
     public boolean deleteQueuedRunIfQueued(final int jobQueuedRunId) {
-        return jobQueuedRunRepository.deleteByJobQueuedRunIdAndQueueState(jobQueuedRunId, QUEUED)
+        return jobQueuedRunRepository.deleteByJobQueuedRunIdAndJobRunIdIsNullAndQueueState(
+                        jobQueuedRunId, QUEUED)
                 > 0;
     }
 
@@ -936,9 +980,11 @@ public class JobDataService {
         if (jobIds.isEmpty() || states.isEmpty()) {
             return 0;
         }
-        return jobQueuedRunRepository.deleteByJobIdInAndQueueStateIn(jobIds, states);
+        return jobQueuedRunRepository.deleteByJobIdInAndJobRunIdIsNullAndQueueStateIn(
+                jobIds, states);
     }
 
+    @Transactional(readOnly = true)
     public List<JobQueuedRun> findQueuedRunsByIds(final Collection<Integer> queueRunIds) {
         return jobQueuedRunRepository.findAllById(queueRunIds).stream()
                 .map(JobQueuedRunEntity::toJobQueuedRun)

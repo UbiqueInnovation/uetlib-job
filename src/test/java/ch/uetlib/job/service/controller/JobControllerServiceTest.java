@@ -30,7 +30,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -84,44 +83,6 @@ class JobControllerServiceTest {
         assertEquals(1, result.length());
         assertNotNull(result.oldest());
         assertNotNull(result.newest());
-        // Not RUNNING - a queued-but-unclaimed row has no heartbeat to judge, so no verdict either.
-        assertNull(result.elements().getFirst().heartbeatStale());
-    }
-
-    @Test
-    void getQueueInfoMarksARunningRowWithAStaleHeartbeatAsStale() {
-        when(jobService.getAllJobClassesWithId()).thenReturn(List.of(JOB));
-        when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
-        when(jobService.getProperties(JOB)).thenReturn(new JobProperties(List.of()));
-        final var run = runningQueuedRun(1, Instant.now().minus(Duration.ofHours(1)));
-        when(jobDataService.findQueuedRuns(any(), any(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(run), PageRequest.of(0, 10), 1));
-        when(jobDataService.findOldestQueuedRun()).thenReturn(Optional.empty());
-        when(jobDataService.findNewestQueuedRun()).thenReturn(Optional.empty());
-
-        final var result =
-                service.getQueueInfo(
-                        PageRequest.of(0, 10), List.of(), List.of(), List.of(), null, null);
-
-        assertEquals(Boolean.TRUE, result.elements().get(0).heartbeatStale());
-    }
-
-    @Test
-    void getQueueInfoMarksARunningRowWithAFreshHeartbeatAsNotStale() {
-        when(jobService.getAllJobClassesWithId()).thenReturn(List.of(JOB));
-        when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
-        when(jobService.getProperties(JOB)).thenReturn(new JobProperties(List.of()));
-        final var run = runningQueuedRun(1, Instant.now());
-        when(jobDataService.findQueuedRuns(any(), any(), any(), any()))
-                .thenReturn(new PageImpl<>(List.of(run), PageRequest.of(0, 10), 1));
-        when(jobDataService.findOldestQueuedRun()).thenReturn(Optional.empty());
-        when(jobDataService.findNewestQueuedRun()).thenReturn(Optional.empty());
-
-        final var result =
-                service.getQueueInfo(
-                        PageRequest.of(0, 10), List.of(), List.of(), List.of(), null, null);
-
-        assertEquals(Boolean.FALSE, result.elements().get(0).heartbeatStale());
     }
 
     @Test
@@ -363,24 +324,6 @@ class JobControllerServiceTest {
                 JobRunQueueState.QUEUED,
                 null,
                 null,
-                null,
-                now,
-                now,
-                Set.of(),
-                new JobRunArguments());
-    }
-
-    private static JobQueuedRun runningQueuedRun(final int id, final Instant lastHeartbeat) {
-        final var now = Instant.now();
-        return new JobQueuedRun(
-                id,
-                null,
-                JOB.id(),
-                "1.0.0",
-                JobRunQueueState.RUNNING,
-                id,
-                "runner",
-                lastHeartbeat,
                 now,
                 now,
                 Set.of(),

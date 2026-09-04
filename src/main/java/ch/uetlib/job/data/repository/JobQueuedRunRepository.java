@@ -28,6 +28,21 @@ public interface JobQueuedRunRepository
     List<JobQueuedRunEntity> findByJobIdAndQueueStateInOrderByCreatedAtAsc(
             int jobId, Collection<JobRunQueueState> queueStates);
 
+    /**
+     * Deletes only rows representing a fresh run - never a {@code BaseStateJob} continuation, whose
+     * run is already under way; deleting one strands that run in {@code SCHEDULED} with nothing to
+     * resume it. Callers must also exclude {@link JobRunQueueState#RUNNING}.
+     */
+    long deleteByJobIdInAndJobRunIdIsNullAndQueueStateIn(
+            Collection<Integer> jobIds, Collection<JobRunQueueState> states);
+
+    /**
+     * Deletes a single row only while it is still {@code state} <em>and</em> represents a fresh
+     * run, so an admin delete cannot strand an in-flight {@code BaseStateJob} continuation.
+     */
+    long deleteByJobQueuedRunIdAndJobRunIdIsNullAndQueueState(
+            int jobQueuedRunId, JobRunQueueState queueState);
+
     Optional<JobQueuedRunEntity> findByJobRunIdAndQueueState(
             int jobRunId, JobRunQueueState queueState);
 
@@ -66,7 +81,7 @@ public interface JobQueuedRunRepository
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :newState, j.runner = :runner, j.lastHeartbeat = :now
+                    SET j.queueState = :newState, j.runner = :runner, j.updatedAt = :now
                     WHERE j.jobQueuedRunId = :id AND j.queueState = :previousState
                     """)
     int setState(
@@ -76,22 +91,57 @@ public interface JobQueuedRunRepository
             String runner,
             Instant now);
 
+    /**
+     * Links a claimed row to its run and moves it to {@link JobRunQueueState#RUNNING}. Conditional,
+     * so it cannot resurrect a row that is no longer claimed.
+     */
     @Modifying(clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
-                    SET j.lastHeartbeat = :now
-                    WHERE j.jobRunId = :jobRunId AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING
+                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING,
+                        j.jobRunId = :jobRunId, j.updatedAt = :now
+                    WHERE j.jobQueuedRunId = :id
+                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CLAIMED
                     """)
-    void touchHeartbeatByJobRunId(int jobRunId, Instant now);
+    int linkRunAndMarkRunning(int id, int jobRunId, Instant now);
+
+    /**
+     * Re-queues the row of a run handing its processing phase to another runner (a {@code
+     * BaseStateJob} continuation): same row, same {@code jobRunId}, back to {@link
+     * JobRunQueueState#QUEUED} so a poller on the target runner can claim it.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(
+            """
+                    UPDATE JobQueuedRunEntity j
+                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED,
+                        j.runner = null, j.updatedAt = :now
+                    WHERE j.jobRunId = :jobRunId
+                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING
+                    """)
+    int requeueRunningRunForReprocessing(int jobRunId, Instant now);
+
+    /**
+     * Marks a single still-{@link JobRunQueueState#QUEUED} row {@link JobRunQueueState#CANCELLED},
+     * unconditionally - unlike the time-based {@link #expireStaleQueuedRunsForJob}.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(
+            """
+                    UPDATE JobQueuedRunEntity j
+                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
+                    WHERE j.jobQueuedRunId = :id
+                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+                    """)
+    int cancelQueuedRunById(int id, Instant now);
 
     @Modifying(clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :resetState, j.runner = null, j.lastHeartbeat = null, j.updatedAt = :now
-                    WHERE j.jobId = :jobId AND j.queueState = :staleState
-                      AND (j.lastHeartbeat IS NULL OR j.lastHeartbeat < :staleBefore)
+                    SET j.queueState = :resetState, j.runner = null, j.updatedAt = :now
+                    WHERE j.jobId IN :jobIds AND j.queueState = :staleState AND j.updatedAt < :staleBefore
                     """)
     int resetStaleClaimsForJob(
             int jobId,
@@ -101,12 +151,9 @@ public interface JobQueuedRunRepository
             Instant now);
 
     /**
-     * Marks every {@link JobRunQueueState#QUEUED} row of {@code jobId} as {@link
-     * JobRunQueueState#CANCELLED} - unclaimable (see {@code QUEUE_TIMEOUT}) - if its last activity
-     * (its {@code lastHeartbeat} if present, else its {@code updatedAt}) is before {@code
-     * staleBefore}. The same null-safe idiom as {@link #resetStaleClaimsForJob}: every existing
-     * reset path already clears {@code lastHeartbeat}, so in practice this is keyed on {@code
-     * updatedAt} for a row currently {@code QUEUED} - each claim/reset cycle restarts the clock, so
+     * Marks every {@link JobRunQueueState#QUEUED} row of {@code jobIds} as {@link
+     * JobRunQueueState#CANCELLED} - unclaimable (see {@code QUEUE_TIMEOUT}) - if its {@code
+     * updatedAt} is before {@code staleBefore}. Every claim/reset cycle bumps {@code updatedAt}, so
      * a row still being actively (if unsuccessfully) retried isn't cancelled out from under it.
      */
     @Modifying(clearAutomatically = true)
@@ -115,7 +162,6 @@ public interface JobQueuedRunRepository
                     UPDATE JobQueuedRunEntity j
                     SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
                     WHERE j.jobId = :jobId AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
-                      AND (j.lastHeartbeat IS NULL OR j.lastHeartbeat < :staleBefore)
                       AND j.updatedAt < :staleBefore
                     """)
     int expireStaleQueuedRunsForJob(int jobId, Instant staleBefore, Instant now);
@@ -129,20 +175,40 @@ public interface JobQueuedRunRepository
     @Query(
             """
                     DELETE FROM JobQueuedRunEntity j
-                    WHERE j.jobId = :jobId AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
+                    WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
                       AND j.updatedAt < :retainAfter
                     """)
     int deleteOldCancelledQueuedRunsForJob(int jobId, Instant retainAfter);
 
-    /** Unconditionally resets a single row - for defensive/internal use only. */
+    /**
+     * Deletes {@link JobRunQueueState#CANCELLED} rows past {@code retainAfter} whose job is not in
+     * {@code knownJobIds} - rows {@link #deleteOldCancelledQueuedRunsForJob} can never reach.
+     * {@code knownJobIds} must not be empty: an empty {@code NOT IN} list is invalid SQL.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query(
+            """
+                    DELETE FROM JobQueuedRunEntity j
+                    WHERE j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
+                      AND j.updatedAt < :retainAfter
+                      AND j.jobId NOT IN :knownJobIds
+                    """)
+    int deleteOldCancelledQueuedRunsForUnknownJobs(
+            Collection<Integer> knownJobIds, Instant retainAfter);
+
+    /**
+     * Unconditionally resets a single row - for defensive/internal use only. {@code jobRunId} is
+     * restored rather than cleared, so releasing a claim puts the row back as it was: {@code null}
+     * for a fresh run, the bound run for a {@code BaseStateJob} continuation.
+     */
     @Modifying(clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :newState, j.runner = null, j.lastHeartbeat = null, j.updatedAt = :now
+                    SET j.queueState = :newState, j.runner = null, j.jobRunId = :jobRunId, j.updatedAt = :now
                     WHERE j.jobQueuedRunId = :id
                     """)
-    void forceReset(int id, JobRunQueueState newState, Instant now);
+    void forceReset(int id, JobRunQueueState newState, @Nullable Integer jobRunId, Instant now);
 
     /**
      * Only ever updates a {@link JobRunQueueState#QUEUED} row's priority: once a row is claimed (or

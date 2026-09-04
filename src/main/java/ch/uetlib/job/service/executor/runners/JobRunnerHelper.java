@@ -4,7 +4,6 @@ import ch.uetlib.job.Job;
 import ch.uetlib.job.model.JobRunContext;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.service.executor.heartbeat.HeartbeatRegistry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -21,14 +20,11 @@ public final class JobRunnerHelper {
     private JobRunnerHelper() {}
 
     static void run(
-            final Job job,
-            final JobService jobService,
-            final HeartbeatRegistry heartbeatRegistry,
-            final JobRunContext initialContext) {
+            final Job job, final JobService jobService, final JobRunContext initialContext) {
         final var jobRunContext = prepareRun(jobService, initialContext);
         final var previousContextMap = MDC.getCopyOfContextMap();
         MDC.put("jobRunId", String.valueOf(jobRunContext.jobRun().id()));
-        runJob(job, jobRunContext, jobService, heartbeatRegistry);
+        runJob(job, jobRunContext, jobService);
         MDC.setContextMap(previousContextMap);
     }
 
@@ -43,11 +39,7 @@ public final class JobRunnerHelper {
     }
 
     static void runJob(
-            final Job job,
-            final JobRunContext jobRunContext,
-            final JobService jobService,
-            final HeartbeatRegistry heartbeatRegistry) {
-        final var heartbeat = heartbeatRegistry.start(jobService, jobRunContext);
+            final Job job, final JobRunContext jobRunContext, final JobService jobService) {
         try {
             logger.info(
                     "Running {} on {} with {}",
@@ -58,7 +50,6 @@ public final class JobRunnerHelper {
             logger.info(
                     "Job {} finished with state {}", job.getClass().getCanonicalName(), finalState);
             updateJobRunState(jobService, jobRunContext, finalState);
-            heartbeat.onLocalExecutionFinished(finalState);
         } catch (final Exception e) {
             final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
             final JobRunState exceptionState;
@@ -71,7 +62,6 @@ public final class JobRunnerHelper {
                 exceptionState = JobRunState.ERROR;
             }
             updateJobRunState(jobService, jobRunContext, exceptionState);
-            heartbeat.onLocalExecutionFinished(exceptionState);
         }
     }
 

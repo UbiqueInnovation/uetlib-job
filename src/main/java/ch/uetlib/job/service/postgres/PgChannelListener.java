@@ -177,7 +177,15 @@ class PgChannelListener {
             return;
         }
         logger.debug("{} received: {}", channel, payloads);
-        callback.accept(payloads);
+        try {
+            callback.accept(payloads);
+        } catch (final Exception e) {
+            logger.warn(
+                    "Error while processing notifications callback on channel {} (CB function: {})",
+                    channel,
+                    callback,
+                    e);
+        }
     }
 
     private void markInteraction() {

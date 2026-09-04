@@ -120,6 +120,24 @@ public class JobService {
     }
 
     /**
+     * The effective value of {@code definition} for every registered job, keyed by job id. The
+     * pollers and watchers read their per-job settings through this, each caching it briefly so a
+     * live property change is picked up without a restart.
+     */
+    public <T> Map<Integer, T> propertyValueByJobId(final JobPropertyDefinition<T> definition) {
+        return jobClassesById.entrySet().stream()
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry ->
+                                        getJobProperties(
+                                                        entry.getKey(),
+                                                        instantiateJob(entry.getValue()))
+                                                .get(definition)
+                                                .valueNonNull()));
+    }
+
+    /**
      * This method computes the effective job properties for a given job and works as following:
      * <li>If the job has fixed properties -> return them
      * <li>Otherwise: for each job property definition
@@ -280,23 +298,6 @@ public class JobService {
                 job.id(), jobRun.versionTag(), arguments, taints, jobRun.id(), processingRunnerKey);
     }
 
-    /**
-     * Proves a job run is still live. Called automatically every tick by {@code RunHeartbeat} while
-     * {@code job.run(...)} is executing, based on the worker thread's own CPU progress - so most
-     * jobs never need to call this themselves.
-     *
-     * <p>One case does need to: a job that fans work out to its own child threads (e.g. a bunch of
-     * virtual threads, each doing a long-running sub-task) and then has its main thread just wait -
-     * {@code Future#get}, {@code invokeAll}, a {@code StructuredTaskScope} join - makes no CPU
-     * progress on the main thread for the whole wait, even though the job as a whole is working
-     * fine. The automatic check-in has no visibility into those child threads, so such a job should
-     * call this itself (e.g. once per completed sub-task) to keep its heartbeat honest during that
-     * time.
-     */
-    public void touchRunningHeartbeat(final int jobRunId) {
-        jobDataService.touchQueuedRunHeartbeatByJobRunId(jobRunId);
-    }
-
     public JobRun startJobRun(final JobRun jobRun, final Instant startedAt) {
         return jobDataService.startJobRun(jobRun.id(), startedAt);
     }
@@ -392,13 +393,19 @@ public class JobService {
         return jobDataService.claimQueuedRun(jobQueuedRun, runnerInstanceName);
     }
 
-    public void setRunId(final JobQueuedRun jobQueuedRun, final int runId) {
-        jobDataService.setRunId(jobQueuedRun, runId);
+    /** Links a claimed queue row to its run and marks it {@code RUNNING}. */
+    public boolean setRunId(final JobQueuedRun jobQueuedRun, final int runId) {
+        return jobDataService.setRunId(jobQueuedRun, runId);
     }
 
     /** Releases a claim back to {@code QUEUED} - e.g. after a claimed run failed to schedule. */
     public void releaseQueuedRun(final JobQueuedRun jobQueuedRun) {
-        jobDataService.resetQueuedRunById(jobQueuedRun.jobQueuedRunId());
+        jobDataService.resetQueuedRunById(jobQueuedRun.jobQueuedRunId(), jobQueuedRun.jobRunId());
+    }
+
+    /** Gives up on a queued row nothing can ever execute, marking it {@code CANCELLED}. */
+    public boolean cancelUnclaimableQueuedRun(final JobQueuedRun jobQueuedRun) {
+        return jobDataService.cancelUnclaimableQueuedRun(jobQueuedRun.jobQueuedRunId());
     }
 
     public boolean hasRunner(final JobRunnerKey jobRunnerKey) {

@@ -3,9 +3,7 @@ package ch.uetlib.job.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.uetlib.job.Job;
-import ch.uetlib.job.cleanup.CleanupJob;
 import ch.uetlib.job.data.BaseJobDatabaseTest;
-import ch.uetlib.job.health.HealthCheckJob;
 import ch.uetlib.job.storage.JobRunStorage;
 import ch.uetlib.job.testjob.ProfileDisabledTestJob;
 import ch.uetlib.job.testjob.ProfileEnabledTestJob;
@@ -38,12 +36,6 @@ class JobServiceDatabaseTest extends BaseJobDatabaseTest {
                         .map(Job::getClass)
                         .collect(Collectors.toUnmodifiableSet());
         assertFalse(allInstantiatedJobClasses.contains(ProfileDisabledTestJob.class));
-        assertEquals(
-                Set.of(
-                        TestJob.class,
-                        ProfileEnabledTestJob.class,
-                        CleanupJob.class,
-                        HealthCheckJob.class),
-                allInstantiatedJobClasses);
+        assertEquals(Set.of(TestJob.class, ProfileEnabledTestJob.class), allInstantiatedJobClasses);
     }
 }

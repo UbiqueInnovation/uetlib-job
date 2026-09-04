@@ -36,7 +36,7 @@ import java.util.*;
 @RestController
 @Validated
 @ValidateResponse
-@Profile("!job-run")
+@Profile("!job-run & job-primary-triggers")
 @RequestMapping(value = "/v1/status", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin(
         value = {

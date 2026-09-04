@@ -135,12 +135,13 @@ CREATE TABLE t_job_run_queue
 
     fk_job_run_id       INTEGER REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE,
     runner              TEXT,
-    heartbeat_at        TIMESTAMPTZ,
 
     taints              JSONB       NOT NULL,
     job_run_arguments   JSONB       NOT NULL
 );
 CREATE INDEX idx_job_run_queue_job_id ON t_job_run_queue (fk_job_id);
+CREATE INDEX idx_job_run_queue_state ON t_job_run_queue (queue_state);
+CREATE INDEX idx_job_run_queue_job_run_id ON t_job_run_queue (fk_job_run_id);
 
 CREATE OR REPLACE FUNCTION notify_on_job_run_queue_insert()
     RETURNS trigger

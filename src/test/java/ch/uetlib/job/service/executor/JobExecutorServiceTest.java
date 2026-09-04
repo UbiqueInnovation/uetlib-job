@@ -196,7 +196,6 @@ class JobExecutorServiceTest {
                 "test-instance",
                 now,
                 now,
-                now,
                 Set.of(),
                 new JobRunArguments(forceRun));
     }

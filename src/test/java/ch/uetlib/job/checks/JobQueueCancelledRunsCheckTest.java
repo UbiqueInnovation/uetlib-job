@@ -78,7 +78,6 @@ class JobQueueCancelledRunsCheckTest {
                 JobRunQueueState.CANCELLED,
                 null,
                 null,
-                null,
                 now,
                 now,
                 Set.of(),

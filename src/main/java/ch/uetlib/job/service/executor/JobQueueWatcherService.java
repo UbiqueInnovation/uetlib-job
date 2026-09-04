@@ -2,20 +2,14 @@ package ch.uetlib.job.service.executor;
 
 import static ch.uetlib.job.model.properties.JobPropertyDefinitions.CANCELLED_QUEUE_RETENTION;
 import static ch.uetlib.job.model.properties.JobPropertyDefinitions.CLAIM_TIMEOUT;
-import static ch.uetlib.job.model.properties.JobPropertyDefinitions.HEARTBEAT_TIMEOUT;
 import static ch.uetlib.job.model.properties.JobPropertyDefinitions.QUEUE_TIMEOUT;
-
-import static java.util.Objects.requireNonNull;
 
 import ch.uetlib.core.utils.MapCollectors;
 import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.model.JobQueuedRun;
-import ch.uetlib.job.model.JobRun;
-import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.service.executor.heartbeat.HeartbeatRegistry;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -28,7 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Keeps {@code t_job_run_queue} honest once a row has been claimed - or never gets claimed at all:
@@ -37,20 +31,16 @@ import java.util.stream.Collectors;
  *   <li>a row stuck in {@link JobRunQueueState#CLAIMED} (the claiming instance died before ever
  *       submitting, so it never reached {@link JobRunQueueState#RUNNING}) is reset back to {@link
  *       JobRunQueueState#QUEUED} for another instance to retry
- *   <li>a {@link JobRunQueueState#RUNNING} row whose linked job run has actually finished is
- *       removed; one whose heartbeat has gone stale - the executing runner (see {@code
- *       JobRunnerHelper}) is no longer proving itself alive - is treated as abandoned: the job run
- *       is marked {@link JobRunState#UNFINISHED} (cause unknown from here) and the row is removed
+ *   <li>a {@link JobRunQueueState#RUNNING} row whose linked job run has actually finished (or
+ *       vanished) is removed - the only path that deletes a {@code RUNNING} queue row
  *   <li>a {@link JobRunQueueState#QUEUED} row with no activity for too long - e.g. nothing
  *       currently running matches its version or taints - is marked {@link
  *       JobRunQueueState#CANCELLED} rather than left queued forever; a {@code CANCELLED} row is in
- *       turn purged once it's been sitting past its own retention (see {@link
- *       #expireUnclaimableQueuedRuns} / {@link #deleteOldCancelledQueuedRuns})
+ *       turn purged once it's been sitting past its own retention
  * </ul>
  *
- * Deliberately does not duplicate max-duration-based timeout detection - that's already handled at
- * the job run level (e.g. {@code JobTimeoutWatcher}). This is a liveness check: it fires regardless
- * of configured duration limits, as soon as the runner stops proving it's alive.
+ * Liveness of a still-running job (its runner died or is stuck) is not tracked here - {@code
+ * JobStateWatcher} covers that at the job-run level.
  */
 @Service
 @Profile("!job-run")
@@ -60,24 +50,16 @@ public class JobQueueWatcherService {
 
     private final JobService jobService;
     private final JobDataService jobDataService;
-    private final HeartbeatRegistry heartbeatRegistry;
 
     private final SingleCache<Map<Integer, Duration>> jobClaimTimeoutCache;
-    private final SingleCache<Map<Integer, Duration>> jobHeartbeatTimeoutCache;
     private final SingleCache<Map<Integer, Duration>> jobQueueTimeoutCache;
     private final SingleCache<Map<Integer, Duration>> jobCancelledQueueRetentionCache;
 
     public JobQueueWatcherService(
-            final JobService jobService,
-            final JobDataService jobDataService,
-            final HeartbeatRegistry heartbeatRegistry) {
+            final JobService jobService, final JobDataService jobDataService) {
         this.jobService = jobService;
         this.jobDataService = jobDataService;
-        this.heartbeatRegistry = heartbeatRegistry;
         this.jobClaimTimeoutCache =
-                new SingleCache<>(
-                        Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
-        this.jobHeartbeatTimeoutCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
         this.jobQueueTimeoutCache =
@@ -95,42 +77,7 @@ public class JobQueueWatcherService {
      * requiring a restart.
      */
     private Map<Integer, Duration> jobClaimTimeout() {
-        return jobClaimTimeoutCache.get(
-                () ->
-                        jobService.getAllJobs().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                job ->
-                                                        jobService
-                                                                .findJobId(job.getClass())
-                                                                .orElseThrow(),
-                                                job ->
-                                                        jobService
-                                                                .getProperties(job)
-                                                                .get(CLAIM_TIMEOUT)
-                                                                .valueNonNull())));
-    }
-
-    /**
-     * Per-job {@link
-     * ch.uetlib.job.model.properties.JobPropertyDefinitions#HEARTBEAT_TIMEOUT} overrides,
-     * cached the same way as {@link #jobClaimTimeout()}.
-     */
-    private Map<Integer, Duration> jobHeartbeatTimeout() {
-        return jobHeartbeatTimeoutCache.get(
-                () ->
-                        jobService.getAllJobs().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                job ->
-                                                        jobService
-                                                                .findJobId(job.getClass())
-                                                                .orElseThrow(),
-                                                job ->
-                                                        jobService
-                                                                .getProperties(job)
-                                                                .get(HEARTBEAT_TIMEOUT)
-                                                                .valueNonNull())));
+        return jobClaimTimeoutCache.get(() -> jobService.propertyValueByJobId(CLAIM_TIMEOUT));
     }
 
     /**
@@ -138,20 +85,7 @@ public class JobQueueWatcherService {
      * overrides, cached the same way as {@link #jobClaimTimeout()}.
      */
     private Map<Integer, Duration> jobQueueTimeout() {
-        return jobQueueTimeoutCache.get(
-                () ->
-                        jobService.getAllJobs().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                job ->
-                                                        jobService
-                                                                .findJobId(job.getClass())
-                                                                .orElseThrow(),
-                                                job ->
-                                                        jobService
-                                                                .getProperties(job)
-                                                                .get(QUEUE_TIMEOUT)
-                                                                .valueNonNull())));
+        return jobQueueTimeoutCache.get(() -> jobService.propertyValueByJobId(QUEUE_TIMEOUT));
     }
 
     /**
@@ -161,19 +95,7 @@ public class JobQueueWatcherService {
      */
     private Map<Integer, Duration> jobCancelledQueueRetention() {
         return jobCancelledQueueRetentionCache.get(
-                () ->
-                        jobService.getAllJobs().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                job ->
-                                                        jobService
-                                                                .findJobId(job.getClass())
-                                                                .orElseThrow(),
-                                                job ->
-                                                        jobService
-                                                                .getProperties(job)
-                                                                .get(CANCELLED_QUEUE_RETENTION)
-                                                                .valueNonNull())));
+                () -> jobService.propertyValueByJobId(CANCELLED_QUEUE_RETENTION));
     }
 
     @Scheduled(cron = "${ch.uetlib.job.runner.reset-abandoned-claims.cron:14/15 * * * * ?}")
@@ -201,52 +123,18 @@ public class JobQueueWatcherService {
             logger.warn(
                     "Queued run {} is RUNNING without a linked job run; resetting to queued.",
                     queuedRun.jobQueuedRunId());
-            jobDataService.resetQueuedRunById(queuedRun.jobQueuedRunId());
+            jobDataService.resetQueuedRunById(queuedRun.jobQueuedRunId(), null);
             return;
         }
 
-        final var jobRun = jobDataService.findJobRunById(jobRunId);
-        if (jobRun.isEmpty() || !jobRun.get().latestState().isRunning()) {
-            // Its own runner should already have stopped this locally (see JobRunnerHelper), but
-            // stop it here too in case something else caused the run to finish without that path
-            // ever firing - e.g. its state was changed directly (KubernetesJobWatcher) while a
-            // stuck-but-alive worker thread's own heartbeat never noticed on its own.
-            heartbeatRegistry.stop(jobRunId);
+        final var jobRun = runsById.get(jobRunId);
+        if (jobRun == null || !jobRun.latestState().isRunning()) {
+            // The linked run has finished (or vanished); its RUNNING queue row is now stale.
+            // Nothing deletes a RUNNING row on completion - not its own runner, not whatever
+            // finished the run out of band (JobStateWatcher, KubernetesJobWatcher, a manual
+            // cancel) - so this is where it gets cleaned up.
             jobDataService.deleteQueuedRunById(queuedRun.jobQueuedRunId());
-            return;
         }
-
-        if (isHeartbeatStale(queuedRun)) {
-            abandon(queuedRun, jobRun.get());
-        }
-    }
-
-    private boolean isHeartbeatStale(final JobQueuedRun queuedRun) {
-        final var timeout = requireNonNull(jobHeartbeatTimeout().get(queuedRun.jobId()));
-        return queuedRun.isHeartbeatStale(timeout, Instant.now());
-    }
-
-    /**
-     * {@link #reconcileRunningQueuedRuns} runs on every {@code !job-run} instance without regard to
-     * which one is recorded as {@link JobQueuedRun#runner()} - it may well be this same instance
-     * reconciling its own stuck job. Either way, this only has a stale heartbeat to go on, not the
-     * actual cause (dead runner, stuck runner, network partition, ...), so it uses {@link
-     * JobRunState#UNFINISHED} rather than {@link JobRunState#ERROR} or {@link
-     * JobRunState#CANCELLED}, both of which would imply a known cause.
-     */
-    private void abandon(final JobQueuedRun queuedRun, final JobRun jobRun) {
-        logger.warn(
-                "Queued run {} has a stale heartbeat; its runner appears to be dead or stuck."
-                        + " Marking job run {} as unfinished.",
-                queuedRun,
-                jobRun);
-        jobService.updateJobRunState(jobRun, JobRunState.UNFINISHED, Instant.now());
-        jobDataService.deleteQueuedRunById(queuedRun.jobQueuedRunId());
-        // Closes the one gap a stale-heartbeat-only check can't: a worker thread that's alive but
-        // truly stuck (e.g. a permanent deadlock) never dies, so its own ThreadProgressCheckIn
-        // would
-        // otherwise keep ticking here forever even after this instance itself gave up on it.
-        heartbeatRegistry.stop(jobRun.id());
     }
 
     /**
@@ -281,6 +169,18 @@ public class JobQueueWatcherService {
         final var deleted = jobDataService.deleteOldCancelledQueuedRuns(retainAfterByJobId);
         if (deleted > 0) {
             logger.info("Deleted {} cancelled queued run(s) past their retention.", deleted);
+        }
+        // The sweep above cannot reach a row whose job this build doesn't know; those get the
+        // property's default retention, there being no job to read an override from.
+        final var orphansDeleted =
+                jobDataService.deleteOldCancelledQueuedRunsForUnknownJobs(
+                        retainAfterByJobId.keySet(),
+                        Instant.now()
+                                .minus(CANCELLED_QUEUE_RETENTION.defaultValue().orElseThrow()));
+        if (orphansDeleted > 0) {
+            logger.info(
+                    "Deleted {} cancelled queued run(s) of unknown jobs past the default retention.",
+                    orphansDeleted);
         }
     }
 }

@@ -6,7 +6,6 @@ import ch.uetlib.job.model.JobRunContext;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.service.executor.heartbeat.HeartbeatRegistry;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -29,12 +28,9 @@ public final class DedicatedJobRunner implements JobRunner {
     private final ExecutorService executorService;
 
     private final JobService jobService;
-    private final HeartbeatRegistry heartbeatRegistry;
 
-    public DedicatedJobRunner(
-            final JobService jobService, final HeartbeatRegistry heartbeatRegistry) {
+    public DedicatedJobRunner(final JobService jobService) {
         this.jobService = jobService;
-        this.heartbeatRegistry = heartbeatRegistry;
         final var threadFactory =
                 new ThreadFactoryBuilder().setNameFormat("dedicated-job-runner").build();
         this.executorService = Executors.newSingleThreadExecutor(threadFactory);
@@ -52,11 +48,7 @@ public final class DedicatedJobRunner implements JobRunner {
             return false;
         }
         activeJobRun = jobRunContext.jobRun();
-        future =
-                executorService.submit(
-                        () ->
-                                JobRunnerHelper.run(
-                                        job, jobService, heartbeatRegistry, jobRunContext));
+        future = executorService.submit(() -> JobRunnerHelper.run(job, jobService, jobRunContext));
         return true;
     }
 

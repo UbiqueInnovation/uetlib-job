@@ -6,6 +6,7 @@ import ch.uetlib.job.data.BaseJobDatabaseTest;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
+import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 
@@ -334,6 +335,86 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
+    void queueNewRunNeverDeletesAClaimedRowWhenDedupingToTheLatest() {
+        // A claimed row is already being submitted; deleting it would orphan its job run.
+        final var claimed = queueOne();
+        jobDataService.claimQueuedRun(claimed, "runner-a");
+
+        final var newlyQueued =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.REPLACE_RUN);
+
+        final var claimedRow =
+                allQueueRowsForJob().stream()
+                        .filter(r -> r.jobQueuedRunId() == claimed.jobQueuedRunId())
+                        .findFirst();
+        assertTrue(claimedRow.isPresent(), "the claimed row must survive a REPLACE_RUN enqueue");
+        assertEquals(JobRunQueueState.CLAIMED, claimedRow.orElseThrow().queueState());
+        assertEquals(
+                JobRunQueueState.QUEUED,
+                findInQueue(newlyQueued.jobQueuedRunId()).orElseThrow().queueState(),
+                "the new run queues behind the claimed one");
+    }
+
+    @Test
+    void setRunIdOnlyEverLinksAClaimedRow() {
+        final var stillQueued = queueOne();
+
+        assertFalse(jobDataService.setRunId(stillQueued, EXISTING_JOB_RUN_ID));
+        assertEquals(
+                JobRunQueueState.QUEUED,
+                findInQueue(stillQueued.jobQueuedRunId()).orElseThrow().queueState());
+    }
+
+    @Test
+    void queueReprocessingRunReQueuesTheRunsOwnRowRatherThanAddingASecondOne() {
+        // The handoff must send the run's own RUNNING row back to QUEUED, still bound to it.
+        // Inserting a second row - or bailing out because one exists, as it used to - leaves the
+        // run stuck in SCHEDULED with nothing to resume it.
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        final var reprocessing =
+                jobDataService.queueReprocessingRun(
+                        TEST_JOB_ID,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        EXISTING_JOB_RUN_ID,
+                        JobRunnerKey.DEDICATED_K8S_JOB);
+
+        assertEquals(
+                runningRunId, reprocessing.jobQueuedRunId(), "the run keeps its one queue row");
+        assertEquals(JobRunQueueState.QUEUED, reprocessing.queueState());
+        assertEquals(EXISTING_JOB_RUN_ID, reprocessing.jobRunId());
+        assertEquals(
+                1,
+                allQueueRowsForJob().size(),
+                "the handoff must not leave a second row behind for the same run");
+    }
+
+    @Test
+    void queueReprocessingRunInsertsARowForARunThatHasNoQueueRowAtAll() {
+        // A run started outside the queue - a standalone --job CLI process - has no row to
+        // re-queue.
+        final var reprocessing =
+                jobDataService.queueReprocessingRun(
+                        TEST_JOB_ID,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        EXISTING_JOB_RUN_ID,
+                        JobRunnerKey.DEDICATED_K8S_JOB);
+
+        assertEquals(JobRunQueueState.QUEUED, reprocessing.queueState());
+        assertEquals(EXISTING_JOB_RUN_ID, reprocessing.jobRunId());
+    }
+
+    @Test
     void queueNewRunKeepsAnExistingWaitingRowWhenMultipleWaitingRunsAreAllowed() {
         final var previouslyQueued = queueOne();
 
@@ -416,8 +497,8 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         final var run = queueOne();
         jobDataService.claimQueuedRun(run, "runner-a");
 
-        // The heartbeat was just set to Instant.now() by claimQueuedRun, so a staleBefore in the
-        // future makes it "stale" without needing to fabricate an old heartbeat timestamp.
+        // updatedAt was just set to Instant.now() by claimQueuedRun, so a staleBefore in the
+        // future makes it "stale" without needing to fabricate an old timestamp.
         final var reset =
                 jobDataService.resetStaleClaims(Map.of(TEST_JOB_ID, Instant.now().plusSeconds(60)));
 
@@ -587,6 +668,81 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
 
     /** An existing {@code t_job_run} row from the fixtures, valid as {@code fk_job_run_id}. */
     private static final int EXISTING_JOB_RUN_ID = 2;
+
+    @Test
+    void replaceRunNeverDeletesAHandoffContinuation() {
+        // The regression this guards: a continuation is QUEUED but bound to a run that is already
+        // under way. Deleting it strands that run in SCHEDULED with nothing to resume it.
+        final var continuation = queueHandoffContinuation();
+
+        jobDataService.queueNewRun(
+                TEST_JOB_ID,
+                null,
+                "1.0.0",
+                new JobRunArguments(),
+                Set.of(),
+                JobQueueBehavior.REPLACE_RUN);
+
+        assertTrue(
+                findInQueue(continuation.jobQueuedRunId()).isPresent(),
+                "the continuation of an in-flight run must survive a REPLACE_RUN enqueue");
+        assertEquals(2, allQueueRowsForJob().size(), "the new run queues alongside it");
+    }
+
+    @Test
+    void discardNewIsNotBlockedByAHandoffContinuation() {
+        // A continuation is not a run waiting to start, so it must not stand in for one: the new
+        // request would otherwise be silently dropped and the caller handed someone else's run.
+        final var continuation = queueHandoffContinuation();
+
+        final var queued =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID,
+                        null,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.DISCARD_NEW);
+
+        assertNotEquals(continuation.jobQueuedRunId(), queued.jobQueuedRunId());
+        assertNull(queued.jobRunId(), "a genuinely new run was queued, not the continuation");
+    }
+
+    @Test
+    void deleteQueuedRunIfQueuedNeverDeletesAHandoffContinuation() {
+        final var continuation = queueHandoffContinuation();
+
+        assertFalse(jobDataService.deleteQueuedRunIfQueued(continuation.jobQueuedRunId()));
+        assertTrue(findInQueue(continuation.jobQueuedRunId()).isPresent());
+    }
+
+    @Test
+    void bulkDeleteQueuedRunsNeverDeletesAHandoffContinuation() {
+        final var continuation = queueHandoffContinuation();
+        final var fresh = queueOne();
+
+        final var removed =
+                jobDataService.deleteQueuedRuns(
+                        List.of(TEST_JOB_ID), Set.of(JobRunQueueState.QUEUED));
+
+        assertEquals(1, removed, "only the fresh run is removable");
+        assertTrue(findInQueue(fresh.jobQueuedRunId()).isEmpty());
+        assertTrue(findInQueue(continuation.jobQueuedRunId()).isPresent());
+    }
+
+    /**
+     * A run dispatched through the queue that then handed its processing phase to another runner.
+     */
+    private JobQueuedRun queueHandoffContinuation() {
+        queueClaimAndRunToRunning();
+        return jobDataService.queueReprocessingRun(
+                TEST_JOB_ID,
+                "1.0.0",
+                new JobRunArguments(),
+                Set.of(),
+                EXISTING_JOB_RUN_ID,
+                JobRunnerKey.DEDICATED_K8S_JOB);
+    }
 
     private JobQueuedRun queueOne() {
         return jobDataService.queueNewRun(
