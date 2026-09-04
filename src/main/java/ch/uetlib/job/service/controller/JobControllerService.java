@@ -7,12 +7,15 @@ import ch.uetlib.job.Job;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
 import ch.uetlib.job.model.JobClassAndId;
+import ch.uetlib.job.model.JobInstance;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.client.JobInfo;
 import ch.uetlib.job.model.client.JobInfosContainer;
+import ch.uetlib.job.model.client.JobInstanceInfo;
+import ch.uetlib.job.model.client.JobInstanceInfosContainer;
 import ch.uetlib.job.model.client.JobPropertyInfo;
 import ch.uetlib.job.model.client.JobQueueEntryInfo;
 import ch.uetlib.job.model.client.JobQueueInfosContainer;
@@ -28,6 +31,7 @@ import ch.uetlib.job.model.properties.JobProperty;
 import ch.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.uetlib.job.model.properties.enums.JobManualTriggerMode;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.queue.QueueNewRunResult;
 import ch.uetlib.job.model.response.SuccessResponse;
 import ch.uetlib.job.model.response.files.JobRunFileListResponse;
 import ch.uetlib.job.model.triggers.Trigger;
@@ -36,6 +40,7 @@ import ch.uetlib.job.service.executor.JobManualTriggerService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 import ch.uetlib.job.service.inputs.JobRunInputProvider;
+import ch.uetlib.job.service.instance.JobInstanceRegistrationService;
 import ch.uetlib.job.service.logs.LogService;
 import ch.uetlib.job.service.triggers.CronTriggerService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
@@ -60,6 +65,7 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +90,7 @@ public class JobControllerService {
     private final LogService logService;
 
     private final JobRunnerInfoService jobRunnerInfoService;
+    private final JobInstanceRegistrationService jobInstanceRegistrationService;
 
     public JobControllerService(
             final JobDataService jobDataService,
@@ -93,7 +100,8 @@ public class JobControllerService {
             final JobManualTriggerService jobManualTriggerService,
             final JobRunInputManager jobRunInputManager,
             final LogService logService,
-            final JobRunnerInfoService jobRunnerInfoService) {
+            final JobRunnerInfoService jobRunnerInfoService,
+            final JobInstanceRegistrationService jobInstanceRegistrationService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.cronTriggerService = cronTriggerService;
@@ -102,6 +110,7 @@ public class JobControllerService {
         this.jobRunInputManager = jobRunInputManager;
         this.logService = logService;
         this.jobRunnerInfoService = jobRunnerInfoService;
+        this.jobInstanceRegistrationService = jobInstanceRegistrationService;
     }
 
     private static List<JobProperty<? extends Object>> getPropertiesFromMap(
@@ -249,9 +258,8 @@ public class JobControllerService {
     }
 
     /**
-     * Only a still-{@code QUEUED} row can be deleted this way - once claimed, a runner already has
-     * it, so deleting the queue row would just orphan its (likely already-dispatched) job run
-     * rather than stopping it. Cancel that job run instead ({@link #cancelJobRun}).
+     * Only a still-{@code QUEUED} row can be deleted; for a claimed one, cancel its job run
+     * instead.
      */
     public SuccessResponse deleteQueuedRun(final int jobQueuedRunId) {
         final var deleted = jobDataService.deleteQueuedRunIfQueued(jobQueuedRunId);
@@ -263,13 +271,15 @@ public class JobControllerService {
     }
 
     /**
-     * {@code null} clears the override, falling back to the job's own default priority. Only a
-     * still-{@code QUEUED} row can be reordered - once claimed (or running), a runner already has
-     * it, so reordering it is meaningless.
+     * Without a {@code priority}, the row goes back to its job's current {@code PRIORITY}; only
+     * still-{@code QUEUED} rows can be reordered.
      */
     public SuccessResponse updateQueuedRunPriority(
             final int jobQueuedRunId, final @Nullable Integer priority) {
-        final var updated = jobDataService.updateQueuedRunPriority(jobQueuedRunId, priority);
+        final var updated =
+                jobDataService.updateQueuedRunPriority(
+                        jobQueuedRunId,
+                        priority != null ? priority : jobPriorityOf(jobQueuedRunId));
         if (updated) {
             return new SuccessResponse(true, "Priority updated.");
         }
@@ -277,10 +287,22 @@ public class JobControllerService {
                 false, "Queued run not found, already claimed, or currently running.");
     }
 
+    /** The current {@code PRIORITY} of the queued run's job, if the row and job still exist. */
+    private @Nullable Integer jobPriorityOf(final int jobQueuedRunId) {
+        return jobDataService.findQueuedRunsByIds(List.of(jobQueuedRunId)).stream()
+                .findFirst()
+                .flatMap(run -> jobService.findJobById(run.jobId()))
+                .flatMap(
+                        job ->
+                                jobService
+                                        .getProperties(job)
+                                        .get(JobPropertyDefinitions.PRIORITY)
+                                        .valueMaybe())
+                .orElse(null);
+    }
+
     /**
-     * Acknowledges (deletes) a single {@link JobRunQueueState#CANCELLED} queue row - a run that was
-     * never picked up (see {@code QUEUE_TIMEOUT}), not a {@code JobRun} that was cancelled while
-     * running. Distinct from {@link #acknowledgeJobRun}.
+     * Deletes a {@link JobRunQueueState#CANCELLED} queue row, i.e. a run that was never picked up.
      */
     public SuccessResponse acknowledgeQueuedRun(final int jobQueuedRunId) {
         final var acknowledged = jobDataService.acknowledgeQueuedRun(jobQueuedRunId);
@@ -298,11 +320,8 @@ public class JobControllerService {
     }
 
     /**
-     * Deletes queued runs matching the given job and state filters, grouped implicitly by (job,
-     * state). Only {@link JobRunQueueState#QUEUED} rows are ever removable, even if {@link
-     * JobRunQueueState#CLAIMED}/{@link JobRunQueueState#RUNNING} are explicitly requested - a
-     * claimed row's runner already has it (and likely already has a linked job run), so deleting
-     * the queue row would just orphan that run rather than stopping it. Cancel the job run instead.
+     * Deletes matching queued runs; only {@code QUEUED} rows are ever removed, whatever states are
+     * requested.
      */
     public SuccessResponse deleteQueuedRuns(
             final Collection<String> includeJobNamesOrIds,
@@ -337,7 +356,7 @@ public class JobControllerService {
         return jobNamesOrIds.stream().map(this::getJobId).filter(Objects::nonNull).toList();
     }
 
-    public JobQueuedRun startJobManual(final String jobIdOrClassName, final boolean forceRun)
+    public QueueNewRunResult startJobManual(final String jobIdOrClassName, final boolean forceRun)
             throws ManualTriggerNotAllowedException {
         final var jobClass = getJobClass(jobIdOrClassName);
         final var jobInstance = jobService.instantiateJob(jobClass);
@@ -359,18 +378,18 @@ public class JobControllerService {
                             "Job %s does not allow manual execution: %s",
                             jobClass, manualTriggerMode));
         }
-        return jobService.queueNewRun(
+        return jobService.tryQueueNewRun(
                 jobService.jobClassAndIdOrThrow(jobClass), new JobRunArguments(forceRun));
     }
 
-    public void replayJobRun(final String jobIdOrClassName)
+    public QueueNewRunResult replayJobRun(final String jobIdOrClassName)
             throws ManualTriggerNotAllowedException {
         final var jobClass = jobService.getJobClassOrThrow(jobIdOrClassName);
         final var lastJobRun = jobService.getLastJobRun(jobService.findJobIdOrThrow(jobClass));
-        replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
+        return replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
     }
 
-    public void replayJobRun(final String jobIdOrClassName, final int jobRunId)
+    public QueueNewRunResult replayJobRun(final String jobIdOrClassName, final int jobRunId)
             throws ManualTriggerNotAllowedException {
         final var jobRun = jobService.getJobRun(jobRunId);
         final var job = jobService.findJobById(jobRun.jobId()).orElseThrow();
@@ -392,7 +411,7 @@ public class JobControllerService {
             throw new ManualTriggerNotAllowedException(
                     String.format("Job %s does not allow replay execution", jobClass));
         }
-        jobManualTriggerService.replayJobRun(jobRunId);
+        return jobManualTriggerService.replayJobRun(jobRunId);
     }
 
     public void startAllJobs(final boolean forceRun) {
@@ -535,6 +554,21 @@ public class JobControllerService {
                 new JobSystemInfo(
                         new JobSystemCronInfo(cronTriggerService.getDefaultZoneId()),
                         jobRunnerInfoService.getRunnerGroupsInfo()));
+    }
+
+    /** The live instances: the primary lease holder first, then newest first. */
+    public JobInstanceInfosContainer getInstances() {
+        return new JobInstanceInfosContainer(
+                jobInstanceRegistrationService.liveInstances().stream()
+                        .sorted(
+                                Comparator.comparing(
+                                                JobInstance::holdsPrimaryLease,
+                                                Comparator.reverseOrder())
+                                        .thenComparing(
+                                                JobInstance::startedAt, Comparator.reverseOrder())
+                                        .thenComparing(JobInstance::instanceName))
+                        .map(JobInstanceInfo::from)
+                        .toList());
     }
 
     private Job getJobInstance(final String jobIdOrClassName) {

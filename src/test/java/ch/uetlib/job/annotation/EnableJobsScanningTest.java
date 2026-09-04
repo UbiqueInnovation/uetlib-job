@@ -13,10 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Set;
 
 /**
- * {@link EnableJobs} does <em>not</em> scan this library's own packages unless a project asks for
- * them, so {@link CleanupJob}/{@link HealthCheckJob} are opt-in. Asserts both directions against
- * {@link RegisteredJobDefinitions}, the bean the registrar builds from the scan - no database
- * needed, unlike {@code JobServiceDatabaseTest}.
+ * {@link EnableJobs} scans the library's own jobs only when asked; checked against {@link
+ * RegisteredJobDefinitions}.
  */
 class EnableJobsScanningTest {
 

@@ -10,7 +10,6 @@ import ch.uetlib.job.model.runner.JobApplicationExitStatus;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.executor.JobExecutorService;
-import ch.uetlib.job.service.executor.JobRunQueueService;
 import ch.uetlib.job.service.executor.runners.DedicatedJobRunner;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
 
@@ -102,8 +101,6 @@ public final class JobApplication {
                 return JobApplicationExitStatus.COULD_NOT_SCHEDULE;
             }
 
-            recordAsRunningInQueue(applicationContext, successfulSubmissionResult);
-
             logger.info("Waiting for job to finish.");
             applicationContext.getBean(DedicatedJobRunner.class).awaitCompletion();
 
@@ -119,24 +116,6 @@ public final class JobApplication {
             logger.error("Unexpected exception.", e);
             return JobApplicationExitStatus.UNCAUGHT_EXCEPTION;
         }
-    }
-
-    /** A {@code --job} run bypasses the queue on submission; record it as {@code RUNNING} here. */
-    private static void recordAsRunningInQueue(
-            final ConfigurableApplicationContext applicationContext,
-            final SuccessfulSubmissionResult submissionResult) {
-        final var runnerInstanceName =
-                JobRunQueueService.resolveInstanceName(
-                        applicationContext
-                                .getEnvironment()
-                                .getProperty(JobRunQueueService.RUNNER_INSTANCE_NAME_PROP));
-        applicationContext
-                .getBean(JobService.class)
-                .queueRunningRun(
-                        submissionResult.jobRunContext().job(),
-                        submissionResult.jobRunContext().arguments(),
-                        submissionResult.jobRunId(),
-                        runnerInstanceName);
     }
 
     private static JobApplicationExitStatus exitCodeFromJobRunState(

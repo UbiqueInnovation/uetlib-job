@@ -1,7 +1,6 @@
 package ch.uetlib.job.model.runner.conditions;
 
 public enum JobRunnerTaints {
-    UB_KUB_DEV_TAINT("ub-kub-dev"),
     DEDICATED_K8S_TAINT("dedicated-k8s");
 
     private final JobRunnerTaint taint;

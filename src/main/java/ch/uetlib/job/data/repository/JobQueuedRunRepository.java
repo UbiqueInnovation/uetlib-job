@@ -29,9 +29,8 @@ public interface JobQueuedRunRepository
             int jobId, Collection<JobRunQueueState> queueStates);
 
     /**
-     * Deletes only rows representing a fresh run - never a {@code BaseStateJob} continuation, whose
-     * run is already under way; deleting one strands that run in {@code SCHEDULED} with nothing to
-     * resume it. Callers must also exclude {@link JobRunQueueState#RUNNING}.
+     * Never deletes a {@code BaseStateJob} continuation, which would strand its run; callers must
+     * also exclude {@code RUNNING}.
      */
     long deleteByJobIdInAndJobRunIdIsNullAndQueueStateIn(
             Collection<Integer> jobIds, Collection<JobRunQueueState> states);
@@ -47,9 +46,8 @@ public interface JobQueuedRunRepository
             int jobRunId, JobRunQueueState queueState);
 
     /**
-     * Only ever deletes a {@link JobRunQueueState#QUEUED} row - once a row is claimed, a runner
-     * already has it and may already have a linked job run; deleting the queue row at that point
-     * would just orphan that job run instead of stopping it. Cancel the job run instead.
+     * Only ever deletes a {@code QUEUED} row; a claimed one already has a runner, so cancel its job
+     * run instead.
      */
     long deleteByJobQueuedRunIdAndQueueState(int jobQueuedRunId, JobRunQueueState queueState);
 
@@ -107,9 +105,8 @@ public interface JobQueuedRunRepository
     int linkRunAndMarkRunning(int id, int jobRunId, Instant now);
 
     /**
-     * Re-queues the row of a run handing its processing phase to another runner (a {@code
-     * BaseStateJob} continuation): same row, same {@code jobRunId}, back to {@link
-     * JobRunQueueState#QUEUED} so a poller on the target runner can claim it.
+     * Sends a {@code BaseStateJob} continuation's own row back to {@code QUEUED} for its target
+     * runner.
      */
     @Modifying(clearAutomatically = true)
     @Query(
@@ -143,34 +140,38 @@ public interface JobQueuedRunRepository
                     SET j.queueState = :resetState, j.runner = null, j.updatedAt = :now
                     WHERE j.jobId IN :jobIds AND j.queueState = :staleState AND j.updatedAt < :staleBefore
                     """)
-    int resetStaleClaimsForJob(
-            int jobId,
+    int resetStaleClaimsForJobs(
+            Collection<Integer> jobIds,
             JobRunQueueState staleState,
             JobRunQueueState resetState,
             Instant staleBefore,
             Instant now);
 
     /**
-     * Marks every {@link JobRunQueueState#QUEUED} row of {@code jobIds} as {@link
-     * JobRunQueueState#CANCELLED} - unclaimable (see {@code QUEUE_TIMEOUT}) - if its {@code
-     * updatedAt} is before {@code staleBefore}. Every claim/reset cycle bumps {@code updatedAt}, so
-     * a row still being actively (if unsuccessfully) retried isn't cancelled out from under it.
+     * Cancels {@code QUEUED} rows idle since {@code staleBefore}; a row an instance waits to run is
+     * touched ({@link #touchQueuedRun}), so it survives.
      */
     @Modifying(clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
                     SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
-                    WHERE j.jobId = :jobId AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+                    WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
                       AND j.updatedAt < :staleBefore
                     """)
-    int expireStaleQueuedRunsForJob(int jobId, Instant staleBefore, Instant now);
+    int expireStaleQueuedRunsForJobs(Collection<Integer> jobIds, Instant staleBefore, Instant now);
 
-    /**
-     * Deletes every {@link JobRunQueueState#CANCELLED} row of {@code jobId} that's been cancelled
-     * (its {@code updatedAt}) since before {@code retainAfter} - see {@code
-     * CANCELLED_QUEUE_RETENTION}.
-     */
+    /** Marks a still-{@code QUEUED} row as wanted by an instance waiting to run it. */
+    @Modifying(clearAutomatically = true)
+    @Query(
+            """
+                    UPDATE JobQueuedRunEntity j
+                    SET j.updatedAt = :now
+                    WHERE j.jobQueuedRunId = :id
+                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+                    """)
+    int touchQueuedRun(int id, Instant now);
+
     @Modifying(clearAutomatically = true)
     @Query(
             """
@@ -178,12 +179,11 @@ public interface JobQueuedRunRepository
                     WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
                       AND j.updatedAt < :retainAfter
                     """)
-    int deleteOldCancelledQueuedRunsForJob(int jobId, Instant retainAfter);
+    int deleteOldCancelledQueuedRunsForJobs(Collection<Integer> jobIds, Instant retainAfter);
 
     /**
-     * Deletes {@link JobRunQueueState#CANCELLED} rows past {@code retainAfter} whose job is not in
-     * {@code knownJobIds} - rows {@link #deleteOldCancelledQueuedRunsForJob} can never reach.
-     * {@code knownJobIds} must not be empty: an empty {@code NOT IN} list is invalid SQL.
+     * For rows whose job this build doesn't know; {@code knownJobIds} must not be empty, as {@code
+     * NOT IN ()} is invalid SQL.
      */
     @Modifying(clearAutomatically = true)
     @Query(
@@ -197,9 +197,7 @@ public interface JobQueuedRunRepository
             Collection<Integer> knownJobIds, Instant retainAfter);
 
     /**
-     * Unconditionally resets a single row - for defensive/internal use only. {@code jobRunId} is
-     * restored rather than cleared, so releasing a claim puts the row back as it was: {@code null}
-     * for a fresh run, the bound run for a {@code BaseStateJob} continuation.
+     * Unconditional reset to {@code QUEUED}, restoring {@code jobRunId} as it was before the claim.
      */
     @Modifying(clearAutomatically = true)
     @Query(

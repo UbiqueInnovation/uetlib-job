@@ -6,6 +6,7 @@ import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.triggers.*;
 import ch.uetlib.job.service.JobService;
+import ch.uetlib.job.service.instance.JobInstanceIdentity;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,25 +31,29 @@ public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
 
-    /**
-     * The one instance that evaluates triggers and enqueues new runs; see {@code SCHEDULING.md} §1.
-     */
+    /** Instances evaluating triggers; only the primary lease holder queues runs from them. */
     public static final String PRIMARY_TRIGGERS_PROFILE = "job-primary-triggers";
 
     private final boolean allTriggersDisabled;
     private final JobDataService jobDataService;
 
     private final JobService jobService;
+    private final JobInstanceIdentity instanceIdentity;
 
     private final Map<TriggerType, TriggerService<?>> triggerServices;
+
+    private final AtomicInteger registeredTriggers = new AtomicInteger();
+    private volatile boolean started;
 
     public TriggerCoordinatorService(
             final JobDataService jobDataService,
             final JobService jobService,
+            final JobInstanceIdentity instanceIdentity,
             final Collection<TriggerService<?>> triggerServices,
             final Environment environment) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
+        this.instanceIdentity = instanceIdentity;
         this.triggerServices =
                 triggerServices.stream()
                         .collect(
@@ -71,8 +77,29 @@ public class TriggerCoordinatorService {
             final var classAndId = jobService.jobClassAndIdOrThrow(jobClass);
             for (final var trigger : triggers) {
                 onStartup(trigger, classAndId, jobClass);
+                registeredTriggers.incrementAndGet();
             }
         }
+        started = true;
+        logger.info(
+                "Registered {} live trigger(s). They enqueue runs only while this instance holds the"
+                        + " primary lease.",
+                registeredTriggers.get());
+    }
+
+    /** Whether this instance competes for the lease: it has the profile and triggers enabled. */
+    public boolean isPrimaryCandidate() {
+        return !allTriggersDisabled;
+    }
+
+    /** Whether the triggers are registered; only then may this instance take the lease. */
+    public boolean isStarted() {
+        return started;
+    }
+
+    /** How many triggers this instance actually registered - 0 means it fires nothing. */
+    public int registeredTriggerCount() {
+        return registeredTriggers.get();
     }
 
     protected void onStartup(
@@ -194,8 +221,18 @@ public class TriggerCoordinatorService {
                             jobClass.getSimpleName());
         }
         return jobRunArguments -> {
-            logger.info("Queueing job {}", jobClass);
-            jobService.queueNewRun(jobService.jobClassAndIdOrThrow(jobClass), jobRunArguments);
+            final var queued =
+                    jobService.queueNewRunAsPrimary(
+                            instanceIdentity.name(),
+                            jobService.jobClassAndIdOrThrow(jobClass),
+                            jobRunArguments);
+            if (queued.isEmpty()) {
+                logger.debug(
+                        "Not queueing job {}: this instance does not hold the primary lease.",
+                        jobClass);
+                return;
+            }
+            logger.info("Queued job {}", jobClass);
         };
     }
 }

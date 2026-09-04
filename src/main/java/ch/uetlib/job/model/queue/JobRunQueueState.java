@@ -11,7 +11,10 @@ public enum JobRunQueueState {
     /** Submitted, linked to a {@code t_job_run}. */
     RUNNING,
 
-    /** Terminal: sat {@link #QUEUED} past {@code QUEUE_TIMEOUT}, nothing able to claim it. */
+    /**
+     * Terminal: sat {@link #QUEUED} past {@code QUEUE_TIMEOUT}. Kept as the only trace of a run
+     * that never happened, until acknowledged or purged after {@code CANCELLED_QUEUE_RETENTION}.
+     */
     CANCELLED,
     ;
 }

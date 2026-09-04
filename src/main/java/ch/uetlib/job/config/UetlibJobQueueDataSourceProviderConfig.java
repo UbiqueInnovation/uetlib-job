@@ -9,10 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Defaults to whichever {@link JdbcConnectionDetails} is ambient - correct for the common
- * single-datasource case, where the job library's own tables live on the application's primary
- * datasource. An application with multiple datasources, where the job library's tables live
- * elsewhere, must supply its own {@link JobQueueDataSourceProvider} bean.
+ * Defaults to the ambient datasource; apps whose job tables live elsewhere supply their own {@link
+ * JobQueueDataSourceProvider}.
  */
 @Configuration
 public class UetlibJobQueueDataSourceProviderConfig {

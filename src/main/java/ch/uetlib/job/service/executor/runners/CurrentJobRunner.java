@@ -61,6 +61,23 @@ public final class CurrentJobRunner implements JobRunner {
         return Collections.unmodifiableMap(activeJobRuns);
     }
 
+    /**
+     * Whether {@code runnerGroup} has a free thread for another run: its queued and active runs
+     * stay below its size. Counts runs, not the executor's threads, which it only creates as runs
+     * arrive.
+     */
+    public boolean hasCapacity(final RunnerGroup runnerGroup) {
+        return runCount(queuedJobRuns, runnerGroup) + runCount(activeJobRuns, runnerGroup)
+                < runnerGroup.threadPoolSize();
+    }
+
+    private static int runCount(
+            final Map<RunnerGroup, Collection<CurrentRunnerItem>> runs,
+            final RunnerGroup runnerGroup) {
+        final var items = runs.get(runnerGroup);
+        return items == null ? 0 : items.size();
+    }
+
     private static RunnerGroup runnerGroup(final JobRunContext jobRunContext) {
         return requireNonNull(jobRunContext.properties().get(RUNNER_GROUP).value());
     }

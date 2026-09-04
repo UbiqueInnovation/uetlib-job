@@ -210,7 +210,7 @@ public final class JobPropertyDefinitions {
                     "JOB_RUN_TAINTS",
                     "Taints to be set for the job run. Taints are used to prevent certain jobs from"
                             + " running on certain runners.",
-                    JobPropertyDefinitionGroup.RUNNER,
+                    JobPropertyDefinitionGroup.QUEUE,
                     false,
                     Set.of(),
                     null,
@@ -222,7 +222,7 @@ public final class JobPropertyDefinitions {
                     "Higher-priority runs are dequeued first. Stamped onto the queue row when the run"
                             + " is queued; a still-queued run can be reordered individually via the"
                             + " status API.",
-                    JobPropertyDefinitionGroup.RUNNER,
+                    JobPropertyDefinitionGroup.QUEUE,
                     false,
                     1,
                     null);
@@ -244,7 +244,7 @@ public final class JobPropertyDefinitions {
                     "QUEUE_BEHAVIOR",
                     "What happens when a run is queued for a job that already has one waiting or"
                             + " running.",
-                    JobPropertyDefinitionGroup.RUNNER,
+                    JobPropertyDefinitionGroup.QUEUE,
                     JobQueueBehavior.REPLACE_RUN);
     public static final JobPropertyDefinition<Duration> CLAIM_TIMEOUT =
             new DurationPropertyDefinition(
@@ -252,7 +252,7 @@ public final class JobPropertyDefinitions {
                     "Override the default timeout for claimed queue runs. If a job is claimed but not "
                             + "running for longer than this timeout, it will be reset to queued and can be claimed "
                             + "by another runner.",
-                    JobPropertyDefinitionGroup.RUNNER,
+                    JobPropertyDefinitionGroup.QUEUE,
                     false,
                     Duration.ofMinutes(2));
     public static final JobPropertyDefinition<Duration> QUEUE_TIMEOUT =
@@ -261,10 +261,10 @@ public final class JobPropertyDefinitions {
                     "Override the default timeout for how long a run may sit queued without activity"
                             + " before it's considered unclaimable and marked CANCELLED - e.g. no"
                             + " currently running instance matches its version or taints. Measured"
-                            + " from the run's last activity (a claim attempt, however unsuccessful),"
-                            + " not from when it was first queued - a run still being actively"
-                            + " retried keeps getting more time.",
-                    JobPropertyDefinitionGroup.RUNNER,
+                            + " from the run's last activity, not from when it was first queued - an"
+                            + " instance that could run it, waiting for a free thread or for the"
+                            + " job's current run to finish, keeps it alive.",
+                    JobPropertyDefinitionGroup.QUEUE,
                     false,
                     Duration.ofMinutes(30));
     public static final JobPropertyDefinition<Duration> CANCELLED_QUEUE_RETENTION =
@@ -273,7 +273,7 @@ public final class JobPropertyDefinitions {
                     "Override how long a CANCELLED queue row (see QUEUE_TIMEOUT) is kept before being"
                             + " automatically deleted. Acknowledging it in the status interface"
                             + " deletes it immediately, independent of this timeout.",
-                    JobPropertyDefinitionGroup.RUNNER,
+                    JobPropertyDefinitionGroup.QUEUE,
                     false,
                     Duration.ofDays(7));
 

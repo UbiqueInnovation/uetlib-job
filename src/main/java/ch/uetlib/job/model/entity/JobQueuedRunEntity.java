@@ -89,9 +89,7 @@ public class JobQueuedRunEntity {
     }
 
     /**
-     * A {@code QUEUED} row bound to an existing run whose state is already computed (a {@code
-     * BaseStateJob} handoff): a poller claims it and runs only that run's processing phase, reusing
-     * {@code jobRunId} rather than creating a new run.
+     * A {@code QUEUED} row for a {@code BaseStateJob} continuation, reusing its {@code jobRunId}.
      */
     public JobQueuedRunEntity(
             final int jobId,

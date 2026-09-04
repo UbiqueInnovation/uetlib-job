@@ -13,8 +13,11 @@ import ch.uetlib.job.service.inputs.JobRunInputManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -25,17 +28,15 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Exercises {@code t_job_run_queue}'s ordered/paged listing query ({@link
- * ch.uetlib.job.data.repository.JobQueuedRunRepository#findByQueueStateOrderedByPriority}),
- * which {@link ch.uetlib.job.service.executor.JobRunQueueService} pages through and filters
- * by taint in Java - taint matching itself has no SQL counterpart anymore and is covered by a plain
- * unit test instead ({@code JobRunQueueServiceTest}).
+ * The queue's ordered, paged listing query on every database; taint matching is covered by {@code
+ * JobRunQueueServiceTest}.
  */
 class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
 
     private static final int TEST_JOB_ID = 1;
 
     @Autowired JobDataService jobDataService;
+    @Autowired JdbcTemplate jobJdbcTemplate;
     @MockitoBean JobRunInputManager jobRunInputManager;
 
     @Test
@@ -441,7 +442,7 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         final var previouslyQueued = queueOne();
 
         final var result =
-                jobDataService.queueNewRun(
+                jobDataService.tryQueueNewRun(
                         TEST_JOB_ID,
                         null,
                         "1.0.0",
@@ -449,7 +450,8 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         Set.of(),
                         JobQueueBehavior.DISCARD_NEW);
 
-        assertEquals(previouslyQueued.jobQueuedRunId(), result.jobQueuedRunId());
+        assertFalse(result.queued());
+        assertEquals(previouslyQueued.jobQueuedRunId(), result.run().jobQueuedRunId());
         assertEquals(
                 List.of(previouslyQueued.jobQueuedRunId()),
                 allQueueRowsForJob().stream().map(JobQueuedRun::jobQueuedRunId).toList(),
@@ -459,7 +461,7 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     @Test
     void queueNewRunWithDiscardNewStillQueuesWhenNothingIsWaiting() {
         final var result =
-                jobDataService.queueNewRun(
+                jobDataService.tryQueueNewRun(
                         TEST_JOB_ID,
                         null,
                         "1.0.0",
@@ -467,9 +469,10 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         Set.of(),
                         JobQueueBehavior.DISCARD_NEW);
 
+        assertTrue(result.queued());
         assertEquals(
                 JobRunQueueState.QUEUED,
-                findInQueue(result.jobQueuedRunId()).orElseThrow().queueState());
+                findInQueue(result.run().jobQueuedRunId()).orElseThrow().queueState());
     }
 
     @Test
@@ -477,7 +480,7 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
         final var runningRunId = queueClaimAndRunToRunning();
 
         final var result =
-                jobDataService.queueNewRun(
+                jobDataService.tryQueueNewRun(
                         TEST_JOB_ID,
                         null,
                         "1.0.0",
@@ -485,7 +488,8 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         Set.of(),
                         JobQueueBehavior.DISCARD_IF_RUNNING);
 
-        assertEquals(runningRunId, result.jobQueuedRunId());
+        assertFalse(result.queued());
+        assertEquals(runningRunId, result.run().jobQueuedRunId());
         assertEquals(
                 List.of(runningRunId),
                 allQueueRowsForJob().stream().map(JobQueuedRun::jobQueuedRunId).toList(),
@@ -733,6 +737,49 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     /**
      * A run dispatched through the queue that then handed its processing phase to another runner.
      */
+    @Test
+    void aWaitingRowThatIsTouchedDoesNotExpireButAForgottenOneDoes() {
+        // An instance that could run a row, just not yet, touches it, and QUEUE_TIMEOUT counts from
+        // there - so only rows nothing wants get cancelled.
+        final var waiting = queueOne();
+        final var forgotten = queueOne();
+        // A day rather than minutes: raw JDBC and Hibernate may read a MySQL/MariaDB TIMESTAMP in
+        // different zones, hours apart.
+        lastActiveAgo(Duration.ofDays(1), waiting, forgotten);
+
+        assertTrue(jobDataService.touchWaitingQueuedRun(waiting.jobQueuedRunId()));
+        jobDataService.expireStaleQueuedRuns(
+                Map.of(TEST_JOB_ID, Instant.now().minus(Duration.ofMinutes(30))));
+
+        assertEquals(JobRunQueueState.QUEUED, stateOf(waiting));
+        assertEquals(JobRunQueueState.CANCELLED, stateOf(forgotten));
+    }
+
+    @Test
+    void onlyAStillQueuedRowIsTouched() {
+        final var claimed = queueOne();
+        jobDataService.claimQueuedRun(claimed, "runner-a");
+
+        assertFalse(jobDataService.touchWaitingQueuedRun(claimed.jobQueuedRunId()));
+    }
+
+    private void lastActiveAgo(final Duration age, final JobQueuedRun... runs) {
+        for (final var run : runs) {
+            jobJdbcTemplate.update(
+                    "UPDATE t_job_run_queue SET updated_at = ? WHERE pk_job_run_queue_id = ?",
+                    Timestamp.from(Instant.now().minus(age)),
+                    run.jobQueuedRunId());
+        }
+    }
+
+    private JobRunQueueState stateOf(final JobQueuedRun run) {
+        return allQueueRowsForJob().stream()
+                .filter(row -> row.jobQueuedRunId() == run.jobQueuedRunId())
+                .findFirst()
+                .orElseThrow()
+                .queueState();
+    }
+
     private JobQueuedRun queueHandoffContinuation() {
         queueClaimAndRunToRunning();
         return jobDataService.queueReprocessingRun(

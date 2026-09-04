@@ -15,8 +15,10 @@ import ch.uetlib.job.model.response.StringResponse;
 import ch.uetlib.job.model.response.SuccessResponse;
 import ch.uetlib.job.model.response.files.JobRunFileListResponse;
 import ch.uetlib.job.service.controller.JobControllerService;
+import ch.uetlib.job.service.instance.JobInstanceIdentity;
 import ch.uetlib.spring.boot.validation.ValidateResponse;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 
@@ -45,13 +47,30 @@ import java.util.*;
             "http://localhost:3000",
             "http://localhost:3001"
         },
-        allowedHeaders = {"Authorization", "Content-Type"})
+        allowedHeaders = {"Authorization", "Content-Type"},
+        exposedHeaders = UetlibJobStatusController.INSTANCE_HEADER)
 public class UetlibJobStatusController {
 
-    private final JobControllerService jobControllerService;
+    /** Names the instance that served a status response (SCHEDULING.md §9). */
+    public static final String INSTANCE_HEADER = "X-Job-Instance";
 
-    public UetlibJobStatusController(final JobControllerService jobControllerService) {
+    private final JobControllerService jobControllerService;
+    private final JobInstanceIdentity instanceIdentity;
+
+    public UetlibJobStatusController(
+            final JobControllerService jobControllerService,
+            final JobInstanceIdentity instanceIdentity) {
         this.jobControllerService = jobControllerService;
+        this.instanceIdentity = instanceIdentity;
+    }
+
+    /**
+     * Runs before every handler here: more than one instance may serve the status API, and the
+     * status interface shows which one answered.
+     */
+    @ModelAttribute
+    public void addInstanceHeader(final HttpServletResponse response) {
+        response.setHeader(INSTANCE_HEADER, instanceIdentity.name());
     }
 
     @GetMapping
@@ -144,6 +163,11 @@ public class UetlibJobStatusController {
         return jobControllerService.getInfo();
     }
 
+    @GetMapping("/instances")
+    public JobInstanceInfosContainer instances() {
+        return jobControllerService.getInstances();
+    }
+
     @GetMapping("/run/{jobRunId}")
     public JobRunInfoContainer jobRun(@PathVariable final int jobRunId) {
         return jobControllerService.findJobRun(jobRunId);
@@ -178,9 +202,12 @@ public class UetlibJobStatusController {
             @PathVariable final String jobIdOrClassName,
             @RequestParam(required = false, defaultValue = "false") final boolean forceRun) {
         try {
-            return ResponseEntity.ok(
-                    new QueueSubmissionSuccess(
-                            jobControllerService.startJobManual(jobIdOrClassName, forceRun)));
+            final var result = jobControllerService.startJobManual(jobIdOrClassName, forceRun);
+            if (!result.queued()) {
+                return ResponseEntity.badRequest()
+                        .body(new QueueSubmissionFailure(result.notQueuedReason()));
+            }
+            return ResponseEntity.ok(new QueueSubmissionSuccess(result.run()));
         } catch (final ManualTriggerNotAllowedException e) {
             return ResponseEntity.badRequest().body(new QueueSubmissionFailure(e.toString()));
         }
@@ -255,7 +282,11 @@ public class UetlibJobStatusController {
     public ResponseEntity<StringResponse> replayRun(
             @PathVariable final String jobIdOrClassName, @PathVariable final int jobRunId) {
         try {
-            jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
+            final var result = jobControllerService.replayJobRun(jobIdOrClassName, jobRunId);
+            if (!result.queued()) {
+                return ResponseEntity.badRequest()
+                        .body(new StringResponse(result.notQueuedReason()));
+            }
             return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
         } catch (final ManualTriggerNotAllowedException e) {
             return ResponseEntity.badRequest()
@@ -268,7 +299,11 @@ public class UetlibJobStatusController {
     @PostMapping("/job/{jobIdOrClassName}/replay_run")
     public ResponseEntity<StringResponse> replayRun(@PathVariable final String jobIdOrClassName) {
         try {
-            jobControllerService.replayJobRun(jobIdOrClassName);
+            final var result = jobControllerService.replayJobRun(jobIdOrClassName);
+            if (!result.queued()) {
+                return ResponseEntity.badRequest()
+                        .body(new StringResponse(result.notQueuedReason()));
+            }
             return ResponseEntity.ok(new StringResponse("Job successfully replayed"));
         } catch (final ManualTriggerNotAllowedException e) {
             return ResponseEntity.badRequest()
