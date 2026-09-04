@@ -8,9 +8,8 @@ import org.springframework.core.env.Profiles;
 import org.springframework.mock.env.MockEnvironment;
 
 /**
- * Reads {@link TriggerCoordinatorService}'s {@code @Profile} via reflection rather than duplicating
- * the expression, so this stays coupled to the real annotation, and evaluates it the same way
- * {@code @Profile} does internally - {@code Environment#acceptsProfiles}.
+ * Evaluates the real {@code @Profile} of {@link TriggerCoordinatorService} via reflection, as
+ * Spring does.
  */
 class TriggerCoordinatorServiceProfileTest {
 

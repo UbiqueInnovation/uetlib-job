@@ -8,6 +8,7 @@ import static ch.uetlib.job.model.queue.JobRunQueueState.RUNNING;
 import static java.util.Objects.requireNonNull;
 
 import ch.uetlib.core.exception.ResourceNotFoundException;
+import ch.uetlib.core.utils.MapCollectors;
 import ch.uetlib.job.Job;
 import ch.uetlib.job.data.repository.*;
 import ch.uetlib.job.logging.JobRunLoggingEvent;
@@ -19,6 +20,7 @@ import ch.uetlib.job.model.properties.*;
 import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.queue.QueueNewRunResult;
 import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 import ch.uetlib.job.model.triggers.*;
 import ch.uetlib.job.model.triggers.TriggerDefinition;
@@ -55,6 +57,7 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunStateTransitionRepository jobRunStateTransitionRepository;
     private final JobQueuedRunRepository jobQueuedRunRepository;
+    private final JobInstanceRepository jobInstanceRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final K8sJobRepository k8sJobRepository;
@@ -74,6 +77,7 @@ public class JobDataService {
             final JobRunInputRepository jobRunInputRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
             final JobQueuedRunRepository jobQueuedRunRepository,
+            final JobInstanceRepository jobInstanceRepository,
             final K8sJobRepository k8sJobRepository,
             final LoggingEventRepository loggingEventRepository,
             final JdbcTemplate jobJdbcTemplate) {
@@ -85,6 +89,7 @@ public class JobDataService {
         this.jobRunInputRepository = jobRunInputRepository;
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
         this.jobQueuedRunRepository = jobQueuedRunRepository;
+        this.jobInstanceRepository = jobInstanceRepository;
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
         this.jobJdbcTemplate = jobJdbcTemplate;
@@ -265,8 +270,21 @@ public class JobDataService {
                 .toJobRun();
     }
 
+    /** {@link #tryQueueNewRun}, returning the kept run in place of a discarded new one. */
     @Transactional
     public JobQueuedRun queueNewRun(
+            final int jobId,
+            final @Nullable Integer priority,
+            final String versionTag,
+            final JobRunArguments arguments,
+            final Set<JobRunnerTaint> taints,
+            final JobQueueBehavior queueBehavior) {
+        return tryQueueNewRun(jobId, priority, versionTag, arguments, taints, queueBehavior).run();
+    }
+
+    /** Queues a new run, unless {@code queueBehavior} keeps a waiting or running one instead. */
+    @Transactional
+    public QueueNewRunResult tryQueueNewRun(
             final int jobId,
             final @Nullable Integer priority,
             final String versionTag,
@@ -291,7 +309,7 @@ public class JobDataService {
                             .filter(row -> row.queueState() == RUNNING || row.jobRunId() == null)
                             .findFirst();
             if (blocking.isPresent()) {
-                return blocking.get();
+                return new QueueNewRunResult(blocking.get(), false);
             }
         }
         if (queueBehavior == JobQueueBehavior.REPLACE_RUN) {
@@ -303,14 +321,13 @@ public class JobDataService {
         }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, priority, versionTag, arguments, taints);
-        return jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun();
+        return new QueueNewRunResult(
+                jobQueuedRunRepository.save(queuedRunEntity).toJobQueuedRun(), true);
     }
 
     /**
-     * Idempotent: a job run dispatched through the normal queue flow (e.g. a Kubernetes-taint-
-     * matched job, claimed and dispatched to a new pod that then re-enters via {@code --job --run
-     * <id>}) already has a RUNNING row from that claim by the time this is called - in that case,
-     * the existing row is returned as-is rather than creating a duplicate.
+     * Idempotent: a run already {@code RUNNING} in the queue (e.g. dispatched to a pod) keeps its
+     * row.
      */
     @Transactional
     public JobQueuedRun queueRunningRun(
@@ -332,13 +349,8 @@ public class JobDataService {
     }
 
     /**
-     * Re-queues an existing run whose state is already computed (a {@code BaseStateJob} handoff)
-     * and repoints it at {@code processingRunnerKey}, so the claim path dispatches its processing
-     * phase there.
-     *
-     * <p>Moves the run's own {@code RUNNING} row back to {@code QUEUED} rather than inserting a
-     * second one - a run only ever has one queue row. A row is inserted only for a run that has
-     * none, i.e. one started outside the queue by a standalone {@code --job} process.
+     * Moves a {@code BaseStateJob} run's own row back to {@code QUEUED} for {@code
+     * processingRunnerKey}; inserts one only for a run started outside the queue.
      */
     @Transactional
     public JobQueuedRun queueReprocessingRun(
@@ -783,6 +795,15 @@ public class JobDataService {
                 == 1;
     }
 
+    /**
+     * Marks a still-{@code QUEUED} row as wanted by an instance waiting to run it, so {@code
+     * QUEUE_TIMEOUT} doesn't cancel it meanwhile. Returns whether the row was still queued.
+     */
+    @Transactional
+    public boolean touchWaitingQueuedRun(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.touchQueuedRun(jobQueuedRunId, Instant.now()) == 1;
+    }
+
     @Transactional(readOnly = true)
     public List<JobQueuedRun> findQueuedRunsByState(final JobRunQueueState state) {
         return jobQueuedRunRepository.findAllByQueueState(state).stream()
@@ -797,11 +818,25 @@ public class JobDataService {
     @Transactional
     public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
         final var now = Instant.now();
-        return staleBefore.entrySet().stream()
-                .mapToInt(entry ->
-                        jobQueuedRunRepository.resetStaleClaimsForJob(
-                                entry.getKey(), CLAIMED, QUEUED, entry.getValue(), now))
+        return groupJobsByCutoff(staleBefore).entrySet().stream()
+                .mapToInt(
+                        entry ->
+                                jobQueuedRunRepository.resetStaleClaimsForJobs(
+                                        entry.getValue(), CLAIMED, QUEUED, entry.getKey(), now))
                 .sum();
+    }
+
+    /**
+     * Inverts a per-job cutoff map into one entry per <em>distinct</em> cutoff. Jobs almost always
+     * share a timeout, so this turns one statement per job into one per configured value.
+     */
+    private static Map<Instant, List<Integer>> groupJobsByCutoff(
+            final Map<Integer, Instant> byJob) {
+        return byJob.entrySet().stream()
+                .collect(
+                        Collectors.groupingBy(
+                                Map.Entry::getValue,
+                                Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
     }
 
     /**
@@ -811,11 +846,11 @@ public class JobDataService {
     @Transactional
     public int expireStaleQueuedRuns(final Map<Integer, Instant> staleBefore) {
         final var now = Instant.now();
-        return staleBefore.entrySet().stream()
+        return groupJobsByCutoff(staleBefore).entrySet().stream()
                 .mapToInt(
                         entry ->
-                                jobQueuedRunRepository.expireStaleQueuedRunsForJob(
-                                        entry.getKey(), entry.getValue(), now))
+                                jobQueuedRunRepository.expireStaleQueuedRunsForJobs(
+                                        entry.getValue(), entry.getKey(), now))
                 .sum();
     }
 
@@ -825,19 +860,15 @@ public class JobDataService {
      */
     @Transactional
     public int deleteOldCancelledQueuedRuns(final Map<Integer, Instant> retainAfter) {
-        return retainAfter.entrySet().stream()
+        return groupJobsByCutoff(retainAfter).entrySet().stream()
                 .mapToInt(
                         entry ->
-                                jobQueuedRunRepository.deleteOldCancelledQueuedRunsForJob(
-                                        entry.getKey(), entry.getValue()))
+                                jobQueuedRunRepository.deleteOldCancelledQueuedRunsForJobs(
+                                        entry.getValue(), entry.getKey()))
                 .sum();
     }
 
-    /**
-     * Acknowledges (deletes) a single {@link JobRunQueueState#CANCELLED} row. Distinct from
-     * acknowledging a {@code JobRun} - this concerns a queue row that was never picked up at all.
-     * Returns whether a row was deleted.
-     */
+    /** Deletes a single {@link JobRunQueueState#CANCELLED} row; returns whether there was one. */
     @Transactional
     public boolean acknowledgeQueuedRun(final int jobQueuedRunId) {
         return jobQueuedRunRepository.deleteByJobQueuedRunIdAndQueueState(jobQueuedRunId, CANCELLED)
@@ -860,20 +891,14 @@ public class JobDataService {
     }
 
     /**
-     * Unconditionally resets a single row back to {@link JobRunQueueState#QUEUED}, restoring {@code
-     * jobRunId} to what it was before the claim ({@code null} for a fresh run, the bound run for a
-     * {@code BaseStateJob} continuation).
+     * Unconditional reset to {@code QUEUED}, restoring {@code jobRunId} as it was before the claim.
      */
     @Transactional
     public void resetQueuedRunById(final int jobQueuedRunId, final @Nullable Integer jobRunId) {
         jobQueuedRunRepository.forceReset(jobQueuedRunId, QUEUED, jobRunId, Instant.now());
     }
 
-    /**
-     * Marks a still-{@code QUEUED} row {@link JobRunQueueState#CANCELLED} because nothing can ever
-     * execute it (see {@code JobRunQueueService}), rather than deleting it. Returns whether a row
-     * was cancelled.
-     */
+    /** Cancels a still-{@code QUEUED} row nothing can execute; returns whether it did. */
     @Transactional
     public boolean cancelUnclaimableQueuedRun(final int jobQueuedRunId) {
         return jobQueuedRunRepository.cancelQueuedRunById(jobQueuedRunId, Instant.now()) == 1;
@@ -958,11 +983,6 @@ public class JobDataService {
                 .map(JobQueuedRunEntity::toJobQueuedRun);
     }
 
-    /**
-     * Only removes a {@link JobRunQueueState#QUEUED} row - once claimed, a runner already has it
-     * (and likely already has a linked job run); cancel that job run instead of deleting the queue
-     * row out from under it.
-     */
     @Transactional
     public boolean deleteQueuedRunIfQueued(final int jobQueuedRunId) {
         return jobQueuedRunRepository.deleteByJobQueuedRunIdAndJobRunIdIsNullAndQueueState(
@@ -989,5 +1009,119 @@ public class JobDataService {
         return jobQueuedRunRepository.findAllById(queueRunIds).stream()
                 .map(JobQueuedRunEntity::toJobQueuedRun)
                 .toList();
+    }
+
+    /** The given runs, by id - for reconciling many queue rows without a query each. */
+    @Transactional(readOnly = true)
+    public Map<Integer, JobRun> findJobRunsByIds(final Collection<Integer> jobRunIds) {
+        if (jobRunIds.isEmpty()) {
+            return Map.of();
+        }
+        return jobRunRepository.findAllById(jobRunIds).stream()
+                .map(JobRunEntity::toJobRun)
+                .collect(MapCollectors.toMap(JobRun::id));
+    }
+
+    /** Refreshes the instance's row, re-inserting it if purged; never touches the lease. */
+    @Transactional
+    public JobInstance checkInInstance(
+            final String instanceName,
+            final String version,
+            final Set<String> taints,
+            final boolean primaryCandidate,
+            final @Nullable Integer triggerCount,
+            final Instant startedAt) {
+        final var now = Instant.now();
+        final var entity =
+                jobInstanceRepository
+                        .findByInstanceName(instanceName)
+                        .map(
+                                existing ->
+                                        existing.checkIn(
+                                                version,
+                                                taints,
+                                                primaryCandidate,
+                                                triggerCount,
+                                                startedAt,
+                                                now))
+                        .orElseGet(
+                                () ->
+                                        new JobInstanceEntity(
+                                                instanceName,
+                                                version,
+                                                taints,
+                                                primaryCandidate,
+                                                triggerCount,
+                                                startedAt,
+                                                now));
+        return jobInstanceRepository.save(entity).toJobInstance();
+    }
+
+    @Transactional(readOnly = true)
+    public List<JobInstance> findLiveInstances(final Instant staleBefore) {
+        return jobInstanceRepository.findByUpdatedAtAfter(staleBefore).stream()
+                .map(JobInstanceEntity::toJobInstance)
+                .toList();
+    }
+
+    @Transactional
+    public int deleteStaleInstances(final Instant staleBefore) {
+        return jobInstanceRepository.deleteStale(staleBefore);
+    }
+
+    /**
+     * Takes the lease unless a newer live instance holds it; returns whether it now does. A
+     * concurrent take throws {@code DataIntegrityViolationException}.
+     */
+    @Transactional
+    public boolean takePrimaryLease(
+            final String instanceName, final Instant startedAt, final Instant staleBefore) {
+        jobInstanceRepository.releaseOutrankedPrimaryLease(instanceName, startedAt, staleBefore);
+        final var holder = jobInstanceRepository.findFirstByPrimarySlotIsNotNull();
+        if (holder.isPresent()) {
+            return holder.get().toJobInstance().instanceName().equals(instanceName);
+        }
+        return jobInstanceRepository.acquirePrimaryLease(instanceName, Instant.now(), staleBefore)
+                == 1;
+    }
+
+    /** Share-locks the row until the transaction ends, so the lease can't move meanwhile. */
+    @Transactional
+    public boolean holdsPrimaryLease(final String instanceName) {
+        return jobInstanceRepository
+                .findByInstanceNameAndPrimarySlotIsNotNull(instanceName)
+                .isPresent();
+    }
+
+    /**
+     * {@link #queueNewRun} if {@code instanceName} holds the lease, checked in the same
+     * transaction.
+     */
+    @Transactional
+    public Optional<JobQueuedRun> queueNewRunIfPrimary(
+            final String instanceName,
+            final int jobId,
+            final @Nullable Integer priority,
+            final String versionTag,
+            final JobRunArguments arguments,
+            final Set<JobRunnerTaint> taints,
+            final JobQueueBehavior queueBehavior) {
+        if (!holdsPrimaryLease(instanceName)) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                queueNewRun(jobId, priority, versionTag, arguments, taints, queueBehavior));
+    }
+
+    /** Deletes the instance, handing a held lease to {@code handOverTo} in the same transaction. */
+    @Transactional
+    public void removeInstance(
+            final String instanceName,
+            final @Nullable String handOverTo,
+            final Instant staleBefore) {
+        if (jobInstanceRepository.releasePrimaryLease(instanceName) == 1 && handOverTo != null) {
+            jobInstanceRepository.acquirePrimaryLease(handOverTo, Instant.now(), staleBefore);
+        }
+        jobInstanceRepository.deleteByInstanceName(instanceName);
     }
 }

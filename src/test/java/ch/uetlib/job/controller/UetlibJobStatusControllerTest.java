@@ -1,37 +1,48 @@
 package ch.uetlib.job.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
+import ch.uetlib.job.model.client.JobInstanceInfosContainer;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.queue.QueueNewRunResult;
 import ch.uetlib.job.model.queue.QueueSubmissionFailure;
 import ch.uetlib.job.model.queue.QueueSubmissionSuccess;
 import ch.uetlib.job.model.response.SuccessResponse;
 import ch.uetlib.job.service.controller.JobControllerService;
+import ch.uetlib.job.service.instance.JobInstanceIdentity;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * Covers the branching logic in this otherwise-thin delegating controller - the try/catch around
- * manual-trigger/replay, and the {@code Optional}-to-{@code ResponseEntity} mapping for file
- * downloads - which is the only real logic here, plus a couple of plain-delegation endpoints.
+ * The controller's only real logic: manual-trigger/replay error handling, file-download responses
+ * and naming the instance that served a response.
  */
 class UetlibJobStatusControllerTest {
 
     private final JobControllerService jobControllerService = mock(JobControllerService.class);
     private final UetlibJobStatusController controller =
-            new UetlibJobStatusController(jobControllerService);
+            new UetlibJobStatusController(
+                    jobControllerService,
+                    new JobInstanceIdentity("instance-a", Set.of(), Instant.now()));
 
     @Test
     void upReturnsNoContent() {
@@ -55,7 +66,8 @@ class UetlibJobStatusControllerTest {
     @Test
     void startJobReturnsOkWithTheQueuedRunWhenAllowed() throws ManualTriggerNotAllowedException {
         final var queued = queuedRun();
-        when(jobControllerService.startJobManual("job", true)).thenReturn(queued);
+        when(jobControllerService.startJobManual("job", true))
+                .thenReturn(new QueueNewRunResult(queued, true));
 
         final var response = controller.startJob("job", true);
 
@@ -63,6 +75,20 @@ class UetlibJobStatusControllerTest {
         final var body = response.getBody();
         final var b = assertInstanceOf(QueueSubmissionSuccess.class, body);
         assertEquals(queued, b.queuedRun());
+    }
+
+    @Test
+    void startJobReturnsBadRequestWhenTheQueueBehaviorKeptAnExistingRun()
+            throws ManualTriggerNotAllowedException {
+        when(jobControllerService.startJobManual("job", false))
+                .thenReturn(new QueueNewRunResult(queuedRun(), false));
+
+        final var response = controller.startJob("job", false);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        final var body = response.getBody();
+        final var b = assertInstanceOf(QueueSubmissionFailure.class, body);
+        assertTrue(b.reason().contains("keeps queue entry 1, which is already queued"));
     }
 
     @Test
@@ -134,10 +160,27 @@ class UetlibJobStatusControllerTest {
     @Test
     void replayRunWithAnExplicitJobRunIdReturnsOkWhenAllowed()
             throws ManualTriggerNotAllowedException {
+        when(jobControllerService.replayJobRun("job", 5))
+                .thenReturn(new QueueNewRunResult(queuedRun(), true));
+
         final var response = controller.replayRun("job", 5);
 
         verify(jobControllerService).replayJobRun("job", 5);
         assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    void replayRunReturnsBadRequestWhenTheQueueBehaviorKeptAnExistingRun()
+            throws ManualTriggerNotAllowedException {
+        when(jobControllerService.replayJobRun("job", 5))
+                .thenReturn(new QueueNewRunResult(queuedRun(), false));
+
+        final var response = controller.replayRun("job", 5);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        final var body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.message().contains("keeps queue entry 1, which is already queued"));
     }
 
     @Test
@@ -152,6 +195,9 @@ class UetlibJobStatusControllerTest {
 
     @Test
     void replayRunWithoutAJobRunIdReturnsOkWhenAllowed() throws ManualTriggerNotAllowedException {
+        when(jobControllerService.replayJobRun("job"))
+                .thenReturn(new QueueNewRunResult(queuedRun(), true));
+
         final var response = controller.replayRun("job");
 
         verify(jobControllerService).replayJobRun("job");
@@ -166,6 +212,32 @@ class UetlibJobStatusControllerTest {
                 .replayJobRun("job");
 
         assertEquals(HttpStatus.BAD_REQUEST, controller.replayRun("job").getStatusCode());
+    }
+
+    @Test
+    void instancesDelegatesToTheControllerService() {
+        final var instances = new JobInstanceInfosContainer(List.of());
+        when(jobControllerService.getInstances()).thenReturn(instances);
+
+        assertEquals(instances, controller.instances());
+    }
+
+    @Test
+    void everyResponseNamesTheServingInstanceAndExposesItCrossOrigin() throws Exception {
+        when(jobControllerService.getInstances())
+                .thenReturn(new JobInstanceInfosContainer(List.of()));
+
+        MockMvcBuilders.standaloneSetup(controller)
+                .build()
+                .perform(
+                        get("/v1/status/instances")
+                                .header(HttpHeaders.ORIGIN, "https://status.systems.ubique.ch"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(UetlibJobStatusController.INSTANCE_HEADER, "instance-a"))
+                .andExpect(
+                        header().string(
+                                        HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                                        containsString(UetlibJobStatusController.INSTANCE_HEADER)));
     }
 
     private static JobQueuedRun queuedRun() {

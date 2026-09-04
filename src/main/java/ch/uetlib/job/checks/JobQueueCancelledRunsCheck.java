@@ -23,11 +23,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Warns when any {@code t_job_run_queue} row has been marked {@link JobRunQueueState#CANCELLED} - a
- * run nothing could claim in time (no currently running instance matched its version or taints; see
- * {@code QUEUE_TIMEOUT}, {@code SCHEDULING.md} §2/§7).
- *
- * <p>Distinct from {@link JobCancelledStateCheck} ({@code JobRun} {@code CANCELLED} state).
+ * Warns while any queue row is {@link JobRunQueueState#CANCELLED}: a run nothing claimed in time.
  */
 @Service
 @Profile("!job-run")

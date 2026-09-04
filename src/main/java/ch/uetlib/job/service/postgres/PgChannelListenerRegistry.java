@@ -12,14 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
- * Manages the lifecycle of {@link PgChannelListener}s: at most one listener is kept per PostgreSQL
- * {@code LISTEN} channel, shared between every caller registered on that channel.
- *
- * <p>Not a Spring-managed singleton itself, since two independent registries typically coexist -
- * one for job-defined {@code PG_LISTEN} triggers (application datasource) and one for the job
- * library's own internal queue notifications (job datasource); see {@code
- * PgChannelListenerRegistryConfig}, which produces both as distinctly-qualified beans, each backed
- * by its own datasource provider.
+ * One shared {@link PgChannelListener} per channel. Not a singleton: triggers and the queue each
+ * get their own (see {@code PgChannelListenerRegistryConfig}).
  */
 public class PgChannelListenerRegistry {
 
@@ -46,8 +40,7 @@ public class PgChannelListenerRegistry {
     }
 
     /**
-     * Ensures a listener is running for the given channel, creating one on first use. If a listener
-     * for this channel already exists, it keeps using its original callback and {@code onEvents} is
+     * Starts a listener for {@code channel} on first use; later callers' {@code onEvents} are
      * ignored.
      */
     public void listen(final String channel, final Consumer<Collection<String>> onEvents) {
@@ -80,11 +73,6 @@ public class PgChannelListenerRegistry {
                 channel, onEvents, dataSourceProperties, keepAliveInterval, maxSilence);
     }
 
-    /**
-     * Returns the channels whose listener is no longer actively monitoring the database (dead
-     * listener thread or a connection that cannot be re-established). An empty collection means all
-     * registered channels are being listened to.
-     */
     public Collection<String> unhealthyChannels() {
         return channelListeners.entrySet().stream()
                 .filter(entry -> !entry.getValue().isHealthy())

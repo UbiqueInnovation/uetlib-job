@@ -5,11 +5,7 @@ public enum JobQueueBehavior {
     /** Keep at most one waiting run: if one is already queued/claimed, drop the new one. */
     DISCARD_NEW,
 
-    /**
-     * Keep at most one <em>queued</em> run: delete the one still waiting, then queue the new one. A
-     * claimed run is already on its way to a runner and is left alone - the new run queues behind
-     * it.
-     */
+    /** Replaces a still-waiting run with the new one; a claimed run is left alone. */
     REPLACE_RUN,
 
     /** No limit - every request adds another queued run. */

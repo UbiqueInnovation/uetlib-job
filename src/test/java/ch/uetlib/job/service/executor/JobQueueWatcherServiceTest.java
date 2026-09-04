@@ -25,7 +25,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -128,7 +127,8 @@ class JobQueueWatcherServiceTest {
         final var queuedRun = queuedRun(1, 42);
         when(jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING))
                 .thenReturn(List.of(queuedRun));
-        when(jobDataService.findJobRunById(42)).thenReturn(Optional.of(jobRun(JobRunState.DONE)));
+        when(jobDataService.findJobRunsByIds(List.of(42)))
+                .thenReturn(Map.of(42, jobRun(JobRunState.DONE)));
 
         service.reconcileRunningQueuedRuns();
 
@@ -140,7 +140,7 @@ class JobQueueWatcherServiceTest {
         final var queuedRun = queuedRun(1, 42);
         when(jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING))
                 .thenReturn(List.of(queuedRun));
-        when(jobDataService.findJobRunById(42)).thenReturn(Optional.empty());
+        when(jobDataService.findJobRunsByIds(List.of(42))).thenReturn(Map.of());
 
         service.reconcileRunningQueuedRuns();
 
@@ -152,7 +152,8 @@ class JobQueueWatcherServiceTest {
         final var queuedRun = queuedRun(1, 42);
         when(jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING))
                 .thenReturn(List.of(queuedRun));
-        when(jobDataService.findJobRunById(42)).thenReturn(Optional.of(jobRun(JobRunState.BUSY)));
+        when(jobDataService.findJobRunsByIds(List.of(42)))
+                .thenReturn(Map.of(42, jobRun(JobRunState.BUSY)));
 
         service.reconcileRunningQueuedRuns();
 

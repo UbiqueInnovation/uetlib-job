@@ -38,3 +38,19 @@ CREATE OR REPLACE TRIGGER trigger_notify_on_job_run_queue_insert
     ON t_job_run_queue
     FOR EACH ROW
 EXECUTE FUNCTION notify_on_job_run_queue_insert();
+
+CREATE TABLE t_job_instance
+(
+    pk_job_instance_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    instance_name      TEXT        NOT NULL UNIQUE,
+    version            TEXT        NOT NULL,
+    taints             JSONB       NOT NULL,
+    primary_candidate  BOOLEAN     NOT NULL,
+    trigger_count      INTEGER,
+    -- The primary lease: 1 on the one instance holding it, NULL on all others. UNIQUE (NULLs never
+    -- collide) makes a second holder impossible.
+    primary_slot       INTEGER UNIQUE CHECK (primary_slot = 1),
+    primary_since      TIMESTAMPTZ,
+    started_at         TIMESTAMPTZ NOT NULL,
+    updated_at         TIMESTAMPTZ NOT NULL
+);

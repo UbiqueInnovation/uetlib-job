@@ -15,14 +15,8 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 
 /**
- * Listens on the PostgreSQL {@code new_job_queued_run} channel, which is notified by a database
- * trigger whenever a row is inserted into the job run queue, and reacts by immediately checking
- * whether the newly queued run can be executed on this runner.
- *
- * <p>This is only a fast path, available on PostgreSQL: {@link JobRunQueueService}'s scheduled
- * checks keep running regardless and act as the fallback that catches everything else (other
- * database types, missed/coalesced notifications, runs that only became runnable later e.g. due to
- * freed up capacity).
+ * Claims newly queued runs right away on a Postgres {@code NOTIFY}; the scheduled poll remains the
+ * fallback.
  */
 @Service
 @Profile("!job-run")

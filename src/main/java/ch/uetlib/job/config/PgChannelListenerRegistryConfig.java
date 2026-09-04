@@ -9,12 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 /**
- * Produces the two {@link PgChannelListenerRegistry} beans as distinct, independently-datasourced
- * instances - never a single shared one - since {@link PgListenJobTriggerDataSourceProvider}
- * (job-defined {@code PG_LISTEN} triggers, application datasource) and {@link
- * JobQueueDataSourceProvider} (the job library's own internal queue notifications) can point at
- * entirely different databases in a multi-datasource application. Consumers select the one they
- * need by bean name.
+ * Two separate {@link PgChannelListenerRegistry} beans, since job triggers and the queue may listen
+ * on different datasources.
  */
 @Configuration
 @Profile("!job-run")

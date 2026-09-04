@@ -288,6 +288,9 @@
                                 <!-- All other tests are run once, without a database -->
                                 <exclude>**/*DatabaseTest.java</exclude>
                             </excludes>
+                            <argLine>
+                                @{argLine} -Dspring.profiles.active=test,no-security,job-primary-triggers,job-disable-triggers
+                            </argLine>
                         </configuration>
                     </execution>
                     <execution>

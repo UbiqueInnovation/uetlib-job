@@ -7,19 +7,23 @@ import static org.mockito.Mockito.*;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
 import ch.uetlib.job.model.JobClassAndId;
+import ch.uetlib.job.model.JobInstance;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunState;
+import ch.uetlib.job.model.client.JobInstanceInfo;
 import ch.uetlib.job.model.properties.JobProperties;
 import ch.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.uetlib.job.model.properties.enums.JobManualTriggerMode;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.queue.QueueNewRunResult;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.executor.JobManualTriggerService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
+import ch.uetlib.job.service.instance.JobInstanceRegistrationService;
 import ch.uetlib.job.service.logs.LogService;
 import ch.uetlib.job.service.triggers.CronTriggerService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
@@ -37,12 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Covers the queue-facing half of {@link JobControllerService} - {@code getQueueInfo}, {@code
- * deleteQueuedRun(s)}, and {@code updateQueuedRunPriority} - as well as the manual-trigger,
- * job-info, and run-action (cancel/acknowledge) methods, which backs the status interface's
- * queue/runs views and actions and had no dedicated coverage before.
- */
+/** The queue, manual-trigger, job-info and run-action methods behind the status interface. */
 class JobControllerServiceTest {
 
     private static final JobClassAndId JOB = new JobClassAndId(1, "ch.uetlib.job.TestJob");
@@ -52,6 +51,8 @@ class JobControllerServiceTest {
     private final TriggerCoordinatorService triggerCoordinatorService =
             mock(TriggerCoordinatorService.class);
     private final JobRunInputManager jobRunInputManager = mock(JobRunInputManager.class);
+    private final JobInstanceRegistrationService jobInstanceRegistrationService =
+            mock(JobInstanceRegistrationService.class);
 
     private final JobControllerService service =
             new JobControllerService(
@@ -62,7 +63,8 @@ class JobControllerServiceTest {
                     mock(JobManualTriggerService.class),
                     jobRunInputManager,
                     mock(LogService.class),
-                    mock(JobRunnerInfoService.class));
+                    mock(JobRunnerInfoService.class),
+                    jobInstanceRegistrationService);
 
     @Test
     void getQueueInfoMapsThePageAndTheOldestAndNewestEntries() {
@@ -175,6 +177,22 @@ class JobControllerServiceTest {
     }
 
     @Test
+    void updateQueuedRunPriorityWithoutAPriorityResetsItToTheJobsPriority() {
+        when(jobDataService.findQueuedRunsByIds(List.of(5))).thenReturn(List.of(queuedRun(5)));
+        when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
+        when(jobService.getProperties(JOB))
+                .thenReturn(
+                        new JobProperties(
+                                List.of(
+                                        castToObjectProperty(
+                                                JobPropertyDefinitions.PRIORITY.createProperty(
+                                                        7)))));
+        when(jobDataService.updateQueuedRunPriority(5, 7)).thenReturn(true);
+
+        assertTrue(service.updateQueuedRunPriority(5, null).success());
+    }
+
+    @Test
     void startJobManualQueuesANewRunWhenEnabledAndAllowed()
             throws ManualTriggerNotAllowedException {
         when(jobService.getJobClassOrThrow(TestJob.class.getCanonicalName()))
@@ -183,8 +201,8 @@ class JobControllerServiceTest {
         when(jobService.getProperties(any(TestJob.class))).thenReturn(new JobProperties(List.of()));
         when(jobService.isEnabled(TestJob.class.getCanonicalName())).thenReturn(true);
         when(jobService.jobClassAndIdOrThrow(TestJob.class)).thenReturn(JOB);
-        final var queued = queuedRun(1);
-        when(jobService.queueNewRun(eq(JOB), any())).thenReturn(queued);
+        final var queued = new QueueNewRunResult(queuedRun(1), true);
+        when(jobService.tryQueueNewRun(eq(JOB), any())).thenReturn(queued);
 
         final var result = service.startJobManual(TestJob.class.getCanonicalName(), false);
 
@@ -202,7 +220,7 @@ class JobControllerServiceTest {
         assertThrows(
                 ManualTriggerNotAllowedException.class,
                 () -> service.startJobManual(TestJob.class.getCanonicalName(), false));
-        verify(jobService, never()).queueNewRun(any(), any());
+        verify(jobService, never()).tryQueueNewRun(any(), any());
     }
 
     @Test
@@ -224,7 +242,7 @@ class JobControllerServiceTest {
         assertThrows(
                 ManualTriggerNotAllowedException.class,
                 () -> service.startJobManual(TestJob.class.getCanonicalName(), false));
-        verify(jobService, never()).queueNewRun(any(), any());
+        verify(jobService, never()).tryQueueNewRun(any(), any());
     }
 
     @Test
@@ -300,6 +318,40 @@ class JobControllerServiceTest {
         when(jobRunInputManager.getDeclaredInputPaths(7)).thenReturn(List.of());
 
         assertTrue(service.getAllFiles(7).isEmpty());
+    }
+
+    @Test
+    void getInstancesListsThePrimaryFirstThenTheNewest() {
+        final var now = Instant.now();
+        when(jobInstanceRegistrationService.liveInstances())
+                .thenReturn(
+                        List.of(
+                                instance("older", false, now.minusSeconds(600)),
+                                instance("primary", true, now.minusSeconds(1200)),
+                                instance("newer", false, now.minusSeconds(60))));
+
+        final var instances = service.getInstances().instances();
+
+        assertEquals(
+                List.of("primary", "newer", "older"),
+                instances.stream().map(JobInstanceInfo::name).toList());
+        assertTrue(instances.getFirst().primary());
+        assertEquals(List.of("a", "b"), instances.getFirst().taints());
+    }
+
+    private static JobInstance instance(
+            final String name, final boolean primary, final Instant startedAt) {
+        return new JobInstance(
+                1,
+                name,
+                "1.0.0",
+                Set.of("b", "a"),
+                true,
+                2,
+                primary,
+                primary ? startedAt : null,
+                startedAt,
+                Instant.now());
     }
 
     @SuppressWarnings("unchecked")

@@ -21,6 +21,28 @@ class JobClassAndIdPropertyDefinitionsTest {
         assertFalse(JobPropertyDefinitions.values().isEmpty());
     }
 
+    /** The status interface shows each group as its own tab. */
+    @Test
+    void queueGroupHoldsThePropertiesThatOnlyAffectTheQueue() {
+        final var queueKeys =
+                JobPropertyDefinitions.values().stream()
+                        .filter(
+                                definition ->
+                                        definition.group() == JobPropertyDefinitionGroup.QUEUE)
+                        .map(JobPropertyDefinition::key)
+                        .collect(Collectors.toUnmodifiableSet());
+
+        assertEquals(
+                Set.of(
+                        "QUEUE_BEHAVIOR",
+                        "PRIORITY",
+                        "JOB_RUN_TAINTS",
+                        "CLAIM_TIMEOUT",
+                        "QUEUE_TIMEOUT",
+                        "CANCELLED_QUEUE_RETENTION"),
+                queueKeys);
+    }
+
     @Test
     void testNoDuplicateKeys() {
         final var keys =

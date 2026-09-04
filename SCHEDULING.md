@@ -1,279 +1,147 @@
 # Scheduling
 
-How a job goes from "something wants this to run" to "it ran, and we know it ran" - dispatch, runners, handoff, liveness
-detection, and who's responsible for what.
-
-Throughout this document: **[library]** marks something `uetlib-job` provides and manages for you. **[project]** marks
-something a consuming project defines or implements itself.
+How a job goes from "something wants this to run" to "it ran": the queue, dispatch, runners, handoff, and the
+watchers that keep it consistent. **[library]** marks what `uetlib-job` provides; **[project]** marks what a consuming
+project defines.
 
 ## Concepts
 
-- **Job** **[project implements, library defines the interface]** - a class implementing `Job`
-  (`run(JobRunContext)`, plus optional `propertiesConfig()`/`triggersConfig()`/`supportsForceRun()`). Discovered via
-  `@RegisteredJob` + `@EnableJobs` classpath scanning.
-- **JobRun** **[library]** - one execution attempt of a job, `t_job_run`. Append-only history; state only ever moves
-  forward (`BUSY`/`SCHEDULED` → a terminal state).
-- **Queue row** **[library]** - `t_job_run_queue`. A separate, mutable, re-claimable table representing "this job should
-  run" / "this job is currently running", decoupled from the
-  `t_job_run` history. States: `QUEUED` → `CLAIMED` → `RUNNING`, then deleted.
+- **Job** **[project]** - a class implementing `Job` (`run(JobRunContext)`, optionally `propertiesConfig()` /
+  `triggersConfig()`), registered via `@RegisteredJob` + `@EnableJobs`.
+- **JobRun** **[library]** - one execution attempt, `t_job_run`. Append-only; its state only moves forward.
+- **Queue row** **[library]** - `t_job_run_queue`, "this should run" / "this is running", kept apart from the run
+  history. `QUEUED` → `CLAIMED` → `RUNNING`, then deleted; `CANCELLED` if nothing claimed it in time (§7).
+- **Instance** **[library]** - a long-lived process of the application, checking in to `t_job_instance`. A dedicated
+  `--job` process is not an instance.
 
 ## 1. Getting into the queue
 
-Nothing (except for a local `--job` execution) runs a job directly.
+Nothing runs a job directly; everything goes through a queue row.
 
-- **Triggers** **[project configures, library executes]** - `CronTrigger`, `FixedRateTrigger`,
-  `PgListenTrigger`, `DatabaseSubmissionTrigger`, etc. A project declares triggers via
-  `Job#triggersConfig()` or the status API; `TriggerCoordinatorService` **[library]** owns firing them and calls
-  `JobService#queueNewRun(...)` on fire. This is the only thing that inserts
-  `QUEUED` rows on a schedule - a project never calls the queue API directly for scheduled work.
-- **Manual start / replay** **[project triggers via API, library executes]** -
-  `POST /job/{id}/start`, `/job/start_all`, `/job/{id}/replay_run[/{jobRunId}]`. Same
-  `queueNewRun(...)` path as triggers. Served by the primary instance only (§9).
-- **`--job <class> [--run <id>]` CLI** **[library]** - bypasses the queue entirely. Used by dedicated Kubernetes pods
-  (see §3) and available for local/manual single-job runs. Not something a project's own code calls; it's a process
-  entry point (`JobApplication`).
+- **Triggers** **[project configures, library executes]** - `CronTrigger`, `FixedRateTrigger`, `PgListenTrigger`,
+  `DatabaseSubmissionTrigger`, ..., declared via `Job#triggersConfig()` or the status API. `TriggerCoordinatorService`
+  fires them on instances with the `job-primary-triggers` profile. The only thing that queues runs on a schedule.
+- **Manual start / replay** **[project calls the API]** - `POST /job/{id}/start`, `/job/start_all`,
+  `/job/{id}/replay_run[/{jobRunId}]` (§9).
+- **`--job <class> [--run <id>]`** **[library]** - a dedicated process that executes exactly one run and exits (§3).
+  It records its run as `RUNNING` in the queue before starting it; with `--run`, the dispatching instance already has.
 
-A queue row also carries a priority. `t_job_run_queue.priority` is seeded from the job's `PRIORITY`
-property when the row is queued; dequeue order is `COALESCE(row.priority, 0) DESC, createdAt ASC`. Reorder a
-still-queued row via `PUT /queue/{jobQueuedRunId}/priority` **[library, project calls it]**; `RUNNING` rows are never
-reordered.
+**Exactly one primary [library].** Every instance with `job-primary-triggers` registers its triggers, but only the
+holder of the *primary lease* queues runs from them. The lease is `t_job_instance.primary_slot`, a `UNIQUE` column, so
+the database rules out a second holder. Every fire checks the lease under a shared row lock, in the same transaction as
+the insert - an instance that has lost the lease can never queue.
+
+- Every instance checks in every 30s (`ch.uetlib.job.instance.check-in`). The newest live candidate takes the
+  lease: from nobody, from a holder that stopped checking in (`instance.stale-after`, default 90s), or from one that
+  started before it. A rollout thereby hands over without overlap or gap.
+- On shutdown the holder hands the lease to the newest other live candidate.
+- The holder purges rows of instances that stopped checking in (`instance.purge-after`, default 3× stale-after); an
+  instance whose row is gone re-inserts it at its next check-in.
+- `JobSinglePrimaryInstanceCheck` fails on every instance when no live instance holds the lease. It reports through the
+  monitoring module, since `/v1/status` (§9) is gone exactly when this fires.
+
+One schema serves exactly one application: `JobRegistrationService` deletes every `t_job` row whose class the starting
+application lacks, and that cascades to runs, triggers and queue rows.
+
+A queue row carries a priority, seeded from the job's `PRIORITY`; dequeue order is `COALESCE(priority, 0) DESC,
+createdAt ASC`. Reorder a still-queued row via `PUT /queue/{jobQueuedRunId}/priority`; without `priority`, it goes back
+to the job's current `PRIORITY`.
 
 ## 2. Dispatch
 
-**[library, entirely]** - `JobRunQueueService`, on every instance (except dedicated `job-run`
-pods), every 5s (`@Scheduled`) plus a Postgres `LISTEN`/`NOTIFY` fast path for lower latency:
+**[library]** `JobRunQueueService`, on every instance, every 5s plus a Postgres `LISTEN`/`NOTIFY` fast path:
 
-1. Page through `QUEUED` rows, highest priority / oldest first, stopping once a row was actually claimed.
-   A row this instance matches but cannot take - its runner group is at capacity, or another instance won
-   the claim - is not progress, so the scan looks behind it rather than stopping; `max.pages.per.check`
-   bounds how far.
-2. For each, check whether *this instance* matches: its own build version must **exactly** equal the row's `versionTag`
-   (see "Version-pinned claiming" below); the job's `RUNNER` property then decides which of the two paths applies (see
-   "Runner kind vs. taints" below) - `CURRENT` requires this instance's own taints
-   (`ch.uetlib.job.runner.instance.taints`) to be a superset of the row's required taints (`JOB_RUN_TAINTS` job
-   property); `DEDICATED_K8S_JOB` requires the same taint check *plus* a dedicated-runner bean available on this
-   instance.
-3. On a match: atomically claim it (`QUEUED` → `CLAIMED`, tagged with this instance's claim identifier - see end of §2),
-   then dispatch to the matching `JobRunner`.
-4. `CLAIMED` → `RUNNING`, linked to the new `t_job_run` row - *before* the runner is handed the job, since it may
-   start (and finish) it on another thread immediately, and a `BaseStateJob` handoff (§4) re-queues that same row.
-5. On failure, or if a `CLAIMED` row's claiming instance died before ever reaching `RUNNING`
-   (`CLAIM_TIMEOUT`, default 2m): released back to `QUEUED` for another instance to retry.
+1. Page through `QUEUED` rows by priority, stopping once a row was claimed. A row it matches but cannot take yet (see
+   3) or loses to another instance doesn't stop the scan; `max.pages.per.check` bounds it.
+2. Match. The row's `versionTag` must **exactly** equal this instance's build version - a run is only ever executed by
+   the version that queued it. The job's `RUNNER` property (never the taints) picks `CURRENT` or `DEDICATED_K8S_JOB`.
+   Then this instance's taints (`ch.uetlib.job.runner.instance.taints`) must be a superset of the row's
+   `JOB_RUN_TAINTS`, and the dedicated path also needs a dedicated runner on this instance.
+3. Claim only a run that can start right away: a free thread in its `RUNNER_GROUP` (for `CURRENT`), its job enabled,
+   and either `ALLOW_PARALLEL_RUNS` (or a forced run it lets through) or no run of the job under way. Otherwise the row
+   stays `QUEUED`, marked as still wanted so `QUEUE_TIMEOUT` (§7) doesn't cancel it. The claim is atomic: `QUEUED` →
+   `CLAIMED`, tagged with `ch.uetlib.job.runner.instance.name` (default `HOSTNAME`, the pod name).
+4. `CLAIMED` → `RUNNING`, linked to the new `t_job_run` - *before* the runner gets the job, since a `BaseStateJob`
+   handoff (§4) may re-queue that row right away.
+5. A failed submission releases the claim; a claim whose instance died is reset after `CLAIM_TIMEOUT` (default 2m).
 
-**Runner kind vs. taints [library, entirely].** These are two different, orthogonal decisions, both made by
-`JobRunQueueService#claimIfMatchesThisRunner`, in this order:
-
-1. *Which kind of runner does this job want* - `CURRENT` (in-process, the default) or
-   `DEDICATED_K8S_JOB` (its own K8s pod)? Decided **solely** by the job's own `RUNNER` property (cached per job, same
-   30s-refresh pattern as the timeout properties in §7) - never by taints.
-2. *Given that kind, does this specific instance qualify* - taint subset-matching, as described above (§1's
-   `JOB_RUN_TAINTS`/`ch.uetlib.job.runner.instance.taints`), plus (for
-   `DEDICATED_K8S_JOB` only) whether this instance actually has a dedicated-runner bean at all.
-
-A `DEDICATED_K8S_JOB` row with no `JOB_RUN_TAINTS` of its own - the common case, since a project sets `RUNNER`, not a
-synthetic taint - must still only ever be claimed via the dedicated path. Taint subset-matching alone can't tell the two
-paths apart: the empty set is trivially a subset of *any*
-taint set, so a row with no taints would otherwise satisfy the plain path too, and (being checked first) would end up
-dispatched to a `CurrentJobRunner` instance instead of K8s. This was a real bug, fixed by making the `RUNNER` property
-decide which path even applies before either taint check runs, rather than trying to distinguish the two paths by taint
-content.
-
-**Version-pinned claiming [library, entirely].** Every queued row is tagged with the enqueueing instance's own build
-version (`JobService#versionTag`, from `BuildProperties`); `JobRunQueueService`
-only ever claims a row whose `versionTag` exactly matches its own. This matters during a staggered or rolling release,
-where instances running different versions briefly coexist: without this check, an older instance could claim a row for
-a job class it doesn't even have yet, or a newer instance could run a row using different (possibly incompatible) code
-than whatever enqueued it intended. Only the exact version that enqueued a run may execute it - never an older or newer
-one.
-
-One consequence worth knowing: if every instance of the version that enqueued a row disappears before it's claimed (e.g.
-a very short-lived old version during a fast rollout), that row is version-pinned to nobody. It doesn't stay `QUEUED`
-forever, though - `expireUnclaimableQueuedRuns`
-(§7) eventually marks it `CANCELLED` once it's had no activity for `QUEUE_TIMEOUT`.
-
-**[project]** only participates by setting `JOB_RUN_TAINTS` on a job (to pin it to specific instances). Each instance's
-claim identifier defaults to the `HOSTNAME` env var (the pod name on Kubernetes); override it with
-`ch.uetlib.job.runner.instance.name` only where that isn't unique per instance.
+A row queued by a version that has since disappeared is claimable by nobody; it is marked `CANCELLED` after
+`QUEUE_TIMEOUT` (§7).
 
 ## 3. Runners
 
-A `JobRunner` **[library interface, library-provided implementations only today]** actually executes a claimed row.
-There are exactly two `JobRunnerKey`s:
+| Key                 | On the claiming instance                                 | Where the job runs                                    |
+|---------------------|----------------------------------------------------------|-------------------------------------------------------|
+| `CURRENT`           | `CurrentJobRunner` - a thread of the `RUNNER_GROUP` pool | same JVM                                              |
+| `DEDICATED_K8S_JOB` | `KubernetesJobRunner` - creates a K8s `Job` and returns  | a new pod (`--job --run <id>`), `DedicatedJobRunner`  |
 
-| Key                 | Runner (on the claiming/primary instance)                                               | Runner (where the job actually runs)              |
-|---------------------|-----------------------------------------------------------------------------------------|---------------------------------------------------|
-| `CURRENT`           | `CurrentJobRunner` - runs in-process on a per-`RUNNER_GROUP` thread pool                | same instance, same JVM                           |
-| `DEDICATED_K8S_JOB` | `KubernetesJobRunner` - creates a new Kubernetes `Job` resource and returns immediately | the new pod, via `DedicatedJobRunner` (see below) |
-
-- **`CurrentJobRunner`** **[library]**: runs `job.run(...)` on a thread from the job's
-  `RUNNER_GROUP` pool (project-configurable via that property; jobs sharing a group share a pool and its capacity).
-- **`KubernetesJobRunner`** **[library]**: doesn't run the job itself - it submits a K8s `Job`
-  spec (built from `Job`/`KubernetesJob` **[project can customize the pod spec via]** properties like
-  `K8S_REQUESTS_CPU`, `K8S_POD_LABELS`, ...) and returns. The actual execution happens in that new pod.
-- **`DedicatedJobRunner`** **[library]**: active only under the `job-run` Spring profile, i.e. inside a pod started via
-  `--job --run <id>`. Runs the job on its own single thread. This is what actually executes work dispatched by
-  `KubernetesJobRunner` above - two different classes for the two sides of the same K8s dispatch (primary instance
-  submits; dedicated pod executes).
-
-**Anything else** (a completely external system - a Python service, a different deployment entirely) is **not** a
-`JobRunner` the library dispatches to. There is no third `JobRunnerKey`. See §4 for how a project builds this kind of
-integration on top of what the library does provide.
+A project customizes the pod via the `K8S_*` properties and `KubernetesJob`. There is no third runner; external systems
+integrate via §4.
 
 ## 4. Handoff: a job ending in `SCHEDULED`
 
-Sometimes a job's own `run()` call shouldn't do the work itself - it should hand off to another runner (or another
-system entirely) and return quickly. `JobRunState.SCHEDULED` is how a job expresses "not done, but not running here
-either right now."
+`SCHEDULED` means "not done, and not running here". **[library]** `BaseStateJob<T>`: **[project]** implements
+`getLatestState` and `processState`, and may override `runnerForProcessing(state)`. If that returns another runner, the
+state is saved and `JobService#queueReprocessingRun` sends the run's *own* queue row back to `QUEUED` (still bound to
+its `t_job_run`); a poller on the target runner then resumes at `processState`. A run never has more than one queue row.
 
-**[library]** `BaseStateJob<T>` is the built-in pattern for this within the two known runners:
-
-1. **[project implements]** `getLatestState(ctx)` - fetch/compute the latest state.
-2. **[project implements]** `processState(state, ctx)` - do the actual work.
-3. **[project may override]** `runnerForProcessing(state)` - return a different `JobRunnerKey` than the one this run is
-   currently on.
-
-If `runnerForProcessing` returns a different key, `BaseStateJob.run()` **[library]** saves the computed state, calls
-`JobService#queueReprocessingRun(...)` - which sends the run's *own* queue row back to `QUEUED` (still bound to the same
-`t_job_run`) and points the run at the target runner
-
-- and returns `SCHEDULED`. Re-using the row rather than inserting a second one is what keeps a run to exactly one queue
-  row; a row is inserted only for a run that has none at all, i.e. one started outside the queue by a standalone `--job`
-  process. A poller then claims that row on the right runner and re-enters `run()`, which resumes at
-  `processState(...)`. The job run sits in `SCHEDULED` until *something* transitions it: the re-dispatched execution
-  returning a terminal state, `KubernetesJobWatcher` observing the pod finish (§6), or a timeout (§7).
-
-**Beyond `BaseStateJob`**: a project can also just return `SCHEDULED` directly from a plain `Job`
-after kicking off arbitrary external work (e.g. an HTTP call to another service). The library will correctly treat the
-run as still-in-progress (§5-§7 all apply), but **[project's responsibility]**
-is then to eventually transition it out of `SCHEDULED` itself - there's no library-provided watcher for a system it
-doesn't know about. Do this via `JobDataService`/`JobService#updateJobRunState`
-(in-process) or by exposing your own callback/webhook that does the same. Without this, the run relies entirely on the
-timeout safety net below, which only knows the run has gone quiet or run long, not that anything went wrong.
+A plain `Job` may also return `SCHEDULED` after starting external work. Transitioning the run later
+(`JobService#updateJobRunState`) is then **[project's responsibility]**; otherwise only the timeouts (§7) end it.
 
 ## 5. Liveness of a running job
 
-The queue itself carries **no per-run heartbeat** - a `RUNNING` row is trusted as long as its linked `t_job_run` is
-still in a running state. Liveness of the run behind it is handled at the job-run level, unchanged from before the
-queue:
-
-- **`JobStateWatcher`** (every 5 min, `!job-run`) - for every running `t_job_run`, asks its runner (`CurrentJobRunner`
-  via its `Future`, `KubernetesJobRunner` via the K8s API) to resolve the actual state. A run whose state can't be
-  resolved and that has had no recent log activity is marked `UNFINISHED`; a resolvable terminal state is written
-  through.
-- **`JobTimeoutWatcher`** - duration-based kill, opt-in per job (see §7).
-
-`JobQueueWatcherService#reconcileRunningQueuedRuns` (§7) then removes the now-stale `RUNNING` queue row once the run
-behind it is no longer running.
-
-> A dedicated, progress-aware queue-row heartbeat (`ThreadProgressCheckIn` etc.) lives on the
-> `feature/queue-heartbeats` branch and is intended for a later iteration.
+A `RUNNING` queue row is trusted as long as its `t_job_run` is running. `JobStateWatcher` (every 5m) asks each run's
+runner for its actual state and marks a run it cannot resolve, and that has gone quiet, `UNFINISHED`.
+`JobQueueWatcherService#reconcileRunningQueuedRuns` (§7) then removes the queue row.
 
 ## 6. Kubernetes watching
 
-**[library]** `KubernetesJobWatcher`, active only when `KubernetesJob#watchJob()` returns `true`
-(the default; a project can opt a given job dispatch out). Runs on the primary instance that submitted the K8s job:
-
-- Watches the K8s `Job` resource; on a real state change, updates `t_job_run`'s state directly (this is also what
-  eventually moves a `BaseStateJob` handoff out of `SCHEDULED` on success/failure).
-- Streams each pod's logs into this instance's own log output.
+`KubernetesJobWatcher` runs on the instance that submitted a K8s job (unless `KubernetesJob#watchJob()` is `false`):
+it writes the job's state changes to `t_job_run` and streams the pod's logs.
 
 ## 7. Watchers (reconciliation and timeouts)
 
-Independent `@Scheduled` watchers, all **[library]**, all disabled on dedicated `job-run`
-instances (they only make sense on a "primary" instance):
+All `@Scheduled` **[library]**, on every instance (not on `--job` processes):
 
-- **`JobQueueWatcherService#resetAbandonedClaims`** (every 15s) - a `CLAIMED` row whose claiming instance died before
-  reaching `RUNNING` is reset to `QUEUED` after `CLAIM_TIMEOUT` (measured from the row's `updated_at`, which the claim
-  bumped).
-- **`JobQueueWatcherService#reconcileRunningQueuedRuns`** (every 15s) - a `RUNNING` row is removed once its linked run
-  is no longer running (the only path that deletes a `RUNNING` row). It does not judge the run's liveness itself -
-  that's `JobStateWatcher` (§5).
-- **`JobQueueWatcherService#expireUnclaimableQueuedRuns`** (every minute) - a `QUEUED` row with no activity for
-  `QUEUE_TIMEOUT` (default 30m) is marked `JobRunQueueState#CANCELLED` - given up on, because nothing currently running
-  matches it (see "Version-pinned claiming and unclaimable runs"
-  below). "Activity" is a claim attempt, however unsuccessful: a row still being actively retried keeps getting more
-  time rather than being cancelled out from under it.
-- **`JobQueueWatcherService#deleteOldCancelledQueuedRuns`** (hourly) - purges `CANCELLED` rows past
-  `CANCELLED_QUEUE_RETENTION` (default 7 days). A second pass covers rows whose job this build doesn't know, which
-  the per-job pass can never reach; those get the property's default retention.
+| Watcher                                               | Every | Does                                                                   |
+|-------------------------------------------------------|-------|------------------------------------------------------------------------|
+| `JobQueueWatcherService#resetAbandonedClaims`         | 15s   | `CLAIMED` longer than `CLAIM_TIMEOUT` → `QUEUED`                       |
+| `JobQueueWatcherService#reconcileRunningQueuedRuns`   | 15s   | deletes a `RUNNING` row once its run is no longer running              |
+| `JobQueueWatcherService#expireUnclaimableQueuedRuns`  | 1m    | `QUEUED` nothing could take for `QUEUE_TIMEOUT` (30m) → `CANCELLED`    |
+| `JobQueueWatcherService#deleteOldCancelledQueuedRuns` | 1h    | purges `CANCELLED` rows past `CANCELLED_QUEUE_RETENTION` (7d)          |
+| `JobStateWatcher`                                     | 5m    | run-level liveness (§5)                                                |
+| `JobTimeoutWatcher`                                   | 5m    | opt-in kill after `RUN_TIME_LIMIT` / `MAX_DURATION_IN_SCHEDULED_STATE` |
 
-  `JobRunQueueService` also cancels a row itself when nothing can ever claim it: its `versionTag` matches this build
-  exactly, yet this build has no such job id. Not immediately, though - an instance builds its job registry at
-  startup, so mid-rollout an instance about to be replaced can briefly not know a job its replacement just
-  registered. It waits out `runner.unknown-job.timeout` (default 5m, far shorter than `QUEUE_TIMEOUT`) first. A row
-  failing for any *other* reason is logged and skipped, so one bad row cannot block the rest of the queue.
-- **`JobStateWatcher`** (every 5m) - job-run-level liveness, see §5.
-- **`JobTimeoutWatcher`** - independent, duration-based, **opt-in per job**
-  (`KILL_JOBS_RUN_TIMEOUT`/`RUN_TIME_LIMIT`, `KILL_JOBS_SCHEDULE_TIMEOUT`/
-  `MAX_DURATION_IN_SCHEDULED_STATE`, both off by default). Kills a run that's simply taken too long. This is the only
-  mechanism that bounds how long a `SCHEDULED` handoff (§4) may run when nothing else ever reports it finished.
-
-**Version-pinned claiming and unclaimable runs [library, entirely].** Every queued row is tagged with the enqueueing
-instance's own build version (`JobService#versionTag`); `JobRunQueueService`
-only claims a row whose `versionTag` exactly matches its own (see §2) - never an older or newer instance, which matters
-during a staggered/rolling release where multiple versions briefly coexist:
-an older instance may not even know a newly-added job class, and a newer one may run different code for it than whatever
-enqueued the run intended. A consequence of that strictness: if every instance of the enqueueing version disappears
-before a row is claimed, nothing will ever claim it. Rather than leaving it `QUEUED` forever,
-`expireUnclaimableQueuedRuns` above eventually marks it `CANCELLED`.
-
-**`JobRunQueueState#CANCELLED` vs a `JobRun`'s own `CANCELLED` `JobRunState` [distinction worth being precise about].**
-These mean different things and are otherwise unrelated: a queued run reaching `JobRunQueueState#CANCELLED` means it was
-*never picked up*. For a run queued from scratch no `JobRun` ever existed for it and `jobRunId` stays `null`; a
-`BaseStateJob` continuation (§4) is the exception - it carries the `jobRunId` of the run it was resuming, which is
-then left stranded in `SCHEDULED`. A `JobRun` reaching
-`JobRunState#CANCELLED` means an execution that was already underway was cancelled (a manual cancel, or its worker
-interrupted). One is about a row never leaving the queue; the other is about an execution that was already underway.
-
-**Acknowledging a cancelled queue row [project, via the status API].** `POST
-/queue/{jobQueuedRunId}/acknowledge` deletes a single `CANCELLED` row immediately, without waiting for
-`CANCELLED_QUEUE_RETENTION`; `POST /queue/acknowledge-cancelled` does the same for every
-`CANCELLED` row at once. Both are no-ops (`success: false` / `0` acknowledged) if nothing matches - neither ever touches
-a `QUEUED`/`CLAIMED`/`RUNNING` row. Distinct from acknowledging a `JobRun`
-(`POST /run/{jobRunId}/acknowledge`), which is about a completed-but-problematic execution, not a queue row that never
-ran at all.
+A `CANCELLED` queue row was *never picked up* - unlike a `JobRun` in `CANCELLED`, which was stopped while under way. It
+stays visible (`JobQueueCancelledRunsCheck` warns) until acknowledged (`POST /queue/{jobQueuedRunId}/acknowledge`,
+`POST /queue/acknowledge-cancelled`) or purged. `JobRunQueueService` also cancels a row whose job its own version does
+not know, after `runner.unknown-job.timeout` (5m).
 
 ## 8. Services quick reference
 
-| Service                         | Role                                                                           |
-|---------------------------------|--------------------------------------------------------------------------------|
-| `TriggerCoordinatorService`     | Fires configured triggers, syncs fixed trigger definitions to the DB           |
-| `JobRunQueueService`            | Polls/claims/dispatches `QUEUED` rows                                          |
-| `JobExecutorService`            | Shared submit path: parallel-run guard, runner selection, `t_job_run` creation |
-| `JobQueueWatcherService`        | Claim-staleness, running-row, and unclaimable-queued-row reconciliation (§7)   |
-| `JobStateWatcher`               | Job-run-level liveness of running jobs (§5)                                    |
-| `KubernetesJobWatcher`          | K8s job/pod state + log watching (§6)                                          |
-| `JobTimeoutWatcher`             | Duration-based kill, opt-in (§7)                                               |
-| `JobService` / `JobDataService` | Core orchestration / persistence, used by all of the above                     |
+| Service                          | Role                                                                            |
+|----------------------------------|---------------------------------------------------------------------------------|
+| `TriggerCoordinatorService`      | Fires triggers (through the primary lease), syncs fixed trigger definitions     |
+| `JobInstanceRegistrationService` | Check-ins, primary lease, purging stale instances (§1)                          |
+| `JobRunQueueService`             | Polls, claims and dispatches `QUEUED` rows (§2)                                 |
+| `JobExecutorService`             | Shared submit path: parallel-run guard, runner selection, `t_job_run` creation  |
+| `JobQueueWatcherService`         | Queue reconciliation (§7)                                                       |
+| `JobStateWatcher`                | Run-level liveness (§5)                                                         |
+| `KubernetesJobWatcher`           | K8s job state and log watching (§6)                                             |
+| `JobTimeoutWatcher`              | Opt-in duration-based kill (§7)                                                 |
 
 ## 9. Where the status endpoints live
 
-**[library]** The status REST API (`/v1/status/**`) and the `/v1/status/live/logs` log websocket run on the
-**primary instance only** - the one carrying `job-primary-triggers` (§1). `UetlibJobStatusController`,
-`JobControllerService` and `UetlibJobWebSocketConfig` share that profile because the controller drives
-`TriggerCoordinatorService`, which exists only there.
+The status API (`/v1/status/**`) and its log websocket run only on instances with `job-primary-triggers` - normally
+one; route `/v1/status` there. Dispatch is unaffected: every instance polls the queue and runs jobs.
 
-- **Route `/v1/status` at that instance**, not across the deployment; other pods will 404.
-- **Dispatch is unaffected** - every instance still polls the queue and runs jobs (§2). Losing the primary instance
-  costs the API and new trigger firings, not runs already queued.
+`GET /v1/status/instances` lists the live instances and the lease holder; every status response names the instance
+that served it in `X-Job-Instance`.
 
 ## What the library mandates vs. what a project defines
 
-**Library-provided, not something a project reimplements:**
-
-- The queue table, dispatch loop, claim/reconciliation machinery.
-- `CurrentJobRunner`, `DedicatedJobRunner`, `KubernetesJobRunner`.
-- The `--job` CLI entry point and `job-run` profile wiring.
-- The status REST API (`/v1/status/...`) for queue/run inspection and control, and the
-  `/v1/status/live/logs` log websocket - on the primary instance only, see §9.
-
-**Project-defined, required:**
-
-- `Job` implementations (`run()`, at minimum).
-
-**Project-defined, optional, with library defaults:**
-
-- `ch.uetlib.job.runner.instance.name` (claim identifier; defaults to `HOSTNAME`).
-- Triggers (`Job#triggersConfig()`), taints, priority, runner group, all timeout properties.
-- For Kubernetes jobs: pod spec details (`K8S_*` properties), `KubernetesJob#watchJob()`.
-- For state-driven jobs: `BaseStateJob` subclasses, `runnerForProcessing()`.
+- **Library:** the queue, dispatch, claiming and reconciliation; the instance registry and primary lease; the runners;
+  the `--job` entry point; the status API.
+- **Project, required:** `Job` implementations, and the `job-primary-triggers` profile on at least one instance.
+- **Project, optional:** `runner.instance.name` (default `HOSTNAME`), `runner.instance.taints`, triggers, priority,
+  runner group, timeouts, `K8S_*` pod settings, `BaseStateJob` subclasses.

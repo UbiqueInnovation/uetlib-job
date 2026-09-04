@@ -5,51 +5,44 @@
 ### New Features
 
 - **Job dispatch is now queue-based.** Triggers insert a row into the new `t_job_run_queue` instead of running a job
-  directly; every instance polls that table and claims the rows it can run. Claiming is pinned to the enqueuing
-  instance's exact build version, so a rolling release never has one version run another's work. Adds per-run priority
-  (`PUT /queue/{jobQueuedRunId}/priority`) and cancellation of runs nothing can claim. The new `QUEUE_BEHAVIOR` property
-  (`DISCARD_NEW` / `REPLACE_RUN` (default) / `ALLOW_MULTIPLE` / `DISCARD_IF_RUNNING`) decides what happens when a job is
-  queued while one is already waiting or running. See `SCHEDULING.md` for the full model and the new (all-optional) job
-  properties.
+  directly. See `SCHEDULING.md` for more info.
+- Every instance checks in to the new `t_job_instance`. A primary lease there guarantees that exactly one instance
+  queues runs from triggers at any time.
+- `GET /v1/status/instances` lists the live instances and which one holds the primary lease. Every `/v1/status`
+  response names the instance that served it in the `X-Job-Instance` header.
+- The queue job properties `QUEUE_BEHAVIOR`, `PRIORITY`, `JOB_RUN_TAINTS`, `CLAIM_TIMEOUT`, `QUEUE_TIMEOUT` and
+  `CANCELLED_QUEUE_RETENTION` form the new property group `QUEUE`.
 
 ### Fixes
 
 - A job's fixed trigger list changing now updates only the changed trigger rows instead of deleting and reinserting all
   of that job's rows.
-- `REPLACE_RUN` and the queue delete endpoints no longer remove a `BaseStateJob` continuation, which would strand its
-  run in `SCHEDULED`.
 
 ### Breaking Changes
 
-- Run the `update_uetlib_7_0_0.sql` migration (adds `t_job_run_queue` and a PostgreSQL `NOTIFY` trigger).
-- `Job.priority()`, `Job.allowParallelRuns()` and `Job.forceRunOverridesAllowParallelRuns()` are gone - set the
-  `PRIORITY`, `ALLOW_PARALLEL_RUNS` and `FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS` job properties instead (via
-  `propertiesConfig()` or the properties API).
+- New DB tables `t_job_run_queue` and `t_job_instance`.
+- `Job.priority()`, `Job.allowParallelRuns()` and `Job.forceRunOverridesAllowParallelRuns()` removed - use Job
+  Properties `PRIORITY`, `ALLOW_PARALLEL_RUNS` and `FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS` instead.
 - Default `PRIORITY` is now `1` to allow deprioritizing jobs, was `0` previously.
-- `Job#supportsForceRun`'s default is now `false` (was `true` before), does not apply to `BaseStateJob` and
-  `BaseInputJob`.
-- `JobExecutorService.submit(Class, ...)` is gone in all three overloads - nothing dispatches a job directly any more.
-  Call `JobService#queueNewRun(...)` to enqueue one instead.
-- Public API no longer declares `throws ClassNotFoundException` (status controller, `JobControllerService`,
-  `JobManualTriggerService`). Callers catching it no longer compile.
-- Exactly one instance per job module (across all clusters) must have the `job-primary-triggers`
-  profile - it is the only one that enqueues runs from triggers. No other instance may have it.
-- The status interface now lives on that same instance only: `/v1/status/**` and the `/v1/status/live/logs` websocket
-  are gone from instances without `job-primary-triggers`, as are the `JobControllerService` and
-  `TriggerCoordinatorService` beans - injecting either outside that profile now fails to start. Route `/v1/status` at
-  the primary instance, not across the deployment. Dispatch is unaffected - every instance still polls the queue and
-  runs jobs.
+- `Job#supportsForceRun`'s default is now `false` (was `true` before), (not `BaseStateJob` and `BaseInputJob`).
+- `JobExecutorService.submit(Class, ...)` removed (all overloads). Call `JobService#queueNewRun(...)` to enqueue a job.
+- Public API no longer declares `throws ClassNotFoundException` (e.g., `JobManualTriggerService`). Callers catching it
+  may no longer compile.
+- Triggers queue runs only on instances with the `job-primary-triggers` profile, and only on the one holding the primary
+  lease (`SCHEDULING.md` §1); further instances with the profile are standbys. The status API runs only on these
+  instances.
+- `PgListenDataSourceProvider` removed, split into `PgListenJobTriggerDataSourceProvider` (job `PG_LISTEN` triggers)
+  and `JobQueueDataSourceProvider` (queue table).
 - `POST /job/{id}/start` now reports only whether the run was *queued*; its response body changes from
-  `JobSubmissionResult` to the sealed `QueueSubmissionResult`, and a failure returns `400`
-  with `{ "reason": "..." }`.
-- `PgListenDataSourceProvider` is gone, split into `PgListenJobTriggerDataSourceProvider` (job `PG_LISTEN` triggers)
-  and `JobQueueDataSourceProvider` (the queue table).
+  `JobSubmissionResult` to `QueueSubmissionResult`, and a failure returns `400` `{ "reason": "..." }`.
 
 ### Necessary Adjustments in Projects
 
-- Apps with **more than one datasource** must supply a `JobQueueDataSourceProvider`
-  and/or `PgListenJobTriggerDataSourceProvider` bean (where the queue table and `PG_LISTEN` triggers are).
-  Single-datasource apps need no change.
+- Apply the `update_uetlib_7_0_0.sql` migration.
+- Add the `job-primary-triggers` profile to the deployment properties.
+- Apps with **more than one datasource** must supply up to two new beans, `JobQueueDataSourceProvider` and/or
+  `PgListenJobTriggerDataSourceProvider` bean (where the queue table and `PG_LISTEN` triggers are). Single-datasource
+  apps need no change.
 
 ## 6.0.2
 

@@ -8,6 +8,7 @@ import ch.uetlib.core.utils.MapCollectors;
 import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.model.JobQueuedRun;
+import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.service.JobService;
 
@@ -25,22 +26,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Keeps {@code t_job_run_queue} honest once a row has been claimed - or never gets claimed at all:
- *
- * <ul>
- *   <li>a row stuck in {@link JobRunQueueState#CLAIMED} (the claiming instance died before ever
- *       submitting, so it never reached {@link JobRunQueueState#RUNNING}) is reset back to {@link
- *       JobRunQueueState#QUEUED} for another instance to retry
- *   <li>a {@link JobRunQueueState#RUNNING} row whose linked job run has actually finished (or
- *       vanished) is removed - the only path that deletes a {@code RUNNING} queue row
- *   <li>a {@link JobRunQueueState#QUEUED} row with no activity for too long - e.g. nothing
- *       currently running matches its version or taints - is marked {@link
- *       JobRunQueueState#CANCELLED} rather than left queued forever; a {@code CANCELLED} row is in
- *       turn purged once it's been sitting past its own retention
- * </ul>
- *
- * Liveness of a still-running job (its runner died or is stuck) is not tracked here - {@code
- * JobStateWatcher} covers that at the job-run level.
+ * Reconciles {@code t_job_run_queue}: resets abandoned claims, removes rows of finished runs, and
+ * cancels, then purges, rows nobody claims.
  */
 @Service
 @Profile("!job-run")
@@ -71,10 +58,8 @@ public class JobQueueWatcherService {
     }
 
     /**
-     * Per-job {@link ch.uetlib.job.model.properties.JobPropertyDefinitions#CLAIM_TIMEOUT}
-     * overrides, cached for 30s - not computed once at startup, since an operator can change this
-     * property live via the job properties API and this watcher should pick that up without
-     * requiring a restart.
+     * Per-job {@code CLAIM_TIMEOUT}, cached for 30s so live property changes apply without a
+     * restart.
      */
     private Map<Integer, Duration> jobClaimTimeout() {
         return jobClaimTimeoutCache.get(() -> jobService.propertyValueByJobId(CLAIM_TIMEOUT));
@@ -88,11 +73,7 @@ public class JobQueueWatcherService {
         return jobQueueTimeoutCache.get(() -> jobService.propertyValueByJobId(QUEUE_TIMEOUT));
     }
 
-    /**
-     * Per-job {@link
-     * ch.uetlib.job.model.properties.JobPropertyDefinitions#CANCELLED_QUEUE_RETENTION}
-     * overrides, cached the same way as {@link #jobClaimTimeout()}.
-     */
+    /** Per-job {@code CANCELLED_QUEUE_RETENTION}, cached like {@link #jobClaimTimeout()}. */
     private Map<Integer, Duration> jobCancelledQueueRetention() {
         return jobCancelledQueueRetentionCache.get(
                 () -> jobService.propertyValueByJobId(CANCELLED_QUEUE_RETENTION));
@@ -113,10 +94,17 @@ public class JobQueueWatcherService {
     public void reconcileRunningQueuedRuns() {
         final var runningQueuedRuns =
                 jobDataService.findQueuedRunsByState(JobRunQueueState.RUNNING);
-        runningQueuedRuns.forEach(this::reconcile);
+        // One lookup for every linked run rather than one per row.
+        final var runsById =
+                jobDataService.findJobRunsByIds(
+                        runningQueuedRuns.stream()
+                                .map(JobQueuedRun::jobRunId)
+                                .filter(Objects::nonNull)
+                                .toList());
+        runningQueuedRuns.forEach(queuedRun -> reconcile(queuedRun, runsById));
     }
 
-    private void reconcile(final JobQueuedRun queuedRun) {
+    private void reconcile(final JobQueuedRun queuedRun, final Map<Integer, JobRun> runsById) {
         final var jobRunId = queuedRun.jobRunId();
         if (jobRunId == null) {
             // Should not happen - RUNNING is only ever set together with jobRunId. Defensive only.
@@ -138,11 +126,8 @@ public class JobQueueWatcherService {
     }
 
     /**
-     * Marks {@code QUEUED} rows unclaimable (no activity since {@code QUEUE_TIMEOUT}, e.g. a run
-     * enqueued by a version or with taints nothing currently running matches - see {@link
-     * ch.uetlib.job.service.executor.JobRunQueueService#claimIfMatchesThisRunner}) as
-     * {@link JobRunQueueState#CANCELLED}. Left in the queue - not deleted - for visibility until
-     * acknowledged or purged (see {@link #deleteOldCancelledQueuedRuns}).
+     * Cancels {@code QUEUED} rows idle for {@code QUEUE_TIMEOUT}; they stay visible until
+     * acknowledged or purged.
      */
     @Scheduled(cron = "${ch.uetlib.job.runner.expire-unclaimable-queued.cron:37 * * * * ?}")
     public void expireUnclaimableQueuedRuns() {
@@ -155,11 +140,6 @@ public class JobQueueWatcherService {
         }
     }
 
-    /**
-     * Purges {@link JobRunQueueState#CANCELLED} rows past {@code CANCELLED_QUEUE_RETENTION} -
-     * cleanup only, not a liveness concern, hence the much coarser cadence than the other watchers
-     * here.
-     */
     @Scheduled(
             cron = "${ch.uetlib.job.runner.delete-old-cancelled-queued.cron:0 41 * * * ?}")
     public void deleteOldCancelledQueuedRuns() {

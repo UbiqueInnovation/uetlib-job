@@ -22,10 +22,8 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Pure-mock unit coverage for {@link JobDataService#updateJobRunState}, whose branch combinations
- * (running-with-stale-finishedAt, ACKNOWLEDGED-while-acknowledgeable, already-finished-no-op,
- * finished/running finishedAt bookkeeping) aren't exercised by {@link JobDataServiceDatabaseTest}.
- * Complements it rather than replacing it.
+ * Mock-based coverage of the {@link JobDataService#updateJobRunState} branches the database test
+ * doesn't reach.
  */
 class JobDataServiceTest {
 
@@ -42,6 +40,7 @@ class JobDataServiceTest {
                     mock(JobRunInputRepository.class),
                     mock(JobRunDatabaseSubmissionRepository.class),
                     mock(JobQueuedRunRepository.class),
+                    mock(JobInstanceRepository.class),
                     mock(K8sJobRepository.class),
                     mock(LoggingEventRepository.class),
                     mock(JdbcTemplate.class));

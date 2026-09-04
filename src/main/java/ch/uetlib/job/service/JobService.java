@@ -14,6 +14,8 @@ import ch.uetlib.job.model.properties.JobProperty;
 import ch.uetlib.job.model.properties.JobPropertyDefinition;
 import ch.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
+import ch.uetlib.job.model.queue.QueueNewRunResult;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.executor.runners.JobRunner;
 
@@ -120,9 +122,8 @@ public class JobService {
     }
 
     /**
-     * The effective value of {@code definition} for every registered job, keyed by job id. The
-     * pollers and watchers read their per-job settings through this, each caching it briefly so a
-     * live property change is picked up without a restart.
+     * The effective value of {@code definition} per job id; callers cache it briefly to pick up
+     * live changes.
      */
     public <T> Map<Integer, T> propertyValueByJobId(final JobPropertyDefinition<T> definition) {
         return jobClassesById.entrySet().stream()
@@ -253,40 +254,47 @@ public class JobService {
     }
 
     public JobQueuedRun queueNewRun(final JobClassAndId job, final JobRunArguments arguments) {
+        return tryQueueNewRun(job, arguments).run();
+    }
+
+    /** Queues a new run, unless the job's {@code QUEUE_BEHAVIOR} keeps a waiting or running one. */
+    public QueueNewRunResult tryQueueNewRun(
+            final JobClassAndId job, final JobRunArguments arguments) {
         final var properties = queueProperties(job);
         final var taints = taintsOf(properties);
         final var priority = properties.get(JobPropertyDefinitions.PRIORITY).value();
         final var queueBehavior =
                 requireNonNull(properties.get(JobPropertyDefinitions.QUEUE_BEHAVIOR).value());
-        return jobDataService.queueNewRun(
+        return jobDataService.tryQueueNewRun(
                 job.id(), priority, versionTag, arguments, taints, queueBehavior);
     }
 
-    /**
-     * For a run dispatched directly, bypassing the queue's normal QUEUED/CLAIMED steps (e.g. a
-     * dedicated {@code --job} CLI run): records it in the queue as already RUNNING. Idempotent - a
-     * run that already has a RUNNING row (e.g. claimed through the normal queue flow before being
-     * dispatched to a new pod) is left as-is rather than duplicated.
-     */
+    /** {@link #queueNewRun}, but only while {@code instanceName} holds the primary lease. */
+    public Optional<JobQueuedRun> queueNewRunAsPrimary(
+            final String instanceName, final JobClassAndId job, final JobRunArguments arguments) {
+        final var properties = queueProperties(job);
+        final var taints = taintsOf(properties);
+        final var priority = properties.get(JobPropertyDefinitions.PRIORITY).value();
+        final var queueBehavior =
+                requireNonNull(properties.get(JobPropertyDefinitions.QUEUE_BEHAVIOR).value());
+        return jobDataService.queueNewRunIfPrimary(
+                instanceName, job.id(), priority, versionTag, arguments, taints, queueBehavior);
+    }
+
+    /** Records a {@code --job} run as RUNNING, or returns the row its dispatcher already linked. */
     public JobQueuedRun queueRunningRun(
             final JobClassAndId job,
             final JobRunArguments arguments,
             final int jobRunId,
             final String runner) {
-        final var j = requireNonNull(jobClassesById.get(job.id()));
-        final var properties = getJobProperties(job.id(), instantiateJob(j));
-        final var taints =
-                requireNonNull(properties.get(JobPropertyDefinitions.JOB_RUN_TAINTS).value());
+        final var taints = taintsOf(queueProperties(job));
         return jobDataService.queueRunningRun(
                 job.id(), versionTag, arguments, taints, jobRunId, runner);
     }
 
     /**
-     * Enqueues the continuation of {@code jobRun} - its state is already computed and persisted, so
-     * a poller runs only its processing phase - and points the run at {@code processingRunnerKey}
-     * ({@link ch.uetlib.job.BaseStateJob#runnerForProcessing} may pick a different runner
-     * than the one that computed the state). Idempotent if the run already has a {@code RUNNING}
-     * queue row.
+     * Queues the processing phase of a {@code BaseStateJob} run on {@code processingRunnerKey},
+     * reusing its queue row.
      */
     public JobQueuedRun queueReprocessingRun(
             final JobClassAndId job,
@@ -401,6 +409,11 @@ public class JobService {
     /** Releases a claim back to {@code QUEUED} - e.g. after a claimed run failed to schedule. */
     public void releaseQueuedRun(final JobQueuedRun jobQueuedRun) {
         jobDataService.resetQueuedRunById(jobQueuedRun.jobQueuedRunId(), jobQueuedRun.jobRunId());
+    }
+
+    /** Keeps a row this instance waits to run from expiring; see {@code QUEUE_TIMEOUT}. */
+    public void touchWaitingQueuedRun(final JobQueuedRun jobQueuedRun) {
+        jobDataService.touchWaitingQueuedRun(jobQueuedRun.jobQueuedRunId());
     }
 
     /** Gives up on a queued row nothing can ever execute, marking it {@code CANCELLED}. */
