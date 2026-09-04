@@ -12,8 +12,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 @Configuration
 @EnableWebSocket
-@EnableScheduling
-@Profile("!job-run")
+@Profile("!job-run & job-primary-triggers")
 public class UetlibJobWebSocketConfig implements WebSocketConfigurer {
 
     private final UetlibJobWebSocketHandler webSocketHandler;

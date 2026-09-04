@@ -67,7 +67,8 @@ class JobRunMdcContextTest {
                         new JobRunArguments());
         final var observedJobRunId = new String[1];
 
-        JobRunMdcContext.runWithJobRunMdcContext(jobRun, () -> observedJobRunId[0] = MDC.get("jobRunId"));
+        JobRunMdcContext.runWithJobRunMdcContext(
+                jobRun, () -> observedJobRunId[0] = MDC.get("jobRunId"));
 
         assertEquals("9", observedJobRunId[0]);
         assertNull(MDC.get("jobRunId"));

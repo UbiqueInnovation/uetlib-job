@@ -82,12 +82,6 @@ class RegisteredJobRegistrar
                 "registeredJobDefinitions", beanDefinitionBuilder.getBeanDefinition());
     }
 
-    /**
-     * Always scanned in addition to whatever {@link EnableAnnotationUtils#getBasePackages} resolves
-     * - see {@link EnableJobs}.
-     */
-    private static final String FRAMEWORK_BASE_PACKAGE = "ch.uetlib";
-
     private Set<Class<?>> findAllRegisteredJobClasses(
             final Class<?> enableJobsClass, final EnableJobs enableJobsAnnotation) {
         final var candidateComponents = new LinkedHashSet<BeanDefinition>();
@@ -99,12 +93,10 @@ class RegisteredJobRegistrar
                             requireNonNull(resourceLoader),
                             RegisteredJob.class);
             final var basePackages =
-                    new LinkedHashSet<>(
-                            getBasePackages(
-                                    enableJobsAnnotation.basePackages(),
-                                    enableJobsAnnotation.basePackageClasses(),
-                                    enableJobsClass.getPackageName()));
-            basePackages.add(FRAMEWORK_BASE_PACKAGE);
+                    getBasePackages(
+                            enableJobsAnnotation.basePackages(),
+                            enableJobsAnnotation.basePackageClasses(),
+                            enableJobsClass.getPackageName());
             for (final var basePackage : basePackages) {
                 candidateComponents.addAll(scanner.findCandidateComponents(basePackage));
             }

@@ -31,10 +31,9 @@ class JobQueuedRunEntityTest {
     }
 
     @Test
-    void theDirectDispatchConstructorStartsAsRunningWithAHeartbeat() {
+    void theDirectDispatchConstructorStartsAsRunning() {
         final var entity =
-                new JobQueuedRunEntity(
-                        1, "1.0.0", new JobRunArguments(), Set.of(), 99, "runner-a");
+                new JobQueuedRunEntity(1, "1.0.0", new JobRunArguments(), Set.of(), 99, "runner-a");
 
         ReflectionTestUtils.setField(entity, "jobQueuedRunId", 43);
         ReflectionTestUtils.setField(entity, "createdAt", java.time.Instant.now());
@@ -44,12 +43,11 @@ class JobQueuedRunEntityTest {
         assertEquals(JobRunQueueState.RUNNING, run.queueState());
         assertEquals(99, run.jobRunId());
         assertEquals("runner-a", run.runner());
-        assertNotNull(run.lastHeartbeat());
         assertNull(run.priority());
     }
 
     @Test
-    void setRunIdTransitionsToRunningAndRefreshesTheHeartbeat() {
+    void setRunIdTransitionsToRunning() {
         final var entity =
                 new JobQueuedRunEntity(1, null, "1.0.0", new JobRunArguments(), Set.of());
         ReflectionTestUtils.setField(entity, "jobQueuedRunId", 44);
@@ -61,6 +59,5 @@ class JobQueuedRunEntityTest {
 
         assertEquals(JobRunQueueState.RUNNING, run.queueState());
         assertEquals(7, run.jobRunId());
-        assertNotNull(run.lastHeartbeat());
     }
 }

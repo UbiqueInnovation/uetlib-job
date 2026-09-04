@@ -224,7 +224,7 @@ public final class JobPropertyDefinitions {
                             + " status API.",
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
-                    0,
+                    1,
                     null);
     public static final JobPropertyDefinition<Boolean> ALLOW_PARALLEL_RUNS =
             new BooleanPropertyDefinition(
@@ -255,16 +255,6 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofMinutes(2));
-    public static final JobPropertyDefinition<Duration> HEARTBEAT_TIMEOUT =
-            new DurationPropertyDefinition(
-                    "HEARTBEAT_TIMEOUT",
-                    "Override the default timeout for a running job's heartbeat. The runner executing"
-                            + " the job touches its queue row's heartbeat while it runs; if it goes"
-                            + " silent for longer than this timeout, the run is considered abandoned"
-                            + " (its runner died or is stuck) and is marked UNFINISHED.",
-                    JobPropertyDefinitionGroup.RUNNER,
-                    false,
-                    Duration.ofMinutes(1));
     public static final JobPropertyDefinition<Duration> QUEUE_TIMEOUT =
             new DurationPropertyDefinition(
                     "QUEUE_TIMEOUT",

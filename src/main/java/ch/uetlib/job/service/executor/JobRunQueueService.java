@@ -1,6 +1,7 @@
 package ch.uetlib.job.service.executor;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
 
 import ch.uetlib.core.utils.SingleCache;
 import ch.uetlib.job.model.JobClassAndId;
@@ -30,7 +31,7 @@ import org.springframework.stereotype.Service;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.HashSet;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -76,6 +77,8 @@ public class JobRunQueueService {
     private final String instanceName;
     private final Set<String> instanceTaints;
     private final int maxRunnablePerCheck;
+    private final int maxPagesPerCheck;
+    private final Duration unknownJobTimeout;
 
     private final AtomicBoolean checkForRunnableInProgress = new AtomicBoolean(false);
     private final SingleCache<Map<Integer, JobRunnerKey>> jobRunnerKeyCache;
@@ -89,19 +92,26 @@ public class JobRunQueueService {
             @Value("${ch.uetlib.job.runner.instance.taints:null}")
                     final @Nullable List<String> instanceTaints,
             @Value("${ch.uetlib.job.runner.max.runnable.per.check:8}")
-                    final int maxRunnablePerCheck) {
+                    final int maxRunnablePerCheck,
+            @Value("${ch.uetlib.job.runner.max.pages.per.check:5}")
+                    final int maxPagesPerCheck,
+            @Value("${ch.uetlib.job.runner.unknown-job.timeout:PT5M}")
+                    final Duration unknownJobTimeout) {
         this.jobService = jobService;
         this.jobRunnerServiceInfo = jobRunnerServiceInfo;
         this.jobExecutorService = jobExecutorService;
         this.instanceName = resolveInstanceName(configuredInstanceName);
         this.instanceTaints = Set.copyOf(Optional.ofNullable(instanceTaints).orElse(List.of()));
+        this.dedicatedInstanceTaints = getDedicatedTaints();
         this.maxRunnablePerCheck = maxRunnablePerCheck;
+        this.maxPagesPerCheck = maxPagesPerCheck;
+        this.unknownJobTimeout = unknownJobTimeout;
         this.jobRunnerKeyCache =
                 new SingleCache<>(
                         Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).build());
     }
 
-    @Scheduled(cron = "*/5 * * * * ?")
+    @Scheduled(cron = "${ch.uetlib.job.runner.check-for-runnable.cron:*/5 * * * * ?}")
     public void checkForRunnableAndSchedule() {
         runExclusively(
                 checkForRunnableInProgress, "checkForRunnableAndSchedule", this::processQueue);
@@ -112,6 +122,12 @@ public class JobRunQueueService {
      * ...)} fires on a fixed schedule regardless of whether the previous invocation has finished,
      * so a slow poll (or a scheduler with more than one thread) could otherwise overlap with
      * itself.
+     *
+     * <p>This guards the scheduled poll only - {@link #checkForRunnable} runs the same claim path
+     * from the {@code NOTIFY} listener thread without it, deliberately, so a notification is never
+     * dropped just because a poll is in flight. The two overlapping is safe: claiming is a
+     * conditional {@code UPDATE ... WHERE queue_state = QUEUED} whose row count decides the winner,
+     * so the loser simply moves on.
      */
     private void runExclusively(
             final AtomicBoolean inProgress, final String taskName, final Runnable task) {
@@ -128,22 +144,25 @@ public class JobRunQueueService {
 
     /**
      * Pages through queued runs, highest priority and oldest first, claiming/executing every row on
-     * a page that matches this instance (plain or dedicated - see {@link
-     * #claimIfMatchesThisRunner}) before considering the next page. Keeps fetching further pages
-     * only while a page had no match at all, so a queue whose front this instance can't run doesn't
-     * starve out matching rows further back; as soon as a page has any match, this stops for now -
-     * the next tick (or a NOTIFY-triggered {@link #checkForRunnable}) picks up anything left.
+     * a page this instance can take (plain or dedicated - see {@link #claimIfMatchesThisRunner})
+     * before considering the next page. Stops as soon as a page yielded a claim, leaving the rest
+     * to the next tick (or a NOTIFY-triggered {@link #checkForRunnable}).
+     *
+     * <p>Only <em>taking</em> a row counts. A row this instance matches but cannot take right now -
+     * its runner group is at capacity, or another instance won the claim - is not progress, so the
+     * scan moves on rather than stopping: one saturated runner group at the front of the queue must
+     * not block runs for idle groups behind it. {@code maxPagesPerCheck} bounds how far that can
+     * go, so a queue this instance can take nothing from costs a bounded number of queries.
      */
     private void processQueue() {
-        var pageNumber = 0;
-        while (true) {
+        for (var pageNumber = 0; pageNumber < maxPagesPerCheck; pageNumber++) {
             final var page =
                     jobService.findQueuedRunsPage(PageRequest.of(pageNumber, maxRunnablePerCheck));
-            var anyMatch = false;
+            var progressed = false;
             for (final var jobQueuedRun : page.getContent()) {
-                anyMatch |= claimIfMatchesThisRunner(jobQueuedRun);
+                progressed |= claimIfMatchesThisRunnerIsolated(jobQueuedRun);
             }
-            if (anyMatch) {
+            if (progressed) {
                 return;
             }
             if (!page.hasNext()) {
@@ -153,8 +172,10 @@ public class JobRunQueueService {
                         instanceTaints);
                 return;
             }
-            pageNumber++;
         }
+        logger.debug(
+                "Stopped after {} pages without taking a run; the rest waits for the next check.",
+                maxPagesPerCheck);
     }
 
     /**
@@ -167,7 +188,24 @@ public class JobRunQueueService {
     public void checkForRunnable(final List<Pair<Integer, Integer>> jobIdToQueueRunId) {
         final var newInserts =
                 jobService.findQueuedByIds(jobIdToQueueRunId.stream().map(Pair::getRight).toList());
-        newInserts.forEach(this::claimIfMatchesThisRunner);
+        newInserts.forEach(this::claimIfMatchesThisRunnerIsolated);
+    }
+
+    /**
+     * {@link #claimIfMatchesThisRunner}, with one row's failure contained to that row, so a single
+     * unprocessable row at the front of the queue cannot block everything behind it on every tick.
+     */
+    private boolean claimIfMatchesThisRunnerIsolated(final JobQueuedRun jobQueuedRun) {
+        try {
+            return claimIfMatchesThisRunner(jobQueuedRun);
+        } catch (final Exception e) {
+            logger.error(
+                    "Failed to process queued run {}; skipping it and continuing with the rest of"
+                            + " the queue.",
+                    jobQueuedRun,
+                    e);
+            return false;
+        }
     }
 
     /**
@@ -186,9 +224,9 @@ public class JobRunQueueService {
      * jobQueuedRun}'s taints: taints are an orthogonal mechanism for restricting <em>which</em>
      * instances (within a runner kind) may claim a run, not for choosing the runner kind itself.
      *
-     * @return whether it matched, regardless of whether the subsequent claim attempt actually
-     *     succeeded (it may lose a race to another instance, or a plain match may be skipped for
-     *     lack of capacity)
+     * @return whether this instance actually took the row. A match that could not be taken - no
+     *     capacity, or a claim lost to another instance - returns {@code false}, so the scan keeps
+     *     looking behind it.
      */
     private boolean claimIfMatchesThisRunner(final JobQueuedRun jobQueuedRun) {
         if (jobQueuedRun.queueState() != JobRunQueueState.QUEUED) {
@@ -197,18 +235,51 @@ public class JobRunQueueService {
         if (!jobQueuedRun.versionTag().equals(jobService.versionTag())) {
             return false;
         }
-        if (runnerKindFor(jobQueuedRun) == JobRunnerKey.DEDICATED_K8S_JOB) {
-            if (matchesTaints(jobQueuedRun, getDedicatedTaints())) {
-                claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
-                return true;
-            }
+        if (jobService.findJobById(jobQueuedRun.jobId()).isEmpty()) {
+            cancelIfUnknownForTooLong(jobQueuedRun);
             return false;
         }
-        if (matchesTaints(jobQueuedRun, instanceTaints)) {
-            claimAndExecuteQueuedRun(jobQueuedRun);
-            return true;
+        if (!matchesTaints(jobQueuedRun)) {
+            return false;
         }
-        return false;
+        if (runnerKindFor(jobQueuedRun) == JobRunnerKey.DEDICATED_K8S_JOB) {
+            return claimAndExecuteDedicatedQueuedRun(jobQueuedRun);
+        }
+        return claimAndExecuteQueuedRun(jobQueuedRun);
+    }
+
+    /**
+     * Gives up on a row whose job this build doesn't have - the version check already passed, so
+     * nothing allowed to claim it could resolve the job either. Cancelled, not deleted.
+     *
+     * <p>Not on sight, though: an instance builds its job registry once at startup, so during a
+     * rollout an instance about to be replaced can briefly not know a job a newer one just
+     * registered. Waiting out {@code unknownJobTimeout} - long enough for a rollout, far shorter
+     * than {@code QUEUE_TIMEOUT} - lets that instance go away rather than cancel a run its
+     * replacement could have executed.
+     */
+    private void cancelIfUnknownForTooLong(final JobQueuedRun jobQueuedRun) {
+        final var unknownFor = Duration.between(jobQueuedRun.updatedAt(), Instant.now());
+        if (unknownFor.compareTo(unknownJobTimeout) < 0) {
+            logger.debug(
+                    "Job id {} of queued run {} is unknown to this build; leaving it for now ({} of"
+                            + " {} elapsed).",
+                    jobQueuedRun.jobId(),
+                    jobQueuedRun.jobQueuedRunId(),
+                    unknownFor,
+                    unknownJobTimeout);
+            return;
+        }
+        logger.error(
+                "Cancelling queued run {}: job id {} has been unknown to this build ({}) for {}, so"
+                        + " nothing allowed to claim this row can execute it.",
+                jobQueuedRun.jobQueuedRunId(),
+                jobQueuedRun.jobId(),
+                jobQueuedRun.versionTag(),
+                unknownFor);
+        if (!jobService.cancelUnclaimableQueuedRun(jobQueuedRun)) {
+            logger.info("Failed to cancel unknown job {}.", jobQueuedRun);
+        }
     }
 
     /**
@@ -218,13 +289,23 @@ public class JobRunQueueService {
      * different runner than the job's {@code RUNNER} property), else that property.
      */
     private JobRunnerKey runnerKindFor(final JobQueuedRun jobQueuedRun) {
-        if (jobQueuedRun.jobRunId() != null) {
+        final var runId = jobQueuedRun.jobRunId();
+        if (runId != null) {
             return jobService
-                    .getJobRunMaybe(jobQueuedRun.jobRunId())
+                    .getJobRunMaybe(runId)
                     .map(JobRun::runnerKey)
-                    .orElseGet(() -> jobRunnerKeys().get(jobQueuedRun.jobId()));
+                    .orElseGet(() -> configuredRunnerKey(jobQueuedRun.jobId()));
         }
-        return jobRunnerKeys().get(jobQueuedRun.jobId());
+        return configuredRunnerKey(jobQueuedRun.jobId());
+    }
+
+    /**
+     * The job's configured {@link JobPropertyDefinitions#RUNNER}, falling back to {@link
+     * JobRunnerKey#CURRENT} for a job id no longer in the cache (e.g. its class was removed since
+     * the row was enqueued) - such a row then takes the plain path and fails to resolve later.
+     */
+    private JobRunnerKey configuredRunnerKey(final int jobId) {
+        return requireNonNullElse(jobRunnerKeys().get(jobId), JobRunnerKey.CURRENT);
     }
 
     /**
@@ -234,19 +315,7 @@ public class JobRunQueueService {
      */
     private Map<Integer, JobRunnerKey> jobRunnerKeys() {
         return jobRunnerKeyCache.get(
-                () ->
-                        jobService.getAllJobs().stream()
-                                .collect(
-                                        Collectors.toMap(
-                                                job ->
-                                                        jobService
-                                                                .findJobId(job.getClass())
-                                                                .orElseThrow(),
-                                                job ->
-                                                        jobService
-                                                                .getProperties(job)
-                                                                .get(JobPropertyDefinitions.RUNNER)
-                                                                .valueNonNull())));
+                () -> jobService.propertyValueByJobId(JobPropertyDefinitions.RUNNER));
     }
 
     /** The single place taint subset-matching (row's taints ⊆ this instance's) */
@@ -257,36 +326,40 @@ public class JobRunQueueService {
                         .collect(Collectors.toSet()));
     }
 
-    private void claimAndExecuteQueuedRun(final JobQueuedRun jobQueuedRun) {
-        claimAndExecuteQueuedRun(jobQueuedRun, false);
+    private boolean claimAndExecuteQueuedRun(final JobQueuedRun jobQueuedRun) {
+        return claimAndExecuteQueuedRun(jobQueuedRun, false);
     }
 
-    private void claimAndExecuteDedicatedQueuedRun(final JobQueuedRun jobQueuedRun) {
+    private boolean claimAndExecuteDedicatedQueuedRun(final JobQueuedRun jobQueuedRun) {
         if (!jobService.hasRunner(JobRunnerKey.DEDICATED_K8S_JOB)) {
             logger.info(
                     "Cannot execute {} here, because there is no dedicated runner type for {} available.",
                     JobRunnerKey.DEDICATED_K8S_JOB,
                     jobQueuedRun);
-            return;
+            return false;
         }
-        claimAndExecuteQueuedRun(jobQueuedRun, true);
+        return claimAndExecuteQueuedRun(jobQueuedRun, true);
     }
 
-    private void claimAndExecuteQueuedRun(
+    /**
+     * @return whether this instance claimed the row; see {@link #claimIfMatchesThisRunner}.
+     */
+    private boolean claimAndExecuteQueuedRun(
             final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
         final var jobClass = jobService.findJobById(jobQueuedRun.jobId()).orElseThrow();
         if (!isDedicated && !hasCapacity(jobClass)) {
-            return;
+            return false;
         }
         if (!jobService.claimQueuedRun(jobQueuedRun, instanceName)) {
             logger.debug(
                     "Failed to claim queued run {}, appears to already have been claimed.",
                     jobQueuedRun);
-            return;
+            return false;
         }
         switch (jobExecutorService.submit(jobQueuedRun, isDedicated)) {
-            case SuccessfulSubmissionResult(_, _, final var runId) ->
-                    jobService.setRunId(jobQueuedRun, runId);
+            // Already linked and marked RUNNING by JobExecutorService#submit, before the runner
+            // was handed the job - doing it here would race the job's own execution.
+            case SuccessfulSubmissionResult _ -> logger.debug("Dispatched {}.", jobQueuedRun);
             case UnsuccessfulSubmissionResult(final var status) -> {
                 jobService.releaseQueuedRun(jobQueuedRun);
                 switch (status) {
@@ -301,6 +374,9 @@ public class JobRunQueueService {
                 }
             }
         }
+        // Claimed either way: the row was ours this tick, so the scan stops here even if the
+        // submission then failed and released it for a retry.
+        return true;
     }
 
     private boolean hasCapacity(final JobClassAndId jobClass) {

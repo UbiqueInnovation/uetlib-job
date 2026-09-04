@@ -1,5 +1,6 @@
 package ch.uetlib.job.checks;
 
+import ch.uetlib.core.utils.MapCollectors;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobQueuedRun;
@@ -15,20 +16,24 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Warns when any {@code t_job_run_queue} row has been marked {@link JobRunQueueState#CANCELLED} - a
  * run nothing could claim in time (no currently running instance matched its version or taints; see
- * {@code QUEUE_TIMEOUT}, {@code SCHEDULING.md} §2/§7). Distinct from {@link
- * JobCancelledStateCheck}: that one is about a {@code JobRun}'s own {@code CANCELLED} state - an
- * execution that was stopped after starting - whereas this is about a queue row that was never
- * picked up at all.
+ * {@code QUEUE_TIMEOUT}, {@code SCHEDULING.md} §2/§7).
+ *
+ * <p>Distinct from {@link JobCancelledStateCheck} ({@code JobRun} {@code CANCELLED} state).
  */
 @Service
 @Profile("!job-run")
 public class JobQueueCancelledRunsCheck implements StatusCheck {
+
+    private static final String UNRESOLVED_JOB_NAME = "Job name not found (may have been deleted)";
 
     private final CheckLevel level;
     private final JobDataService jobDataService;
@@ -56,34 +61,40 @@ public class JobQueueCancelledRunsCheck implements StatusCheck {
             return CheckStatus.CHECK_PASSED;
         }
 
-        final var affectedJobs =
-                cancelledRuns.stream()
-                        .map(JobQueuedRun::jobId)
-                        .distinct()
-                        .map(jobService::findJobById)
-                        .flatMap(Optional::stream)
-                        .toList();
-        final var affectedJobsCountByJob =
+        // LinkedHashMap throughout: monitoring output must not reorder between checks.
+        final var countByJobId =
                 cancelledRuns.stream()
                         .collect(
-                                java.util.stream.Collectors.groupingBy(
-                                        run ->
-                                                affectedJobs.stream()
-                                                        .filter(job -> job.id() == run.jobId())
-                                                        .findFirst()
-                                                        .map(JobClassAndId::name)
-                                                        .orElse(
-                                                                "Job name not found (may have been deleted)"),
-                                        java.util.stream.Collectors.counting()));
+                                Collectors.groupingBy(
+                                        JobQueuedRun::jobId,
+                                        LinkedHashMap::new,
+                                        Collectors.counting()));
+        final var jobsById =
+                countByJobId.keySet().stream()
+                        .map(jobService::findJobById)
+                        .flatMap(Optional::stream)
+                        .collect(MapCollectors.toMap(JobClassAndId::id));
+
+        final var countByJobName = new LinkedHashMap<String, Long>();
+        countByJobId.forEach(
+                (jobId, count) ->
+                        countByJobName.put(
+                                Optional.ofNullable(jobsById.get(jobId))
+                                        .map(JobClassAndId::name)
+                                        .orElse(UNRESOLVED_JOB_NAME + " (id=" + jobId + ")"),
+                                count));
+
         return new CheckFailed(
                 "Some queued runs could not be claimed in time and are cancelled.",
                 Map.ofEntries(
                         Pair.of("count", cancelledRuns.size()),
                         Pair.of(
                                 "jobs",
-                                affectedJobs.stream()
+                                countByJobId.keySet().stream()
+                                        .map(jobsById::get)
+                                        .filter(Objects::nonNull)
                                         .map(JobClassAndId::canonicalClassName)
                                         .toList()),
-                        Pair.of("jobsCount", affectedJobsCountByJob)));
+                        Pair.of("jobsCount", countByJobName)));
     }
 }

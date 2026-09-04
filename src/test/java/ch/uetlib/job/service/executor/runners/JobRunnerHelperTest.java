@@ -13,8 +13,6 @@ import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.properties.JobProperties;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.service.executor.heartbeat.HeartbeatRegistry;
-import ch.uetlib.job.service.executor.heartbeat.RunHeartbeat;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -28,8 +26,6 @@ class JobRunnerHelperTest {
     private static final JobClassAndId JOB = new JobClassAndId(1, "ch.uetlib.job.TestJob");
 
     private final JobService jobService = mock(JobService.class);
-    private final HeartbeatRegistry heartbeatRegistry = mock(HeartbeatRegistry.class);
-    private final RunHeartbeat heartbeat = mock(RunHeartbeat.class);
 
     @Test
     void prepareRunStartsTheRunAndCarriesOverEverythingElse() {
@@ -47,7 +43,7 @@ class JobRunnerHelperTest {
     }
 
     @Test
-    void runJobOnSuccessUpdatesStateAndFinishesTheHeartbeat() {
+    void runJobOnSuccessUpdatesState() {
         final var context = jobRunContext(JobRunState.BUSY);
         final var job = mock(Job.class);
         try {
@@ -55,12 +51,10 @@ class JobRunnerHelperTest {
         } catch (final Exception e) {
             throw new AssertionError(e);
         }
-        when(heartbeatRegistry.start(jobService, context)).thenReturn(heartbeat);
 
-        JobRunnerHelper.runJob(job, context, jobService, heartbeatRegistry);
+        JobRunnerHelper.runJob(job, context, jobService);
 
         verify(jobService).updateJobRunState(eq(context.jobRun()), eq(JobRunState.DONE), any());
-        verify(heartbeat).onLocalExecutionFinished(JobRunState.DONE);
     }
 
     @Test
@@ -72,14 +66,12 @@ class JobRunnerHelperTest {
         } catch (final Exception e) {
             throw new AssertionError(e);
         }
-        when(heartbeatRegistry.start(jobService, context)).thenReturn(heartbeat);
 
-        JobRunnerHelper.runJob(job, context, jobService, heartbeatRegistry);
+        JobRunnerHelper.runJob(job, context, jobService);
 
         final var stateCaptor = ArgumentCaptor.forClass(JobRunState.class);
         verify(jobService).updateJobRunState(eq(context.jobRun()), stateCaptor.capture(), any());
         assertEquals(JobRunState.ERROR, stateCaptor.getValue());
-        verify(heartbeat).onLocalExecutionFinished(JobRunState.ERROR);
     }
 
     @Test
@@ -91,14 +83,12 @@ class JobRunnerHelperTest {
         } catch (final Exception e) {
             throw new AssertionError(e);
         }
-        when(heartbeatRegistry.start(jobService, context)).thenReturn(heartbeat);
 
-        JobRunnerHelper.runJob(job, context, jobService, heartbeatRegistry);
+        JobRunnerHelper.runJob(job, context, jobService);
 
         try {
             verify(jobService)
                     .updateJobRunState(eq(context.jobRun()), eq(JobRunState.CANCELLED), any());
-            verify(heartbeat).onLocalExecutionFinished(JobRunState.CANCELLED);
             assertTrue(Thread.interrupted());
         } finally {
             // Clear the interrupt flag regardless of assertion outcome, so it can't leak into

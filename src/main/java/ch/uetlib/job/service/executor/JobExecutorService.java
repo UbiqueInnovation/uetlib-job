@@ -54,7 +54,8 @@ public class JobExecutorService {
                 jobService.getJobClassOrThrow(jobClass),
                 jobQueuedRun.arguments(),
                 jobQueuedRun.jobRunId(),
-                isDedicated ? DEDICATED_K8S_JOB : CURRENT);
+                isDedicated ? DEDICATED_K8S_JOB : CURRENT,
+                jobQueuedRun);
     }
 
     /**
@@ -67,14 +68,21 @@ public class JobExecutorService {
             final Class<? extends Job> jobClass,
             final JobRunArguments arguments,
             @Nullable final Integer runId) {
-        return submit(jobClass, arguments, runId, DEDICATED_K8S_JOB);
+        return submit(jobClass, arguments, runId, DEDICATED_K8S_JOB, null);
     }
 
+    /**
+     * @param queuedRun the row this submission came from, or {@code null} for the queue-less {@code
+     *     --job} path. Linked to the new run <em>before</em> the runner is handed the job: a runner
+     *     may start it on another thread immediately, and a {@code BaseStateJob} handoff would
+     *     otherwise race the link.
+     */
     private JobSubmissionResult submit(
             final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
-            @Nullable final JobRunnerKey jobRunnerKey) {
+            @Nullable final JobRunnerKey jobRunnerKey,
+            @Nullable final JobQueuedRun queuedRun) {
 
         if (!jobService.isEnabled(jobClass.getCanonicalName())) {
             if (jobService.exists(jobClass.getCanonicalName())) {
@@ -111,6 +119,14 @@ public class JobExecutorService {
         final var previousContextMap = MDC.getCopyOfContextMap();
         MDC.put("jobRunId", String.valueOf(jobRun.id()));
 
+        if (queuedRun != null && !jobService.setRunId(queuedRun, jobRun.id())) {
+            logger.warn(
+                    "Queue row {} was no longer claimed when linking run {}; leaving it to"
+                            + " reconciliation.",
+                    queuedRun.jobQueuedRunId(),
+                    jobRun.id());
+        }
+
         final var scheduled = tryToSchedule(runner, job, jobRunContext);
 
         if (!scheduled) {
@@ -125,7 +141,7 @@ public class JobExecutorService {
         return new SuccessfulSubmissionResult(runner.key(), jobRunContext, jobRun.id());
     }
 
-    protected boolean tryToSchedule(
+    private boolean tryToSchedule(
             final JobRunner runner, final Job job, final JobRunContext jobRunContext) {
         try {
             logger.info(

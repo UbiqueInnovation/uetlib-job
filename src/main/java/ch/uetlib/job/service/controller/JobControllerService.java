@@ -57,7 +57,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.text.MessageFormat;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,7 +68,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run")
+@Profile("!job-run & job-primary-triggers")
 public class JobControllerService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -244,20 +243,9 @@ public class JobControllerService {
     }
 
     private JobQueueEntryInfo toQueueEntryInfo(final JobQueuedRun run) {
-        final var jobClassAndId = jobService.findJobById(run.jobId());
-        final var jobName = jobClassAndId.map(JobClassAndId::name).orElse(null);
-        final var heartbeatTimeout =
-                run.queueState() == JobRunQueueState.RUNNING
-                        ? jobClassAndId.map(this::heartbeatTimeout).orElse(null)
-                        : null;
-        return JobQueueEntryInfo.from(run, jobName, heartbeatTimeout);
-    }
-
-    private Duration heartbeatTimeout(final JobClassAndId jobClassAndId) {
-        return jobService
-                .getProperties(jobClassAndId)
-                .get(JobPropertyDefinitions.HEARTBEAT_TIMEOUT)
-                .valueNonNull();
+        final var jobName =
+                jobService.findJobById(run.jobId()).map(JobClassAndId::name).orElse(null);
+        return JobQueueEntryInfo.from(run, jobName);
     }
 
     /**
@@ -349,7 +337,6 @@ public class JobControllerService {
         return jobNamesOrIds.stream().map(this::getJobId).filter(Objects::nonNull).toList();
     }
 
-    /** */
     public JobQueuedRun startJobManual(final String jobIdOrClassName, final boolean forceRun)
             throws ManualTriggerNotAllowedException {
         final var jobClass = getJobClass(jobIdOrClassName);
@@ -360,9 +347,12 @@ public class JobControllerService {
                         .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
                         .value();
         final var isEnabled = jobService.isEnabled(jobClass.getCanonicalName());
-
+        if (!isEnabled) {
+            throw new ManualTriggerNotAllowedException(
+                    String.format("Job %s is not enabled", jobClass));
+        }
         final var manualExecutionAllowed =
-                isEnabled && manualTriggerMode == JobManualTriggerMode.NEW_RUN_ALLOWED;
+                manualTriggerMode == JobManualTriggerMode.NEW_RUN_ALLOWED;
         if (!manualExecutionAllowed) {
             throw new ManualTriggerNotAllowedException(
                     String.format(

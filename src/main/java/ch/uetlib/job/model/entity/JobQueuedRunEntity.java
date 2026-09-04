@@ -61,9 +61,6 @@ public class JobQueuedRunEntity {
     @Column(name = "runner")
     private @Nullable String runner;
 
-    @Column(name = "heartbeat_at")
-    private @Nullable Instant lastHeartbeat;
-
     @JdbcTypeCode(SqlTypes.JSON)
     @Convert(converter = StringSetToStringConverter.class)
     @Column(name = "taints", nullable = false)
@@ -130,7 +127,6 @@ public class JobQueuedRunEntity {
         this.jobRunArguments = jobRunArguments;
         this.jobRunId = jobRunId;
         this.runner = runner;
-        this.lastHeartbeat = Instant.now();
     }
 
     public JobQueuedRun toJobQueuedRun() {
@@ -142,7 +138,6 @@ public class JobQueuedRunEntity {
                 queueState,
                 jobRunId,
                 runner,
-                lastHeartbeat,
                 requireNonNull(createdAt),
                 requireNonNull(updatedAt),
                 taints.stream().map(JobRunnerTaint::from).collect(Collectors.toSet()),
@@ -152,7 +147,6 @@ public class JobQueuedRunEntity {
     public JobQueuedRunEntity setRunId(final int runId) {
         this.jobRunId = runId;
         this.queueState = JobRunQueueState.RUNNING;
-        this.lastHeartbeat = Instant.now();
         return this;
     }
 }

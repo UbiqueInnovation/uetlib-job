@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
+import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.queue.JobRunQueueState;
 import ch.uetlib.job.model.queue.QueueSubmissionFailure;
 import ch.uetlib.job.model.queue.QueueSubmissionSuccess;
 import ch.uetlib.job.model.response.SuccessResponse;
-import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.service.controller.JobControllerService;
 
 import org.junit.jupiter.api.Test;
@@ -101,8 +101,9 @@ class UetlibJobStatusControllerTest {
         final var response = controller.getAllFiles(5);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(
-                response.getHeaders().getFirst("Content-Disposition").contains("files_5.zip"));
+        final var disposition = response.getHeaders().getFirst("Content-Disposition");
+        assertNotNull(disposition);
+        assertTrue(disposition.contains("files_5.zip"));
     }
 
     @Test
@@ -170,7 +171,16 @@ class UetlibJobStatusControllerTest {
     private static JobQueuedRun queuedRun() {
         final var now = Instant.now();
         return new JobQueuedRun(
-                1, null, 1, "1.0.0", JobRunQueueState.QUEUED, null, null, null, now, now,
-                Set.of(), new JobRunArguments());
+                1,
+                null,
+                1,
+                "1.0.0",
+                JobRunQueueState.QUEUED,
+                null,
+                null,
+                now,
+                now,
+                Set.of(),
+                new JobRunArguments());
     }
 }

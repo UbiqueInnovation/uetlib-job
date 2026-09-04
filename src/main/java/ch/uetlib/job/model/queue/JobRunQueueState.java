@@ -8,7 +8,7 @@ public enum JobRunQueueState {
     /** An instance won the claim, about to submit; back to {@link #QUEUED} if that fails. */
     CLAIMED,
 
-    /** Submitted, linked to a {@code t_job_run}, kept alive by a heartbeat. */
+    /** Submitted, linked to a {@code t_job_run}. */
     RUNNING,
 
     /** Terminal: sat {@link #QUEUED} past {@code QUEUE_TIMEOUT}, nothing able to claim it. */

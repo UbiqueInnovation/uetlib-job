@@ -135,9 +135,10 @@ CREATE TABLE t_job_run_queue
 
     fk_job_run_id       INTEGER REFERENCES t_job_run (pk_job_run_id) ON DELETE CASCADE,
     runner              TEXT,
-    heartbeat_at        TIMESTAMP,
 
     taints              JSON                   NOT NULL,
     job_run_arguments   JSON                   NOT NULL,
-    INDEX (fk_job_id)
+    INDEX (fk_job_id),
+    INDEX (queue_state),
+    INDEX (fk_job_run_id)
 ) charset = utf8mb4;
