@@ -4,4 +4,4 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.util.Collection;
 
-public record JobRunFileListResponse(@NotBlank Collection<String> paths) {}
+public record JobRunFileListResponse(Collection<@NotBlank String> paths) {}
