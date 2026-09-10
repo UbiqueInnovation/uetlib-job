@@ -7,6 +7,7 @@
 - `@Valid` on container elements, not wrappers
 - Application Args support additional data
 - Fix documentation: `@EnableJobs` does not include `ch.ubique.backend` by default
+- Fix `@NotBlank` not valid on container
 
 ## 5.0.7
 
