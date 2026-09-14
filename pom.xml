@@ -233,6 +233,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>4.1.1</version>
                 <executions>
                     <execution>
                         <id>build-info</id>
