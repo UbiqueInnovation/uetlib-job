@@ -58,21 +58,22 @@ public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void sendLogToSession(final String sessionId, final ActiveSession activeSession) {
-        try (final var session = activeSession.session()) {
-            final var jobRunId = activeSession.jobRunId();
-            final var counter = activeSession.counter();
-            final var accumulatedLogLines = logService.logs(jobRunId, counter.get());
-            if (accumulatedLogLines.lines() == 0) {
-                return;
-            }
+        final var session = activeSession.session();
+        final var jobRunId = activeSession.jobRunId();
+        final var counter = activeSession.counter();
+        final var accumulatedLogLines = logService.logs(jobRunId, counter.get());
+        if (accumulatedLogLines.lines() == 0) {
+            return;
+        }
 
-            counter.addAndGet(accumulatedLogLines.lines());
-            final var message = new TextMessage(accumulatedLogLines.log());
-            logger.trace(
-                    "sending {} log lines with length {} to session {}",
-                    accumulatedLogLines.lines(),
-                    message.getPayloadLength(),
-                    sessionId);
+        counter.addAndGet(accumulatedLogLines.lines());
+        final var message = new TextMessage(accumulatedLogLines.log());
+        logger.trace(
+                "sending {} log lines with length {} to session {}",
+                accumulatedLogLines.lines(),
+                message.getPayloadLength(),
+                sessionId);
+        try {
             session.sendMessage(message);
         } catch (final IOException e) {
             throw new WebSocketException(e);
