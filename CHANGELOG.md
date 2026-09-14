@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 5.1.1
+
+- Fix a non-null usage
+- uetlib versions updated
+
 ## 5.1.0
 
 ## Fixes
