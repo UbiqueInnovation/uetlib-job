@@ -66,31 +66,19 @@ class SerializableMatchResultTest {
         // Out-of-bounds group
         final int oob = expected.groupCount() + 1;
         assertThrowsWithMessage(
-                IndexOutOfBoundsException.class,
-                () -> actual.start(oob),
-                "No group " + oob);
+                IndexOutOfBoundsException.class, () -> actual.start(oob), "No group " + oob);
         assertThrowsWithMessage(
-                IndexOutOfBoundsException.class,
-                () -> actual.end(oob),
-                "No group " + oob);
+                IndexOutOfBoundsException.class, () -> actual.end(oob), "No group " + oob);
         assertThrowsWithMessage(
-                IndexOutOfBoundsException.class,
-                () -> actual.group(oob),
-                "No group " + oob);
+                IndexOutOfBoundsException.class, () -> actual.group(oob), "No group " + oob);
 
         // Negative group
         assertThrowsWithMessage(
-                IndexOutOfBoundsException.class,
-                () -> actual.start(-1),
-                "No group -1");
+                IndexOutOfBoundsException.class, () -> actual.start(-1), "No group -1");
         assertThrowsWithMessage(
-                IndexOutOfBoundsException.class,
-                () -> actual.end(-1),
-                "No group -1");
+                IndexOutOfBoundsException.class, () -> actual.end(-1), "No group -1");
         assertThrowsWithMessage(
-                IndexOutOfBoundsException.class,
-                () -> actual.group(-1),
-                "No group -1");
+                IndexOutOfBoundsException.class, () -> actual.group(-1), "No group -1");
 
         // Named groups map
         assertEquals(expected.namedGroups(), actual.namedGroups());
