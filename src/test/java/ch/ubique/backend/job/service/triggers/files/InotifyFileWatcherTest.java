@@ -20,13 +20,14 @@ class InotifyFileWatcherTest {
     void callbackFailureDoesNotEscapeListenerOrBlockLaterEvents(final boolean libraryLoaded)
             throws Exception {
         final var delivered = new ArrayList<FileWatcherEvent>();
+        final var incoming = Path.of("incoming");
         // Mock only the native resource boundary so listener behavior runs on every OS.
         try (final var nativeLibrary = mockStatic(NativeInotify.class);
                 final var instances =
                         mockConstruction(
                                 Inotify.class,
-                                (inotify, context) ->
-                                        when(inotify.addWatch("incoming", Event.All))
+                                (inotify, _) ->
+                                        when(inotify.addWatch(incoming.toString(), Event.All))
                                                 .thenReturn(7))) {
             nativeLibrary.when(NativeInotify::isLibraryLoaded).thenReturn(libraryLoaded);
             try (final var watcher =
@@ -36,7 +37,7 @@ class InotifyFileWatcherTest {
                                 if (event.filePath().equals(Path.of("first.txt")))
                                     throw new IllegalStateException("Callback failed");
                             })) {
-                watcher.watchPath(Path.of("incoming"));
+                watcher.watchPath(incoming);
                 assertDoesNotThrow(
                         () ->
                                 watcher.filesystemEventOccurred(
@@ -45,7 +46,7 @@ class InotifyFileWatcherTest {
                         new InotifyEvent(7, Event.Create.value(), 0, "later.txt"));
                 assertEquals(2, delivered.size());
                 assertEquals(Path.of("later.txt"), delivered.get(1).filePath());
-                assertEquals(Path.of("incoming"), delivered.get(1).watchedPath());
+                assertEquals(incoming, delivered.get(1).watchedPath());
                 nativeLibrary.verify(
                         () -> NativeInotify.loadLibrary(null), times(libraryLoaded ? 0 : 1));
             }
