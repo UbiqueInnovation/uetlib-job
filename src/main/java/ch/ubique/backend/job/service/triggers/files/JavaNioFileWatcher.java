@@ -51,12 +51,15 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
                 return;
             }
 
-            checkForMatchingTriggerDefinitions(key);
-
-            final var valid = key.reset();
-            if (!valid) {
-                logger.warn("The watch key {} is not valid anymore.", key);
-                break;
+            try {
+                checkForMatchingTriggerDefinitions(key);
+            } finally {
+                // A key must be reset after processing, including failed callbacks, or this
+                // directory will stop reporting new events.
+                if (!key.reset()) {
+                    final var path = watchedPaths.remove(key);
+                    logger.warn("The watch key for {} is not valid anymore.", path);
+                }
             }
         }
     }
@@ -65,6 +68,8 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
     private WatchKey waitForNextWatchKey() {
         try {
             return watchService.take();
+        } catch (final ClosedWatchServiceException _) {
+            return null;
         } catch (final InterruptedException e) {
             if (!fileTriggerWatcherExecutorService.isShutdown()) {
                 logger.warn("File watcher was interrupted", e);
@@ -82,7 +87,7 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
         logger.debug("Watched path: {}", watchedPath);
 
         for (final var event : key.pollEvents()) {
-            if (logger.isInfoEnabled()) {
+            if (logger.isDebugEnabled()) {
                 final var eventToString =
                         new ToStringBuilder(event, ToStringStyle.SHORT_PREFIX_STYLE)
                                 .append("kind", event.kind())
@@ -90,10 +95,14 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
                                 .append("context", event.context())
                                 .toString();
                 logger.debug("Got event: {}", eventToString);
-                if (!(event.context() instanceof final Path eventContextPath)) {
-                    // not a path (can happen for eventKind OVERFLOW) so surely that does not match
-                    return;
-                }
+            }
+            if (!(event.context() instanceof final Path eventContextPath)) {
+                // OVERFLOW has no path. Do not discard other events in the same batch.
+                logger.warn(
+                        "File watch event without a path for {}: {}", watchedPath, event.kind());
+                continue;
+            }
+            try {
                 final var type = FileChangeEvent.fromWatchEventKind(event.kind());
                 final var watcherEvent = new FileWatcherEvent(watchedPath, eventContextPath, type);
                 onEvent.accept(watcherEvent);
@@ -101,6 +110,12 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
                     onEvent.accept(watcherEvent.withType(FileChangeEvent.ENTRY_WRITE_CLOSE));
                     onEvent.accept(watcherEvent.withType(FileChangeEvent.ENTRY_MOVED_TO));
                 }
+            } catch (final Exception e) {
+                // The executor starts this watch loop only once; it does not restart the task
+                // if event conversion or a callback throws. Skip this failed event and keep
+                // processing later files. FileTriggerService isolates individual job failures.
+                logger.error(
+                        "Failed to process file watch event for {}: {}", watchedPath, event, e);
             }
         }
     }
@@ -128,7 +143,14 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
     @Override
     public void close() {
         logger.debug("Shutting down file trigger watcher");
-        fileTriggerWatcherExecutorService.shutdown();
+        // Closing also releases native watch resources and unblocks take() immediately.
+        try {
+            watchService.close();
+        } catch (final IOException e) {
+            logger.warn("Failed to close file watch service", e);
+        } finally {
+            fileTriggerWatcherExecutorService.shutdownNow();
+        }
         try {
             final var successfulTermination =
                     fileTriggerWatcherExecutorService.awaitTermination(5, TimeUnit.SECONDS);
