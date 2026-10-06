@@ -36,16 +36,26 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
     private final Map<Integer, RegisteredFileTrigger> registeredFileTriggers;
 
     public FileTriggerService() throws IOException {
-        registeredFileTriggers = new ConcurrentHashMap<>();
-        fileTriggerWatcher = createFileWatcher();
+        this(FileTriggerService::createFileWatcher);
     }
 
-    private FileWatcher createFileWatcher() throws IOException {
+    FileTriggerService(final FileWatcherFactory factory) throws IOException {
+        registeredFileTriggers = new ConcurrentHashMap<>();
+        fileTriggerWatcher = factory.create(this::onEvent);
+    }
+
+    @FunctionalInterface
+    interface FileWatcherFactory {
+        FileWatcher create(Consumer<FileWatcherEvent> onEvent) throws IOException;
+    }
+
+    private static FileWatcher createFileWatcher(final Consumer<FileWatcherEvent> onEvent)
+            throws IOException {
         try {
-            return new InotifyFileWatcher(this::onEvent);
+            return new InotifyFileWatcher(onEvent);
         } catch (final UnsatisfiedLinkError | InotifyException e) {
             logger.info("Inotify not available, falling back to Java NIO FileWatcher.");
-            return new JavaNioFileWatcher(this::onEvent);
+            return new JavaNioFileWatcher(onEvent);
         }
     }
 
@@ -81,9 +91,23 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     private void onEvent(final FileWatcherEvent event) {
         logger.debug("Got {}", event);
-        registeredFileTriggers
-                .values()
-                .forEach(registeredFileTrigger -> onEvent(event, registeredFileTrigger));
+        registeredFileTriggers.forEach(
+                (triggerId, trigger) -> {
+                    try {
+                        onEvent(event, trigger);
+                    } catch (final Exception e) {
+                        // Job submission accesses the database and can fail during an outage.
+                        // Letting that exception escape kills the watcher, so later files would
+                        // require an application restart. Log this failed event and continue with
+                        // other triggers and future files; this does not retry the failed event.
+                        logger.error(
+                                "Failed to process file event {} for trigger {} ({}).",
+                                event,
+                                triggerId,
+                                trigger.fileTrigger(),
+                                e);
+                    }
+                });
     }
 
     private void onEvent(final FileWatcherEvent event, final RegisteredFileTrigger trigger) {

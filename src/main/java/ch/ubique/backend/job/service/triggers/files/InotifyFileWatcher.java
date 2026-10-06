@@ -30,7 +30,9 @@ public final class InotifyFileWatcher implements FileWatcher, InotifyEventListen
     public InotifyFileWatcher(final Consumer<FileWatcherEvent> onEvent) throws InotifyException {
         this.onEvent = onEvent;
         this.pathsByWatchDescriptor = new ConcurrentHashMap<>();
-        NativeInotify.loadLibrary(null);
+        if (!NativeInotify.isLibraryLoaded()) {
+            NativeInotify.loadLibrary(null);
+        }
         this.inotify = new Inotify();
         logger.info("Initialized InotifyFileWatcher.");
     }
@@ -53,6 +55,16 @@ public final class InotifyFileWatcher implements FileWatcher, InotifyEventListen
 
     @Override
     public void filesystemEventOccurred(final InotifyEvent event) {
+        try {
+            handleEvent(event);
+        } catch (final Exception e) {
+            // An exception escaping this listener makes ConcurrentReader destroy the inotify
+            // instance. Keep decoding and callback failures inside the listener boundary.
+            logger.error("Failed to process inotify event {}", event, e);
+        }
+    }
+
+    private void handleEvent(final InotifyEvent event) {
         logger.debug("Got {}", event);
         final var watchDescriptor = event.getSource();
         final var watchedPath = pathsByWatchDescriptor.get(watchDescriptor);
