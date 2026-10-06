@@ -82,16 +82,21 @@ class FileTriggerFailureTest {
                     0,
                     trigger,
                     arguments -> {
-                        failedSubmissions.add(
-                                ((FileTriggerContext) arguments.triggerContext()).fileName());
+                        final var context =
+                                assertInstanceOf(
+                                        FileTriggerContext.class, arguments.triggerContext());
+                        failedSubmissions.add(context.fileName());
                         throw new CannotCreateTransactionException("Database unavailable");
                     });
             service.registerFileTrigger(
                     1,
                     trigger,
-                    arguments ->
-                            successfulSubmissions.add(
-                                    ((FileTriggerContext) arguments.triggerContext()).fileName()));
+                    arguments -> {
+                        final var context =
+                                assertInstanceOf(
+                                        FileTriggerContext.class, arguments.triggerContext());
+                        successfulSubmissions.add(context.fileName());
+                    });
             for (final var name : new String[] {"first.txt", "later.txt"}) {
                 Files.createFile(directory.resolve(name));
                 assertEquals(name, failedSubmissions.poll(10, TimeUnit.SECONDS));

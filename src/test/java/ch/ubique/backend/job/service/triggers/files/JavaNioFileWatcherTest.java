@@ -29,36 +29,35 @@ class JavaNioFileWatcherTest {
     void callbackFailureDoesNotStopLaterFiles() throws Exception {
         final var failures = new LinkedBlockingQueue<Path>();
         final var delivered = new LinkedBlockingQueue<Path>();
+        final var firstFile = Path.of("first.txt");
+        final var laterFile = Path.of("later.txt");
         try (final var watcher =
                 new JavaNioFileWatcher(
                         event -> {
                             if (event.type() != FileChangeEvent.ENTRY_CREATED) return;
-                            if (event.filePath().equals(Path.of("first.txt"))) {
+                            if (event.filePath().equals(firstFile)) {
                                 failures.add(event.filePath());
                                 throw new IllegalStateException("Callback failed");
                             }
                             delivered.add(event.filePath());
                         })) {
             watcher.watchPath(directory);
-            Files.createFile(directory.resolve("first.txt"));
-            assertEquals(Path.of("first.txt"), failures.poll(10, TimeUnit.SECONDS));
-            Files.createFile(directory.resolve("later.txt"));
-            assertEquals(Path.of("later.txt"), delivered.poll(10, TimeUnit.SECONDS));
+            Files.createFile(directory.resolve(firstFile));
+            assertEquals(firstFile, failures.poll(10, TimeUnit.SECONDS));
+            Files.createFile(directory.resolve(laterFile));
+            assertEquals(laterFile, delivered.poll(10, TimeUnit.SECONDS));
         }
     }
 
     @Test
     void closingIdleWatcherReleasesResourcesAndTerminatesPromptly() throws Exception {
-        final var watcher = new JavaNioFileWatcher(event -> fail("Unexpected event"));
-        try {
+        try (final var watcher = new JavaNioFileWatcher(_ -> fail("Unexpected event"))) {
             watcher.watchPath(directory);
             assertTimeoutPreemptively(Duration.ofSeconds(2), watcher::close);
             // A new path forces registration against the closed native watch service.
             final var anotherDirectory = Files.createDirectory(directory.resolve("another"));
             assertThrows(
                     ClosedWatchServiceException.class, () -> watcher.watchPath(anotherDirectory));
-        } finally {
-            watcher.close();
         }
     }
 
@@ -75,6 +74,7 @@ class JavaNioFileWatcherTest {
         final WatchEvent<Path> created = mock(WatchEvent.class);
         final var ready = new CountDownLatch(1);
         final var delivered = new LinkedBlockingQueue<FileWatcherEvent>();
+        final var laterFile = Path.of("later.txt");
         when(invalidPath.register(eq(watchService), any(WatchEvent.Kind[].class)))
                 .thenReturn(invalidKey);
         when(validPath.register(eq(watchService), any(WatchEvent.Kind[].class)))
@@ -85,11 +85,11 @@ class JavaNioFileWatcherTest {
         when(validKey.reset()).thenReturn(true);
         doReturn(StandardWatchEventKinds.OVERFLOW).when(overflow).kind();
         when(created.kind()).thenReturn(StandardWatchEventKinds.ENTRY_CREATE);
-        when(created.context()).thenReturn(Path.of("later.txt"));
+        when(created.context()).thenReturn(laterFile);
         final var keys = new AtomicInteger();
         when(watchService.take())
                 .thenAnswer(
-                        invocation -> {
+                        _ -> {
                             assertTrue(ready.await(10, TimeUnit.SECONDS));
                             return switch (keys.getAndIncrement()) {
                                 case 0 -> invalidKey;
@@ -104,7 +104,7 @@ class JavaNioFileWatcherTest {
             final var event = delivered.poll(10, TimeUnit.SECONDS);
             assertNotNull(event);
             assertEquals(validPath, event.watchedPath());
-            assertEquals(Path.of("later.txt"), event.filePath());
+            assertEquals(laterFile, event.filePath());
             assertEquals(FileChangeEvent.ENTRY_CREATED, event.type());
             verify(invalidKey, timeout(1000)).reset();
             verify(validKey, timeout(1000)).reset();
