@@ -4,6 +4,8 @@
 
 - Fix a non-null usage
 - uetlib versions updated
+- Keep file watchers running after job submission failures, such as temporary database outages,
+  so later files are processed without restarting the application.
 
 ## 5.1.0
 
