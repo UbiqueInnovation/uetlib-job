@@ -32,8 +32,12 @@ public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
     private final ExecutorService fileTriggerWatcherExecutorService;
 
     public JavaNioFileWatcher(final Consumer<FileWatcherEvent> onEvent) throws IOException {
+        this(onEvent, FileSystems.getDefault().newWatchService());
+    }
+
+    JavaNioFileWatcher(final Consumer<FileWatcherEvent> onEvent, final WatchService watchService) {
         this.onEvent = onEvent;
-        this.watchService = FileSystems.getDefault().newWatchService();
+        this.watchService = watchService;
         this.watchedPaths = new ConcurrentHashMap<>();
 
         final var threadFactory =
