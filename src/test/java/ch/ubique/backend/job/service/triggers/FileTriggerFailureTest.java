@@ -69,4 +69,34 @@ class FileTriggerFailureTest {
             assertEquals("recovered.txt", context.fileName());
         }
     }
+
+    @Test
+    void failingTriggerDoesNotBlockAnotherMatchingTrigger() throws Exception {
+        final var failedSubmissions = new LinkedBlockingQueue<String>();
+        final var successfulSubmissions = new LinkedBlockingQueue<String>();
+        final var trigger =
+                new FileTrigger(
+                        directory.toString(), Pattern.compile(".*"), FileChangeEvent.ENTRY_CREATED);
+        try (final var service = new FileTriggerService(JavaNioFileWatcher::new)) {
+            service.registerFileTrigger(
+                    0,
+                    trigger,
+                    arguments -> {
+                        failedSubmissions.add(
+                                ((FileTriggerContext) arguments.triggerContext()).fileName());
+                        throw new CannotCreateTransactionException("Database unavailable");
+                    });
+            service.registerFileTrigger(
+                    1,
+                    trigger,
+                    arguments ->
+                            successfulSubmissions.add(
+                                    ((FileTriggerContext) arguments.triggerContext()).fileName()));
+            for (final var name : new String[] {"first.txt", "later.txt"}) {
+                Files.createFile(directory.resolve(name));
+                assertEquals(name, failedSubmissions.poll(10, TimeUnit.SECONDS));
+                assertEquals(name, successfulSubmissions.poll(10, TimeUnit.SECONDS));
+            }
+        }
+    }
 }
