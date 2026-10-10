@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 5.2.0
+
+- `BaseStateJob`: Added support for customizing the behavior when the latest state could not be computed.
+
 ## 5.1.1
 
 - Fix a non-null usage
