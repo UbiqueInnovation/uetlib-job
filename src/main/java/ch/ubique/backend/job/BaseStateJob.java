@@ -114,8 +114,13 @@ public abstract class BaseStateJob<T> implements Job {
 
         // Compute latest state
         logger.debug("Computing latest state.");
-        final var latestState =
-                requireNonNull(getLatestState(jobRunContext), "Latest state must not be null");
+        final T latestState;
+        try {
+            latestState =
+                    requireNonNull(getLatestState(jobRunContext), "Latest state must not be null");
+        } catch (final Exception e) {
+            return onLatestStateFailed(e);
+        }
         logger.debug("Got latest state {}.", latestState);
 
         // Skip if allowed
@@ -159,6 +164,16 @@ public abstract class BaseStateJob<T> implements Job {
         // Start processing on current runner
         logger.info("Starting processing.");
         return processState(latestState, jobRunContext);
+    }
+
+    /**
+     * This method is called when the latest state could not be computed. You may override it to
+     * allow for a custom handling in this case. By default, it logs the error and returns {@link
+     * JobRunState#ERROR}.
+     */
+    protected JobRunState onLatestStateFailed(final Exception exception) {
+        logger.error("Failed to compute latest state.", exception);
+        return JobRunState.ERROR;
     }
 
     private boolean isAllowedToSkipAndCanSkip(
