@@ -14,6 +14,6 @@ public class MysqlTestcontainerConfig {
     @Bean
     @ServiceConnection
     MySQLContainer mysqlContainer() {
-        return new MySQLContainer(DockerImageName.parse("mysql:9.7"));
+        return new MySQLContainer(DockerImageName.parse("mysql:26.7"));
     }
 }
