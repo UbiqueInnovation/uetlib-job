@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 5.2.1
+
+- Fix exception in `JobControllerService#getJobProperties` when a job has duplicate property keys. This was undefined
+  behavior but leads to runtime crashes when jobs are not configured correctly, so logs at `warn` level.
+
 ## 5.2.0
 
 - `BaseStateJob`: Added support for customizing the behavior when the latest state could not be computed.
