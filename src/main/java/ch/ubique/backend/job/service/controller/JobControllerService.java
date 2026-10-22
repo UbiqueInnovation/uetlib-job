@@ -334,7 +334,18 @@ public class JobControllerService {
                         .getProperties(jobService.instantiateJob(getJobClass(jobIdOrClassName)))
                         .values()
                         .stream()
-                        .collect(Collectors.toMap(JobProperty::key, JobPropertyInfo::from));
+                        .collect(
+                                Collectors.toMap(
+                                        JobProperty::key,
+                                        JobPropertyInfo::from,
+                                        (a, b) -> {
+                                            logger.warn(
+                                                    "Duplicate property key found: {}. Using the first one. {} vs {}",
+                                                    a.key(),
+                                                    a.value(),
+                                                    b.value());
+                                            return a;
+                                        }));
         return JobPropertyDefinitions.values().stream()
                 .map(
                         definition ->
