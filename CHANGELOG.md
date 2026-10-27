@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 5.2.2
+
+- Fix some `FutureReturnValueIgnored` warnings and catch some possible bugs while at it
+
 ## 5.2.1
 
 - Fix exception in `JobControllerService#getJobProperties` when a job has duplicate property keys. This was undefined
