@@ -83,6 +83,4 @@ fabric.properties
 .agents
 .claude
 
-.vscode
-.agents
-.claude
+.sonar

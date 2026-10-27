@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 
-@Service("jobRegistrationService")
+@Service
 public class JobRegistrationService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobRegistrationService.class);
