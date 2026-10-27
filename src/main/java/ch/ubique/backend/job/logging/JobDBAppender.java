@@ -39,8 +39,6 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
                         return thread;
                     });
 
-    private @Nullable ScheduledFuture<?> scheduledFlush;
-
     private final @Nullable DedicatedJobRunner dedicatedJobRunner;
 
     public JobDBAppender(
@@ -156,7 +154,10 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
     @Override
     public void start() {
         super.start();
-        scheduledFlush =
+        // The future is not needed: writeQueueToDB handles its own failures and
+        // scheduler.shutdown() cancels the periodic task. Bound to satisfy
+        // FutureReturnValueIgnored.
+        final var _ =
                 scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 0, 5, TimeUnit.SECONDS);
     }
 
@@ -173,9 +174,6 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
             return;
         }
 
-        if (scheduledFlush != null) {
-            scheduledFlush.cancel(false);
-        }
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
