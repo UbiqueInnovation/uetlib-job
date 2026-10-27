@@ -84,7 +84,7 @@ class PgChannelListener {
 
         // Start listening
         running = true;
-        listenerThread.submit(this::listenerLoop);
+        listenerThread.execute(this::listenerLoop);
     }
 
     private static DataSource buildDataSource(final DataSourceProperties dataSourceProperties) {
