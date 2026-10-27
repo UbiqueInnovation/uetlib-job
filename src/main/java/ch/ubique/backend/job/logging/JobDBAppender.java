@@ -157,15 +157,7 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
     public void start() {
         super.start();
         scheduledFlush =
-                scheduler.scheduleWithFixedDelay(this::flushSafely, 0, 5, TimeUnit.SECONDS);
-    }
-
-    private void flushSafely() {
-        try {
-            writeQueueToDB();
-        } catch (final Exception e) {
-            logger.error("Unexpected failure flushing job logs to database.", e);
-        }
+                scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 0, 5, TimeUnit.SECONDS);
     }
 
     @Override
