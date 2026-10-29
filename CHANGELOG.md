@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 6.0.0 (unreleased)
+
+### Breaking changes
+
+- Move Maven coordinates from `ch.ubique:uetlib-*` to `ch.ubique.uetlib:uetlib-*`.
+- Align uetlib parent, BOM and library references with the migration releases.
+
 ## 5.2.1
 
 - Fix exception in `JobControllerService#getJobProperties` when a job has duplicate property keys. This was undefined
