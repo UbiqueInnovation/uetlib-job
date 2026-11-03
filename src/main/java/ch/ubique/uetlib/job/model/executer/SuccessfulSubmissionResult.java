@@ -2,7 +2,9 @@ package ch.ubique.uetlib.job.model.executer;
 
 import ch.ubique.uetlib.job.model.JobRunContext;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 

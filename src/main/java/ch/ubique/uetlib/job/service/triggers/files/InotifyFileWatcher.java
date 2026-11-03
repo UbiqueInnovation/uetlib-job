@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.service.triggers.files;
 
 import ch.ubique.uetlib.job.model.triggers.FileChangeEvent;
+
 import com.den_4.inotify_java.EventQueueFull;
 import com.den_4.inotify_java.Inotify;
 import com.den_4.inotify_java.InotifyEvent;
@@ -8,13 +9,15 @@ import com.den_4.inotify_java.InotifyEventListener;
 import com.den_4.inotify_java.NativeInotify;
 import com.den_4.inotify_java.enums.Event;
 import com.den_4.inotify_java.exceptions.InotifyException;
+
+import org.apache.commons.lang3.exception.UncheckedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import org.apache.commons.lang3.exception.UncheckedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class InotifyFileWatcher implements FileWatcher, InotifyEventListener {
 

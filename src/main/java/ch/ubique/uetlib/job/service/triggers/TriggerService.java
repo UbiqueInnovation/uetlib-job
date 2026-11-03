@@ -6,8 +6,10 @@ import ch.ubique.uetlib.job.model.JobClassAndId;
 import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.triggers.TriggerDefinition;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
-import java.util.function.Consumer;
+
 import org.springframework.core.GenericTypeResolver;
+
+import java.util.function.Consumer;
 
 public interface TriggerService<T extends TriggerDefinition> {
 

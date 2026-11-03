@@ -7,12 +7,14 @@ import static org.mockito.Mockito.*;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.service.logs.LogFormatterService;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
 
 class JobDBAppenderTest {
 

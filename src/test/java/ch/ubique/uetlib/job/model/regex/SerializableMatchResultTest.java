@@ -1,15 +1,19 @@
 package ch.ubique.uetlib.job.model.regex;
 
 import static ch.ubique.uetlib.test.assertion.AssertionUtils.assertThrowsWithMessage;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 import static java.util.Map.*;
 import static java.util.stream.Collectors.*;
-import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
+
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.jupiter.api.Test;
-import tools.jackson.databind.json.JsonMapper;
 
 class SerializableMatchResultTest {
 

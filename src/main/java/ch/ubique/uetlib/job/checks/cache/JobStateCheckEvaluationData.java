@@ -3,6 +3,7 @@ package ch.ubique.uetlib.job.checks.cache;
 import ch.ubique.uetlib.job.model.JobClassAndId;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.properties.enums.StateCheckStrategy;
+
 import java.util.Map;
 import java.util.Set;
 

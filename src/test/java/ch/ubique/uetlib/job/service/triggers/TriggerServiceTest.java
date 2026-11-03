@@ -4,12 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.uetlib.job.model.triggers.TriggerDefinition;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;
 import org.springframework.core.GenericTypeResolver;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 class TriggerServiceTest {
     @Test

@@ -12,13 +12,15 @@ import ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.service.executor.runners.JobRunner;
-import java.time.Instant;
-import java.util.*;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.*;
 
 @Service
 public class JobExecutorService {

@@ -2,9 +2,10 @@ package ch.ubique.uetlib.job.model.properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Test;
+
 import java.lang.reflect.Modifier;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.Test;
 
 class JobClassAndIdPropertyDefinitionsTest {
 

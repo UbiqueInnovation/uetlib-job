@@ -5,16 +5,21 @@ import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.uetlib.job.Job;
 import ch.ubique.uetlib.job.model.k8s.KubernetesJobRunContext;
+
 import com.google.common.base.CaseFormat;
+
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1EnvVar;
 import io.kubernetes.client.openapi.models.V1VolumeMount;
-import java.util.*;
-import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.springframework.context.ApplicationContext;
+
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class KubernetesJobWrapper extends KubernetesJob {
 

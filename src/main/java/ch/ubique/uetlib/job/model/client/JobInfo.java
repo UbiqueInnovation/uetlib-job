@@ -1,8 +1,10 @@
 package ch.ubique.uetlib.job.model.client;
 
 import ch.ubique.uetlib.job.model.properties.enums.JobManualTriggerMode;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -1,8 +1,9 @@
 package ch.ubique.uetlib.job.model;
 
+import org.apache.commons.collections4.SetUtils;
+
 import java.util.Collection;
 import java.util.Set;
-import org.apache.commons.collections4.SetUtils;
 
 public enum JobRunState {
     BUSY,

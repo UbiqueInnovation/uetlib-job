@@ -15,11 +15,20 @@ import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.model.triggers.*;
 import ch.ubique.uetlib.job.model.triggers.TriggerDefinition;
 import ch.ubique.uetlib.job.service.triggers.TriggerCoordinatorService;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Range;
+import org.springframework.data.domain.*;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,12 +36,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.Range;
-import org.springframework.data.domain.*;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class JobDataService {

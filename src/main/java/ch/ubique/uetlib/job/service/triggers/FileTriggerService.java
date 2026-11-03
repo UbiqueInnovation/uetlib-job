@@ -10,18 +10,21 @@ import ch.ubique.uetlib.job.service.triggers.files.FileWatcherEvent;
 import ch.ubique.uetlib.job.service.triggers.files.InotifyFileWatcher;
 import ch.ubique.uetlib.job.service.triggers.files.JavaNioFileWatcher;
 import ch.ubique.uetlib.job.service.triggers.files.RegisteredFileTrigger;
+
 import com.den_4.inotify_java.exceptions.InotifyException;
+
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

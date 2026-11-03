@@ -4,18 +4,20 @@ import ch.ubique.uetlib.job.model.JobClassAndId;
 import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.triggers.CronTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
-import java.time.ZoneId;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
-import java.util.function.Consumer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
+
+import java.time.ZoneId;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")

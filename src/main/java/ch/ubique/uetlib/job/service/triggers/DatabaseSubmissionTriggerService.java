@@ -6,15 +6,17 @@ import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.JobRunDatabaseSubmission;
 import ch.ubique.uetlib.job.model.triggers.DatabaseSubmissionTrigger;
 import ch.ubique.uetlib.job.service.JobService;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")

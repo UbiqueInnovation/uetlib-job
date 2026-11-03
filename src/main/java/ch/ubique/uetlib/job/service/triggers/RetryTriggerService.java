@@ -1,8 +1,10 @@
 package ch.ubique.uetlib.job.service.triggers;
 
 import static ch.ubique.uetlib.job.model.JobRunState.PROBLEM_STATES;
-import static java.util.Objects.requireNonNullElse;
+
 import static org.apache.commons.lang3.compare.ComparableUtils.is;
+
+import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.model.JobClassAndId;
@@ -11,6 +13,13 @@ import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.RetryTriggerContext;
 import ch.ubique.uetlib.job.model.triggers.RetryTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -18,11 +27,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

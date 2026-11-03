@@ -3,8 +3,10 @@ package ch.ubique.uetlib.job.service.triggers;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 class RunOnStartupTriggerServiceTest {
 

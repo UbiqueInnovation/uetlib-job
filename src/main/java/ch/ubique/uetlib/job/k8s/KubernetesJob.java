@@ -2,6 +2,7 @@ package ch.ubique.uetlib.job.k8s;
 
 import static com.google.common.base.CaseFormat.LOWER_HYPHEN;
 import static com.google.common.base.CaseFormat.UPPER_CAMEL;
+
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static java.util.Objects.requireNonNull;
@@ -14,14 +15,17 @@ import ch.ubique.uetlib.job.model.k8s.KubernetesJobRunContext;
 import ch.ubique.uetlib.job.model.k8s.KubernetesPodToleration;
 import ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
+
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.*;
-import java.util.*;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+
+import java.util.*;
 
 public abstract class KubernetesJob implements Job {
 

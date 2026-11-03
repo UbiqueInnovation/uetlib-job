@@ -1,7 +1,8 @@
 package ch.ubique.uetlib.job.model.properties;
 
-import java.util.Set;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Set;
 
 final class StringPropertyDefinition extends AbstractJobPropertyDefinition<String> {
 

@@ -8,13 +8,16 @@ import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
 import jakarta.persistence.*;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.*;
-import java.time.Instant;
+
 import org.hibernate.annotations.*;
 import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run")

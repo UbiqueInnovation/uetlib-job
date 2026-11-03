@@ -7,6 +7,7 @@ import ch.ubique.uetlib.monitoring.check.StatusCheck;
 import ch.ubique.uetlib.monitoring.check.models.CheckFailed;
 import ch.ubique.uetlib.monitoring.check.models.CheckLevel;
 import ch.ubique.uetlib.monitoring.check.models.CheckStatus;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;

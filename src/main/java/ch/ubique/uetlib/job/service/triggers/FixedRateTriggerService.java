@@ -4,15 +4,17 @@ import ch.ubique.uetlib.job.model.JobClassAndId;
 import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.triggers.FixedRateTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
+import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.stereotype.Service;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.function.Consumer;
-import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

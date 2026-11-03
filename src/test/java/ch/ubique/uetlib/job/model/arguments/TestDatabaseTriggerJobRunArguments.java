@@ -2,6 +2,7 @@ package ch.ubique.uetlib.job.model.arguments;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Min;
 

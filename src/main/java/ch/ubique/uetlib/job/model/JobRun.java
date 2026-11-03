@@ -2,18 +2,22 @@ package ch.ubique.uetlib.job.model;
 
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Objects;
+
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

@@ -2,10 +2,11 @@ package ch.ubique.uetlib.job.service.triggers.postgres;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.Duration;
-import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
+
+import java.time.Duration;
+import java.util.function.BooleanSupplier;
 
 class PgChannelListenerTimeoutTest {
 

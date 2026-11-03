@@ -3,12 +3,14 @@ package ch.ubique.uetlib.job.model.properties;
 import static ch.ubique.uetlib.core.utils.OptionalUtils.ofNullable;
 
 import ch.ubique.uetlib.core.utils.StringUtils;
-import java.util.Optional;
-import java.util.Set;
+
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
+import java.util.Set;
 
 abstract sealed class AbstractJobPropertyDefinition<T extends @Nullable Object>
         implements JobPropertyDefinition<T>

@@ -7,13 +7,15 @@ import ch.ubique.uetlib.job.model.input.JobRunInputDeclaration;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.storage.JobRunStorage;
 import ch.ubique.uetlib.storage.output.Output;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 @Service
 public class JobRunInputManager implements JobRunInputProvider {

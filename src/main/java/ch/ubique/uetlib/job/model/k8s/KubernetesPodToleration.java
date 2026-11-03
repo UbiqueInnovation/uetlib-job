@@ -2,7 +2,9 @@ package ch.ubique.uetlib.job.model.k8s;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.kubernetes.client.openapi.models.V1Toleration;
+
 import org.jspecify.annotations.Nullable;
 
 /**

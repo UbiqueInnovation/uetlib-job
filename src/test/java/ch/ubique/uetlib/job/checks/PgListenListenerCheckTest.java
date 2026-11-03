@@ -7,9 +7,11 @@ import static org.mockito.Mockito.when;
 import ch.ubique.uetlib.job.service.triggers.postgres.PgListenTriggerService;
 import ch.ubique.uetlib.monitoring.check.models.CheckFailed;
 import ch.ubique.uetlib.monitoring.check.models.CheckLevel;
+
+import org.junit.jupiter.api.Test;
+
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
 
 class PgListenListenerCheckTest {
 

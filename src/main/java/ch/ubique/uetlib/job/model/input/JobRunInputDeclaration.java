@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import ch.ubique.uetlib.core.file.ByteFile;
 import ch.ubique.uetlib.job.model.JobRun;
 import ch.ubique.uetlib.job.model.JobRunInput;
+
 import jakarta.validation.constraints.NotBlank;
 
 public record JobRunInputDeclaration(int jobRunId, @NotBlank String path, @NotBlank String hash) {

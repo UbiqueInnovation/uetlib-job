@@ -1,11 +1,12 @@
 package ch.ubique.uetlib.job.websocket;
 
-import java.util.Map;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
+
+import java.util.Map;
 
 /**
  * A {@link HandshakeInterceptor} that ensures a valid <strong>{@code

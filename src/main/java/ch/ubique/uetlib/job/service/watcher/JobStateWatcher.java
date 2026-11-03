@@ -9,11 +9,7 @@ import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.service.executor.runners.JobRunner;
 import ch.ubique.uetlib.job.service.logs.LogService;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +17,12 @@ import org.slf4j.MDC;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Profile("!job-run")

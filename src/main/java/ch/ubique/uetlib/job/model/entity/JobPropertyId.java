@@ -1,9 +1,10 @@
 package ch.ubique.uetlib.job.model.entity;
 
-import java.io.Serializable;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.jspecify.annotations.Nullable;
+
+import java.io.Serializable;
 
 public class JobPropertyId implements Serializable {
 

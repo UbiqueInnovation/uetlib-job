@@ -5,15 +5,18 @@ import ch.ubique.uetlib.job.RegisteredJob;
 import ch.ubique.uetlib.job.annotation.RegisteredJobDefinitions;
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.service.core.ClassLoaderService;
+
 import jakarta.annotation.PostConstruct;
-import java.text.MessageFormat;
-import java.util.ArrayList;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+
+import java.text.MessageFormat;
+import java.util.ArrayList;
 
 @Service
 public class JobRegistrationService {

@@ -1,13 +1,14 @@
 package ch.ubique.uetlib.job.commands;
 
-import java.io.IOException;
-import java.util.Optional;
 import org.apache.commons.cli.*;
 import org.apache.commons.cli.help.HelpFormatter;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Optional;
 
 public class JobApplicationArgsParser {
 

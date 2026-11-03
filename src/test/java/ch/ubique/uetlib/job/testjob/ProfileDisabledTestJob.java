@@ -6,10 +6,12 @@ import ch.ubique.uetlib.job.model.JobRunContext;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.properties.JobPropertiesConfig;
 import ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions;
-import java.time.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
+
+import java.time.Duration;
 
 @Profile("never-activated-profile-this-registered-job-should-not-be-instantiated")
 @RegisteredJob

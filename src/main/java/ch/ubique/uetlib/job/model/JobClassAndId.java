@@ -2,9 +2,11 @@ package ch.ubique.uetlib.job.model;
 
 import ch.ubique.uetlib.core.utils.ArrayUtils;
 import ch.ubique.uetlib.job.Job;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -8,11 +8,13 @@ import ch.ubique.uetlib.job.storage.JobRunStorage;
 import ch.ubique.uetlib.job.testjob.ProfileDisabledTestJob;
 import ch.ubique.uetlib.job.testjob.ProfileEnabledTestJob;
 import ch.ubique.uetlib.job.testjob.TestJob;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 class JobServiceDatabaseTest extends BaseJobDatabaseTest {
 

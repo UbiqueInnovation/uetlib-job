@@ -19,12 +19,14 @@ import ch.ubique.uetlib.job.model.triggers.CronTrigger;
 import ch.ubique.uetlib.job.model.triggers.JobTriggersConfig;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.storage.JobRunStorage;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("ClassCanBeRecord")
 @RegisteredJob

@@ -3,6 +3,7 @@ package ch.ubique.uetlib.job.model.properties;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.uetlib.job.model.client.JobPropertyGroupInfo;
+
 import org.junit.jupiter.api.Test;
 
 class JobClassAndIdPropertyGroupInfoTest {

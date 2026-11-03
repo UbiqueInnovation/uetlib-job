@@ -5,19 +5,14 @@ import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.uetlib.core.file.ByteFile;
 import ch.ubique.uetlib.core.service.DataAndInput;
-import ch.ubique.uetlib.core.utils.retry.LoggingRetryListener;
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.model.*;
 import ch.ubique.uetlib.job.model.input.JobRunInputDeclaration;
 import ch.ubique.uetlib.job.service.inputs.JobRunInputManager;
 import ch.ubique.uetlib.job.storage.JobRunStorage;
+import ch.ubique.uetlib.spring.boot.utils.retry.LoggingRetryListener;
 import ch.ubique.uetlib.storage.output.ByteOutput;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -27,6 +22,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
+
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class BaseInputJob<T> implements Job {
 

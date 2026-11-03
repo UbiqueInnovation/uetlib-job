@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.config;
 
 import ch.ubique.uetlib.job.websocket.WebSocketEchoSubProtocolInterceptor;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;

@@ -19,14 +19,16 @@ import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.service.core.ClassLoaderService;
 import ch.ubique.uetlib.job.storage.JobRunStorage;
 import ch.ubique.uetlib.job.test.config.JobRunStateTriggerServiceTestConfig;
-import java.time.Instant;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SpringBootTest(classes = JobRunStateTriggerServiceTestConfig.class)
 class JobRunStateTriggerServiceTest {

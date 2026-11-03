@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.data.repository;
 
 import ch.ubique.uetlib.job.model.JobRunState;
+
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;

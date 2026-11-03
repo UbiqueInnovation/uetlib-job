@@ -1,9 +1,12 @@
 package ch.ubique.uetlib.job.model.properties;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
-import java.util.Collection;
+
 import org.jspecify.annotations.Nullable;
+
+import java.util.Collection;
 
 public record JobProperties(
         @JsonProperty(required = true) @NotNull Collection<JobProperty<Object>> values) {

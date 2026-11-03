@@ -2,8 +2,10 @@ package ch.ubique.uetlib.job.model.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Positive;
-import java.time.Instant;
+
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_logging_event")

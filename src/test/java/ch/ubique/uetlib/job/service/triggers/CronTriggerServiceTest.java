@@ -7,12 +7,15 @@ import static org.mockito.Mockito.when;
 import ch.ubique.uetlib.core.utils.TimeUtils;
 import ch.ubique.uetlib.job.model.triggers.CronTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
 import io.netty.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.Trigger;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 class CronTriggerServiceTest {
 

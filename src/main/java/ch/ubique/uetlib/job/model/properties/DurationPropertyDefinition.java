@@ -1,8 +1,9 @@
 package ch.ubique.uetlib.job.model.properties;
 
-import java.time.Duration;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Duration;
 
 final class DurationPropertyDefinition extends AbstractJobPropertyDefinition<Duration> {
 

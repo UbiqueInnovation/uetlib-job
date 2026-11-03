@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.model.triggers;
 
 import jakarta.validation.constraints.NotEmpty;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;

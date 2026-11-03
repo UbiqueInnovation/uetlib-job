@@ -2,9 +2,11 @@ package ch.ubique.uetlib.job.annotation;
 
 import ch.ubique.uetlib.job.Job;
 import ch.ubique.uetlib.job.RegisteredJob;
-import java.lang.annotation.*;
+
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
+
+import java.lang.annotation.*;
 
 /**
  * Place this annotation on any class in a package that matches (or is prefixed by) your maven

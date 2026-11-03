@@ -39,16 +39,9 @@ import ch.ubique.uetlib.job.service.inputs.JobRunInputProvider;
 import ch.ubique.uetlib.job.service.logs.LogService;
 import ch.ubique.uetlib.job.service.triggers.CronTriggerService;
 import ch.ubique.uetlib.job.service.triggers.TriggerCoordinatorService;
+
 import com.pivovarit.function.ThrowingFunction;
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
@@ -62,6 +55,16 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.text.MessageFormat;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Profile("!job-run")

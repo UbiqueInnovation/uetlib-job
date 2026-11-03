@@ -11,12 +11,15 @@ import ch.ubique.uetlib.job.model.converters.JobRunArgumentsToStringConverter;
 import ch.ubique.uetlib.job.model.regex.SerializableMatchResult;
 import ch.ubique.uetlib.job.model.triggers.FileChangeEvent;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
-import java.nio.file.Path;
-import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.Test;
+
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 class JobRunArgumentsToStringConverterTest {
 

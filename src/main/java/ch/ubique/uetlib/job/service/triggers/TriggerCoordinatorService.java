@@ -7,11 +7,7 @@ import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.triggers.*;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.service.executor.JobExecutorService;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -20,6 +16,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
+
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Profile("!job-run")

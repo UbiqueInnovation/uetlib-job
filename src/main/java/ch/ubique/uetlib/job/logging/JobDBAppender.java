@@ -5,9 +5,7 @@ import ch.qos.logback.core.UnsynchronizedAppenderBase;
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.service.executor.runners.DedicatedJobRunner;
 import ch.ubique.uetlib.job.service.logs.LogFormatterService;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +14,10 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
         implements DisposableBean {
