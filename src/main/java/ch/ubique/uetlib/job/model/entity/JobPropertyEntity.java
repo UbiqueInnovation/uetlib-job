@@ -4,16 +4,19 @@ import static java.util.Objects.requireNonNull;
 
 import ch.ubique.uetlib.job.model.properties.JobProperty;
 import ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
-import java.time.Instant;
+
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @IdClass(JobPropertyId.class)

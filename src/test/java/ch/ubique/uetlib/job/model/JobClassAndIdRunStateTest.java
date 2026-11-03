@@ -2,8 +2,9 @@ package ch.ubique.uetlib.job.model;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Set;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 class JobClassAndIdRunStateTest {
 

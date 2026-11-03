@@ -2,6 +2,7 @@ package ch.ubique.uetlib.job.data;
 
 import ch.ubique.uetlib.job.test.config.JobServiceConfig;
 import ch.ubique.uetlib.job.test.config.TestcontainerConfig;
+
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.jpa.test.autoconfigure.AutoConfigureTestEntityManager;
 import org.springframework.boot.test.context.SpringBootTest;

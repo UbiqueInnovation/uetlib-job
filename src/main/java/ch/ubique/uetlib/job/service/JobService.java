@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.service;
 
 import static ch.ubique.uetlib.job.model.JobRunState.CANCELLED;
+
 import static java.util.Optional.ofNullable;
 
 import ch.ubique.uetlib.core.utils.SingleCache;
@@ -17,12 +18,9 @@ import ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.service.core.ClassLoaderService;
 import ch.ubique.uetlib.job.service.executor.runners.JobRunner;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +31,12 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @DependsOn("jobRegistrationService")

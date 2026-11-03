@@ -4,16 +4,19 @@ import ch.ubique.uetlib.core.file.ByteFile;
 import ch.ubique.uetlib.job.model.JobRun;
 import ch.ubique.uetlib.job.model.JobRunInput;
 import ch.ubique.uetlib.job.model.input.JobRunInputDeclaration;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.Instant;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run_input")

@@ -5,13 +5,16 @@ import static java.util.Objects.requireNonNull;
 import ch.ubique.uetlib.job.model.JobRunDatabaseSubmission;
 import ch.ubique.uetlib.job.model.JobRunDatabaseSubmissionArguments;
 import ch.ubique.uetlib.job.model.converters.JobRunDatabaseSubmissionArgumentsToStringConverter;
+
 import jakarta.persistence.*;
-import java.time.Instant;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run_database_submission")

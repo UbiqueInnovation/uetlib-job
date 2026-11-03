@@ -1,14 +1,16 @@
 package ch.ubique.uetlib.job.websocket;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.Strings;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.server.resource.BearerTokenErrors;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+
+import java.util.Arrays;
+import java.util.regex.Pattern;
 
 /**
  * A {@link BearerTokenResolver} implementation that resolves Bearer tokens from WebSocket handshake

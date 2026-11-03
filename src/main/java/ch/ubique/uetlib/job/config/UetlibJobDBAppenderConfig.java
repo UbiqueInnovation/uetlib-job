@@ -5,6 +5,7 @@ import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.logging.JobDBAppender;
 import ch.ubique.uetlib.job.service.executor.runners.DedicatedJobRunner;
 import ch.ubique.uetlib.job.service.logs.LogFormatterService;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;

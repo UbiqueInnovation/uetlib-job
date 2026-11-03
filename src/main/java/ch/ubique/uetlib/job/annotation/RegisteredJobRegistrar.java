@@ -1,15 +1,13 @@
 package ch.ubique.uetlib.job.annotation;
 
-import static ch.ubique.uetlib.storage.spring.annotations.utils.EnableAnnotationUtils.classForName;
-import static ch.ubique.uetlib.storage.spring.annotations.utils.EnableAnnotationUtils.getBasePackages;
+import static ch.ubique.uetlib.storage.spring.boot.annotations.utils.EnableAnnotationUtils.classForName;
+import static ch.ubique.uetlib.storage.spring.boot.annotations.utils.EnableAnnotationUtils.getBasePackages;
+
 import static java.util.Objects.requireNonNull;
 
 import ch.ubique.uetlib.job.RegisteredJob;
-import ch.ubique.uetlib.storage.spring.annotations.utils.EnableAnnotationUtils;
-import java.text.MessageFormat;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import ch.ubique.uetlib.storage.spring.boot.annotations.utils.EnableAnnotationUtils;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +23,11 @@ import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
+
+import java.text.MessageFormat;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 class RegisteredJobRegistrar
         implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {

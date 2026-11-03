@@ -12,6 +12,7 @@ import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.service.core.ClassLoaderService;
 import ch.ubique.uetlib.job.service.executor.JobExecutorService;
 import ch.ubique.uetlib.job.service.executor.runners.DedicatedJobRunner;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -21,6 +22,7 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 

@@ -1,7 +1,16 @@
 package ch.ubique.uetlib.job.service.triggers.files;
 
 import ch.ubique.uetlib.job.model.triggers.FileChangeEvent;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.exception.UncheckedException;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Map;
@@ -10,12 +19,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.commons.lang3.exception.UncheckedException;
-import org.jspecify.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class JavaNioFileWatcher implements AutoCloseable, FileWatcher {
 

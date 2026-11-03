@@ -12,16 +12,19 @@ import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.service.executor.JobExecutorService;
 import ch.ubique.uetlib.job.service.inputs.JobRunInputManager;
 import ch.ubique.uetlib.storage.output.JsonOutput;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Objects;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
 
 public abstract class BaseStateJob<T> implements Job {
 

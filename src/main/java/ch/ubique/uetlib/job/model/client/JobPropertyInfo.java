@@ -2,13 +2,17 @@ package ch.ubique.uetlib.job.model.client;
 
 import ch.ubique.uetlib.job.model.properties.JobProperty;
 import ch.ubique.uetlib.job.model.properties.JobPropertyDefinition;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 public record JobPropertyInfo(
         @JsonProperty(required = true) @NotBlank String key,

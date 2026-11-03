@@ -9,6 +9,13 @@ import ch.ubique.uetlib.job.model.JobRunStateTransition;
 import ch.ubique.uetlib.job.model.triggers.JobRunStateTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
 import ch.ubique.uetlib.job.service.JobService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -18,11 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

@@ -7,15 +7,17 @@ import ch.ubique.uetlib.job.model.JobClassAndId;
 import ch.ubique.uetlib.job.model.triggers.PgListenTrigger;
 import ch.ubique.uetlib.monitoring.check.models.CheckFailed;
 import ch.ubique.uetlib.monitoring.check.models.CheckLevel;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BooleanSupplier;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 class PgListenTriggerCheckPostgresTest {
 

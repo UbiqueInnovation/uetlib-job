@@ -2,20 +2,24 @@ package ch.ubique.uetlib.job.service.watcher;
 
 import static ch.ubique.uetlib.job.logging.JobRunMdcContext.runWithJobRunMdcContext;
 import static ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions.*;
-import static java.util.Objects.requireNonNull;
+
 import static org.apache.commons.lang3.compare.ComparableUtils.is;
+
+import static java.util.Objects.requireNonNull;
 
 import ch.ubique.uetlib.job.model.JobRun;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.properties.JobProperties;
 import ch.ubique.uetlib.job.service.JobService;
-import java.time.Duration;
-import java.time.Instant;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.Instant;
 
 @Service
 @Profile("!job-run")

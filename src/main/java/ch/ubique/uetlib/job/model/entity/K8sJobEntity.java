@@ -2,10 +2,12 @@ package ch.ubique.uetlib.job.model.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import java.time.Instant;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_k8s_jobs")

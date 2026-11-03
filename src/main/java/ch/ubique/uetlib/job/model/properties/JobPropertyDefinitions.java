@@ -5,7 +5,14 @@ import ch.ubique.uetlib.job.model.properties.enums.JobManualTriggerMode;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.model.properties.enums.StateCheckStrategy;
 import ch.ubique.uetlib.job.model.runner.RunnerGroup;
+
 import com.pivovarit.function.ThrowingFunction;
+
+import org.jspecify.annotations.Nullable;
+
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
@@ -16,9 +23,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.Nullable;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.json.JsonMapper;
 
 public final class JobPropertyDefinitions {
 

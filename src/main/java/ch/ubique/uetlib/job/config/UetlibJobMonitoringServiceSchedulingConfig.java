@@ -1,12 +1,14 @@
 package ch.ubique.uetlib.job.config;
 
 import ch.ubique.uetlib.monitoring.service.MonitoringService;
-import java.util.concurrent.TimeUnit;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableScheduling

@@ -3,9 +3,12 @@ package ch.ubique.uetlib.job.model;
 import ch.ubique.uetlib.job.model.regex.SerializableMatchResult;
 import ch.ubique.uetlib.job.model.triggers.FileChangeEvent;
 import ch.ubique.uetlib.job.service.triggers.files.FileWatcherEvent;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.util.regex.Matcher;

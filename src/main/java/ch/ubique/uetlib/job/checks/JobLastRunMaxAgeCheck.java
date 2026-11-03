@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.checks;
 
 import static ch.ubique.uetlib.core.utils.MapCollectors.toMap;
+
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 
@@ -13,14 +14,16 @@ import ch.ubique.uetlib.monitoring.check.StatusCheck;
 import ch.ubique.uetlib.monitoring.check.models.CheckFailed;
 import ch.ubique.uetlib.monitoring.check.models.CheckLevel;
 import ch.ubique.uetlib.monitoring.check.models.CheckStatus;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

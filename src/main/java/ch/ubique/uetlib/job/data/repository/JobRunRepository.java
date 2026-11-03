@@ -4,19 +4,22 @@ import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.entity.JobLatestFinishedRunEntity;
 import ch.ubique.uetlib.job.model.entity.JobLatestRunEntity;
 import ch.ubique.uetlib.job.model.entity.JobRunEntity;
+
 import jakarta.validation.constraints.NotEmpty;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 @Repository
 public interface JobRunRepository

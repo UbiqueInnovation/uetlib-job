@@ -1,14 +1,22 @@
 package ch.ubique.uetlib.job.service.triggers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
 import static java.util.stream.Collectors.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import ch.ubique.uetlib.job.model.FileTriggerContext;
 import ch.ubique.uetlib.job.model.triggers.FileChangeEvent;
 import ch.ubique.uetlib.job.model.triggers.FileTrigger;
+
+import org.apache.commons.collections4.bag.HashBag;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.tuple.Triple;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
@@ -18,11 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import org.apache.commons.collections4.bag.HashBag;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.tuple.Triple;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 class FileTriggerServiceTest {
 

@@ -3,10 +3,12 @@ package ch.ubique.uetlib.job.service.watcher;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import ch.ubique.uetlib.job.service.watcher.LineWithEndingReader.LineWithEnding;
+
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
-import org.junit.jupiter.api.Test;
 
 class LineWithEndingReaderTest {
 

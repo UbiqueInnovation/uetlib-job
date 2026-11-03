@@ -9,10 +9,12 @@ import ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.ubique.uetlib.job.model.runner.RunnerGroup;
 import ch.ubique.uetlib.job.model.triggers.FixedRateTrigger;
 import ch.ubique.uetlib.job.model.triggers.JobTriggersConfig;
-import java.time.Duration;
-import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.Set;
 
 /** Checks if the job module is working properly. I.e. this is a self-check-job. */
 @RegisteredJob

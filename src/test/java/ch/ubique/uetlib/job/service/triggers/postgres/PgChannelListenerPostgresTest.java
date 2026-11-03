@@ -2,15 +2,16 @@ package ch.ubique.uetlib.job.service.triggers.postgres;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.sql.DriverManager;
-import java.time.Duration;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import java.sql.DriverManager;
+import java.time.Duration;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BooleanSupplier;
 
 class PgChannelListenerPostgresTest {
 

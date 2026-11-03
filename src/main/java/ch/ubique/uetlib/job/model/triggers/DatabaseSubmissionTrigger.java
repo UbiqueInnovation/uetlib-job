@@ -1,7 +1,9 @@
 package ch.ubique.uetlib.job.model.triggers;
 
 import ch.ubique.uetlib.job.Job;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 
 public record DatabaseSubmissionTrigger(

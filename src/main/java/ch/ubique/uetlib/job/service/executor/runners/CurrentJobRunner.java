@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.service.executor.runners;
 
 import static ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions.RUNNER_GROUP;
+
 import static java.util.Objects.requireNonNull;
 
 import ch.ubique.uetlib.job.Job;
@@ -10,17 +11,20 @@ import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.model.runner.RunnerGroup;
 import ch.ubique.uetlib.job.service.JobService;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.*;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.*;
 
 @Service
 @Profile("!job-run")

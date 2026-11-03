@@ -1,9 +1,11 @@
 package ch.ubique.uetlib.job.service.watcher;
 
 import static ch.ubique.uetlib.core.utils.MdcUtils.runnableWithContext;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.model.JobRun;
@@ -11,7 +13,9 @@ import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.service.k8s.KubernetesAvailableConfigurationCondition;
 import ch.ubique.uetlib.job.service.k8s.KubernetesService;
 import ch.ubique.uetlib.job.service.watcher.LineWithEndingReader.LineWithEnding;
+
 import com.google.common.reflect.TypeToken;
+
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.apis.BatchV1Api.APIlistNamespacedJobRequest;
@@ -22,6 +26,14 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodStatus;
 import io.kubernetes.client.util.Watch;
 import io.kubernetes.client.util.Watch.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.time.Duration;
@@ -31,12 +43,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

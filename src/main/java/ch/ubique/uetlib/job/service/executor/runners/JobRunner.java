@@ -5,6 +5,7 @@ import ch.ubique.uetlib.job.model.JobRun;
 import ch.ubique.uetlib.job.model.JobRunContext;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
+
 import org.jspecify.annotations.Nullable;
 
 public interface JobRunner {

@@ -1,15 +1,19 @@
 package ch.ubique.uetlib.job.model.properties;
 
 import static ch.ubique.uetlib.core.utils.OptionalUtils.ofNullable;
+
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 public record JobProperty<T extends @Nullable Object>(
         @JsonProperty(required = true) @NotNull JobPropertyDefinition<T> definition,

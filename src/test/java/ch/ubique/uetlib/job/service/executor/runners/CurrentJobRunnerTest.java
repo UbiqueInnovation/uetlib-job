@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.service.executor.runners;
 
 import static ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions.RUNNER_GROUP;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import ch.ubique.uetlib.job.model.properties.JobProperties;
 import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.storage.JobRunStorage;
+
 import org.junit.jupiter.api.Test;
 
 class CurrentJobRunnerTest {

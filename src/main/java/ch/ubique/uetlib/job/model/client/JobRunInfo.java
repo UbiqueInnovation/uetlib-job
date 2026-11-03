@@ -6,14 +6,18 @@ import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.TriggerContext;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
+
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.util.Optional;
-import org.jspecify.annotations.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobRunInfo(

@@ -4,16 +4,20 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import ch.ubique.uetlib.job.Job;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+
+import org.jspecify.annotations.Nullable;
+
 import java.text.MessageFormat;
 import java.util.HashSet;
 import java.util.Set;
-import org.jspecify.annotations.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record RunnerGroup(

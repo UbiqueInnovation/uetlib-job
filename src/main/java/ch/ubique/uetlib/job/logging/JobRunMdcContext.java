@@ -1,8 +1,10 @@
 package ch.ubique.uetlib.job.logging;
 
 import ch.ubique.uetlib.job.model.JobRun;
-import java.util.Map;
+
 import org.slf4j.MDC;
+
+import java.util.Map;
 
 public class JobRunMdcContext implements AutoCloseable {
 

@@ -7,10 +7,12 @@ import com.den_4.inotify_java.Inotify;
 import com.den_4.inotify_java.InotifyEvent;
 import com.den_4.inotify_java.NativeInotify;
 import com.den_4.inotify_java.enums.Event;
-import java.nio.file.Path;
-import java.util.ArrayList;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
 
 class InotifyFileWatcherTest {
     @ParameterizedTest

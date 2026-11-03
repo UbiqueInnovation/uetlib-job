@@ -4,12 +4,14 @@ import ch.ubique.uetlib.job.Job;
 import ch.ubique.uetlib.job.model.JobRunContext;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.service.JobService;
-import java.time.Instant;
-import java.util.Objects;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+
+import java.time.Instant;
+import java.util.Objects;
 
 public final class JobRunnerHelper {
 

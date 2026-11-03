@@ -5,10 +5,12 @@ import ch.ubique.uetlib.monitoring.check.StatusCheck;
 import ch.ubique.uetlib.monitoring.check.models.CheckFailed;
 import ch.ubique.uetlib.monitoring.check.models.CheckLevel;
 import ch.ubique.uetlib.monitoring.check.models.CheckStatus;
-import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 /**
  * Verifies that every registered PostgreSQL {@code LISTEN} channel is still being actively

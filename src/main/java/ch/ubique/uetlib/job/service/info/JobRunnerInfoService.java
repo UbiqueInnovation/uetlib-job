@@ -7,13 +7,15 @@ import ch.ubique.uetlib.job.model.runner.RunnerGroup;
 import ch.ubique.uetlib.job.service.JobService;
 import ch.ubique.uetlib.job.service.executor.runners.CurrentJobRunner;
 import ch.ubique.uetlib.job.service.executor.runners.CurrentRunnerItem;
+
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 /**
  * Service for retrieving information about job runner groups and their associated thread pool

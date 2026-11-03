@@ -1,9 +1,9 @@
 package ch.ubique.uetlib.job.service.executor.runners;
 
 import static ch.ubique.uetlib.core.utils.OptionalUtils.ofNullable;
+
 import static java.util.Objects.requireNonNull;
 
-import ch.ubique.uetlib.core.utils.retry.LoggingRetryListener;
 import ch.ubique.uetlib.job.Job;
 import ch.ubique.uetlib.job.data.service.JobDataService;
 import ch.ubique.uetlib.job.k8s.KubernetesJob;
@@ -15,10 +15,12 @@ import ch.ubique.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.ubique.uetlib.job.service.k8s.KubernetesAvailableConfigurationCondition;
 import ch.ubique.uetlib.job.service.k8s.KubernetesService;
 import ch.ubique.uetlib.job.service.watcher.KubernetesJobWatcher;
+import ch.ubique.uetlib.spring.boot.utils.retry.LoggingRetryListener;
+
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.BatchV1Api;
 import io.kubernetes.client.openapi.models.*;
-import java.time.Duration;
+
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,8 @@ import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 
 @Service
 @Profile("!job-run")

@@ -2,9 +2,10 @@ package ch.ubique.uetlib.job.model.properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Test;
+
 import java.time.Duration;
 import java.time.Period;
-import org.junit.jupiter.api.Test;
 
 class JobClassAndIdPropertyTest {
 

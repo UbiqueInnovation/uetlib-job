@@ -1,11 +1,15 @@
 package ch.ubique.uetlib.job.model.triggers;
 
-import ch.ubique.uetlib.core.utils.CronValidationUtils;
-import ch.ubique.uetlib.core.validator.ValidCron;
+import ch.ubique.uetlib.spring.boot.utils.CronValidationUtils;
+import ch.ubique.uetlib.spring.boot.validator.ValidCron;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
+
 import jakarta.validation.constraints.NotBlank;
-import java.time.ZoneId;
+
 import org.jspecify.annotations.Nullable;
+
+import java.time.ZoneId;
 
 public record CronTrigger(@NotBlank @ValidCron String cronExpression, @Nullable ZoneId timeZone)
         implements TriggerDefinition {

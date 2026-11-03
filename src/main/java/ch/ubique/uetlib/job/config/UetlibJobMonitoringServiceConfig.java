@@ -2,6 +2,7 @@ package ch.ubique.uetlib.job.config;
 
 import ch.ubique.uetlib.monitoring.check.StatusCheckService;
 import ch.ubique.uetlib.monitoring.service.MonitoringService;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

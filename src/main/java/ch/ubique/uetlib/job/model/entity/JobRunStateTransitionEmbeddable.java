@@ -1,11 +1,14 @@
 package ch.ubique.uetlib.job.model.entity;
 
 import ch.ubique.uetlib.job.model.JobRunState;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 @Embeddable
 public class JobRunStateTransitionEmbeddable {

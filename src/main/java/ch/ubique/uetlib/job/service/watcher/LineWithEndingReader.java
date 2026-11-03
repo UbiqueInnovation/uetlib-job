@@ -1,9 +1,10 @@
 package ch.ubique.uetlib.job.service.watcher;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.Reader;
-import org.jspecify.annotations.Nullable;
 
 public class LineWithEndingReader extends PushbackReader {
 

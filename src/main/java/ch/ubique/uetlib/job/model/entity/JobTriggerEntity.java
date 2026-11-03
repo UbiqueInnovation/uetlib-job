@@ -6,13 +6,16 @@ import ch.ubique.uetlib.job.model.converters.TriggerDefinitionToStringConverter;
 import ch.ubique.uetlib.job.model.triggers.Trigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerDefinition;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
 import jakarta.persistence.*;
-import java.time.Instant;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_trigger")

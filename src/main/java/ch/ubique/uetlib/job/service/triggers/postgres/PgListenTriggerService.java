@@ -8,13 +8,9 @@ import ch.ubique.uetlib.job.model.spring.PgListenDataSourceProvider;
 import ch.ubique.uetlib.job.model.triggers.PgListenTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
 import ch.ubique.uetlib.job.service.triggers.TriggerService;
+
 import jakarta.annotation.PreDestroy;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.Consumer;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
@@ -24,6 +20,13 @@ import org.springframework.boot.jdbc.DatabaseDriver;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")

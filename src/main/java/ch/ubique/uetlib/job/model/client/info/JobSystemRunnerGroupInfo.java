@@ -1,13 +1,16 @@
 package ch.ubique.uetlib.job.model.client.info;
 
 import ch.ubique.uetlib.job.service.executor.runners.CurrentRunnerItem;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+
 import java.util.Collection;
 import java.util.List;
 

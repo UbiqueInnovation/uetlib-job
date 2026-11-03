@@ -4,9 +4,11 @@ import ch.ubique.uetlib.job.model.JobClassAndId;
 import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.triggers.RunOnStartupTrigger;
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
-import java.util.function.Consumer;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+
+import java.util.function.Consumer;
 
 @Service
 @Profile("!job-run")

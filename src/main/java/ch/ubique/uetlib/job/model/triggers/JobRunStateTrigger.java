@@ -2,7 +2,9 @@ package ch.ubique.uetlib.job.model.triggers;
 
 import ch.ubique.uetlib.job.Job;
 import ch.ubique.uetlib.job.model.JobRunState;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 
 public record JobRunStateTrigger(

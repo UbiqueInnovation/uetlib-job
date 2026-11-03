@@ -10,15 +10,17 @@ import ch.ubique.uetlib.job.model.JobRunArguments;
 import ch.ubique.uetlib.job.model.triggers.FileChangeEvent;
 import ch.ubique.uetlib.job.model.triggers.FileTrigger;
 import ch.ubique.uetlib.job.service.triggers.files.JavaNioFileWatcher;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.transaction.CannotCreateTransactionException;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.transaction.CannotCreateTransactionException;
 
 class FileTriggerFailureTest {
 

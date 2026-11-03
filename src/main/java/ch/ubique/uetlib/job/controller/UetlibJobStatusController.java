@@ -12,10 +12,10 @@ import ch.ubique.uetlib.job.model.response.StringResponse;
 import ch.ubique.uetlib.job.model.response.SuccessResponse;
 import ch.ubique.uetlib.job.model.response.files.JobRunFileListResponse;
 import ch.ubique.uetlib.job.service.controller.JobControllerService;
-import ch.ubique.uetlib.spring.validation.ValidateResponse;
+import ch.ubique.uetlib.spring.boot.validation.ValidateResponse;
+
 import jakarta.validation.Valid;
-import java.time.Instant;
-import java.util.*;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Sort;
@@ -25,6 +25,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import java.time.Instant;
+import java.util.*;
 
 @RestController
 @Validated

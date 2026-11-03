@@ -1,10 +1,12 @@
 package ch.ubique.uetlib.job.service.core;
 
 import ch.ubique.uetlib.job.Job;
-import java.util.Objects;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 @Service
 public final class ClassLoaderService {

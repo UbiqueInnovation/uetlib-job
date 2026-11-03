@@ -2,7 +2,9 @@ package ch.ubique.uetlib.job.model.triggers;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
+
 import java.time.Duration;
 
 public record RetryTrigger(

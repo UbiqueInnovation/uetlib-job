@@ -12,11 +12,14 @@ import ch.ubique.uetlib.job.model.entity.JobEntity;
 import ch.ubique.uetlib.job.model.entity.JobRunDatabaseSubmissionEntity;
 import ch.ubique.uetlib.job.model.triggers.DatabaseSubmissionTrigger;
 import ch.ubique.uetlib.job.service.JobService;
+
 import jakarta.transaction.Transactional;
-import java.time.Instant;
-import java.util.Map;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.Map;
 
 /**
  * Modules that are not the job module use this service to submit new jobs to be trigger via {@link

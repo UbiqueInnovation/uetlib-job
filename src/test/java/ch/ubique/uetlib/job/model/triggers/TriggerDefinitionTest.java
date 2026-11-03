@@ -3,11 +3,13 @@ package ch.ubique.uetlib.job.model.triggers;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 class TriggerDefinitionTest {
 

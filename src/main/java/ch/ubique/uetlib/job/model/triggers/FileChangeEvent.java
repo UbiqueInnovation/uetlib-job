@@ -2,6 +2,7 @@ package ch.ubique.uetlib.job.model.triggers;
 
 import com.den_4.inotify_java.InotifyEvent;
 import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
+
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 

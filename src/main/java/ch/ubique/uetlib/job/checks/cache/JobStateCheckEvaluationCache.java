@@ -2,6 +2,7 @@ package ch.ubique.uetlib.job.checks.cache;
 
 import static ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions.STATE_CHECK_INTERVAL;
 import static ch.ubique.uetlib.job.model.properties.JobPropertyDefinitions.STATE_CHECK_STRATEGY;
+
 import static java.util.Objects.requireNonNull;
 
 import ch.ubique.uetlib.job.data.service.JobDataService;
@@ -10,13 +11,15 @@ import ch.ubique.uetlib.job.model.JobRun;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.properties.enums.StateCheckStrategy;
 import ch.ubique.uetlib.job.service.JobService;
+
+import org.jspecify.annotations.Nullable;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.jspecify.annotations.Nullable;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 @Service
 @Profile("!job-run")

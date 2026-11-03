@@ -2,13 +2,15 @@ package ch.ubique.uetlib.job.service.k8s;
 
 import static ch.ubique.uetlib.job.k8s.KubernetesEnvironmentVariables.K8S_NAMESPACE;
 import static ch.ubique.uetlib.job.k8s.KubernetesEnvironmentVariables.K8S_POD_NAME;
+
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.Optional.ofNullable;
 
-import ch.ubique.uetlib.core.utils.retry.LoggingRetryListener;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.k8s.KubernetesContext;
+import ch.ubique.uetlib.spring.boot.utils.retry.LoggingRetryListener;
+
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -16,8 +18,7 @@ import io.kubernetes.client.openapi.models.V1Job;
 import io.kubernetes.client.openapi.models.V1JobSpec;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.util.Namespaces;
-import java.io.IOException;
-import java.time.Duration;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.jspecify.annotations.Nullable;
@@ -29,6 +30,9 @@ import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.time.Duration;
 
 @Service
 @Profile("!job-run")

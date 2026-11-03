@@ -1,7 +1,8 @@
 package ch.ubique.uetlib.job.commands;
 
-import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
 
 public record JobApplicationJobToStartArgs(
         String jobClassName,

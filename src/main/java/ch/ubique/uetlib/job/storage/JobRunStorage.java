@@ -2,7 +2,8 @@ package ch.ubique.uetlib.job.storage;
 
 import ch.ubique.uetlib.storage.annotations.*;
 import ch.ubique.uetlib.storage.output.Output;
-import ch.ubique.uetlib.storage.spring.annotations.Storage;
+import ch.ubique.uetlib.storage.spring.boot.annotations.Storage;
+
 import java.io.IOException;
 import java.io.InputStream;
 

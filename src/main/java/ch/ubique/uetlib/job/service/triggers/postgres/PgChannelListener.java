@@ -1,6 +1,16 @@
 package ch.ubique.uetlib.job.service.triggers.postgres;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import org.jspecify.annotations.Nullable;
+import org.postgresql.PGConnection;
+import org.postgresql.PGNotification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.jdbc.datasource.SimpleDriverDataSource;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -11,15 +21,8 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+
 import javax.sql.DataSource;
-import org.jspecify.annotations.Nullable;
-import org.postgresql.PGConnection;
-import org.postgresql.PGNotification;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
-import org.springframework.jdbc.datasource.DataSourceUtils;
-import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 class PgChannelListener {
 

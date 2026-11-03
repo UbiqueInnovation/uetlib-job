@@ -1,7 +1,9 @@
 package ch.ubique.uetlib.job.model;
 
 import ch.ubique.uetlib.job.model.triggers.TriggerType;
+
 import com.fasterxml.jackson.annotation.*;
+
 import jakarta.validation.constraints.NotNull;
 
 @JsonTypeInfo(

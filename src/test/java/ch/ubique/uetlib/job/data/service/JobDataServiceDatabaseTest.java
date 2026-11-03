@@ -1,6 +1,7 @@
 package ch.ubique.uetlib.job.data.service;
 
 import static ch.ubique.uetlib.core.utils.TimeUtils.isBetween;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.ubique.uetlib.job.data.BaseJobDatabaseTest;
@@ -9,14 +10,16 @@ import ch.ubique.uetlib.job.model.JobRun;
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.JobRunStateTransition;
 import ch.ubique.uetlib.job.service.inputs.JobRunInputManager;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Set;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SuppressWarnings("DataFlowIssue")
 class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {

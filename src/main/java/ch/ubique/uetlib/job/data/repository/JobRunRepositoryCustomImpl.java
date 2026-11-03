@@ -2,10 +2,12 @@ package ch.ubique.uetlib.job.data.repository;
 
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.entity.JobRunEntity;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.*;
+
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;

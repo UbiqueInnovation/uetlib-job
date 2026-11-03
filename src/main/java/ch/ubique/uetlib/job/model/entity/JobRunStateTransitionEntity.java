@@ -4,10 +4,13 @@ import static java.util.Objects.requireNonNull;
 
 import ch.ubique.uetlib.job.model.JobRunState;
 import ch.ubique.uetlib.job.model.JobRunStateTransition;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import java.time.Instant;
+
 import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run_state_transition")
