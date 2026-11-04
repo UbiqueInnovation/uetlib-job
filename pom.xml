@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>ch.ubique.uetlib</groupId>
+        <groupId>ch.uetlib</groupId>
         <artifactId>uetlib-parent</artifactId>
         <version>2026.11.0</version>
         <relativePath/>
@@ -40,27 +40,27 @@
     <dependencies>
         <!-- uetlib -->
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-monitoring</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-db</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-storage-spring-boot</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-spring-boot</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-spring-boot-security</artifactId>
         </dependency>
 
@@ -149,22 +149,22 @@
 
         <!-- Testing -->
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-testcontainers-mariadb</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ch.ubique.uetlib</groupId>
+            <groupId>ch.uetlib</groupId>
             <artifactId>uetlib-testcontainers-mysql</artifactId>
             <scope>test</scope>
         </dependency>
@@ -202,53 +202,53 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-core</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-monitoring</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-db</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-storage-spring-boot</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-spring-boot</artifactId>
                 <version>4.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-spring-boot-security</artifactId>
                 <version>4.0.0</version>
             </dependency>
 
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-test</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-testcontainers-mysql</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-testcontainers-postgresql</artifactId>
                 <version>3.0.0</version>
             </dependency>
             <dependency>
-                <groupId>ch.ubique.uetlib</groupId>
+                <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-testcontainers-mariadb</artifactId>
                 <version>3.0.0</version>
             </dependency>
