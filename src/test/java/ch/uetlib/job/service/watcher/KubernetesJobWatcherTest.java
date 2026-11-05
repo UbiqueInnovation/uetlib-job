@@ -1,4 +1,4 @@
-package ch.ubique.backend.job.service.watcher;
+package ch.uetlib.job.service.watcher;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -6,9 +6,9 @@ import static org.mockito.Mockito.*;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
-import ch.ubique.backend.job.data.service.JobDataService;
-import ch.ubique.backend.job.model.JobRun;
-import ch.ubique.backend.job.service.k8s.KubernetesService;
+import ch.uetlib.job.data.service.JobDataService;
+import ch.uetlib.job.model.JobRun;
+import ch.uetlib.job.service.k8s.KubernetesService;
 
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
