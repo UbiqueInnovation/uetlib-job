@@ -82,7 +82,7 @@ public interface JobQueuedRunRepository
                     SET j.queueState = :newState, j.runner = :runner, j.updatedAt = :now
                     WHERE j.jobQueuedRunId = :id AND j.queueState = :previousState
                     """)
-    int setState(
+    int updateStateAndRunner(
             int id,
             JobRunQueueState previousState,
             JobRunQueueState newState,

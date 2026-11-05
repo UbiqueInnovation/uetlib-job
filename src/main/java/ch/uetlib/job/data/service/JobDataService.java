@@ -326,8 +326,9 @@ public class JobDataService {
     }
 
     /**
-     * Idempotent: a run already {@code RUNNING} in the queue (e.g. dispatched to a pod) keeps its
-     * row.
+     * A run already {@code RUNNING} keeps its queue row.
+     *
+     * <p>Updates Runner Label to current if is {@code DEDICATED_K8S_JOB}.
      */
     @Transactional
     public JobQueuedRun queueRunningRun(
@@ -337,11 +338,23 @@ public class JobDataService {
             final Set<JobRunnerTaint> taints,
             final int jobRunId,
             final String runner) {
-        final var existing =
-                jobQueuedRunRepository.findByJobRunIdAndQueueState(
-                        jobRunId, JobRunQueueState.RUNNING);
+        final var existing = jobQueuedRunRepository.findByJobRunIdAndQueueState(jobRunId, RUNNING);
         if (existing.isPresent()) {
-            return existing.get().toJobQueuedRun();
+            final var queuedRun = existing.get().toJobQueuedRun();
+            if (runner.equals(queuedRun.runner())) {
+                return queuedRun;
+            }
+            final var updated =
+                    jobQueuedRunRepository.updateStateAndRunner(
+                            queuedRun.jobQueuedRunId(), RUNNING, RUNNING, runner, Instant.now());
+            if (updated != 1) {
+                throw new IllegalStateException(
+                        "Queue row is no longer running for job run " + jobRunId);
+            }
+            return jobQueuedRunRepository
+                    .findById(queuedRun.jobQueuedRunId())
+                    .orElseThrow()
+                    .toJobQueuedRun();
         }
         final var queuedRunEntity =
                 new JobQueuedRunEntity(jobId, versionTag, arguments, taints, jobRunId, runner);
@@ -775,7 +788,7 @@ public class JobDataService {
     public boolean claimQueuedRun(
             final JobQueuedRun jobQueuedRun, final String runnerInstanceName) {
         final var updated =
-                jobQueuedRunRepository.setState(
+                jobQueuedRunRepository.updateStateAndRunner(
                         jobQueuedRun.jobQueuedRunId(),
                         jobQueuedRun.queueState(),
                         CLAIMED,
