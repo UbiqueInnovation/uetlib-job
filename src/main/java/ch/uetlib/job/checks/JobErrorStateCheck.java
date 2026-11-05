@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class JobErrorStateCheck extends JobStateCheck {
 
     public JobErrorStateCheck(
-            @Value("${ch.ubique.backend.job.check.error-state:ERROR}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.error-state:ERROR}") final CheckLevel level,
             final JobStateCheckEvaluationCache jobStateCheckEvaluationCache) {
         super(level, JobRunState.ERROR, jobStateCheckEvaluationCache);
     }

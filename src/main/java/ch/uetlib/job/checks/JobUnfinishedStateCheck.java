@@ -13,8 +13,7 @@ import org.springframework.stereotype.Service;
 public class JobUnfinishedStateCheck extends JobStateCheck {
 
     public JobUnfinishedStateCheck(
-            @Value("${ch.ubique.backend.job.check.unfinished-state:WARNING}")
-                    final CheckLevel level,
+            @Value("${ch.uetlib.job.check.unfinished-state:WARNING}") final CheckLevel level,
             final JobStateCheckEvaluationCache jobStateCheckEvaluationCache) {
         super(level, JobRunState.UNFINISHED, jobStateCheckEvaluationCache);
     }

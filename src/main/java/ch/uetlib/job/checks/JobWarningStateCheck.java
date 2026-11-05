@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class JobWarningStateCheck extends JobStateCheck {
 
     public JobWarningStateCheck(
-            @Value("${ch.ubique.backend.job.check.warning-state:WARNING}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.warning-state:WARNING}") final CheckLevel level,
             final JobStateCheckEvaluationCache jobStateCheckEvaluationCache) {
         super(level, JobRunState.WARNING, jobStateCheckEvaluationCache);
     }

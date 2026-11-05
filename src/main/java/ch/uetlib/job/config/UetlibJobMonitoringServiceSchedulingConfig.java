@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @EnableScheduling
 @Profile("!job-run")
-@ConditionalOnProperty("ch.ubique.backend.job.interface.heartbeat.endpoint")
+@ConditionalOnProperty("ch.uetlib.job.interface.heartbeat.endpoint")
 public class UetlibJobMonitoringServiceSchedulingConfig {
 
     private final MonitoringService monitoringService;

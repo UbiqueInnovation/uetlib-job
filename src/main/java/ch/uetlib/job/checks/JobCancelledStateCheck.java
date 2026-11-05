@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class JobCancelledStateCheck extends JobStateCheck {
 
     public JobCancelledStateCheck(
-            @Value("${ch.ubique.backend.job.check.cancelled-state:INFO}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.cancelled-state:INFO}") final CheckLevel level,
             final JobStateCheckEvaluationCache jobStateCheckEvaluationCache) {
         super(level, JobRunState.CANCELLED, jobStateCheckEvaluationCache);
     }

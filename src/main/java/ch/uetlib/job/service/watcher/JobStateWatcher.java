@@ -43,9 +43,7 @@ public class JobStateWatcher {
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    @Scheduled(
-            cron =
-                    "${ch.ubique.backend.job.job-state-watcher.check-jobs-running.cron:0 */5 * * * ?}")
+    @Scheduled(cron = "${ch.uetlib.job.job-state-watcher.check-jobs-running.cron:0 */5 * * * ?}")
     public void checkIfJobsAreRunning() {
         logger.debug("Checking if jobs are running");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
