@@ -1,5 +1,6 @@
 package ch.uetlib.job.service.triggers;
 
+import ch.uetlib.inotify.exceptions.InotifyException;
 import ch.uetlib.job.model.FileTriggerContext;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobRunArguments;
@@ -10,8 +11,6 @@ import ch.uetlib.job.service.triggers.files.FileWatcherEvent;
 import ch.uetlib.job.service.triggers.files.InotifyFileWatcher;
 import ch.uetlib.job.service.triggers.files.JavaNioFileWatcher;
 import ch.uetlib.job.service.triggers.files.RegisteredFileTrigger;
-
-import com.den_4.inotify_java.exceptions.InotifyException;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;

@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 6.0.0
+## 6.0.1
 
 - Rename uetlib configuration keys and property references to `ch.uetlib.*`, including Spring bindings, `@Value`,
   conditions, scheduling expressions and configuration files. Migrate external deployment configuration as well.
