@@ -13,15 +13,14 @@ import org.springframework.web.client.RestClient;
 
 @Configuration
 @Profile("!job-run")
-@ConditionalOnProperty("ch.ubique.backend.job.interface.heartbeat.endpoint")
+@ConditionalOnProperty("ch.uetlib.job.interface.heartbeat.endpoint")
 public class UetlibJobMonitoringServiceConfig {
 
     @Bean
     @ConditionalOnMissingBean(MonitoringService.class)
     MonitoringService monitoringService(
             final RestClient.Builder restClientBuilder,
-            @Value("${ch.ubique.backend.job.interface.heartbeat.endpoint}")
-                    final String heartbeatEndpoint,
+            @Value("${ch.uetlib.job.interface.heartbeat.endpoint}") final String heartbeatEndpoint,
             final StatusCheckService statusCheckService) {
         return new MonitoringService(
                 restClientBuilder.build(), heartbeatEndpoint, statusCheckService);

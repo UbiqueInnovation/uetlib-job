@@ -32,7 +32,7 @@ public class CronTriggerService implements TriggerService<CronTrigger> {
     private final Map<Integer, ScheduledFuture<?>> scheduledCronJobs;
 
     public CronTriggerService(
-            @Value("${ch.ubique.backend.job.cron.timezone:UTC}") final String defaultZoneId,
+            @Value("${ch.uetlib.job.cron.timezone:UTC}") final String defaultZoneId,
             final TaskScheduler taskScheduler) {
         this.defaultZoneId = ZoneId.of(defaultZoneId);
         this.taskScheduler = taskScheduler;

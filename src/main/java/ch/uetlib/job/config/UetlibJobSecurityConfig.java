@@ -30,8 +30,7 @@ public class UetlibJobSecurityConfig {
     private final String statusInterfaceSecret;
 
     public UetlibJobSecurityConfig(
-            @Value("${ch.ubique.backend.job.interface.secret}")
-                    final String statusInterfaceSecret) {
+            @Value("${ch.uetlib.job.interface.secret}") final String statusInterfaceSecret) {
         this.statusInterfaceSecret = statusInterfaceSecret;
     }
 

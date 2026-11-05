@@ -15,7 +15,7 @@ public abstract class BaseDatabaseTestcontainerConfig {
     @Bean
     List<ClassPathResource> databaseSpecificInitializationScripts(
             final DataSource dataSource,
-            @Value("${ch.ubique.backend.job.test.sql-locations}") final String[] sqlLocations) {
+            @Value("${ch.uetlib.job.test.sql-locations}") final String[] sqlLocations) {
         final var locations =
                 new VendorLocationResolver(dataSource).resolveLocations(List.of(sqlLocations));
         return locations.stream().map(ClassPathResource::new).toList();

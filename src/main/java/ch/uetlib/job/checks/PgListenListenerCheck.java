@@ -26,7 +26,7 @@ public class PgListenListenerCheck implements StatusCheck {
     private final PgListenTriggerService pgListenTriggerService;
 
     public PgListenListenerCheck(
-            @Value("${ch.ubique.backend.job.check.pg-listen:ERROR}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.pg-listen:ERROR}") final CheckLevel level,
             final PgListenTriggerService pgListenTriggerService) {
         this.level = level;
         this.pgListenTriggerService = pgListenTriggerService;

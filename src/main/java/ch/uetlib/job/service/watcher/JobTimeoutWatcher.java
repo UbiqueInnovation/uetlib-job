@@ -33,7 +33,7 @@ public class JobTimeoutWatcher {
         this.jobService = jobService;
     }
 
-    @Scheduled(cron = "${ch.ubique.backend.job.job-timeout-watcher.cron:30 */5 * * * ?}")
+    @Scheduled(cron = "${ch.uetlib.job.job-timeout-watcher.cron:30 */5 * * * ?}")
     public void checkTimeout() {
         logger.debug("Checking if jobs exceeded their timeout.");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);

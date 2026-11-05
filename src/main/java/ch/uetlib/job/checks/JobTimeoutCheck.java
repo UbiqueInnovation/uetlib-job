@@ -32,7 +32,7 @@ public class JobTimeoutCheck implements StatusCheck {
     private final JobDataService jobDataService;
 
     public JobTimeoutCheck(
-            @Value("${ch.ubique.backend.job.check.timeout:ERROR}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.timeout:ERROR}") final CheckLevel level,
             final JobService jobService,
             final JobDataService jobDataService) {
         this.level = level;

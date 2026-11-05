@@ -34,7 +34,7 @@ public class JobLastRunMaxAgeCheck implements StatusCheck {
     private final JobDataService jobDataService;
 
     public JobLastRunMaxAgeCheck(
-            @Value("${ch.ubique.backend.job.check.last-run-max-age:ERROR}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.last-run-max-age:ERROR}") final CheckLevel level,
             final JobService jobService,
             final JobDataService jobDataService) {
         this.level = level;

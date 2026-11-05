@@ -30,7 +30,7 @@ public class JobScheduledStateCheck implements StatusCheck {
     private final JobDataService jobDataService;
 
     public JobScheduledStateCheck(
-            @Value("${ch.ubique.backend.job.check.scheduled-state:ERROR}") final CheckLevel level,
+            @Value("${ch.uetlib.job.check.scheduled-state:ERROR}") final CheckLevel level,
             final JobService jobService,
             final JobDataService jobDataService) {
         this.level = level;
