@@ -34,6 +34,10 @@ The recipe updates Maven coordinates/versions, Java references and known class-n
 packages under the old namespace, Kotlin, reflection patterns, native-access module flags and persisted class names
 separately. Use `:dryRun` instead of `:run` to preview a patch.
 
+## 5.2.2
+
+- Fix some `FutureReturnValueIgnored` warnings and catch some possible bugs while at it
+
 ## 5.2.1
 
 - Fix exception in `JobControllerService#getJobProperties` when a job has duplicate property keys. This was undefined

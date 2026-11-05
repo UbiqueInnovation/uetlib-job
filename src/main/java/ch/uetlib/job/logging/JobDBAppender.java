@@ -154,7 +154,19 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
     @Override
     public void start() {
         super.start();
-        scheduler.scheduleWithFixedDelay(this::writeQueueToDB, 0, 5, TimeUnit.SECONDS);
+        // The future is not needed: flushSafely handles its own failures and
+        // scheduler.shutdown() cancels the periodic task. Bound to satisfy
+        // FutureReturnValueIgnored.
+        final var _ = scheduler.scheduleWithFixedDelay(this::flushSafely, 0, 5, TimeUnit.SECONDS);
+    }
+
+    private void flushSafely() {
+        try {
+            writeQueueToDB();
+        } catch (final Exception e) {
+            // An exception escaping a periodic task silently cancels all future runs.
+            logger.error("Unexpected failure flushing job logs to database.", e);
+        }
     }
 
     @Override
