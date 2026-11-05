@@ -6,7 +6,7 @@
 
 - **Job dispatch is now queue-based.** Triggers insert a row into the new `t_job_run_queue` instead of running a job
   directly. See `SCHEDULING.md` for more info.
-- Every instance checks in to the new `t_job_instance`. A primary lease there guarantees that exactly one instance
+- Every instance checks in to the new `t_job_daemon`. A primary lease there guarantees that exactly one instance
   queues runs from triggers at any time.
 - `GET /v1/status/instances` lists the live instances and which one holds the primary lease. Every `/v1/status`
   response names the instance that served it in the `X-Job-Instance` header.
@@ -20,7 +20,7 @@
 
 ### Breaking Changes
 
-- New DB tables `t_job_run_queue` and `t_job_instance`.
+- New DB tables `t_job_run_queue` and `t_job_daemon`.
 - `Job.priority()`, `Job.allowParallelRuns()` and `Job.forceRunOverridesAllowParallelRuns()` removed - use Job
   Properties `PRIORITY`, `ALLOW_PARALLEL_RUNS` and `FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS` instead.
 - Default `PRIORITY` is now `1` to allow deprioritizing jobs, was `0` previously.

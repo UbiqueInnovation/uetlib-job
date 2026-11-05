@@ -28,7 +28,7 @@ import javax.sql.DataSource;
  */
 class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
 
-    private static final List<String> TABLES = List.of("t_job_run_queue", "t_job_instance");
+    private static final List<String> TABLES = List.of("t_job_run_queue", "t_job_daemon");
 
     @Autowired DataSource dataSource;
     @MockitoBean JobRunInputManager jobRunInputManager;
@@ -45,7 +45,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
 
             try (var statement = connection.createStatement()) {
                 statement.execute("DROP TABLE t_job_run_queue");
-                statement.execute("DROP TABLE t_job_instance");
+                statement.execute("DROP TABLE t_job_daemon");
                 if ("postgresql".equals(vendor)) {
                     statement.execute("DROP FUNCTION notify_on_job_run_queue_insert()");
                 }
@@ -129,7 +129,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
                                 "SELECT trigger_name, event_manipulation, event_object_table"
                                         + " FROM information_schema.triggers"
                                         + " WHERE event_object_table IN ('t_job_run_queue',"
-                                        + " 't_job_instance')")) {
+                                        + " 't_job_daemon')")) {
             while (triggers.next()) {
                 description.add(
                         "trigger %s %s on %s"

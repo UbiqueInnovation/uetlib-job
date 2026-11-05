@@ -1,6 +1,6 @@
 package ch.uetlib.job.data.repository;
 
-import ch.uetlib.job.model.entity.JobInstanceEntity;
+import ch.uetlib.job.model.entity.JobDaemonEntity;
 
 import jakarta.persistence.LockModeType;
 
@@ -19,60 +19,59 @@ import java.util.Optional;
  * twice.
  */
 @Repository
-public interface JobInstanceRepository extends JpaRepository<JobInstanceEntity, Integer> {
+public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Integer> {
 
-    Optional<JobInstanceEntity> findByInstanceName(String instanceName);
+    Optional<JobDaemonEntity> findByDaemonName(String daemonName);
 
-    List<JobInstanceEntity> findByUpdatedAtAfter(Instant staleBefore);
+    List<JobDaemonEntity> findByUpdatedAtAfter(Instant staleBefore);
 
-    Optional<JobInstanceEntity> findFirstByPrimarySlotIsNotNull();
+    Optional<JobDaemonEntity> findFirstByPrimarySlotIsNotNull();
 
     /**
      * Share-locks the holder's row until the transaction ends, so the lease can't move meanwhile.
      */
     @Lock(LockModeType.PESSIMISTIC_READ)
-    Optional<JobInstanceEntity> findByInstanceNameAndPrimarySlotIsNotNull(String instanceName);
+    Optional<JobDaemonEntity> findByDaemonNameAndPrimarySlotIsNotNull(String daemonName);
 
     /**
-     * Frees the lease from a holder that stopped checking in or started before {@code
-     * instanceName}.
+     * Frees the lease from a holder that stopped checking in or started before {@code daemonName}.
      */
     @Modifying(clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobInstanceEntity i
+                    UPDATE JobDaemonEntity i
                     SET i.primarySlot = null, i.primarySince = null
                     WHERE i.primarySlot IS NOT NULL
-                      AND i.instanceName <> :instanceName
+                      AND i.daemonName <> :daemonName
                       AND (i.updatedAt < :staleBefore
                            OR i.startedAt < :startedAt
-                           OR (i.startedAt = :startedAt AND i.instanceName < :instanceName))
+                           OR (i.startedAt = :startedAt AND i.daemonName < :daemonName))
                     """)
-    int releaseOutrankedPrimaryLease(String instanceName, Instant startedAt, Instant staleBefore);
+    int releaseOutrankedPrimaryLease(String daemonName, Instant startedAt, Instant staleBefore);
 
     /** Fails with a unique violation if another instance holds the lease. */
     @Modifying(clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobInstanceEntity i
+                    UPDATE JobDaemonEntity i
                     SET i.primarySlot = 1, i.primarySince = :now
-                    WHERE i.instanceName = :instanceName AND i.updatedAt >= :staleBefore
+                    WHERE i.daemonName = :daemonName AND i.updatedAt >= :staleBefore
                     """)
-    int acquirePrimaryLease(String instanceName, Instant now, Instant staleBefore);
+    int acquirePrimaryLease(String daemonName, Instant now, Instant staleBefore);
 
     @Modifying(clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobInstanceEntity i
+                    UPDATE JobDaemonEntity i
                     SET i.primarySlot = null, i.primarySince = null
-                    WHERE i.instanceName = :instanceName AND i.primarySlot IS NOT NULL
+                    WHERE i.daemonName = :daemonName AND i.primarySlot IS NOT NULL
                     """)
-    int releasePrimaryLease(String instanceName);
+    int releasePrimaryLease(String daemonName);
 
     @Modifying(clearAutomatically = true)
     @Query(
             """
-                    DELETE FROM JobInstanceEntity i
+                    DELETE FROM JobDaemonEntity i
                     WHERE i.updatedAt < :staleBefore
                     """)
     int deleteStale(Instant staleBefore);
@@ -80,8 +79,8 @@ public interface JobInstanceRepository extends JpaRepository<JobInstanceEntity, 
     @Modifying(clearAutomatically = true)
     @Query(
             """
-                    DELETE FROM JobInstanceEntity i
-                    WHERE i.instanceName = :instanceName
+                    DELETE FROM JobDaemonEntity i
+                    WHERE i.daemonName = :daemonName
                     """)
-    int deleteByInstanceName(String instanceName);
+    int deleteByDaemonName(String daemonName);
 }

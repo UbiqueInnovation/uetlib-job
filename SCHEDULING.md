@@ -11,8 +11,8 @@ project defines.
 - **JobRun** **[library]** - one execution attempt, `t_job_run`. Append-only; its state only moves forward.
 - **Queue row** **[library]** - `t_job_run_queue`, "this should run" / "this is running", kept apart from the run
   history. `QUEUED` → `CLAIMED` → `RUNNING`, then deleted; `CANCELLED` if nothing claimed it in time (§7).
-- **Instance** **[library]** - a long-lived process of the application, checking in to `t_job_instance`. A dedicated
-  `--job` process is not an instance.
+- **Daemon** **[library]** - a long-lived application instance that checks in to `t_job_daemon`. Dedicated
+  `--job` processes skip daemon registration.
 
 ## 1. Getting into the queue
 
@@ -27,7 +27,7 @@ Nothing runs a job directly; everything goes through a queue row.
   It records its run as `RUNNING` in the queue before starting it; with `--run`, the dispatching instance already has.
 
 **Exactly one primary [library].** Every instance with `job-primary-triggers` registers its triggers, but only the
-holder of the *primary lease* queues runs from them. The lease is `t_job_instance.primary_slot`, a `UNIQUE` column, so
+holder of the *primary lease* queues runs from them. The lease is `t_job_daemon.primary_slot`, a `UNIQUE` column, so
 the database rules out a second holder. Every fire checks the lease under a shared row lock, in the same transaction as
 the insert - an instance that has lost the lease can never queue.
 
@@ -122,7 +122,7 @@ not know, after `runner.unknown-job.timeout` (5m).
 | Service                          | Role                                                                            |
 |----------------------------------|---------------------------------------------------------------------------------|
 | `TriggerCoordinatorService`      | Fires triggers (through the primary lease), syncs fixed trigger definitions     |
-| `JobInstanceRegistrationService` | Check-ins, primary lease, purging stale instances (§1)                          |
+| `JobDaemonRegistrationService` | Check-ins, primary lease, purging stale instances (§1)                          |
 | `JobRunQueueService`             | Polls, claims and dispatches `QUEUED` rows (§2)                                 |
 | `JobExecutorService`             | Shared submit path: parallel-run guard, runner selection, `t_job_run` creation  |
 | `JobQueueWatcherService`         | Queue reconciliation (§7)                                                       |

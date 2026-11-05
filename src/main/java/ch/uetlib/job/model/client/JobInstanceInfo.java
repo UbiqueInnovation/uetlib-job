@@ -1,6 +1,6 @@
 package ch.uetlib.job.model.client;
 
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,9 +31,9 @@ public record JobInstanceInfo(
         @JsonProperty(required = true) @NotNull Instant startedAt,
         @JsonProperty(required = true) @NotNull Instant lastCheckIn) {
 
-    public static JobInstanceInfo from(final JobInstance instance) {
+    public static JobInstanceInfo from(final JobDaemon instance) {
         return new JobInstanceInfo(
-                instance.instanceName(),
+                instance.daemonName(),
                 instance.version(),
                 instance.taints().stream().sorted().toList(),
                 instance.primaryCandidate(),

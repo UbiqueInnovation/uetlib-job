@@ -7,7 +7,7 @@ import ch.uetlib.job.Job;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
 import ch.uetlib.job.model.JobClassAndId;
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
@@ -40,7 +40,7 @@ import ch.uetlib.job.service.executor.JobManualTriggerService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 import ch.uetlib.job.service.inputs.JobRunInputProvider;
-import ch.uetlib.job.service.instance.JobInstanceRegistrationService;
+import ch.uetlib.job.service.instance.JobDaemonRegistrationService;
 import ch.uetlib.job.service.logs.LogService;
 import ch.uetlib.job.service.triggers.CronTriggerService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
@@ -90,7 +90,7 @@ public class JobControllerService {
     private final LogService logService;
 
     private final JobRunnerInfoService jobRunnerInfoService;
-    private final JobInstanceRegistrationService jobInstanceRegistrationService;
+    private final JobDaemonRegistrationService jobDaemonRegistrationService;
 
     public JobControllerService(
             final JobDataService jobDataService,
@@ -101,7 +101,7 @@ public class JobControllerService {
             final JobRunInputManager jobRunInputManager,
             final LogService logService,
             final JobRunnerInfoService jobRunnerInfoService,
-            final JobInstanceRegistrationService jobInstanceRegistrationService) {
+            final JobDaemonRegistrationService jobDaemonRegistrationService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
         this.cronTriggerService = cronTriggerService;
@@ -110,7 +110,7 @@ public class JobControllerService {
         this.jobRunInputManager = jobRunInputManager;
         this.logService = logService;
         this.jobRunnerInfoService = jobRunnerInfoService;
-        this.jobInstanceRegistrationService = jobInstanceRegistrationService;
+        this.jobDaemonRegistrationService = jobDaemonRegistrationService;
     }
 
     private static List<JobProperty<? extends Object>> getPropertiesFromMap(
@@ -559,14 +559,14 @@ public class JobControllerService {
     /** The live instances: the primary lease holder first, then newest first. */
     public JobInstanceInfosContainer getInstances() {
         return new JobInstanceInfosContainer(
-                jobInstanceRegistrationService.liveInstances().stream()
+                jobDaemonRegistrationService.liveDaemons().stream()
                         .sorted(
                                 Comparator.comparing(
-                                                JobInstance::holdsPrimaryLease,
+                                                JobDaemon::holdsPrimaryLease,
                                                 Comparator.reverseOrder())
                                         .thenComparing(
-                                                JobInstance::startedAt, Comparator.reverseOrder())
-                                        .thenComparing(JobInstance::instanceName))
+                                                JobDaemon::startedAt, Comparator.reverseOrder())
+                                        .thenComparing(JobDaemon::daemonName))
                         .map(JobInstanceInfo::from)
                         .toList());
     }

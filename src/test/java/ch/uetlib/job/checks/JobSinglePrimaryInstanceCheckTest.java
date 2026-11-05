@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import ch.uetlib.job.data.service.JobDataService;
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.monitoring.check.models.CheckFailed;
 import ch.uetlib.monitoring.check.models.CheckLevel;
 
@@ -62,29 +62,29 @@ class JobSinglePrimaryInstanceCheckTest {
         stubLiveInstances();
 
         assertTrue(checkWithStartupGrace(Duration.ofMinutes(10)).check().passed());
-        verify(jobDataService, never()).findLiveInstances(any());
+        verify(jobDataService, never()).findLiveDaemons(any());
     }
 
-    private void stubLiveInstances(final JobInstance... instances) {
-        when(jobDataService.findLiveInstances(any())).thenReturn(List.of(instances));
+    private void stubLiveInstances(final JobDaemon... instances) {
+        when(jobDataService.findLiveDaemons(any())).thenReturn(List.of(instances));
     }
 
-    private static JobInstance holder(final String name) {
+    private static JobDaemon holder(final String name) {
         return instance(name, true, true);
     }
 
-    private static JobInstance candidate(final String name) {
+    private static JobDaemon candidate(final String name) {
         return instance(name, true, false);
     }
 
-    private static JobInstance worker(final String name) {
+    private static JobDaemon worker(final String name) {
         return instance(name, false, false);
     }
 
-    private static JobInstance instance(
+    private static JobDaemon instance(
             final String name, final boolean candidate, final boolean holdsLease) {
         final var now = Instant.now();
-        return new JobInstance(
+        return new JobDaemon(
                 name.hashCode(),
                 name,
                 "1.0.0",

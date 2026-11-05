@@ -2,7 +2,7 @@ package ch.uetlib.job.model.entity;
 
 import static java.util.Objects.requireNonNull;
 
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.job.model.converters.StringSetToStringConverter;
 
 import jakarta.persistence.*;
@@ -20,17 +20,17 @@ import java.util.Set;
  * {@code primarySlot} (the lease) is read-only here, so a check-in never overwrites a lease change.
  */
 @Entity
-@Table(name = "t_job_instance")
-public class JobInstanceEntity {
+@Table(name = "t_job_daemon")
+public class JobDaemonEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "pk_job_instance_id", nullable = false, updatable = false)
-    private @Nullable Integer jobInstanceId;
+    @Column(name = "pk_job_daemon_id", nullable = false, updatable = false)
+    private @Nullable Integer jobDaemonId;
 
     @NotBlank
-    @Column(name = "instance_name", nullable = false, updatable = false)
-    private String instanceName;
+    @Column(name = "daemon_name", nullable = false, updatable = false)
+    private String daemonName;
 
     @NotBlank
     @Column(name = "version", nullable = false)
@@ -61,17 +61,17 @@ public class JobInstanceEntity {
     private Instant updatedAt;
 
     @SuppressWarnings("NullAway.Init")
-    protected JobInstanceEntity() {}
+    protected JobDaemonEntity() {}
 
-    public JobInstanceEntity(
-            final String instanceName,
+    public JobDaemonEntity(
+            final String daemonName,
             final String version,
             final Set<String> taints,
             final boolean primaryCandidate,
             final @Nullable Integer triggerCount,
             final Instant startedAt,
             final Instant now) {
-        this.instanceName = instanceName;
+        this.daemonName = daemonName;
         this.version = version;
         this.taints = taints;
         this.primaryCandidate = primaryCandidate;
@@ -83,7 +83,7 @@ public class JobInstanceEntity {
     /**
      * Everything but the lease; also {@code startedAt}, since a restarted pod may keep its name.
      */
-    public JobInstanceEntity checkIn(
+    public JobDaemonEntity checkIn(
             final String version,
             final Set<String> taints,
             final boolean primaryCandidate,
@@ -99,10 +99,10 @@ public class JobInstanceEntity {
         return this;
     }
 
-    public JobInstance toJobInstance() {
-        return new JobInstance(
-                requireNonNull(jobInstanceId),
-                instanceName,
+    public JobDaemon toJobDaemon() {
+        return new JobDaemon(
+                requireNonNull(jobDaemonId),
+                daemonName,
                 version,
                 Set.copyOf(taints),
                 primaryCandidate,

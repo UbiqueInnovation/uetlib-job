@@ -40,7 +40,7 @@ class JobDataServiceTest {
                     mock(JobRunInputRepository.class),
                     mock(JobRunDatabaseSubmissionRepository.class),
                     mock(JobQueuedRunRepository.class),
-                    mock(JobInstanceRepository.class),
+                    mock(JobDaemonRepository.class),
                     mock(K8sJobRepository.class),
                     mock(LoggingEventRepository.class),
                     mock(JdbcTemplate.class));

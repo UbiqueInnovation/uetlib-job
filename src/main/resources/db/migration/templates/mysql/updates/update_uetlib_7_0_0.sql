@@ -19,10 +19,10 @@ CREATE TABLE t_job_run_queue
     INDEX (fk_job_run_id)
 ) charset = utf8mb4;
 
-CREATE TABLE t_job_instance
+CREATE TABLE t_job_daemon
 (
-    pk_job_instance_id INTEGER      AUTO_INCREMENT NOT NULL PRIMARY KEY,
-    instance_name      VARCHAR(255) NOT NULL,
+    pk_job_daemon_id   INTEGER      AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    daemon_name       VARCHAR(255) NOT NULL,
     version            TEXT         NOT NULL,
     taints             JSON         NOT NULL,
     primary_candidate  BOOLEAN      NOT NULL,
@@ -33,6 +33,6 @@ CREATE TABLE t_job_instance
     primary_since      TIMESTAMP    NULL,
     started_at         TIMESTAMP    NOT NULL,
     updated_at         TIMESTAMP    NOT NULL,
-    UNIQUE (instance_name),
+    UNIQUE (daemon_name),
     UNIQUE (primary_slot)
 ) charset = utf8mb4;
