@@ -3,10 +3,10 @@ package ch.uetlib.job.service.triggers.files;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.den_4.inotify_java.Inotify;
-import com.den_4.inotify_java.InotifyEvent;
-import com.den_4.inotify_java.NativeInotify;
-import com.den_4.inotify_java.enums.Event;
+import ch.uetlib.inotify.Inotify;
+import ch.uetlib.inotify.InotifyEvent;
+import ch.uetlib.inotify.NativeInotify;
+import ch.uetlib.inotify.enums.Event;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

@@ -76,8 +76,8 @@
 
         <!-- inotify-java -->
         <dependency>
-            <groupId>ch.ubique</groupId>
-            <artifactId>inotify</artifactId>
+            <groupId>ch.uetlib</groupId>
+            <artifactId>uetlib-inotify-java</artifactId>
         </dependency>
 
         <!-- Command line args parsing -->
@@ -215,6 +215,11 @@
                 <groupId>ch.uetlib</groupId>
                 <artifactId>uetlib-db</artifactId>
                 <version>3.0.0</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.uetlib</groupId>
+                <artifactId>uetlib-inotify-java</artifactId>
+                <version>3.0.1</version>
             </dependency>
             <dependency>
                 <groupId>ch.uetlib</groupId>

@@ -1,6 +1,7 @@
 package ch.uetlib.job.model.triggers;
 
-import com.den_4.inotify_java.InotifyEvent;
+import ch.uetlib.inotify.InotifyEvent;
+
 import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 
 import java.nio.file.StandardWatchEventKinds;

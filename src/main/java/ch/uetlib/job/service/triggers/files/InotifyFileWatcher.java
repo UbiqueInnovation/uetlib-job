@@ -1,14 +1,13 @@
 package ch.uetlib.job.service.triggers.files;
 
+import ch.uetlib.inotify.EventQueueFull;
+import ch.uetlib.inotify.Inotify;
+import ch.uetlib.inotify.InotifyEvent;
+import ch.uetlib.inotify.InotifyEventListener;
+import ch.uetlib.inotify.NativeInotify;
+import ch.uetlib.inotify.enums.Event;
+import ch.uetlib.inotify.exceptions.InotifyException;
 import ch.uetlib.job.model.triggers.FileChangeEvent;
-
-import com.den_4.inotify_java.EventQueueFull;
-import com.den_4.inotify_java.Inotify;
-import com.den_4.inotify_java.InotifyEvent;
-import com.den_4.inotify_java.InotifyEventListener;
-import com.den_4.inotify_java.NativeInotify;
-import com.den_4.inotify_java.enums.Event;
-import com.den_4.inotify_java.exceptions.InotifyException;
 
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.slf4j.Logger;
