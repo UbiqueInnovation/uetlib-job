@@ -652,7 +652,7 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
-    void queueRunningRunIsIdempotentForAJobRunIdAlreadyRunning() {
+    void queueRunningRunRecordsTheDedicatedRunnerOnTheExistingRow() {
         final var runningRunId = queueClaimAndRunToRunning();
 
         final var second =
@@ -668,6 +668,9 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                 runningRunId,
                 second.jobQueuedRunId(),
                 "a job run already claimed and RUNNING must not get a second, duplicate queue row");
+        assertEquals("runner-b", second.runner());
+        assertEquals("runner-b", findInQueue(runningRunId).orElseThrow().runner());
+        assertEquals(JobRunQueueState.RUNNING, second.queueState());
     }
 
     /** An existing {@code t_job_run} row from the fixtures, valid as {@code fk_job_run_id}. */
