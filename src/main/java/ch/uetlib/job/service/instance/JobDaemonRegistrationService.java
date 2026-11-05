@@ -4,7 +4,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import ch.uetlib.job.data.service.JobDataService;
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
 
@@ -27,15 +27,15 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * Checks this instance in to {@code t_job_instance}. The newest live candidate takes the primary
+ * Checks this instance in to {@code t_job_daemon}. The newest live candidate takes the primary
  * lease; the holder purges stale rows and hands the lease over on shutdown (SCHEDULING.md §1).
  */
 @Service
 @Profile("!job-run")
-public class JobInstanceRegistrationService {
+public class JobDaemonRegistrationService {
 
     private static final Logger logger =
-            LoggerFactory.getLogger(JobInstanceRegistrationService.class);
+            LoggerFactory.getLogger(JobDaemonRegistrationService.class);
 
     public static final String STALE_AFTER_PROP = "ch.uetlib.job.instance.stale-after";
     public static final String STALE_AFTER_DEFAULT = "PT90S";
@@ -51,7 +51,7 @@ public class JobInstanceRegistrationService {
 
     private volatile boolean primary;
 
-    public JobInstanceRegistrationService(
+    public JobDaemonRegistrationService(
             final JobDataService jobDataService,
             final JobService jobService,
             final JobInstanceIdentity identity,
@@ -79,7 +79,7 @@ public class JobInstanceRegistrationService {
             final var coordinator = triggerCoordinator.getIfAvailable();
             final var candidate = coordinator != null && coordinator.isPrimaryCandidate();
             final var self =
-                    jobDataService.checkInInstance(
+                    jobDataService.checkInDaemon(
                             identity.name(),
                             version,
                             identity.taints(),
@@ -115,8 +115,8 @@ public class JobInstanceRegistrationService {
     }
 
     /** Instances that checked in within {@value #STALE_AFTER_PROP}. */
-    public List<JobInstance> liveInstances() {
-        return jobDataService.findLiveInstances(staleBefore());
+    public List<JobDaemon> liveDaemons() {
+        return jobDataService.findLiveDaemons(staleBefore());
     }
 
     @PreDestroy
@@ -124,9 +124,9 @@ public class JobInstanceRegistrationService {
         try {
             final var handOverTo =
                     primary
-                            ? newestOtherLiveCandidate().map(JobInstance::instanceName).orElse(null)
+                            ? newestOtherLiveCandidate().map(JobDaemon::daemonName).orElse(null)
                             : null;
-            jobDataService.removeInstance(identity.name(), handOverTo, staleBefore());
+            jobDataService.removeDaemon(identity.name(), handOverTo, staleBefore());
             if (handOverTo != null) {
                 logger.info("Handed the primary lease to {} on shutdown.", handOverTo);
             }
@@ -135,28 +135,28 @@ public class JobInstanceRegistrationService {
         }
     }
 
-    private boolean takePrimaryLease(final JobInstance self) {
+    private boolean takePrimaryLease(final JobDaemon self) {
         try {
             return jobDataService.takePrimaryLease(
-                    self.instanceName(), self.startedAt(), staleBefore());
+                    self.daemonName(), self.startedAt(), staleBefore());
         } catch (final DataIntegrityViolationException _) {
             logger.info("Another instance took the primary lease at the same moment.");
             return false;
         }
     }
 
-    private boolean isNewestLiveCandidate(final JobInstance self) {
+    private boolean isNewestLiveCandidate(final JobDaemon self) {
         return liveCandidates().noneMatch(self::isSupersededBy);
     }
 
-    private Optional<JobInstance> newestOtherLiveCandidate() {
+    private Optional<JobDaemon> newestOtherLiveCandidate() {
         return liveCandidates()
-                .filter(instance -> !instance.instanceName().equals(identity.name()))
+                .filter(instance -> !instance.daemonName().equals(identity.name()))
                 .reduce((a, b) -> a.isSupersededBy(b) ? b : a);
     }
 
-    private Stream<JobInstance> liveCandidates() {
-        return liveInstances().stream().filter(JobInstance::primaryCandidate);
+    private Stream<JobDaemon> liveCandidates() {
+        return liveDaemons().stream().filter(JobDaemon::primaryCandidate);
     }
 
     private Instant staleBefore() {

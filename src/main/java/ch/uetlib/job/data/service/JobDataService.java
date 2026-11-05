@@ -57,7 +57,7 @@ public class JobDataService {
     private final JobRunRepository jobRunRepository;
     private final JobRunStateTransitionRepository jobRunStateTransitionRepository;
     private final JobQueuedRunRepository jobQueuedRunRepository;
-    private final JobInstanceRepository jobInstanceRepository;
+    private final JobDaemonRepository jobDaemonRepository;
     private final JobRunInputRepository jobRunInputRepository;
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
     private final K8sJobRepository k8sJobRepository;
@@ -77,7 +77,7 @@ public class JobDataService {
             final JobRunInputRepository jobRunInputRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository,
             final JobQueuedRunRepository jobQueuedRunRepository,
-            final JobInstanceRepository jobInstanceRepository,
+            final JobDaemonRepository jobDaemonRepository,
             final K8sJobRepository k8sJobRepository,
             final LoggingEventRepository loggingEventRepository,
             final JdbcTemplate jobJdbcTemplate) {
@@ -89,7 +89,7 @@ public class JobDataService {
         this.jobRunInputRepository = jobRunInputRepository;
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
         this.jobQueuedRunRepository = jobQueuedRunRepository;
-        this.jobInstanceRepository = jobInstanceRepository;
+        this.jobDaemonRepository = jobDaemonRepository;
         this.k8sJobRepository = k8sJobRepository;
         this.loggingEventRepository = loggingEventRepository;
         this.jobJdbcTemplate = jobJdbcTemplate;
@@ -1024,8 +1024,8 @@ public class JobDataService {
 
     /** Refreshes the instance's row, re-inserting it if purged; never touches the lease. */
     @Transactional
-    public JobInstance checkInInstance(
-            final String instanceName,
+    public JobDaemon checkInDaemon(
+            final String daemonName,
             final String version,
             final Set<String> taints,
             final boolean primaryCandidate,
@@ -1033,8 +1033,8 @@ public class JobDataService {
             final Instant startedAt) {
         final var now = Instant.now();
         final var entity =
-                jobInstanceRepository
-                        .findByInstanceName(instanceName)
+                jobDaemonRepository
+                        .findByDaemonName(daemonName)
                         .map(
                                 existing ->
                                         existing.checkIn(
@@ -1046,27 +1046,27 @@ public class JobDataService {
                                                 now))
                         .orElseGet(
                                 () ->
-                                        new JobInstanceEntity(
-                                                instanceName,
+                                        new JobDaemonEntity(
+                                                daemonName,
                                                 version,
                                                 taints,
                                                 primaryCandidate,
                                                 triggerCount,
                                                 startedAt,
                                                 now));
-        return jobInstanceRepository.save(entity).toJobInstance();
+        return jobDaemonRepository.save(entity).toJobDaemon();
     }
 
     @Transactional(readOnly = true)
-    public List<JobInstance> findLiveInstances(final Instant staleBefore) {
-        return jobInstanceRepository.findByUpdatedAtAfter(staleBefore).stream()
-                .map(JobInstanceEntity::toJobInstance)
+    public List<JobDaemon> findLiveDaemons(final Instant staleBefore) {
+        return jobDaemonRepository.findByUpdatedAtAfter(staleBefore).stream()
+                .map(JobDaemonEntity::toJobDaemon)
                 .toList();
     }
 
     @Transactional
     public int deleteStaleInstances(final Instant staleBefore) {
-        return jobInstanceRepository.deleteStale(staleBefore);
+        return jobDaemonRepository.deleteStale(staleBefore);
     }
 
     /**
@@ -1075,38 +1075,34 @@ public class JobDataService {
      */
     @Transactional
     public boolean takePrimaryLease(
-            final String instanceName, final Instant startedAt, final Instant staleBefore) {
-        jobInstanceRepository.releaseOutrankedPrimaryLease(instanceName, startedAt, staleBefore);
-        final var holder = jobInstanceRepository.findFirstByPrimarySlotIsNotNull();
+            final String daemonName, final Instant startedAt, final Instant staleBefore) {
+        jobDaemonRepository.releaseOutrankedPrimaryLease(daemonName, startedAt, staleBefore);
+        final var holder = jobDaemonRepository.findFirstByPrimarySlotIsNotNull();
         if (holder.isPresent()) {
-            return holder.get().toJobInstance().instanceName().equals(instanceName);
+            return holder.get().toJobDaemon().daemonName().equals(daemonName);
         }
-        return jobInstanceRepository.acquirePrimaryLease(instanceName, Instant.now(), staleBefore)
-                == 1;
+        return jobDaemonRepository.acquirePrimaryLease(daemonName, Instant.now(), staleBefore) == 1;
     }
 
     /** Share-locks the row until the transaction ends, so the lease can't move meanwhile. */
     @Transactional
-    public boolean holdsPrimaryLease(final String instanceName) {
-        return jobInstanceRepository
-                .findByInstanceNameAndPrimarySlotIsNotNull(instanceName)
-                .isPresent();
+    public boolean holdsPrimaryLease(final String daemonName) {
+        return jobDaemonRepository.findByDaemonNameAndPrimarySlotIsNotNull(daemonName).isPresent();
     }
 
     /**
-     * {@link #queueNewRun} if {@code instanceName} holds the lease, checked in the same
-     * transaction.
+     * {@link #queueNewRun} if {@code daemonName} holds the lease, checked in the same transaction.
      */
     @Transactional
     public Optional<JobQueuedRun> queueNewRunIfPrimary(
-            final String instanceName,
+            final String daemonName,
             final int jobId,
             final @Nullable Integer priority,
             final String versionTag,
             final JobRunArguments arguments,
             final Set<JobRunnerTaint> taints,
             final JobQueueBehavior queueBehavior) {
-        if (!holdsPrimaryLease(instanceName)) {
+        if (!holdsPrimaryLease(daemonName)) {
             return Optional.empty();
         }
         return Optional.of(
@@ -1115,13 +1111,11 @@ public class JobDataService {
 
     /** Deletes the instance, handing a held lease to {@code handOverTo} in the same transaction. */
     @Transactional
-    public void removeInstance(
-            final String instanceName,
-            final @Nullable String handOverTo,
-            final Instant staleBefore) {
-        if (jobInstanceRepository.releasePrimaryLease(instanceName) == 1 && handOverTo != null) {
-            jobInstanceRepository.acquirePrimaryLease(handOverTo, Instant.now(), staleBefore);
+    public void removeDaemon(
+            final String daemonName, final @Nullable String handOverTo, final Instant staleBefore) {
+        if (jobDaemonRepository.releasePrimaryLease(daemonName) == 1 && handOverTo != null) {
+            jobDaemonRepository.acquirePrimaryLease(handOverTo, Instant.now(), staleBefore);
         }
-        jobInstanceRepository.deleteByInstanceName(instanceName);
+        jobDaemonRepository.deleteByDaemonName(daemonName);
     }
 }

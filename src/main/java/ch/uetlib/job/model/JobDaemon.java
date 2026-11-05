@@ -5,10 +5,10 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.util.Set;
 
-/** A long-lived instance, as it last checked in to {@code t_job_instance}. */
-public record JobInstance(
-        int jobInstanceId,
-        String instanceName,
+/** A long-lived instance, as it last checked in to {@code t_job_daemon}. */
+public record JobDaemon(
+        int jobDaemonId,
+        String daemonName,
         String version,
         Set<String> taints,
         boolean primaryCandidate,
@@ -19,11 +19,11 @@ public record JobInstance(
         Instant updatedAt) {
 
     /** Whether {@code other} started later and so outranks this one; the name breaks ties. */
-    public boolean isSupersededBy(final JobInstance other) {
+    public boolean isSupersededBy(final JobDaemon other) {
         final var byStart = other.startedAt().compareTo(startedAt);
         if (byStart != 0) {
             return byStart > 0;
         }
-        return other.instanceName().compareTo(instanceName) > 0;
+        return other.daemonName().compareTo(daemonName) > 0;
     }
 }

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.*;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
 import ch.uetlib.job.model.JobClassAndId;
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
@@ -23,7 +23,7 @@ import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.executor.JobManualTriggerService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
-import ch.uetlib.job.service.instance.JobInstanceRegistrationService;
+import ch.uetlib.job.service.instance.JobDaemonRegistrationService;
 import ch.uetlib.job.service.logs.LogService;
 import ch.uetlib.job.service.triggers.CronTriggerService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
@@ -51,8 +51,8 @@ class JobControllerServiceTest {
     private final TriggerCoordinatorService triggerCoordinatorService =
             mock(TriggerCoordinatorService.class);
     private final JobRunInputManager jobRunInputManager = mock(JobRunInputManager.class);
-    private final JobInstanceRegistrationService jobInstanceRegistrationService =
-            mock(JobInstanceRegistrationService.class);
+    private final JobDaemonRegistrationService jobDaemonRegistrationService =
+            mock(JobDaemonRegistrationService.class);
 
     private final JobControllerService service =
             new JobControllerService(
@@ -64,7 +64,7 @@ class JobControllerServiceTest {
                     jobRunInputManager,
                     mock(LogService.class),
                     mock(JobRunnerInfoService.class),
-                    jobInstanceRegistrationService);
+                    jobDaemonRegistrationService);
 
     @Test
     void getQueueInfoMapsThePageAndTheOldestAndNewestEntries() {
@@ -323,7 +323,7 @@ class JobControllerServiceTest {
     @Test
     void getInstancesListsThePrimaryFirstThenTheNewest() {
         final var now = Instant.now();
-        when(jobInstanceRegistrationService.liveInstances())
+        when(jobDaemonRegistrationService.liveDaemons())
                 .thenReturn(
                         List.of(
                                 instance("older", false, now.minusSeconds(600)),
@@ -339,9 +339,9 @@ class JobControllerServiceTest {
         assertEquals(List.of("a", "b"), instances.getFirst().taints());
     }
 
-    private static JobInstance instance(
+    private static JobDaemon instance(
             final String name, final boolean primary, final Instant startedAt) {
-        return new JobInstance(
+        return new JobDaemon(
                 1,
                 name,
                 "1.0.0",

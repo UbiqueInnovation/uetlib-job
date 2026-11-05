@@ -269,16 +269,16 @@ public class JobService {
                 job.id(), priority, versionTag, arguments, taints, queueBehavior);
     }
 
-    /** {@link #queueNewRun}, but only while {@code instanceName} holds the primary lease. */
+    /** {@link #queueNewRun}, but only while {@code daemonName} holds the primary lease. */
     public Optional<JobQueuedRun> queueNewRunAsPrimary(
-            final String instanceName, final JobClassAndId job, final JobRunArguments arguments) {
+            final String daemonName, final JobClassAndId job, final JobRunArguments arguments) {
         final var properties = queueProperties(job);
         final var taints = taintsOf(properties);
         final var priority = properties.get(JobPropertyDefinitions.PRIORITY).value();
         final var queueBehavior =
                 requireNonNull(properties.get(JobPropertyDefinitions.QUEUE_BEHAVIOR).value());
         return jobDataService.queueNewRunIfPrimary(
-                instanceName, job.id(), priority, versionTag, arguments, taints, queueBehavior);
+                daemonName, job.id(), priority, versionTag, arguments, taints, queueBehavior);
     }
 
     /** Records a {@code --job} run as RUNNING, or returns the row its dispatcher already linked. */

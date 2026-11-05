@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import ch.uetlib.job.data.service.JobDataService;
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
 
@@ -22,9 +22,9 @@ import java.util.Set;
 
 /**
  * The check-in loop around the primary lease: when an instance takes it, keeps it, purges, and
- * hands it over. The lease queries themselves are covered by {@code JobInstanceDatabaseTest}.
+ * hands it over. The lease queries themselves are covered by {@code JobDaemonDatabaseTest}.
  */
-class JobInstanceRegistrationServiceTest {
+class JobDaemonRegistrationServiceTest {
 
     private static final String NAME = "pod-a";
     private static final Instant STARTED = Instant.parse("2026-09-14T08:00:00Z");
@@ -38,7 +38,7 @@ class JobInstanceRegistrationServiceTest {
     private final ObjectProvider<TriggerCoordinatorService> coordinatorProvider =
             mock(ObjectProvider.class);
 
-    private JobInstanceRegistrationService service;
+    private JobDaemonRegistrationService service;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +48,7 @@ class JobInstanceRegistrationServiceTest {
         when(coordinator.isStarted()).thenReturn(true);
         when(coordinator.registeredTriggerCount()).thenReturn(3);
         service =
-                new JobInstanceRegistrationService(
+                new JobDaemonRegistrationService(
                         jobDataService,
                         jobService,
                         new JobInstanceIdentity(NAME, Set.of("gpu"), STARTED),
@@ -63,7 +63,7 @@ class JobInstanceRegistrationServiceTest {
 
         service.checkIn();
 
-        verify(jobDataService).checkInInstance(NAME, "1.0.0", Set.of("gpu"), true, 3, STARTED);
+        verify(jobDataService).checkInDaemon(NAME, "1.0.0", Set.of("gpu"), true, 3, STARTED);
     }
 
     @Test
@@ -126,7 +126,7 @@ class JobInstanceRegistrationServiceTest {
 
         service.checkIn();
 
-        verify(jobDataService).checkInInstance(NAME, "1.0.0", Set.of("gpu"), false, null, STARTED);
+        verify(jobDataService).checkInDaemon(NAME, "1.0.0", Set.of("gpu"), false, null, STARTED);
         verify(jobDataService, never()).takePrimaryLease(any(), any(), any());
         verify(jobDataService, never()).deleteStaleInstances(any());
         assertFalse(service.isPrimary());
@@ -172,7 +172,7 @@ class JobInstanceRegistrationServiceTest {
 
     @Test
     void aFailingCheckInIsLeftToTheNextOneInsteadOfPropagating() {
-        when(jobDataService.checkInInstance(any(), any(), any(), anyBoolean(), any(), any()))
+        when(jobDataService.checkInDaemon(any(), any(), any(), anyBoolean(), any(), any()))
                 .thenThrow(new IllegalStateException("database unavailable"));
 
         assertDoesNotThrow(service::checkIn);
@@ -192,54 +192,54 @@ class JobInstanceRegistrationServiceTest {
 
         service.leave();
 
-        verify(jobDataService).removeInstance(eq(NAME), eq("pod-new"), any());
+        verify(jobDataService).removeDaemon(eq(NAME), eq("pod-new"), any());
     }
 
     @Test
     void aNonPrimaryShuttingDownRemovesItselfWithoutHandingAnythingOver() {
         service.leave();
 
-        verify(jobDataService).removeInstance(eq(NAME), isNull(), any());
-        verify(jobDataService, never()).findLiveInstances(any());
+        verify(jobDataService).removeDaemon(eq(NAME), isNull(), any());
+        verify(jobDataService, never()).findLiveDaemons(any());
     }
 
     @Test
     void aFailingRemovalOnShutdownIsLeftToThePurge() {
         doThrow(new IllegalStateException("database unavailable"))
                 .when(jobDataService)
-                .removeInstance(any(), any(), any());
+                .removeDaemon(any(), any(), any());
 
         assertDoesNotThrow(service::leave);
     }
 
-    private void checksInAs(final JobInstance self) {
-        when(jobDataService.checkInInstance(any(), any(), any(), anyBoolean(), any(), any()))
+    private void checksInAs(final JobDaemon self) {
+        when(jobDataService.checkInDaemon(any(), any(), any(), anyBoolean(), any(), any()))
                 .thenReturn(self);
     }
 
-    private void live(final JobInstance... instances) {
-        when(jobDataService.findLiveInstances(any())).thenReturn(List.of(instances));
+    private void live(final JobDaemon... instances) {
+        when(jobDataService.findLiveDaemons(any())).thenReturn(List.of(instances));
     }
 
-    private static JobInstance self(final boolean holdsLease) {
+    private static JobDaemon self(final boolean holdsLease) {
         return instance(NAME, true, holdsLease, STARTED);
     }
 
-    private static JobInstance candidate(final String name, final Instant startedAt) {
+    private static JobDaemon candidate(final String name, final Instant startedAt) {
         return instance(name, true, false, startedAt);
     }
 
     /** An instance without {@code job-primary-triggers}: it runs jobs but never takes the lease. */
-    private static JobInstance worker(final String name, final Instant startedAt) {
+    private static JobDaemon worker(final String name, final Instant startedAt) {
         return instance(name, false, false, startedAt);
     }
 
-    private static JobInstance instance(
+    private static JobDaemon instance(
             final String name,
             final boolean candidate,
             final boolean holdsLease,
             final Instant startedAt) {
-        return new JobInstance(
+        return new JobDaemon(
                 1,
                 name,
                 "1.0.0",

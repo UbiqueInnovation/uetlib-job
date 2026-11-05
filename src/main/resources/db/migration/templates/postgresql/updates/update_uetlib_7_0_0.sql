@@ -39,10 +39,10 @@ CREATE OR REPLACE TRIGGER trigger_notify_on_job_run_queue_insert
     FOR EACH ROW
 EXECUTE FUNCTION notify_on_job_run_queue_insert();
 
-CREATE TABLE t_job_instance
+CREATE TABLE t_job_daemon
 (
-    pk_job_instance_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    instance_name      TEXT        NOT NULL UNIQUE,
+    pk_job_daemon_id   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    daemon_name       TEXT        NOT NULL UNIQUE,
     version            TEXT        NOT NULL,
     taints             JSONB       NOT NULL,
     primary_candidate  BOOLEAN     NOT NULL,

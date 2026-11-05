@@ -1,8 +1,8 @@
 package ch.uetlib.job.checks;
 
 import ch.uetlib.job.data.service.JobDataService;
-import ch.uetlib.job.model.JobInstance;
-import ch.uetlib.job.service.instance.JobInstanceRegistrationService;
+import ch.uetlib.job.model.JobDaemon;
+import ch.uetlib.job.service.instance.JobDaemonRegistrationService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
 import ch.uetlib.monitoring.check.StatusCheck;
 import ch.uetlib.monitoring.check.models.CheckFailed;
@@ -38,9 +38,9 @@ public class JobSinglePrimaryInstanceCheck implements StatusCheck {
             final JobDataService jobDataService,
             @Value(
                             "${"
-                                    + JobInstanceRegistrationService.STALE_AFTER_PROP
+                                    + JobDaemonRegistrationService.STALE_AFTER_PROP
                                     + ":"
-                                    + JobInstanceRegistrationService.STALE_AFTER_DEFAULT
+                                    + JobDaemonRegistrationService.STALE_AFTER_DEFAULT
                                     + "}")
                     final Duration staleAfter,
             @Value("${ch.uetlib.job.check.single-primary-instance.startup-grace:PT2M}")
@@ -64,14 +64,14 @@ public class JobSinglePrimaryInstanceCheck implements StatusCheck {
             return CheckStatus.CHECK_PASSED;
         }
 
-        final var live = jobDataService.findLiveInstances(Instant.now().minus(staleAfter));
-        if (live.stream().anyMatch(JobInstance::holdsPrimaryLease)) {
+        final var live = jobDataService.findLiveDaemons(Instant.now().minus(staleAfter));
+        if (live.stream().anyMatch(JobDaemon::holdsPrimaryLease)) {
             return CheckStatus.CHECK_PASSED;
         }
         final var candidates =
                 live.stream()
-                        .filter(JobInstance::primaryCandidate)
-                        .map(i -> i.instanceName() + " (" + i.version() + ")")
+                        .filter(JobDaemon::primaryCandidate)
+                        .map(i -> i.daemonName() + " (" + i.version() + ")")
                         .sorted()
                         .toList();
         if (candidates.isEmpty()) {

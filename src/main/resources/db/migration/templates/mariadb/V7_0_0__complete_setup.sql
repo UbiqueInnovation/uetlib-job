@@ -143,20 +143,20 @@ CREATE TABLE t_job_run_queue
     INDEX (fk_job_run_id)
 ) charset = utf8mb4;
 
-CREATE TABLE t_job_instance
+CREATE TABLE t_job_daemon
 (
-    pk_job_instance_id INTEGER      AUTO_INCREMENT NOT NULL PRIMARY KEY,
-    instance_name      VARCHAR(255) NOT NULL,
-    version            TEXT         NOT NULL,
-    taints             JSON         NOT NULL,
-    primary_candidate  BOOLEAN      NOT NULL,
-    trigger_count      INTEGER,
+    pk_job_daemon_id  INTEGER AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    daemon_name       VARCHAR(255)           NOT NULL,
+    version           TEXT                   NOT NULL,
+    taints            JSON                   NOT NULL,
+    primary_candidate BOOLEAN                NOT NULL,
+    trigger_count     INTEGER,
     -- The primary lease: 1 on the one instance holding it, NULL on all others. UNIQUE (NULLs never
     -- collide) makes a second holder impossible.
-    primary_slot       INTEGER CHECK (primary_slot = 1),
-    primary_since      TIMESTAMP    NULL,
-    started_at         TIMESTAMP    NOT NULL,
-    updated_at         TIMESTAMP    NOT NULL,
-    UNIQUE (instance_name),
+    primary_slot      INTEGER CHECK (primary_slot = 1),
+    primary_since     TIMESTAMP              NULL,
+    started_at        TIMESTAMP              NOT NULL,
+    updated_at        TIMESTAMP              NOT NULL,
+    UNIQUE (daemon_name),
     UNIQUE (primary_slot)
 ) charset = utf8mb4;

@@ -3,11 +3,11 @@ package ch.uetlib.job.data.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.uetlib.job.data.BaseJobDatabaseTest;
-import ch.uetlib.job.data.repository.JobInstanceRepository;
-import ch.uetlib.job.model.JobInstance;
+import ch.uetlib.job.data.repository.JobDaemonRepository;
+import ch.uetlib.job.model.JobDaemon;
 import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
-import ch.uetlib.job.model.entity.JobInstanceEntity;
+import ch.uetlib.job.model.entity.JobDaemonEntity;
 import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeoutException;
  * Check-ins and the primary lease on every database, whose constraint and locks enforce one
  * primary.
  */
-class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
+class JobDaemonDatabaseTest extends BaseJobDatabaseTest {
 
     private static final String VERSION = "1.0.0";
     private static final int TEST_JOB_ID = 1;
@@ -44,7 +44,7 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
     private static final Instant LATER = EARLIER.plusSeconds(60);
 
     @Autowired JobDataService jobDataService;
-    @Autowired JobInstanceRepository jobInstanceRepository;
+    @Autowired JobDaemonRepository jobDaemonRepository;
     @Autowired PlatformTransactionManager transactionManager;
     @MockitoBean JobRunInputManager jobRunInputManager;
 
@@ -53,12 +53,12 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
         checkIn("pod-a", EARLIER);
 
         final var refreshed =
-                jobDataService.checkInInstance("pod-a", "2.0.0", Set.of("gpu"), true, 4, EARLIER);
+                jobDataService.checkInDaemon("pod-a", "2.0.0", Set.of("gpu"), true, 4, EARLIER);
 
         assertEquals(
                 1,
-                jobDataService.findLiveInstances(staleBefore()).stream()
-                        .filter(instance -> instance.instanceName().equals("pod-a"))
+                jobDataService.findLiveDaemons(staleBefore()).stream()
+                        .filter(instance -> instance.daemonName().equals("pod-a"))
                         .count());
         assertEquals("2.0.0", refreshed.version());
         assertEquals(Set.of("gpu"), refreshed.taints());
@@ -71,8 +71,8 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
 
         // Nothing checked in since a moment in the future, i.e. everything is stale.
         assertTrue(
-                jobDataService.findLiveInstances(Instant.now().plusSeconds(60)).stream()
-                        .noneMatch(instance -> instance.instanceName().equals("pod-a")));
+                jobDataService.findLiveDaemons(Instant.now().plusSeconds(60)).stream()
+                        .noneMatch(instance -> instance.daemonName().equals("pod-a")));
     }
 
     @Test
@@ -107,7 +107,7 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
 
         assertThrows(
                 DataIntegrityViolationException.class,
-                () -> jobInstanceRepository.acquirePrimaryLease("pod-b", now, staleBefore));
+                () -> jobDaemonRepository.acquirePrimaryLease("pod-b", now, staleBefore));
     }
 
     @Test
@@ -133,9 +133,9 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
     @Test
     void aHolderThatStoppedCheckingInLosesTheLeaseEvenToAnOlderInstance() {
         final var anHourAgo = Instant.now().minus(Duration.ofHours(1));
-        jobInstanceRepository.save(
-                new JobInstanceEntity("pod-b", VERSION, Set.of(), true, 0, LATER, anHourAgo));
-        jobInstanceRepository.acquirePrimaryLease(
+        jobDaemonRepository.save(
+                new JobDaemonEntity("pod-b", VERSION, Set.of(), true, 0, LATER, anHourAgo));
+        jobDaemonRepository.acquirePrimaryLease(
                 "pod-b", anHourAgo, anHourAgo.minus(Duration.ofHours(1)));
         checkIn("pod-a", EARLIER);
 
@@ -159,7 +159,7 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
         takeLease("pod-a", EARLIER);
         checkIn("pod-b", LATER);
 
-        jobDataService.removeInstance("pod-a", "pod-b", staleBefore());
+        jobDataService.removeDaemon("pod-a", "pod-b", staleBefore());
 
         assertTrue(find("pod-a").isEmpty());
         assertTrue(find("pod-b").orElseThrow().holdsPrimaryLease());
@@ -174,7 +174,7 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
         checkIn("pod-c", LATER.plusSeconds(60));
         takeLease("pod-b", LATER);
 
-        jobDataService.removeInstance("pod-a", "pod-c", staleBefore());
+        jobDataService.removeDaemon("pod-a", "pod-c", staleBefore());
 
         assertTrue(find("pod-b").orElseThrow().holdsPrimaryLease());
         assertFalse(find("pod-c").orElseThrow().holdsPrimaryLease());
@@ -222,7 +222,7 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
                             () ->
                                     transaction.execute(
                                             status ->
-                                                    jobInstanceRepository.releasePrimaryLease(
+                                                    jobDaemonRepository.releasePrimaryLease(
                                                             "lock-a")));
             assertThrows(TimeoutException.class, () -> release.get(500, TimeUnit.MILLISECONDS));
 
@@ -236,21 +236,21 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
             endCheck.countDown();
             executor.shutdownNow();
             transaction.executeWithoutResult(
-                    status -> jobInstanceRepository.deleteByInstanceName("lock-a"));
+                    status -> jobDaemonRepository.deleteByDaemonName("lock-a"));
         }
     }
 
-    private JobInstance checkIn(final String instanceName, final Instant startedAt) {
-        return jobDataService.checkInInstance(instanceName, VERSION, Set.of(), true, 0, startedAt);
+    private JobDaemon checkIn(final String daemonName, final Instant startedAt) {
+        return jobDataService.checkInDaemon(daemonName, VERSION, Set.of(), true, 0, startedAt);
     }
 
-    private boolean takeLease(final String instanceName, final Instant startedAt) {
-        return jobDataService.takePrimaryLease(instanceName, startedAt, staleBefore());
+    private boolean takeLease(final String daemonName, final Instant startedAt) {
+        return jobDataService.takePrimaryLease(daemonName, startedAt, staleBefore());
     }
 
-    private Optional<JobQueuedRun> queueAsPrimary(final String instanceName) {
+    private Optional<JobQueuedRun> queueAsPrimary(final String daemonName) {
         return jobDataService.queueNewRunIfPrimary(
-                instanceName,
+                daemonName,
                 TEST_JOB_ID,
                 null,
                 VERSION,
@@ -259,9 +259,9 @@ class JobInstanceDatabaseTest extends BaseJobDatabaseTest {
                 JobQueueBehavior.ALLOW_MULTIPLE);
     }
 
-    private Optional<JobInstance> find(final String instanceName) {
-        return jobDataService.findLiveInstances(Instant.EPOCH).stream()
-                .filter(instance -> instance.instanceName().equals(instanceName))
+    private Optional<JobDaemon> find(final String daemonName) {
+        return jobDataService.findLiveDaemons(Instant.EPOCH).stream()
+                .filter(instance -> instance.daemonName().equals(daemonName))
                 .findFirst();
     }
 

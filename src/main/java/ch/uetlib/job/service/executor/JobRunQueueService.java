@@ -53,7 +53,7 @@ public class JobRunQueueService {
     private final CurrentJobRunner currentJobRunner;
     private final JobExecutorService jobExecutorService;
 
-    private final String instanceName;
+    private final String daemonName;
     private final Set<String> instanceTaints;
     private final int maxRunnablePerCheck;
     private final int maxPagesPerCheck;
@@ -77,7 +77,7 @@ public class JobRunQueueService {
         this.jobService = jobService;
         this.currentJobRunner = currentJobRunner;
         this.jobExecutorService = jobExecutorService;
-        this.instanceName = instanceIdentity.name();
+        this.daemonName = instanceIdentity.name();
         this.instanceTaints = instanceIdentity.taints();
         this.maxRunnablePerCheck = maxRunnablePerCheck;
         this.maxPagesPerCheck = maxPagesPerCheck;
@@ -127,8 +127,8 @@ public class JobRunQueueService {
             }
             if (!page.hasNext()) {
                 logger.trace(
-                        "No more job runs to run on this runner (instanceName={}, instanceTaints={})",
-                        instanceName,
+                        "No more job runs to run on this runner (daemonName={}, instanceTaints={})",
+                        daemonName,
                         instanceTaints);
                 return;
             }
@@ -295,7 +295,7 @@ public class JobRunQueueService {
             keepWaiting(jobQueuedRun);
             return false;
         }
-        if (!jobService.claimQueuedRun(jobQueuedRun, instanceName)) {
+        if (!jobService.claimQueuedRun(jobQueuedRun, daemonName)) {
             logger.debug(
                     "Failed to claim queued run {}, appears to already have been claimed.",
                     jobQueuedRun);
