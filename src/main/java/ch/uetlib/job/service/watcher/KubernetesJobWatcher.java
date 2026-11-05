@@ -71,7 +71,7 @@ public class KubernetesJobWatcher {
     }
 
     public void watch(final String jobName, final JobRun jobRun) {
-        executorService.submit(() -> watchJobState(jobName, jobRun));
+        executorService.execute(() -> watchJobState(jobName, jobRun));
     }
 
     private void watchJobState(final String jobName, final JobRun jobRun) {
@@ -97,7 +97,19 @@ public class KubernetesJobWatcher {
                     if (!watchedPods.contains(uid)) {
                         watchedPods.add(uid);
                         final var mdc = MDC.getCopyOfContextMap();
-                        executorService.submit(runnableWithContext(() -> watchPodLogs(pod), mdc));
+                        executorService.execute(
+                                runnableWithContext(
+                                        () -> {
+                                            try {
+                                                watchPodLogs(pod);
+                                            } catch (final RuntimeException e) {
+                                                logger.error(
+                                                        "Unexpected failure watching logs for pod {}",
+                                                        uid,
+                                                        e);
+                                            }
+                                        },
+                                        mdc));
                     }
                 }
             }
@@ -105,6 +117,8 @@ public class KubernetesJobWatcher {
             logger.info("Could not create watch: {}", e.getResponseBody(), e);
         } catch (final IOException e) {
             logger.info("Exception while watching job.", e);
+        } catch (final RuntimeException e) {
+            logger.error("Unexpected failure watching job {}", jobName, e);
         } finally {
             MDC.setContextMap(previousContextMap);
         }
