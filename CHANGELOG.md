@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Unreleased
+
+- Deprecate `ch.ubique.backend.job.interface.secret` in configuration metadata in favor of
+  `ch.uetlib.job.interface.secret`. Keep the legacy property as a fallback, rather than using its name as a literal
+  secret.
+
 ## 6.0.1
 
 - Rename uetlib configuration keys and property references to `ch.uetlib.*`, including Spring bindings, `@Value`,
