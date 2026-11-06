@@ -30,7 +30,8 @@ public class UetlibJobSecurityConfig {
     private final String statusInterfaceSecret;
 
     public UetlibJobSecurityConfig(
-            @Value("${ch.uetlib.job.interface.secret}") final String statusInterfaceSecret) {
+            @Value("${ch.uetlib.job.interface.secret:${ch.ubique.backend.job.interface.secret}}")
+                    final String statusInterfaceSecret) {
         this.statusInterfaceSecret = statusInterfaceSecret;
     }
 
@@ -43,8 +44,7 @@ public class UetlibJobSecurityConfig {
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    public SecurityFilterChain uetlibJobBearerFilterChain(final HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain uetlibJobBearerFilterChain(final HttpSecurity http) {
         http.securityMatcher("/v1/status/**")
                 .authorizeHttpRequests(
                         authorize ->
