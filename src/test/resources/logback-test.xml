@@ -18,7 +18,7 @@
         </encoder>
     </appender>
 
-    <logger name="ch.ubique.backend" level="DEBUG"/>
+    <logger name="ch.uetlib" level="DEBUG"/>
     <logger name="org.hibernate.SQL" level="DEBUG"/>
     <logger name="org.hibernate.orm.jdbc.bind" level="TRACE"/>
     <logger name="org.springframework.web" level="DEBUG"/>
