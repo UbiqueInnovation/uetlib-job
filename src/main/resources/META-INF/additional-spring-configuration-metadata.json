@@ -1,0 +1,19 @@
+{
+  "properties": [
+    {
+      "name": "ch.uetlib.job.interface.secret",
+      "type": "java.lang.String",
+      "description": "Shared secret used to authenticate job status interface requests."
+    },
+    {
+      "name": "ch.ubique.backend.job.interface.secret",
+      "type": "java.lang.String",
+      "description": "Legacy shared secret for the job status interface.",
+      "deprecation": {
+        "level": "warning",
+        "reason": "The configuration namespace has moved to ch.uetlib.",
+        "replacement": "ch.uetlib.job.interface.secret"
+      }
+    }
+  ]
+}
