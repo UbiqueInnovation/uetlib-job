@@ -1,10 +1,14 @@
 # CHANGELOG
 
-## Unreleased
+## 6.0.2
 
 - Deprecate `ch.ubique.backend.job.interface.secret` in configuration metadata in favor of
   `ch.uetlib.job.interface.secret`. Keep the legacy property as a fallback, rather than using its name as a literal
   secret.
+
+- Remove legacy backend database migration templates and their obsolete license notice.
+- Correct job API Javadoc and formatting.
+- Update shared Maven build and publish workflows to v0.2.4.
 
 ## 6.0.1
 
