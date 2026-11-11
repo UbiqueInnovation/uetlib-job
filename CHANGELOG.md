@@ -12,6 +12,9 @@
   response names the instance that served it in the `X-Job-Instance` header.
 - The queue job properties `QUEUE_BEHAVIOR`, `PRIORITY`, `JOB_RUN_TAINTS`, `CLAIM_TIMEOUT`, `QUEUE_TIMEOUT` and
   `CANCELLED_QUEUE_RETENTION` form the new property group `QUEUE`.
+- `KubernetesJob.inheritCurrentPodLabels()` (default `false`): when overridden to return `true`, dedicated k8s-job
+  pods copy the labels of the spawning pod (e.g. `egress: cilium`). `app` and pod-specific labels are not copied, and
+  `K8S_POD_LABELS` still takes precedence.
 
 ### Fixes
 
