@@ -8,7 +8,6 @@
 
 - Remove legacy backend database migration templates and their obsolete license notice.
 - Correct job API Javadoc and formatting.
-- Update shared Maven build and publish workflows to v0.2.4.
 
 ## 6.0.1
 
@@ -63,8 +62,6 @@ separately. Use `:dryRun` instead of `:run` to preview a patch.
 - uetlib versions updated
 - Keep file watchers running after job submission failures, such as temporary database outages,
   so later files are processed without restarting the application.
-
-## 5.1.0
 
 ## Fixes
 
@@ -140,8 +137,6 @@ separately. Use `:dryRun` instead of `:run` to preview a patch.
 ### Improvements
 
 - Latest uetlib versions
-
-## 4.1.0
 
 ## Improvements
 
@@ -314,8 +309,6 @@ Retreat 2025 Edition
 ## 1.4.4
 
 - Downgraded some log messages to debug
-
-## 1.4.3
 
 ## Changes
 
