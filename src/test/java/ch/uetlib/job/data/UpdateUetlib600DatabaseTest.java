@@ -21,7 +21,7 @@ import java.util.List;
 import javax.sql.DataSource;
 
 /**
- * An existing database gets 6.0.0 from {@code updates/update_uetlib_7_0_0.sql}, a new one from
+ * An existing database gets 6.0.0 from {@code updates/update_uetlib_6_0_0.sql}, a new one from
  * {@code V7_0_0__complete_setup.sql}; both must end up with the same schema. The 6.0.0 fresh
  * install differs from 4.0.0's only by the objects the update adds, so removing those from a fresh
  * install and running the update script is the upgrade path - on every database.
@@ -43,7 +43,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
             final var freshInstall = describe(connection);
             assertFalse(freshInstall.isEmpty());
 
-            try (var statement = connection.createStatement()) {
+            try (final var statement = connection.createStatement()) {
                 statement.execute("DROP TABLE t_job_run_queue");
                 statement.execute("DROP TABLE t_job_daemon");
                 if ("postgresql".equals(vendor)) {
@@ -67,11 +67,11 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
             throws SQLException, IOException {
         final var script =
                 new ClassPathResource(
-                        "db/migration/templates/%s/updates/update_uetlib_7_0_0.sql"
+                        "db/migration/templates/%s/updates/update_uetlib_6_0_0.sql"
                                 .formatted(vendor));
         if ("postgresql".equals(vendor)) {
             // Its function body holds semicolons; the Postgres driver splits statements itself.
-            try (var statement = connection.createStatement()) {
+            try (final var statement = connection.createStatement()) {
                 statement.execute(script.getContentAsString(StandardCharsets.UTF_8));
             }
         } else {
@@ -86,7 +86,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
         final var schema = connection.getSchema();
         final var description = new ArrayList<String>();
         for (final var table : TABLES) {
-            try (var columns = metaData.getColumns(catalog, schema, table, null)) {
+            try (final var columns = metaData.getColumns(catalog, schema, table, null)) {
                 while (columns.next()) {
                     description.add(
                             "%s column %s %s nullable=%s default=%s autoincrement=%s"
@@ -99,7 +99,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
                                             columns.getString("IS_AUTOINCREMENT")));
                 }
             }
-            try (var indexes = metaData.getIndexInfo(catalog, schema, table, false, false)) {
+            try (final var indexes = metaData.getIndexInfo(catalog, schema, table, false, false)) {
                 while (indexes.next()) {
                     description.add(
                             "%s index %s on %s unique=%s"
@@ -110,7 +110,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
                                             !indexes.getBoolean("NON_UNIQUE")));
                 }
             }
-            try (var keys = metaData.getImportedKeys(catalog, schema, table)) {
+            try (final var keys = metaData.getImportedKeys(catalog, schema, table)) {
                 while (keys.next()) {
                     description.add(
                             "%s foreign key %s -> %s.%s on delete %s"
@@ -123,8 +123,8 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
                 }
             }
         }
-        try (var statement = connection.createStatement();
-                var triggers =
+        try (final var statement = connection.createStatement();
+                final var triggers =
                         statement.executeQuery(
                                 "SELECT trigger_name, event_manipulation, event_object_table"
                                         + " FROM information_schema.triggers"
