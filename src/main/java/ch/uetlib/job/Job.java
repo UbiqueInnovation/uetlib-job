@@ -20,24 +20,7 @@ public interface Job {
         return JobTriggersConfig.unset();
     }
 
-    /** You can override this method to give the job a higher priority when waiting in a queue. */
-    default int priority() {
-        return 0;
-    }
-
-    default boolean allowParallelRuns() {
-        return false;
-    }
-
-    /**
-     * If true, the job is allowed to start a parallel run when force run is set, regardless of
-     * {@link Job#allowParallelRuns()}.
-     */
-    default boolean forceRunOverridesAllowParallelRuns() {
-        return true;
-    }
-
     default boolean supportsForceRun() {
-        return !allowParallelRuns() && forceRunOverridesAllowParallelRuns();
+        return false;
     }
 }

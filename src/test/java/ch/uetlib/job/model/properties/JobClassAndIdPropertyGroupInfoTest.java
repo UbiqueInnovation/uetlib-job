@@ -18,5 +18,7 @@ class JobClassAndIdPropertyGroupInfoTest {
 
         assertEquals(
                 "Cleanup", new JobPropertyGroupInfo(JobPropertyDefinitionGroup.CLEANUP).title());
+
+        assertEquals("Queue", new JobPropertyGroupInfo(JobPropertyDefinitionGroup.QUEUE).title());
     }
 }

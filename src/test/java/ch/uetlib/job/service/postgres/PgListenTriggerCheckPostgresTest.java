@@ -1,10 +1,11 @@
-package ch.uetlib.job.service.triggers.postgres;
+package ch.uetlib.job.service.postgres;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import ch.uetlib.job.checks.PgListenListenerCheck;
 import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.triggers.PgListenTrigger;
+import ch.uetlib.job.service.triggers.postgres.PgListenTriggerService;
 import ch.uetlib.monitoring.check.models.CheckFailed;
 import ch.uetlib.monitoring.check.models.CheckLevel;
 
@@ -37,10 +38,11 @@ class PgListenTriggerCheckPostgresTest {
 
     @Test
     void checkReportsChannelWhenListenerCanNoLongerReachDatabase() throws InterruptedException {
-        final var service =
-                new PgListenTriggerService(
+        final var registry =
+                new PgChannelListenerRegistry(
                         dataSourceProperties(), Duration.ofSeconds(1), Duration.ofSeconds(4));
-        final var check = new PgListenListenerCheck(CheckLevel.ERROR, service);
+        final var service = new PgListenTriggerService(registry);
+        final var check = new PgListenListenerCheck(CheckLevel.ERROR, List.of(registry));
         try {
             // No channels registered yet -> nothing to monitor -> passes.
             assertTrue(check.check().passed());
@@ -65,7 +67,7 @@ class PgListenTriggerCheckPostgresTest {
             final var context = assertInstanceOf(Map.class, failed.context());
             assertEquals(List.of(CHANNEL), context.get("channels"));
         } finally {
-            service.shutdown();
+            registry.shutdown();
         }
     }
 

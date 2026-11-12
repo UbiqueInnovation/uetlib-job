@@ -6,12 +6,12 @@ import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalData;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalDataString;
 import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
-import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.runner.JobApplicationExitStatus;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.executor.JobExecutorService;
 import ch.uetlib.job.service.executor.runners.DedicatedJobRunner;
+import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.Nullable;
@@ -57,9 +57,14 @@ public final class JobApplication {
             final JobApplicationJobToStartArgs jobToStartArgs,
             final String[] args) {
 
+        // A --job process must never be a primary trigger instance; strip that profile in case
+        // config (config map / properties file) set it. See ProfileExclusion.
         final var applicationContext =
                 new SpringApplicationBuilder(applicationClass)
                         .profiles("job-run", "no-security")
+                        .listeners(
+                                ProfileExclusion.excluding(
+                                        TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE))
                         .web(WebApplicationType.NONE)
                         .run(args);
 
@@ -78,7 +83,7 @@ public final class JobApplication {
             final var submissionResult =
                     applicationContext
                             .getBean(JobExecutorService.class)
-                            .submit(
+                            .submitDedicatedJobRun(
                                     applicationContext
                                             .getBean(ClassLoaderService.class)
                                             .getJobClass(jobToStartArgs.jobClassName()),
@@ -88,8 +93,7 @@ public final class JobApplication {
                                             null,
                                             null,
                                             additionalData),
-                                    jobToStartArgs.jobRunId(),
-                                    JobRunnerKey.DEDICATED_K8S_JOB);
+                                    jobToStartArgs.jobRunId());
 
             if (!(submissionResult
                     instanceof final SuccessfulSubmissionResult successfulSubmissionResult)) {

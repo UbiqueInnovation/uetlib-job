@@ -2,9 +2,11 @@ package ch.uetlib.job.model.properties;
 
 import ch.uetlib.job.model.k8s.KubernetesPodTolerations;
 import ch.uetlib.job.model.properties.enums.JobManualTriggerMode;
+import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.properties.enums.StateCheckStrategy;
 import ch.uetlib.job.model.runner.RunnerGroup;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
 
 import com.pivovarit.function.ThrowingFunction;
 
@@ -17,10 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -206,6 +205,77 @@ public final class JobPropertyDefinitions {
                             + " context.",
                     JobPropertyDefinitionGroup.RUNNER,
                     JobManualTriggerMode.NEW_RUN_ALLOWED);
+    public static final JobPropertyDefinition<Set<JobRunnerTaint>> JOB_RUN_TAINTS =
+            new GenericPropertyDefinition<>(
+                    "JOB_RUN_TAINTS",
+                    "Taints to be set for the job run. Taints are used to prevent certain jobs from"
+                            + " running on certain runners.",
+                    JobPropertyDefinitionGroup.QUEUE,
+                    false,
+                    Set.of(),
+                    null,
+                    JsonMapper.shared(),
+                    new TypeReference<>() {});
+    public static final JobPropertyDefinition<Integer> PRIORITY =
+            new IntPropertyDefinition(
+                    "PRIORITY",
+                    "Higher-priority runs are dequeued first. Stamped onto the queue row when the run"
+                            + " is queued; a still-queued run can be reordered individually via the"
+                            + " status API.",
+                    JobPropertyDefinitionGroup.QUEUE,
+                    false,
+                    1,
+                    null);
+    public static final JobPropertyDefinition<Boolean> ALLOW_PARALLEL_RUNS =
+            new BooleanPropertyDefinition(
+                    "ALLOW_PARALLEL_RUNS",
+                    "If true, a run may start while a previous run of the same job is still running.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    false);
+    public static final JobPropertyDefinition<Boolean> FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS =
+            new BooleanPropertyDefinition(
+                    "FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS",
+                    "If true, a force run is allowed to start in parallel even when ALLOW_PARALLEL_RUNS"
+                            + " is false.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true);
+    public static final JobPropertyDefinition<JobQueueBehavior> QUEUE_BEHAVIOR =
+            new EnumPropertyDefinition<>(
+                    "QUEUE_BEHAVIOR",
+                    "What happens when a run is queued for a job that already has one waiting or"
+                            + " running.",
+                    JobPropertyDefinitionGroup.QUEUE,
+                    JobQueueBehavior.REPLACE_RUN);
+    public static final JobPropertyDefinition<Duration> CLAIM_TIMEOUT =
+            new DurationPropertyDefinition(
+                    "CLAIM_TIMEOUT",
+                    "Override the default timeout for claimed queue runs. If a job is claimed but not "
+                            + "running for longer than this timeout, it will be reset to queued and can be claimed "
+                            + "by another runner.",
+                    JobPropertyDefinitionGroup.QUEUE,
+                    false,
+                    Duration.ofMinutes(2));
+    public static final JobPropertyDefinition<Duration> QUEUE_TIMEOUT =
+            new DurationPropertyDefinition(
+                    "QUEUE_TIMEOUT",
+                    "Override the default timeout for how long a run may sit queued without activity"
+                            + " before it's considered unclaimable and marked CANCELLED - e.g. no"
+                            + " currently running instance matches its version or taints. Measured"
+                            + " from the run's last activity, not from when it was first queued - an"
+                            + " instance that could run it, waiting for a free thread or for the"
+                            + " job's current run to finish, keeps it alive.",
+                    JobPropertyDefinitionGroup.QUEUE,
+                    false,
+                    Duration.ofMinutes(30));
+    public static final JobPropertyDefinition<Duration> CANCELLED_QUEUE_RETENTION =
+            new DurationPropertyDefinition(
+                    "CANCELLED_QUEUE_RETENTION",
+                    "Override how long a CANCELLED queue row (see QUEUE_TIMEOUT) is kept before being"
+                            + " automatically deleted. Acknowledging it in the status interface"
+                            + " deletes it immediately, independent of this timeout.",
+                    JobPropertyDefinitionGroup.QUEUE,
+                    false,
+                    Duration.ofDays(7));
 
     // ------------------------------------
     // Helpers to get fields declared above

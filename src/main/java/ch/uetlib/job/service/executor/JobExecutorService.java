@@ -1,5 +1,11 @@
 package ch.uetlib.job.service.executor;
 
+import static ch.uetlib.job.model.properties.enums.JobRunnerKey.CURRENT;
+import static ch.uetlib.job.model.properties.enums.JobRunnerKey.DEDICATED_K8S_JOB;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElse;
+
 import ch.uetlib.core.utils.MapCollectors;
 import ch.uetlib.job.Job;
 import ch.uetlib.job.model.*;
@@ -12,6 +18,7 @@ import ch.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.executor.runners.JobRunner;
+import ch.uetlib.job.service.instance.JobInstanceIdentity;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -21,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Consumer;
 
 @Service
 public class JobExecutorService {
@@ -28,46 +36,88 @@ public class JobExecutorService {
     private static final Logger logger = LoggerFactory.getLogger(JobExecutorService.class);
 
     private final JobService jobService;
+    private final JobInstanceIdentity instanceIdentity;
 
     private final Map<JobRunnerKey, JobRunner> jobRunners;
 
-    public JobExecutorService(final JobService jobService, final Collection<JobRunner> jobRunners) {
+    public JobExecutorService(
+            final JobService jobService,
+            final JobInstanceIdentity instanceIdentity,
+            final Collection<JobRunner> jobRunners) {
         this.jobService = jobService;
+        this.instanceIdentity = instanceIdentity;
         this.jobRunners = jobRunners.stream().collect(MapCollectors.toMap(JobRunner::key));
     }
 
-    public JobSubmissionResult submit(final Class<? extends Job> jobClass) {
-        return submit(jobClass, null);
+    /**
+     * Executes a claimed row; a set {@code jobRunId} marks a {@code BaseStateJob} handoff, whose
+     * run is reused.
+     */
+    public JobSubmissionResult submit(final JobQueuedRun jobQueuedRun, final boolean isDedicated) {
+        final var jobClass = jobService.findJobById(jobQueuedRun.jobId()).orElseThrow();
+        return submit(
+                jobService.getJobClassOrThrow(jobClass),
+                jobQueuedRun.arguments(),
+                jobQueuedRun.jobRunId(),
+                isDedicated ? DEDICATED_K8S_JOB : CURRENT,
+                context -> linkClaimedRow(jobQueuedRun, context.jobRun()));
     }
 
-    public JobSubmissionResult submit(
-            final Class<? extends Job> jobClass, @Nullable final JobRunArguments arguments) {
-        return submit(jobClass, arguments, null, null);
+    /**
+     * Whether {@code jobQueuedRun} may start right now: its job is enabled, and it may run in
+     * parallel or no other run of the job is under way. The dispatcher claims only such a row;
+     * {@link #submit} checks again, since another instance may start a run in between.
+     */
+    public boolean canStart(final JobQueuedRun jobQueuedRun) {
+        final var jobClass =
+                jobService.getJobClassOrThrow(
+                        jobService.findJobById(jobQueuedRun.jobId()).orElseThrow());
+        return disabledRefusal(jobClass).isEmpty()
+                && parallelRunRefusal(
+                                jobService.instantiateJob(jobClass),
+                                jobQueuedRun.arguments(),
+                                jobQueuedRun.jobRunId())
+                        .isEmpty();
     }
 
-    public JobSubmissionResult submit(
+    /** Entry point of a dedicated {@code --job} process; records the run's RUNNING row itself. */
+    public JobSubmissionResult submitDedicatedJobRun(
+            final Class<? extends Job> jobClass,
+            final JobRunArguments arguments,
+            @Nullable final Integer runId) {
+        return submit(
+                jobClass,
+                arguments,
+                runId,
+                DEDICATED_K8S_JOB,
+                context ->
+                        jobService.queueRunningRun(
+                                context.job(),
+                                context.arguments(),
+                                context.jobRun().id(),
+                                instanceIdentity.name()));
+    }
+
+    /**
+     * @param recordInQueue runs before the runner starts, as a {@code BaseStateJob} handoff may
+     *     re-queue the row at once. A run it can't record is not started.
+     */
+    private JobSubmissionResult submit(
             final Class<? extends Job> jobClass,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
-            @Nullable final JobRunnerKey jobRunnerKey) {
+            @Nullable final JobRunnerKey jobRunnerKey,
+            final Consumer<JobRunContext> recordInQueue) {
 
-        if (!jobService.isEnabled(jobClass.getCanonicalName())) {
-            if (jobService.exists(jobClass.getCanonicalName())) {
-                logger.info("Job {} is disabled and will not be submitted.", jobClass);
-            } else {
-                logger.info("Job class {} does not exist.", jobClass);
-            }
-            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
+        final var disabled = disabledRefusal(jobClass);
+        if (disabled.isPresent()) {
+            return disallowed(disabled.get());
         }
 
         final var job = jobService.instantiateJob(jobClass);
-        final var isForceRun =
-                Optional.ofNullable(arguments).map(JobRunArguments::forceRun).orElse(false);
-        final var allowParallelScheduling =
-                job.allowParallelRuns() || (isForceRun && job.forceRunOverridesAllowParallelRuns());
-        if (!allowParallelScheduling && isCurrentlyRunning(job) && !isSameAsLastRun(job, runId)) {
-            logger.info("Job is already running and parallel runs are disallowed.");
-            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
+        final var parallelRun = parallelRunRefusal(job, arguments, runId);
+        if (parallelRun.isPresent()) {
+            return disallowed(parallelRun.get());
         }
 
         logger.info("{} submitted to executor.", jobClass);
@@ -79,9 +129,8 @@ public class JobExecutorService {
         final var previousContextMap = MDC.getCopyOfContextMap();
         MDC.put("jobRunId", String.valueOf(jobRun.id()));
 
-        final var scheduled = tryToSchedule(runner, job, jobRunContext);
-
-        if (!scheduled) {
+        if (!tryToRecordInQueue(recordInQueue, jobRunContext)
+                || !tryToSchedule(runner, job, jobRunContext)) {
             jobService.updateJobRunState(jobRun, JobRunState.ERROR, Instant.now());
             logger.error("Job {} could not be scheduled", job);
             MDC.setContextMap(previousContextMap);
@@ -91,6 +140,30 @@ public class JobExecutorService {
         logger.info("Job {} successfully scheduled", job.getClass().getCanonicalName());
         MDC.setContextMap(previousContextMap);
         return new SuccessfulSubmissionResult(runner.key(), jobRunContext, jobRun.id());
+    }
+
+    private void linkClaimedRow(final JobQueuedRun queuedRun, final JobRun jobRun) {
+        if (!jobService.setRunId(queuedRun, jobRun.id())) {
+            logger.warn(
+                    "Queue row {} was no longer claimed when linking run {}; leaving it to"
+                            + " reconciliation.",
+                    queuedRun.jobQueuedRunId(),
+                    jobRun.id());
+        }
+    }
+
+    private boolean tryToRecordInQueue(
+            final Consumer<JobRunContext> recordInQueue, final JobRunContext jobRunContext) {
+        try {
+            recordInQueue.accept(jobRunContext);
+            return true;
+        } catch (final Exception e) {
+            logger.warn(
+                    "Could not record job run {} in the queue; not starting it.",
+                    jobRunContext.jobRun().id(),
+                    e);
+            return false;
+        }
     }
 
     private boolean tryToSchedule(
@@ -106,6 +179,54 @@ public class JobExecutorService {
             logger.warn("Unhandled exception while trying to schedule job.", e);
             return false;
         }
+    }
+
+    private static JobSubmissionResult disallowed(final String reason) {
+        logger.info("{}; not submitting it.", reason);
+        return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
+    }
+
+    /** Why no run of {@code jobClass} may start at all; empty if one may. */
+    private Optional<String> disabledRefusal(final Class<? extends Job> jobClass) {
+        if (jobService.isEnabled(jobClass.getCanonicalName())) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                jobService.exists(jobClass.getCanonicalName())
+                        ? "Job %s is disabled".formatted(jobClass)
+                        : "Job class %s does not exist".formatted(jobClass));
+    }
+
+    /** Why this run of {@code job} may not start next to one under way; empty if it may. */
+    private Optional<String> parallelRunRefusal(
+            final Job job,
+            @Nullable final JobRunArguments arguments,
+            @Nullable final Integer runId) {
+        if (!mayRunInParallel(job, arguments)
+                && isCurrentlyRunning(job)
+                && !isSameAsLastRun(job, runId)) {
+            return Optional.of(
+                    "Job %s is already running and parallel runs are disallowed"
+                            .formatted(job.getClass()));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * {@code ALLOW_PARALLEL_RUNS}, or a forced run that {@code
+     * FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS} lets through.
+     */
+    private boolean mayRunInParallel(final Job job, @Nullable final JobRunArguments arguments) {
+        final var jobProperties = jobService.getProperties(job);
+        final var isForceRun =
+                Optional.ofNullable(arguments).map(JobRunArguments::forceRun).orElse(false);
+        return Boolean.TRUE.equals(
+                        jobProperties.getValue(JobPropertyDefinitions.ALLOW_PARALLEL_RUNS))
+                || (isForceRun
+                        && Boolean.TRUE.equals(
+                                jobProperties.getValue(
+                                        JobPropertyDefinitions
+                                                .FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS)));
     }
 
     private boolean isCurrentlyRunning(final Job job) {
@@ -131,7 +252,7 @@ public class JobExecutorService {
             final JobRunnerKey runnerKey,
             @Nullable final JobRunArguments nullableArguments) {
         final var arguments =
-                Objects.requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT);
+                requireNonNull(requireNonNullElse(nullableArguments, JobRunArguments.DEFAULT));
         final var jobClassAndId = jobService.jobClassAndIdOrThrow(job.getClass());
         final var jobRun = jobService.getOrCreateJobRun(job, runId, runnerKey, arguments);
         final var jobProperties = jobService.getProperties(job);
@@ -151,12 +272,13 @@ public class JobExecutorService {
                     "Could not find a runner for the given runner key " + selectedJobRunnerKey);
         }
 
-        return selectedJobRunnerKey;
+        return requireNonNull(selectedJobRunnerKey);
     }
 
     private JobRunnerKey getRunnerKeyFromJobProperties(final JobProperties jobProperties) {
-        return java.util.Objects.requireNonNullElse(
-                jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
-                JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow());
+        return requireNonNull(
+                requireNonNullElse(
+                        jobProperties.get(JobPropertyDefinitions.RUNNER).value(),
+                        JobPropertyDefinitions.RUNNER.defaultValue().orElseThrow()));
     }
 }

@@ -40,7 +40,7 @@ public class JobEntity {
     @Column(name = "updated_at", nullable = false)
     private @Nullable Instant updatedAt;
 
-    public static JobEntity forClass(final Class<? extends Job> jobClass) {
+    public static JobEntity newForClass(final Class<? extends Job> jobClass) {
         final var jobEntity = new JobEntity();
         jobEntity.enabled = true;
         jobEntity.canonicalClassName = jobClass.getCanonicalName();

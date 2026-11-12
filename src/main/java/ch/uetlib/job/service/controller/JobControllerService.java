@@ -7,12 +7,18 @@ import ch.uetlib.job.Job;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.exception.ManualTriggerNotAllowedException;
 import ch.uetlib.job.model.JobClassAndId;
+import ch.uetlib.job.model.JobDaemon;
+import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.client.JobInfo;
 import ch.uetlib.job.model.client.JobInfosContainer;
+import ch.uetlib.job.model.client.JobInstanceInfo;
+import ch.uetlib.job.model.client.JobInstanceInfosContainer;
 import ch.uetlib.job.model.client.JobPropertyInfo;
+import ch.uetlib.job.model.client.JobQueueEntryInfo;
+import ch.uetlib.job.model.client.JobQueueInfosContainer;
 import ch.uetlib.job.model.client.JobRunInfo;
 import ch.uetlib.job.model.client.JobRunInfoContainer;
 import ch.uetlib.job.model.client.JobRunInfosContainer;
@@ -21,21 +27,20 @@ import ch.uetlib.job.model.client.info.JobSystemInfo;
 import ch.uetlib.job.model.client.info.JobSystemInfoResponse;
 import ch.uetlib.job.model.client.triggers.JobTrigger;
 import ch.uetlib.job.model.client.triggers.JobTriggers;
-import ch.uetlib.job.model.executer.JobSubmissionResult;
-import ch.uetlib.job.model.executer.JobSubmissionStatus;
-import ch.uetlib.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.uetlib.job.model.properties.JobProperty;
 import ch.uetlib.job.model.properties.JobPropertyDefinitions;
 import ch.uetlib.job.model.properties.enums.JobManualTriggerMode;
+import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.queue.QueueNewRunResult;
 import ch.uetlib.job.model.response.SuccessResponse;
 import ch.uetlib.job.model.response.files.JobRunFileListResponse;
 import ch.uetlib.job.model.triggers.Trigger;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.service.executor.JobExecutorService;
 import ch.uetlib.job.service.executor.JobManualTriggerService;
 import ch.uetlib.job.service.info.JobRunnerInfoService;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 import ch.uetlib.job.service.inputs.JobRunInputProvider;
+import ch.uetlib.job.service.instance.JobDaemonRegistrationService;
 import ch.uetlib.job.service.logs.LogService;
 import ch.uetlib.job.service.triggers.CronTriggerService;
 import ch.uetlib.job.service.triggers.TriggerCoordinatorService;
@@ -60,6 +65,8 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,14 +74,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("!job-run")
+@Profile("!job-run & job-primary-triggers")
 public class JobControllerService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final JobService jobService;
-
-    private final JobExecutorService jobExecutorService;
 
     private final CronTriggerService cronTriggerService;
 
@@ -85,29 +90,31 @@ public class JobControllerService {
     private final LogService logService;
 
     private final JobRunnerInfoService jobRunnerInfoService;
+    private final JobDaemonRegistrationService jobDaemonRegistrationService;
 
     public JobControllerService(
             final JobDataService jobDataService,
             final JobService jobService,
-            final JobExecutorService jobExecutorService,
             final CronTriggerService cronTriggerService,
             final TriggerCoordinatorService triggerCoordinatorService,
             final JobManualTriggerService jobManualTriggerService,
             final JobRunInputManager jobRunInputManager,
             final LogService logService,
-            final JobRunnerInfoService jobRunnerInfoService) {
+            final JobRunnerInfoService jobRunnerInfoService,
+            final JobDaemonRegistrationService jobDaemonRegistrationService) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
-        this.jobExecutorService = jobExecutorService;
         this.cronTriggerService = cronTriggerService;
         this.triggerCoordinatorService = triggerCoordinatorService;
         this.jobManualTriggerService = jobManualTriggerService;
         this.jobRunInputManager = jobRunInputManager;
         this.logService = logService;
         this.jobRunnerInfoService = jobRunnerInfoService;
+        this.jobDaemonRegistrationService = jobDaemonRegistrationService;
     }
 
-    private static List<JobProperty<?>> getPropertiesFromMap(final Map<String, String> properties) {
+    private static List<JobProperty<? extends Object>> getPropertiesFromMap(
+            final Map<String, String> properties) {
         final var list = new ArrayList<JobProperty<?>>(properties.size());
         for (final var entry : properties.entrySet()) {
             list.add(
@@ -119,8 +126,7 @@ public class JobControllerService {
 
     private ArrayList<JobInfo> jobInfos(
             final Collection<JobClassAndId> jobs,
-            final Map<Integer, List<Trigger>> existingDbTriggers)
-            throws ClassNotFoundException {
+            final Map<Integer, List<Trigger>> existingDbTriggers) {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
         for (final var jobClassAndId : jobs) {
             final var jobInfo = jobInfo(jobClassAndId, existingDbTriggers);
@@ -145,7 +151,7 @@ public class JobControllerService {
         return all;
     }
 
-    public JobInfosContainer getJobInfos() throws ClassNotFoundException {
+    public JobInfosContainer getJobInfos() {
         final var jobs = jobService.getAllJobClassesWithId();
         final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         return new JobInfosContainer(jobInfos(jobs, existingDbTriggers), findLatestJobRuns(jobs));
@@ -192,8 +198,7 @@ public class JobControllerService {
             final Collection<String> includeJobNamesOrIds,
             final Collection<String> excludeJobNamesOrIds,
             @Nullable final Instant from,
-            @Nullable final Instant to)
-            throws ClassNotFoundException {
+            @Nullable final Instant to) {
         final var jobs = jobService.getAllJobClassesWithId();
         final var dbTriggers = jobDataService.getAllDbTriggersByJobId();
         final var jobsById = jobInfos(jobs, dbTriggers).stream().collect(toMap(JobInfo::id));
@@ -219,6 +224,128 @@ public class JobControllerService {
                 jobRunsPage.getTotalPages());
     }
 
+    public JobQueueInfosContainer getQueueInfo(
+            final Pageable pageable,
+            final Collection<JobRunQueueState> states,
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds,
+            @Nullable final Instant from,
+            @Nullable final Instant to) {
+        final var selectedJobIdList =
+                getJobClassAndIds(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
+                        .map(JobClassAndId::id)
+                        .toList();
+        final var fromToRange = getFromToRangeOptional(from, to);
+        final var queuePage =
+                jobDataService.findQueuedRuns(pageable, selectedJobIdList, states, fromToRange);
+        final var elements = queuePage.stream().map(this::toQueueEntryInfo).toList();
+        final var oldest = jobDataService.findOldestQueuedRun().map(this::toQueueEntryInfo);
+        final var newest = jobDataService.findNewestQueuedRun().map(this::toQueueEntryInfo);
+        return new JobQueueInfosContainer(
+                elements,
+                queuePage.getTotalElements(),
+                oldest.orElse(null),
+                newest.orElse(null),
+                queuePage.isFirst(),
+                queuePage.isLast(),
+                queuePage.getTotalPages());
+    }
+
+    private JobQueueEntryInfo toQueueEntryInfo(final JobQueuedRun run) {
+        final var jobName =
+                jobService.findJobById(run.jobId()).map(JobClassAndId::name).orElse(null);
+        return JobQueueEntryInfo.from(run, jobName);
+    }
+
+    /**
+     * Only a still-{@code QUEUED} row can be deleted; for a claimed one, cancel its job run
+     * instead.
+     */
+    public SuccessResponse deleteQueuedRun(final int jobQueuedRunId) {
+        final var deleted = jobDataService.deleteQueuedRunIfQueued(jobQueuedRunId);
+        if (deleted) {
+            return new SuccessResponse(true, "Queued run removed.");
+        }
+        return new SuccessResponse(
+                false, "Queued run not found, already claimed, or currently running.");
+    }
+
+    /**
+     * Without a {@code priority}, the row goes back to its job's current {@code PRIORITY}; only
+     * still-{@code QUEUED} rows can be reordered.
+     */
+    public SuccessResponse updateQueuedRunPriority(
+            final int jobQueuedRunId, final @Nullable Integer priority) {
+        final var updated =
+                jobDataService.updateQueuedRunPriority(
+                        jobQueuedRunId,
+                        priority != null ? priority : jobPriorityOf(jobQueuedRunId));
+        if (updated) {
+            return new SuccessResponse(true, "Priority updated.");
+        }
+        return new SuccessResponse(
+                false, "Queued run not found, already claimed, or currently running.");
+    }
+
+    /** The current {@code PRIORITY} of the queued run's job, if the row and job still exist. */
+    private @Nullable Integer jobPriorityOf(final int jobQueuedRunId) {
+        return jobDataService.findQueuedRunsByIds(List.of(jobQueuedRunId)).stream()
+                .findFirst()
+                .flatMap(run -> jobService.findJobById(run.jobId()))
+                .flatMap(
+                        job ->
+                                jobService
+                                        .getProperties(job)
+                                        .get(JobPropertyDefinitions.PRIORITY)
+                                        .valueMaybe())
+                .orElse(null);
+    }
+
+    /**
+     * Deletes a {@link JobRunQueueState#CANCELLED} queue row, i.e. a run that was never picked up.
+     */
+    public SuccessResponse acknowledgeQueuedRun(final int jobQueuedRunId) {
+        final var acknowledged = jobDataService.acknowledgeQueuedRun(jobQueuedRunId);
+        if (acknowledged) {
+            return new SuccessResponse(true, "Cancelled queued run acknowledged.");
+        }
+        return new SuccessResponse(false, "Queued run not found or not cancelled.");
+    }
+
+    /** Acknowledges (deletes) every {@link JobRunQueueState#CANCELLED} queue row. */
+    public SuccessResponse acknowledgeAllCancelledQueuedRuns() {
+        final var acknowledged = jobDataService.acknowledgeAllCancelledQueuedRuns();
+        return new SuccessResponse(
+                true, "Acknowledged " + acknowledged + " cancelled queued run(s).");
+    }
+
+    /**
+     * Deletes matching queued runs; only {@code QUEUED} rows are ever removed, whatever states are
+     * requested.
+     */
+    public SuccessResponse deleteQueuedRuns(
+            final Collection<String> includeJobNamesOrIds,
+            final Collection<String> excludeJobNamesOrIds,
+            final Collection<JobRunQueueState> states) {
+        final var jobIds =
+                getJobClassAndIds(includeJobNamesOrIds, excludeJobNamesOrIds).stream()
+                        .map(JobClassAndId::id)
+                        .toList();
+        final var deletableStates =
+                (CollectionUtils.isEmpty(states) ? EnumSet.of(JobRunQueueState.QUEUED) : states)
+                        .stream()
+                                .filter(state -> state == JobRunQueueState.QUEUED)
+                                .collect(Collectors.toSet());
+        if (deletableStates.isEmpty()) {
+            return new SuccessResponse(
+                    false,
+                    "No removable state selected; only queued (not yet claimed or running) runs can"
+                            + " be removed.");
+        }
+        final var removed = jobDataService.deleteQueuedRuns(jobIds, deletableStates);
+        return new SuccessResponse(true, "Removed " + removed + " queued run(s).");
+    }
+
     private Optional<Range<Instant>> getFromToRangeOptional(
             final @Nullable Instant from, final @Nullable Instant to) {
         return Optional.ofNullable(from)
@@ -229,34 +356,41 @@ public class JobControllerService {
         return jobNamesOrIds.stream().map(this::getJobId).filter(Objects::nonNull).toList();
     }
 
-    /**
-     * @throws ClassNotFoundException If the job class could not be found for the given id or class
-     */
-    public JobSubmissionResult startJobManual(final String jobIdOrClassName, final boolean forceRun)
-            throws ClassNotFoundException {
+    public QueueNewRunResult startJobManual(final String jobIdOrClassName, final boolean forceRun)
+            throws ManualTriggerNotAllowedException {
         final var jobClass = getJobClass(jobIdOrClassName);
-        // Allowed manual execution?
-        final var manualExecutionAllowed =
+        final var jobInstance = jobService.instantiateJob(jobClass);
+        final var manualTriggerMode =
                 jobService
-                                .getProperties(jobService.instantiateJob(jobClass))
-                                .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
-                                .value()
-                        == JobManualTriggerMode.NEW_RUN_ALLOWED;
-        if (!manualExecutionAllowed) {
-            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.DISALLOWED);
+                        .getProperties(jobInstance)
+                        .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
+                        .value();
+        final var isEnabled = jobService.isEnabled(jobClass.getCanonicalName());
+        if (!isEnabled) {
+            throw new ManualTriggerNotAllowedException(
+                    String.format("Job %s is not enabled", jobClass));
         }
-        return jobExecutorService.submit(jobClass, new JobRunArguments(forceRun));
+        final var manualExecutionAllowed =
+                manualTriggerMode == JobManualTriggerMode.NEW_RUN_ALLOWED;
+        if (!manualExecutionAllowed) {
+            throw new ManualTriggerNotAllowedException(
+                    String.format(
+                            "Job %s does not allow manual execution: %s",
+                            jobClass, manualTriggerMode));
+        }
+        return jobService.tryQueueNewRun(
+                jobService.jobClassAndIdOrThrow(jobClass), new JobRunArguments(forceRun));
     }
 
-    public void replayJobRun(final String jobIdOrClassName)
-            throws ClassNotFoundException, ManualTriggerNotAllowedException {
+    public QueueNewRunResult replayJobRun(final String jobIdOrClassName)
+            throws ManualTriggerNotAllowedException {
         final var jobClass = jobService.getJobClassOrThrow(jobIdOrClassName);
         final var lastJobRun = jobService.getLastJobRun(jobService.findJobIdOrThrow(jobClass));
-        replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
+        return replayJobRun(jobIdOrClassName, lastJobRun.orElseThrow().id());
     }
 
-    public void replayJobRun(final String jobIdOrClassName, final int jobRunId)
-            throws ClassNotFoundException, ManualTriggerNotAllowedException {
+    public QueueNewRunResult replayJobRun(final String jobIdOrClassName, final int jobRunId)
+            throws ManualTriggerNotAllowedException {
         final var jobRun = jobService.getJobRun(jobRunId);
         final var job = jobService.findJobById(jobRun.jobId()).orElseThrow();
         final var jobClass = jobService.getJobClassOrThrow(job);
@@ -277,16 +411,23 @@ public class JobControllerService {
             throw new ManualTriggerNotAllowedException(
                     String.format("Job %s does not allow replay execution", jobClass));
         }
-        jobManualTriggerService.replayJobRun(jobRunId);
+        return jobManualTriggerService.replayJobRun(jobRunId);
     }
 
-    public void startAllJobs(final boolean forceRun) throws ClassNotFoundException {
+    public void startAllJobs(final boolean forceRun) {
         for (final var jobClass : jobService.getAllJobClasses()) {
-            startJobManual(jobClass.getCanonicalName(), forceRun);
+            try {
+                startJobManual(jobClass.getCanonicalName(), forceRun);
+            } catch (final ManualTriggerNotAllowedException e) {
+                logger.info(
+                        "Skipping {} in start_all: manual execution not allowed.",
+                        jobClass.getCanonicalName(),
+                        e);
+            }
         }
     }
 
-    public JobRunInfoContainer findJobRun(final int jobRunId) throws ClassNotFoundException {
+    public JobRunInfoContainer findJobRun(final int jobRunId) {
         final var jobRun =
                 jobDataService
                         .findJobRunById(jobRunId)
@@ -300,8 +441,8 @@ public class JobControllerService {
     }
 
     public JobInfo jobInfo(
-            final JobClassAndId jobClassAndId, final Map<Integer, List<Trigger>> existingDbTriggers)
-            throws ClassNotFoundException {
+            final JobClassAndId jobClassAndId,
+            final Map<Integer, List<Trigger>> existingDbTriggers) {
         final var jobClass = jobService.getJobClassOrThrow(jobClassAndId);
         final var job = jobService.instantiateJob(jobClass);
 
@@ -327,8 +468,7 @@ public class JobControllerService {
         return jobService.findJobByIdOrThrow(jobId);
     }
 
-    public Collection<JobPropertyInfo> getJobProperties(final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    public Collection<JobPropertyInfo> getJobProperties(final String jobIdOrClassName) {
         final var properties =
                 jobService
                         .getProperties(jobService.instantiateJob(getJobClass(jobIdOrClassName)))
@@ -355,22 +495,21 @@ public class JobControllerService {
     }
 
     public Collection<JobPropertyInfo> updateJobProperties(
-            final String jobIdOrClassName, final Map<String, String> updatedValues)
-            throws ClassNotFoundException {
+            final String jobIdOrClassName, final Map<String, String> updatedValues) {
         jobDataService.saveProperties(
                 jobService.findJobIdOrThrow(getJobClass(jobIdOrClassName)),
                 getPropertiesFromMap(updatedValues));
         return getJobProperties(jobIdOrClassName);
     }
 
-    public JobTriggers getJobTriggers(final String jobIdOrClassName) throws ClassNotFoundException {
+    public JobTriggers getJobTriggers(final String jobIdOrClassName) {
         final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         final var job = getJobInstance(jobIdOrClassName);
         return getJobTriggers(job, existingDbTriggers);
     }
 
-    public JobTriggers updateJobTriggers(final String jobIdOrClassName, final JobTriggers triggers)
-            throws ClassNotFoundException {
+    public JobTriggers updateJobTriggers(
+            final String jobIdOrClassName, final JobTriggers triggers) {
         final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         final var job = getJobInstance(jobIdOrClassName);
 
@@ -417,17 +556,31 @@ public class JobControllerService {
                         jobRunnerInfoService.getRunnerGroupsInfo()));
     }
 
-    private Job getJobInstance(final String jobIdOrClassName) throws ClassNotFoundException {
+    /** The live instances: the primary lease holder first, then newest first. */
+    public JobInstanceInfosContainer getInstances() {
+        return new JobInstanceInfosContainer(
+                jobDaemonRegistrationService.liveDaemons().stream()
+                        .sorted(
+                                Comparator.comparing(
+                                                JobDaemon::holdsPrimaryLease,
+                                                Comparator.reverseOrder())
+                                        .thenComparing(
+                                                JobDaemon::startedAt, Comparator.reverseOrder())
+                                        .thenComparing(JobDaemon::daemonName))
+                        .map(JobInstanceInfo::from)
+                        .toList());
+    }
+
+    private Job getJobInstance(final String jobIdOrClassName) {
         return jobService.instantiateJob(getJobClass(jobIdOrClassName));
     }
 
-    private Class<? extends Job> getJobClass(final String jobIdOrClassName)
-            throws ClassNotFoundException {
+    private Class<? extends Job> getJobClass(final String jobIdOrClassName) {
         try {
             final var job =
                     jobService.findJobById(Integer.parseInt(jobIdOrClassName)).orElseThrow();
             return jobService.getJobClassOrThrow(job);
-        } catch (final NumberFormatException ignored) {
+        } catch (final NumberFormatException _) {
             return jobService.getJobClassOrThrow(jobIdOrClassName);
         }
     }
@@ -435,7 +588,7 @@ public class JobControllerService {
     private @Nullable Integer getJobId(final String jobIdOrClassName) {
         try {
             return Integer.parseInt(jobIdOrClassName);
-        } catch (final NumberFormatException ignored) {
+        } catch (final NumberFormatException _) {
             return jobService.findJobId(jobIdOrClassName).orElse(null);
         }
     }
@@ -528,8 +681,7 @@ public class JobControllerService {
         return Objects.requireNonNullElse(logService.logs(jobRunId).log(), "No logs found.");
     }
 
-    public void setEnabled(final String jobIdOrClassName, final boolean isEnabled)
-            throws ClassNotFoundException {
+    public void setEnabled(final String jobIdOrClassName, final boolean isEnabled) {
         final var jobClass = getJobClass(jobIdOrClassName);
         jobService.setEnabled(jobClass, isEnabled);
     }

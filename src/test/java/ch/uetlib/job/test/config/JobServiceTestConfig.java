@@ -4,10 +4,14 @@ import static org.mockito.Mockito.mock;
 
 import ch.uetlib.job.annotation.EnableJobs;
 import ch.uetlib.job.annotation.RegisteredJobDefinitions;
+import ch.uetlib.job.config.HibernateJsonConfiguration;
+import ch.uetlib.job.config.PgChannelListenerRegistryConfig;
 import ch.uetlib.job.config.UetlibJobPgListenDataSourceProviderConfig;
+import ch.uetlib.job.config.UetlibJobQueueDataSourceProviderConfig;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.service.core.ClassLoaderService;
 import ch.uetlib.job.service.register.JobRegistrationService;
+import ch.uetlib.job.storage.JobRunStorage;
 
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -31,19 +35,24 @@ import java.util.List;
 import javax.sql.DataSource;
 
 @SpringBootConfiguration
-@Import(UetlibJobPgListenDataSourceProviderConfig.class)
+@Import({
+    UetlibJobPgListenDataSourceProviderConfig.class,
+    UetlibJobQueueDataSourceProviderConfig.class,
+    PgChannelListenerRegistryConfig.class,
+    HibernateJsonConfiguration.class
+})
 @ComponentScan({"ch.uetlib.job.data.service", "ch.uetlib.job.service"})
 @EnableJobs("ch.uetlib.job.testjob")
 @EnableJpaRepositories(basePackages = "ch.uetlib.job.data.repository")
 @EntityScan(basePackages = "ch.uetlib.job.model.entity")
-public class JobServiceConfig {
+public class JobServiceTestConfig {
 
     private final DataSource dataSource;
 
     @Qualifier("databaseSpecificInitializationScripts")
     private final List<ClassPathResource> databaseSpecificInitializationScripts;
 
-    public JobServiceConfig(
+    public JobServiceTestConfig(
             final DataSource dataSource,
             final List<ClassPathResource> databaseSpecificInitializationScripts) {
         this.dataSource = dataSource;
@@ -81,6 +90,11 @@ public class JobServiceConfig {
     @Bean
     CloseableHttpClient httpClient() {
         return HttpClients.createSystem();
+    }
+
+    @Bean
+    JobRunStorage jobRunStorage() {
+        return mock(JobRunStorage.class);
     }
 
     @Bean

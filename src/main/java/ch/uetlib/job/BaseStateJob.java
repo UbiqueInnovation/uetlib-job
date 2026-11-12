@@ -5,11 +5,9 @@ import static java.util.Objects.requireNonNullElse;
 
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.model.*;
-import ch.uetlib.job.model.executer.SuccessfulSubmissionResult;
-import ch.uetlib.job.model.executer.UnsuccessfulSubmissionResult;
 import ch.uetlib.job.model.input.JobRunInputDeclaration;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
-import ch.uetlib.job.service.executor.JobExecutorService;
+import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 import ch.uetlib.storage.output.JsonOutput;
 
@@ -131,34 +129,20 @@ public abstract class BaseStateJob<T> implements Job {
         // Save state to storage
         saveState(latestState, jobRunContext);
 
-        // Run processing on a different runner, if requested
         final var currentRunnerKey = currentJobRun.runnerKey();
         final var processingRunnerKey =
-                requireNonNullElse(runnerForProcessing(latestState), currentRunnerKey);
+                requireNonNull(
+                        requireNonNullElse(runnerForProcessing(latestState), currentRunnerKey));
         if (currentRunnerKey != processingRunnerKey) {
-            logger.info("Requested to run processing on runner {}.", processingRunnerKey);
-            final var submission =
-                    applicationContext
-                            .getBean(JobExecutorService.class)
-                            .submit(
-                                    getClass(),
-                                    jobRunContext.arguments(),
-                                    currentJobRun.id(),
-                                    processingRunnerKey);
-            return switch (submission) {
-                case final SuccessfulSubmissionResult _ -> JobRunState.SCHEDULED;
-                case UnsuccessfulSubmissionResult(final var status) ->
-                        switch (status) {
-                            case SUBMITTED -> JobRunState.SCHEDULED;
-                            case FAILED, DISALLOWED -> {
-                                logger.info(
-                                        "Could not schedule job {}: {}",
-                                        getClass().getCanonicalName(),
-                                        status);
-                                yield JobRunState.SCHEDULING_FAILED;
-                            }
-                        };
-            };
+            logger.info("Handing processing off to runner {} via the queue.", processingRunnerKey);
+            applicationContext
+                    .getBean(JobService.class)
+                    .queueReprocessingRun(
+                            jobRunContext.job(),
+                            currentJobRun,
+                            jobRunContext.arguments(),
+                            processingRunnerKey);
+            return JobRunState.SCHEDULED;
         }
 
         // Start processing on current runner

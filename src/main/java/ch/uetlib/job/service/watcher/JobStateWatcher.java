@@ -48,7 +48,12 @@ public class JobStateWatcher {
         logger.debug("Checking if jobs are running");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
-            checkIfJobIsRunning(jobRun);
+            try {
+                checkIfJobIsRunning(jobRun);
+            } catch (final Exception e) {
+                // One run must not abort the sweep and leave every run behind it unchecked.
+                logger.error("Could not check whether {} is running; skipping it.", jobRun, e);
+            }
         }
     }
 
