@@ -121,7 +121,8 @@ public interface JobQueuedRunRepository
 
     /**
      * Marks a single still-{@link JobRunQueueState#QUEUED} row {@link JobRunQueueState#CANCELLED},
-     * unconditionally - unlike the time-based {@link #expireStaleQueuedRunsForJob}.
+     * unconditionally - unlike the time-based {@link #expireStaleQueuedRunsForJobs(Collection,
+     * Instant, Instant)}.
      */
     @Modifying(clearAutomatically = true)
     @Query(

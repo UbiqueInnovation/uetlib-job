@@ -21,8 +21,7 @@ import java.util.Set;
 public class JobInstanceIdentity {
 
     public static final String INSTANCE_NAME_PROP = "ch.uetlib.job.runner.instance.name";
-    public static final String INSTANCE_TAINTS_PROP =
-            "ch.uetlib.job.runner.instance.taints";
+    public static final String INSTANCE_TAINTS_PROP = "ch.uetlib.job.runner.instance.taints";
 
     private final String name;
     private final Set<String> taints;

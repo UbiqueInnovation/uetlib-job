@@ -140,8 +140,7 @@ public class JobQueueWatcherService {
         }
     }
 
-    @Scheduled(
-            cron = "${ch.uetlib.job.runner.delete-old-cancelled-queued.cron:0 41 * * * ?}")
+    @Scheduled(cron = "${ch.uetlib.job.runner.delete-old-cancelled-queued.cron:0 41 * * * ?}")
     public void deleteOldCancelledQueuedRuns() {
         final var retainAfterByJobId =
                 jobCancelledQueueRetention().entrySet().stream()

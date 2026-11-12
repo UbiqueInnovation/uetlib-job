@@ -33,8 +33,7 @@ public class JobSinglePrimaryInstanceCheck implements StatusCheck {
     private final Instant startedAt = Instant.now();
 
     public JobSinglePrimaryInstanceCheck(
-            @Value("${ch.uetlib.job.check.single-primary-instance:ERROR}")
-                    final CheckLevel level,
+            @Value("${ch.uetlib.job.check.single-primary-instance:ERROR}") final CheckLevel level,
             final JobDataService jobDataService,
             @Value(
                             "${"

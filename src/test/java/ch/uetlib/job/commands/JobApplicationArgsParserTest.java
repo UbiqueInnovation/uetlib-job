@@ -30,10 +30,7 @@ class JobApplicationArgsParserTest {
     @Test
     void jobFlagMixedWithAnUnrecognizedArgIsAParseFailure() {
         final var result =
-                parser.parse(
-                        new String[] {
-                            "--job", "ch.uetlib.job.TestJob", "--server.port=8080"
-                        });
+                parser.parse(new String[] {"--job", "ch.uetlib.job.TestJob", "--server.port=8080"});
 
         assertTrue(result.isEmpty(), "--job does not make other, unrecognized args acceptable");
     }
@@ -68,17 +65,14 @@ class JobApplicationArgsParserTest {
         final var jobToStart = result.orElseThrow().jobToStart();
         assertNotNull(jobToStart);
         assertEquals("{\"foo\":\"bar\"}", jobToStart.additionalDataString());
-        assertEquals(
-                "ch.uetlib.job.SomeAdditionalData", jobToStart.additionalDataClassName());
+        assertEquals("ch.uetlib.job.SomeAdditionalData", jobToStart.additionalDataClassName());
     }
 
     @Test
     void forceFlagAndRunIdAreParsedCorrectly() {
         final var result =
                 parser.parse(
-                        new String[] {
-                            "--job", "ch.uetlib.job.TestJob", "--run", "42", "--force"
-                        });
+                        new String[] {"--job", "ch.uetlib.job.TestJob", "--run", "42", "--force"});
 
         final var jobToStart = result.orElseThrow().jobToStart();
         assertNotNull(jobToStart);

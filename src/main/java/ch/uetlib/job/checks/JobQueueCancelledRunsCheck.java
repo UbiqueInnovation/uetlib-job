@@ -36,8 +36,7 @@ public class JobQueueCancelledRunsCheck implements StatusCheck {
     private final JobService jobService;
 
     public JobQueueCancelledRunsCheck(
-            @Value("${ch.uetlib.job.check.cancelled-queued-runs:WARNING}")
-                    final CheckLevel level,
+            @Value("${ch.uetlib.job.check.cancelled-queued-runs:WARNING}") final CheckLevel level,
             final JobDataService jobDataService,
             final JobService jobService) {
         this.level = level;

@@ -70,8 +70,7 @@ public class JobRunQueueService {
             final JobInstanceIdentity instanceIdentity,
             @Value("${ch.uetlib.job.runner.max.runnable.per.check:8}")
                     final int maxRunnablePerCheck,
-            @Value("${ch.uetlib.job.runner.max.pages.per.check:5}")
-                    final int maxPagesPerCheck,
+            @Value("${ch.uetlib.job.runner.max.pages.per.check:5}") final int maxPagesPerCheck,
             @Value("${ch.uetlib.job.runner.unknown-job.timeout:PT5M}")
                     final Duration unknownJobTimeout) {
         this.jobService = jobService;
