@@ -34,8 +34,9 @@ class InotifyFileWatcherTest {
                     new InotifyFileWatcher(
                             event -> {
                                 delivered.add(event);
-                                if (event.filePath().equals(Path.of("first.txt")))
+                                if (event.filePath().equals(Path.of("first.txt"))) {
                                     throw new IllegalStateException("Callback failed");
+                                }
                             })) {
                 watcher.watchPath(incoming);
                 assertDoesNotThrow(
@@ -50,7 +51,7 @@ class InotifyFileWatcherTest {
                 nativeLibrary.verify(
                         () -> NativeInotify.loadLibrary(null), times(libraryLoaded ? 0 : 1));
             }
-            verify(instances.constructed().getFirst()).destroy();
+            verify(instances.constructed().getFirst()).close();
         }
     }
 }
