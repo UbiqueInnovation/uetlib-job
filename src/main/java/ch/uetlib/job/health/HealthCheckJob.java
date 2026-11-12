@@ -50,11 +50,7 @@ public final class HealthCheckJob implements Job {
                 JobPropertyDefinitions.LAST_RUN_MAX_AGE.createProperty(Duration.ofMinutes(15)),
                 JobPropertyDefinitions.RUN_TIME_LIMIT.createProperty(Duration.ofMinutes(1)),
                 JobPropertyDefinitions.CLEANUP_DAYS_TO_KEEP.createProperty(0),
-                JobPropertyDefinitions.CLEANUP_CHUNK_SIZE.createProperty(10_000));
-    }
-
-    @Override
-    public int priority() {
-        return 1_000;
+                JobPropertyDefinitions.CLEANUP_CHUNK_SIZE.createProperty(10_000),
+                JobPropertyDefinitions.PRIORITY.createProperty(1_000));
     }
 }

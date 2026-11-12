@@ -46,19 +46,22 @@ public final class JobRunnerHelper {
                     job.getClass().getCanonicalName(),
                     Thread.currentThread().getName(),
                     jobRunContext);
-            final var state = job.run(jobRunContext);
-            logger.info("Job {} finished with state {}", job.getClass().getCanonicalName(), state);
-            updateJobRunState(jobService, jobRunContext, state);
+            final var finalState = job.run(jobRunContext);
+            logger.info(
+                    "Job {} finished with state {}", job.getClass().getCanonicalName(), finalState);
+            updateJobRunState(jobService, jobRunContext, finalState);
         } catch (final Exception e) {
             final var rootCause = Objects.requireNonNullElse(ExceptionUtils.getRootCause(e), e);
+            final JobRunState exceptionState;
             if (rootCause instanceof InterruptedException) {
                 logger.info("Job {} interrupted", job);
-                updateJobRunState(jobService, jobRunContext, JobRunState.CANCELLED);
+                exceptionState = JobRunState.CANCELLED;
                 Thread.currentThread().interrupt();
             } else {
                 logger.error("Exception running job: ", e);
-                updateJobRunState(jobService, jobRunContext, JobRunState.ERROR);
+                exceptionState = JobRunState.ERROR;
             }
+            updateJobRunState(jobService, jobRunContext, exceptionState);
         }
     }
 

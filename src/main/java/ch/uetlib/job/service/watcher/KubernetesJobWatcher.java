@@ -148,15 +148,17 @@ public class KubernetesJobWatcher {
     }
 
     private void readLogLines(final LineWithEndingReader reader) throws IOException {
-        long lastLogMillis = -1;
-        final var rateLimit = PROGRESS_RATE_LIMIT.toMillis();
+        long lastPrintedLogMillis = -1;
+        final var printRateLimit = PROGRESS_RATE_LIMIT.toMillis();
         LineWithEnding line;
         while ((line = reader.readLineWithEnding()) != null) {
+            if (!isNotBlank(line.text())) {
+                continue;
+            }
             final var currentTimeMillis = System.currentTimeMillis();
-            final var millisSinceLast = currentTimeMillis - lastLogMillis;
-            if (isNotBlank(line.text()) && (line.isNewLine() || millisSinceLast >= rateLimit)) {
+            if (line.isNewLine() || currentTimeMillis - lastPrintedLogMillis >= printRateLimit) {
                 logger.info("Pod logs: {}", line.text());
-                lastLogMillis = currentTimeMillis;
+                lastPrintedLogMillis = currentTimeMillis;
             }
         }
     }

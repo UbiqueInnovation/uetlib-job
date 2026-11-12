@@ -38,7 +38,12 @@ public class JobTimeoutWatcher {
         logger.debug("Checking if jobs exceeded their timeout.");
         final var running = jobService.findJobRunsByStates(JobRunState.RUNNING_STATES);
         for (final var jobRun : running) {
-            checkTimeoutForJob(jobRun);
+            try {
+                checkTimeoutForJob(jobRun);
+            } catch (final Exception e) {
+                // One run must not abort the sweep and leave every run behind it unchecked.
+                logger.error("Could not check {} for timeout; skipping it.", jobRun, e);
+            }
         }
     }
 

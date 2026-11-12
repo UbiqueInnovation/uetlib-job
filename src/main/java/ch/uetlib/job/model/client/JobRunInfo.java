@@ -1,5 +1,7 @@
 package ch.uetlib.job.model.client;
 
+import static java.util.Objects.*;
+
 import ch.uetlib.core.utils.StringFormattingUtils;
 import ch.uetlib.job.model.JobRun;
 import ch.uetlib.job.model.JobRunArguments;
@@ -41,7 +43,7 @@ public record JobRunInfo(
                 jobRun.finishedAt(),
                 StringFormattingUtils.formatDuration(
                         jobRun.startedAt(),
-                        java.util.Objects.requireNonNullElse(jobRun.finishedAt(), Instant.now())),
+                        requireNonNull(requireNonNullElse(jobRun.finishedAt(), Instant.now()))),
                 jobRun.versionTag(),
                 jobRun.triggerType(),
                 Optional.ofNullable(jobRun.jobRunArguments())

@@ -12,7 +12,7 @@ import java.lang.annotation.*;
  * Place this annotation on any class in a package that matches (or is prefixed by) your maven
  * artifact group id. This annotation is only discovered in a package below the group id.
  *
- * <p>The package 'ch.uetlib' is NOT always included, to use the default {@link
+ * <p>The package 'ch.uetlib.job' is NOT always included, to use the default {@link
  * ch.uetlib.job.health.HealthCheckJob} and {@link ch.uetlib.job.cleanup.CleanupJob}, include this
  * package or the desired subpackages.
  */

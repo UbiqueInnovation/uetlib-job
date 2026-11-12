@@ -1,0 +1,47 @@
+package ch.uetlib.job.model.client;
+
+import ch.uetlib.job.model.JobQueuedRun;
+import ch.uetlib.job.model.queue.JobRunQueueState;
+import ch.uetlib.job.model.runner.conditions.JobRunnerTaint;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
+import java.util.Set;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record JobQueueEntryInfo(
+        @JsonProperty(required = true) @Positive int id,
+        @JsonProperty(required = true) @Positive int jobId,
+        @Nullable String jobName,
+        @Nullable Integer priority,
+        @JsonProperty(required = true) @NotBlank String versionTag,
+        @JsonProperty(required = true) @NotNull JobRunQueueState state,
+        @Nullable Integer jobRunId,
+        @Nullable String runner,
+        @JsonProperty(required = true) @NotNull Instant createdAt,
+        @JsonProperty(required = true) @NotNull Instant updatedAt,
+        @JsonProperty(required = true) @NotNull Set<JobRunnerTaint> taints) {
+
+    public static JobQueueEntryInfo from(final JobQueuedRun run, @Nullable final String jobName) {
+        return new JobQueueEntryInfo(
+                run.jobQueuedRunId(),
+                run.jobId(),
+                jobName,
+                run.priority(),
+                run.versionTag(),
+                run.queueState(),
+                run.jobRunId(),
+                run.runner(),
+                run.createdAt(),
+                run.updatedAt(),
+                run.taints());
+    }
+}

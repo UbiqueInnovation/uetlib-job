@@ -6,7 +6,7 @@ import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.triggers.*;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.service.executor.JobExecutorService;
+import ch.uetlib.job.service.instance.JobInstanceIdentity;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,42 +19,56 @@ import org.springframework.stereotype.Service;
 
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
-@Profile("!job-run")
+@Profile("!job-run & " + TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE)
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
+
+    /** Instances evaluating triggers; only the primary lease holder queues runs from them. */
+    public static final String PRIMARY_TRIGGERS_PROFILE = "job-primary-triggers";
 
     private final boolean allTriggersDisabled;
     private final JobDataService jobDataService;
 
     private final JobService jobService;
-    private final JobExecutorService jobExecutorService;
+    private final JobInstanceIdentity instanceIdentity;
 
     private final Map<TriggerType, TriggerService<?>> triggerServices;
+
+    private final AtomicInteger registeredTriggers = new AtomicInteger();
+    private volatile boolean started;
 
     public TriggerCoordinatorService(
             final JobDataService jobDataService,
             final JobService jobService,
-            final JobExecutorService jobExecutorService,
+            final JobInstanceIdentity instanceIdentity,
             final Collection<TriggerService<?>> triggerServices,
             final Environment environment) {
         this.jobDataService = jobDataService;
         this.jobService = jobService;
-        this.jobExecutorService = jobExecutorService;
+        this.instanceIdentity = instanceIdentity;
         this.triggerServices =
                 triggerServices.stream()
                         .collect(
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
-        this.allTriggersDisabled = environment.acceptsProfiles(Profiles.of("job-disable-triggers"));
+        this.allTriggersDisabled =
+                environment.acceptsProfiles(Profiles.of("job-disable-triggers"))
+                        || !environment.acceptsProfiles(Profiles.of(PRIMARY_TRIGGERS_PROFILE));
     }
 
     @EventListener(ApplicationReadyEvent.class)
     private void onStartup() {
+        if (allTriggersDisabled) {
+            logger.info("Not registering live triggers on this instance.");
+            return;
+        }
         logger.info("Evaluating triggers of all jobs");
         final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
         for (final var jobClass : jobService.getAllJobClasses()) {
@@ -63,8 +77,29 @@ public class TriggerCoordinatorService {
             final var classAndId = jobService.jobClassAndIdOrThrow(jobClass);
             for (final var trigger : triggers) {
                 onStartup(trigger, classAndId, jobClass);
+                registeredTriggers.incrementAndGet();
             }
         }
+        started = true;
+        logger.info(
+                "Registered {} live trigger(s). They enqueue runs only while this instance holds the"
+                        + " primary lease.",
+                registeredTriggers.get());
+    }
+
+    /** Whether this instance competes for the lease: it has the profile and triggers enabled. */
+    public boolean isPrimaryCandidate() {
+        return !allTriggersDisabled;
+    }
+
+    /** Whether the triggers are registered; only then may this instance take the lease. */
+    public boolean isStarted() {
+        return started;
+    }
+
+    /** How many triggers this instance actually registered - 0 means it fires nothing. */
+    public int registeredTriggerCount() {
+        return registeredTriggers.get();
     }
 
     protected void onStartup(
@@ -88,6 +123,10 @@ public class TriggerCoordinatorService {
 
     public void addTrigger(
             final int jobId, final Class<? extends Job> jobClass, final Trigger trigger) {
+        if (allTriggersDisabled) {
+            logger.debug("Not registering trigger {} live on this instance.", trigger);
+            return;
+        }
         getTriggerService(trigger.definition())
                 .addTrigger(
                         trigger.id(),
@@ -98,6 +137,11 @@ public class TriggerCoordinatorService {
     }
 
     public void removeTrigger(final Trigger trigger) {
+        if (allTriggersDisabled) {
+            logger.debug(
+                    "No live trigger registration for {} to remove on this instance.", trigger);
+            return;
+        }
         getTriggerService(trigger.definition()).removeTrigger(trigger.id());
         logger.info("Removed trigger {}", trigger);
     }
@@ -105,10 +149,11 @@ public class TriggerCoordinatorService {
     /**
      * This method computes the effective job triggers and works as following:
      * <li>Query triggers in database
-     * <li>If job has fixed triggers -> make sure they agree with database (override if not)
+     * <li>If job has fixed triggers -> reconcile with database (add/remove the difference) if not
+     *     already in agreement
      * <li>If job has no fixed triggers and no database triggers -> create database entries for
      *     initial trigger
-     * <li>return (possibly just created / overwritten) triggers from database
+     * <li>return (possibly just reconciled / created) triggers from database
      */
     public Collection<Trigger> getTriggers(
             final Job job, final Map<Integer, List<Trigger>> existingDbTriggersByJob) {
@@ -120,13 +165,26 @@ public class TriggerCoordinatorService {
                 dbTriggers.stream().map(Trigger::definition).collect(Collectors.toSet());
 
         if (job.triggersConfig().isFixed()) {
-            if (dbTriggerDefinitions.equals(new HashSet<>(job.triggersConfig().triggers()))) {
+            final var targetDefinitions = new HashSet<>(job.triggersConfig().triggers());
+            if (dbTriggerDefinitions.equals(targetDefinitions)) {
                 return dbTriggers;
             }
-            // Fixed do not match db triggers -> Replace db triggers
-            jobDataService.deleteTriggerForJob(jobClassAndId.id());
-            return jobDataService.insertTriggers(
-                    jobClassAndId.id(), job.triggersConfig().triggers());
+            final var keptTriggers =
+                    dbTriggers.stream()
+                            .filter(trigger -> targetDefinitions.contains(trigger.definition()))
+                            .toList();
+            dbTriggers.stream()
+                    .filter(trigger -> !targetDefinitions.contains(trigger.definition()))
+                    .forEach(jobDataService::deleteTrigger);
+            final var newDefinitions =
+                    targetDefinitions.stream()
+                            .filter(definition -> !dbTriggerDefinitions.contains(definition))
+                            .toList();
+            final var insertedTriggers =
+                    newDefinitions.isEmpty()
+                            ? List.<Trigger>of()
+                            : jobDataService.insertTriggers(jobClassAndId.id(), newDefinitions);
+            return Stream.concat(keptTriggers.stream(), insertedTriggers.stream()).toList();
         }
 
         // There are triggers present in the database -> return them
@@ -163,8 +221,18 @@ public class TriggerCoordinatorService {
                             jobClass.getSimpleName());
         }
         return jobRunArguments -> {
-            logger.info("Submitting job {}", jobClass);
-            jobExecutorService.submit(jobClass, jobRunArguments);
+            final var queued =
+                    jobService.queueNewRunAsPrimary(
+                            instanceIdentity.name(),
+                            jobService.jobClassAndIdOrThrow(jobClass),
+                            jobRunArguments);
+            if (queued.isEmpty()) {
+                logger.debug(
+                        "Not queueing job {}: this instance does not hold the primary lease.",
+                        jobClass);
+                return;
+            }
+            logger.info("Queued job {}", jobClass);
         };
     }
 }

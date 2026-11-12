@@ -5,13 +5,42 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 class JobClassAndIdPropertyDefinitionsTest {
 
+    /**
+     * Fields deliberately named differently from their persisted key - kept stable for
+     * backward-compatible configs/APIs - while the Java name was clarified.
+     */
+    private static final Set<String> NAME_MISMATCH_EXCEPTIONS = Set.of();
+
     @Test
     void someDefinitions() {
         assertFalse(JobPropertyDefinitions.values().isEmpty());
+    }
+
+    /** The status interface shows each group as its own tab. */
+    @Test
+    void queueGroupHoldsThePropertiesThatOnlyAffectTheQueue() {
+        final var queueKeys =
+                JobPropertyDefinitions.values().stream()
+                        .filter(
+                                definition ->
+                                        definition.group() == JobPropertyDefinitionGroup.QUEUE)
+                        .map(JobPropertyDefinition::key)
+                        .collect(Collectors.toUnmodifiableSet());
+
+        assertEquals(
+                Set.of(
+                        "QUEUE_BEHAVIOR",
+                        "PRIORITY",
+                        "JOB_RUN_TAINTS",
+                        "CLAIM_TIMEOUT",
+                        "QUEUE_TIMEOUT",
+                        "CANCELLED_QUEUE_RETENTION"),
+                queueKeys);
     }
 
     @Test
@@ -37,7 +66,8 @@ class JobClassAndIdPropertyDefinitionsTest {
         for (final var field : JobPropertyDefinitions.class.getDeclaredFields()) {
             if (!Modifier.isStatic(field.getModifiers())
                     || !Modifier.isPublic(field.getModifiers())
-                    || !(field.get(null) instanceof final JobPropertyDefinition<?> definition)) {
+                    || !(field.get(null) instanceof final JobPropertyDefinition<?> definition)
+                    || NAME_MISMATCH_EXCEPTIONS.contains(field.getName())) {
                 continue;
             }
 

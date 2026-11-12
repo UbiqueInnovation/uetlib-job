@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Component
-@Profile("!job-run")
+@Profile("!job-run & job-primary-triggers")
 public class UetlibJobWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UetlibJobWebSocketHandler.class);

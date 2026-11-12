@@ -1,4 +1,4 @@
-package ch.uetlib.job.service.triggers.postgres;
+package ch.uetlib.job.service.postgres;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -30,20 +30,14 @@ class PgChannelListener {
     private static final Duration RECONNECT_DELAY = Duration.ofSeconds(5);
 
     /**
-     * A {@code LISTEN} connection is mostly idle (it only receives data when a {@code NOTIFY}
-     * arrives) and is therefore prone to being silently dropped by firewalls/NAT idle timeouts. A
-     * non-blocking {@link PGConnection#getNotifications()} poll does no network I/O while idle, so
-     * such a half-open connection would never be detected and notifications would be lost forever.
-     * To detect this we periodically run a keepalive query that forces a round-trip: on a dead
-     * socket it throws (within {@link #SOCKET_TIMEOUT}) and triggers a reconnect.
+     * Idle {@code LISTEN} connections can be dropped silently; a periodic keepalive query detects
+     * that and reconnects.
      */
     static final Duration DEFAULT_KEEPALIVE_INTERVAL = Duration.ofSeconds(30);
 
     /**
-     * The listener is considered unhealthy if it has not had a confirmed interaction with the
-     * database (successful connect, keepalive or received notification) within this window. Must be
-     * larger than {@link #DEFAULT_KEEPALIVE_INTERVAL} to tolerate a few missed keepalives / a
-     * reconnect.
+     * Unhealthy without a confirmed database interaction for this long; must exceed {@link
+     * #DEFAULT_KEEPALIVE_INTERVAL}.
      */
     static final Duration DEFAULT_MAX_SILENCE = Duration.ofSeconds(90);
 
@@ -177,18 +171,22 @@ class PgChannelListener {
             return;
         }
         logger.debug("{} received: {}", channel, payloads);
-        callback.accept(payloads);
+        try {
+            callback.accept(payloads);
+        } catch (final Exception e) {
+            logger.warn(
+                    "Error while processing notifications callback on channel {} (CB function: {})",
+                    channel,
+                    callback,
+                    e);
+        }
     }
 
     private void markInteraction() {
         lastInteraction = Instant.now();
     }
 
-    /**
-     * Whether the listener is actively monitoring its channel, i.e. it is running and has had a
-     * confirmed interaction with the database within {@link #maxSilence}. A stale value indicates a
-     * dead listener thread or a connection that cannot be re-established.
-     */
+    /** Running and heard from the database within {@link #maxSilence}. */
     boolean isHealthy() {
         if (!running) {
             return false;
@@ -203,7 +201,7 @@ class PgChannelListener {
         }
         try {
             DataSourceUtils.releaseConnection(connection, dataSource);
-        } catch (final Exception e) {
+        } catch (final Exception _) {
             // ignore
         }
     }
@@ -211,7 +209,7 @@ class PgChannelListener {
     private void sleepWithInterrupt(final Duration sleep) {
         try {
             Thread.sleep(sleep);
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
         }
     }

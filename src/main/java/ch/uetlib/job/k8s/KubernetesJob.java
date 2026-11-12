@@ -29,6 +29,15 @@ import java.util.*;
 
 public abstract class KubernetesJob implements Job {
 
+    /** Labels of the current pod never copied to the job pod, see {@link #labels}. */
+    private static final Set<String> NON_INHERITED_LABELS =
+            Set.of(
+                    "app",
+                    "pod-template-hash",
+                    "controller-revision-hash",
+                    "statefulset.kubernetes.io/pod-name",
+                    "apps.kubernetes.io/pod-index");
+
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final ApplicationContext applicationContext;
 
@@ -169,11 +178,43 @@ public abstract class KubernetesJob implements Job {
                 entry("backend.systems.ubique.ch/job-spawned-by-pod", currentPodName));
     }
 
+    /**
+     * Whether the dedicated job pod inherits the labels of the current pod (e.g. {@code egress:
+     * cilium}). Pod-specific labels and {@code app} are never inherited, and {@link
+     * JobPropertyDefinitions#K8S_POD_LABELS} still takes precedence.
+     *
+     * <p>Disabled by default: inherited labels (e.g. {@code app.kubernetes.io/name}) can make
+     * Service or NetworkPolicy selectors of the main app also match the job pods.
+     */
+    protected boolean inheritCurrentPodLabels() {
+        return false;
+    }
+
     protected Map<String, String> labels(final KubernetesJobRunContext kubernetesJobRunContext) {
         final var labels = new HashMap<String, String>();
+        if (inheritCurrentPodLabels()) {
+            labels.putAll(inheritableCurrentPodLabels(kubernetesJobRunContext));
+        }
         labels.put("app", appName());
         labels.putAll(labelsFromProperties(kubernetesJobRunContext.jobRunContext()));
         return labels;
+    }
+
+    private static Map<String, String> inheritableCurrentPodLabels(
+            final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var podLabels =
+                currentPod(kubernetesJobRunContext)
+                        .map(V1Pod::getMetadata)
+                        .map(V1ObjectMeta::getLabels)
+                        .orElseGet(Map::of);
+        final var inheritable = new HashMap<String, String>();
+        podLabels.forEach(
+                (key, value) -> {
+                    if (!NON_INHERITED_LABELS.contains(key)) {
+                        inheritable.put(key, value);
+                    }
+                });
+        return inheritable;
     }
 
     private String appName() {

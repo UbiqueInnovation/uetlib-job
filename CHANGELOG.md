@@ -1,37 +1,58 @@
 # CHANGELOG
 
-## 6.0.2
+## 6.0.3
 
-- Deprecate `ch.ubique.backend.job.interface.secret` in configuration metadata in favor of
-  `ch.uetlib.job.interface.secret`. Keep the legacy property as a fallback, rather than using its name as a literal
-  secret.
+### Changes
 
-- Remove legacy backend database migration templates and their obsolete license notice.
+- Dispatch jobs through `t_job_run_queue`; triggers enqueue runs instead of executing them directly. See
+  [SCHEDULING.md](SCHEDULING.md).
+- Register instances in `t_job_daemon`. A primary lease ensures one eligible instance enqueues trigger-driven runs.
+- Add `GET /v1/status/instances` and identify the serving instance with the `X-Job-Instance` response header.
+- Add the `QUEUE` property group: `QUEUE_BEHAVIOR`, `PRIORITY`, `JOB_RUN_TAINTS`, `CLAIM_TIMEOUT`, `QUEUE_TIMEOUT`
+  and `CANCELLED_QUEUE_RETENTION`.
+- Add `KubernetesJob.inheritCurrentPodLabels()` (default `false`). When enabled, dedicated job pods inherit labels
+  from the spawning pod, excluding `app` and pod-specific labels. Explicit `K8S_POD_LABELS` take precedence.
+- Add Apache-2.0 licensing for original code, third-party attribution, public Maven metadata and contribution/security
+  guidance. Align parent, BOM and library references with the public migration releases.
+
+### Fixes
+
+- Update changed fixed trigger definitions without deleting and reinserting every trigger for the job.
+- Deprecate `ch.ubique.backend.job.interface.secret` in favor of `ch.uetlib.job.interface.secret`, retaining the legacy
+  property as a fallback rather than using its name as a literal secret.
 - Correct job API Javadoc and formatting.
-
-## 6.0.1
-
-- Rename uetlib configuration keys and property references to `ch.uetlib.*`, including Spring bindings, `@Value`,
-  conditions, scheduling expressions and configuration files. Migrate external deployment configuration as well.
-
-- Move Java packages and class references from `ch.ubique.uetlib` to `ch.uetlib`.
 
 ### Breaking changes
 
-- Move Java packages from `ch.ubique.backend` to `ch.uetlib`, including class-name resources. The combined OpenRewrite
-  migration also renames known Spring configuration keys to `ch.uetlib.*`.
-- Remove the inherited Ubique Artifactory repository and deployment destination; private consumers must configure their
-  own registry.
-- Add Apache-2.0 licensing for original code, preserve third-party licenses, and add public project metadata and
-  contribution/security guidance.
-
 - Move Maven coordinates from `ch.ubique:uetlib-*` to `ch.uetlib:uetlib-*`.
-- Align uetlib parent, BOM and library references with the migration releases.
+- Move Java packages and class references from `ch.ubique.backend` and `ch.ubique.uetlib` to `ch.uetlib`.
+- Rename supported configuration keys and references to `ch.uetlib.*`, including Spring bindings, `@Value`, conditions,
+  scheduling and configuration files. External deployment configuration must be migrated too.
+- Remove the inherited private artifact repository and deployment destination; private consumers must configure their
+  own
+  registry. Remove legacy backend database migration templates and their obsolete license notice.
+- Add database tables `t_job_run_queue` and `t_job_daemon`.
+- Remove `Job.priority()`, `Job.allowParallelRuns()` and `Job.forceRunOverridesAllowParallelRuns()`; use job properties
+  `PRIORITY`, `ALLOW_PARALLEL_RUNS` and `FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS` instead.
+- Change default `PRIORITY` from `0` to `1`, allowing jobs to be deprioritized.
+- Change `Job.supportsForceRun()` to default to `false`; `BaseStateJob` and `BaseInputJob` retain their overrides.
+- Remove all `JobExecutorService.submit(Class, ...)` overloads; enqueue jobs with `JobService.queueNewRun(...)`.
+- Remove `throws ClassNotFoundException` from public APIs such as `JobManualTriggerService`. Callers catching it may
+  need updating.
+- Run trigger coordination and status endpoints only with the `job-primary-triggers` profile. Trigger coordination is
+  active only on the instance holding the primary lease; other eligible instances are standbys.
+- Replace `PgListenDataSourceProvider` with `PgListenJobTriggerDataSourceProvider` for job `PG_LISTEN` triggers and
+  `JobQueueDataSourceProvider` for queue notifications.
+- Change `POST /job/{id}/start` to report queue submission rather than execution. Its response changes from
+  `JobSubmissionResult` to `QueueSubmissionResult`; failures return HTTP 400 with `{ "reason": "..." }`.
 
 ### Migration
 
-After the migration releases and `uetlib-rewrite` are published, run this from the consuming project, then review the
-diff and run its tests:
+- Apply `update_uetlib_6_0_0.sql` to create the queue and daemon tables.
+- Add `job-primary-triggers` to the profiles of instances eligible to coordinate triggers.
+- Applications with multiple datasources must supply the appropriate `JobQueueDataSourceProvider` and/or
+  `PgListenJobTriggerDataSourceProvider` beans. Single-datasource applications need no additional beans.
+- Run the public OpenRewrite migration, review its changes, then build and test the application:
 
 ```sh
 mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run \
@@ -39,9 +60,9 @@ mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run \
   -Drewrite.activeRecipes=ch.uetlib.MigrateToPublicUetlib
 ```
 
-The recipe updates Maven coordinates/versions, Java references and known class-name resources. Review application-owned
-packages under the old namespace, Kotlin, reflection patterns, native-access module flags and persisted class names
-separately. Use `:dryRun` instead of `:run` to preview a patch.
+The recipe updates Maven coordinates and versions, Java references and known class-name resources. Review
+application-owned packages, Kotlin, reflection patterns, native-access flags and persisted class names separately.
+Use `:dryRun` instead of `:run` to preview the patch.
 
 ## 5.2.2
 
