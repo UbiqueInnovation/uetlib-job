@@ -203,10 +203,13 @@ public class JobDataService {
             predicates.add(root.get("latestState").in(states));
         }
 
-        dateTimeRange.ifPresent(range ->
-                predicates.add(
-                        criteriaBuilder.between(
-                                root.get("startedAt"), range.getMinimum(), range.getMaximum())));
+        dateTimeRange.ifPresent(
+                range ->
+                        predicates.add(
+                                criteriaBuilder.between(
+                                        root.get("startedAt"),
+                                        range.getMinimum(),
+                                        range.getMaximum())));
 
         return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
@@ -261,11 +264,12 @@ public class JobDataService {
             final JobRun jobRun, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
         return jobRunRepository
                 .findById(jobRun.id())
-                .map(entity -> {
-                    entity.setRunnerKey(runnerKey);
-                    entity.setJobRunArguments(arguments);
-                    return jobRunRepository.save(entity);
-                })
+                .map(
+                        entity -> {
+                            entity.setRunnerKey(runnerKey);
+                            entity.setJobRunArguments(arguments);
+                            return jobRunRepository.save(entity);
+                        })
                 .orElseThrow(throwJobRunNotFound(jobRun.id()))
                 .toJobRun();
     }
@@ -395,10 +399,11 @@ public class JobDataService {
     public JobRun startJobRun(final int jobRunId, final Instant startedAt) {
         return jobRunRepository
                 .findById(jobRunId)
-                .map(entity -> {
-                    entity.setStartedAt(startedAt);
-                    return saveJobRunWithTransition(entity, JobRunState.BUSY, startedAt);
-                })
+                .map(
+                        entity -> {
+                            entity.setStartedAt(startedAt);
+                            return saveJobRunWithTransition(entity, JobRunState.BUSY, startedAt);
+                        })
                 .orElseThrow(throwJobRunNotFound(jobRunId))
                 .toJobRun();
     }
@@ -559,24 +564,27 @@ public class JobDataService {
                         .findFirstByJobIdAndLatestStateOrderByFinishedAtDesc(
                                 jobId, JobRunState.DONE)
                         .map(JobRunEntity::toJobRun)
-                        .map(jobRun ->
-                                requireNonNull(jobRun.finishedAt())
-                                        .minus(daysToKeep, ChronoUnit.DAYS))
+                        .map(
+                                jobRun ->
+                                        requireNonNull(jobRun.finishedAt())
+                                                .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.EPOCH);
         final var pageable = PageRequest.of(0, chunkSize);
         final var skippedBefore =
                 daysToKeepSkipped.map(d -> Instant.now().minus(Duration.ofDays(d)));
         return skippedBefore
-                .map(skipped ->
-                        jobRunRepository
-                                .findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
-                                        jobId, finishedBefore, skipped, pageable)
-                                .map(JobRunEntity::toJobRun))
-                .orElseGet(() ->
-                        jobRunRepository
-                                .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
-                                        jobId, finishedBefore, pageable)
-                                .map(JobRunEntity::toJobRun))
+                .map(
+                        skipped ->
+                                jobRunRepository
+                                        .findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
+                                                jobId, finishedBefore, skipped, pageable)
+                                        .map(JobRunEntity::toJobRun))
+                .orElseGet(
+                        () ->
+                                jobRunRepository
+                                        .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
+                                                jobId, finishedBefore, pageable)
+                                        .map(JobRunEntity::toJobRun))
                 .toList();
     }
 
@@ -959,10 +967,13 @@ public class JobDataService {
             predicates.add(root.get("queueState").in(states));
         }
 
-        dateTimeRange.ifPresent(range ->
-                predicates.add(
-                        criteriaBuilder.between(
-                                root.get("createdAt"), range.getMinimum(), range.getMaximum())));
+        dateTimeRange.ifPresent(
+                range ->
+                        predicates.add(
+                                criteriaBuilder.between(
+                                        root.get("createdAt"),
+                                        range.getMinimum(),
+                                        range.getMaximum())));
 
         return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
