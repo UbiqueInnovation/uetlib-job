@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 6.0.7
+
+### Fixes
+
+- Provide the default `JobQueueDataSourceProvider` and `PgListenJobTriggerDataSourceProvider` from the
+  autoconfiguration `ch.uetlib.job.autoconfigure.UetlibJobDataSourceProviderAutoConfiguration`.
+
 ## 6.0.6
 
 - Use shared Maven workflows at `v1.1.0`: wait for the SonarCloud quality gate and analyse with the
