@@ -17,6 +17,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.context.annotation.Bean;
@@ -35,12 +36,11 @@ import java.util.List;
 import javax.sql.DataSource;
 
 @SpringBootConfiguration
-@Import({
+@ImportAutoConfiguration({
     UetlibJobPgListenDataSourceProviderConfig.class,
-    UetlibJobQueueDataSourceProviderConfig.class,
-    PgChannelListenerRegistryConfig.class,
-    HibernateJsonConfiguration.class
+    UetlibJobQueueDataSourceProviderConfig.class
 })
+@Import({PgChannelListenerRegistryConfig.class, HibernateJsonConfiguration.class})
 @ComponentScan({"ch.uetlib.job.data.service", "ch.uetlib.job.service"})
 @EnableJobs("ch.uetlib.job.testjob")
 @EnableJpaRepositories(basePackages = "ch.uetlib.job.data.repository")
