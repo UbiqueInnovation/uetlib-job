@@ -91,6 +91,6 @@ public final class InotifyFileWatcher implements FileWatcher, InotifyEventListen
 
     @Override
     public void close() {
-        inotify.destroy();
+        inotify.close();
     }
 }

@@ -1,8 +1,12 @@
 # CHANGELOG
 
-## 6.0.4
+## 6.0.5
 
 - Use shared Maven build and publish workflows at `v1.0.0` to enforce formatting checks in CI.
+
+## 6.0.4
+
+- Update `uetlib-inotify-java` to `3.0.3` and close the inotify instance via `AutoCloseable`.
 
 ## 6.0.3
 
