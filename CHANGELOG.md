@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 6.0.6
+
+### Fixes
+
+- Provide the default `JobQueueDataSourceProvider` and `PgListenJobTriggerDataSourceProvider` from the
+  autoconfiguration `ch.uetlib.job.autoconfigure.UetlibJobDataSourceProviderAutoConfiguration`.
+
 ## 6.0.5
 
 - Use shared Maven build and publish workflows at `v1.0.0` to enforce formatting checks in CI.
