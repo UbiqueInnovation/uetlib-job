@@ -6,6 +6,7 @@
 
 - Provide the default `JobQueueDataSourceProvider` and `PgListenJobTriggerDataSourceProvider` from the
   autoconfiguration `ch.uetlib.job.autoconfigure.UetlibJobDataSourceProviderAutoConfiguration`.
+- All bulk queue and daemon queries now flush before they clear.
 
 ## 6.0.5
 

@@ -399,6 +399,29 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
+    void queueReprocessingRunPersistsTheProcessingRunnerKey() {
+        // The dispatcher picks the runner of a handoff row from the run's runner key. The requeue
+        // query cleared the persistence context without flushing it, which dropped the new key,
+        // so the dedicated continuation ran on CURRENT and failed there.
+        queueClaimAndRunToRunning();
+
+        jobDataService.queueReprocessingRun(
+                TEST_JOB_ID,
+                "1.0.0",
+                new JobRunArguments(),
+                Set.of(),
+                EXISTING_JOB_RUN_ID,
+                JobRunnerKey.DEDICATED_K8S_JOB);
+
+        assertEquals(
+                JobRunnerKey.DEDICATED_K8S_JOB.name(),
+                jobJdbcTemplate.queryForObject(
+                        "select runner_key from t_job_run where pk_job_run_id = ?",
+                        String.class,
+                        EXISTING_JOB_RUN_ID));
+    }
+
+    @Test
     void queueReprocessingRunInsertsARowForARunThatHasNoQueueRowAtAll() {
         // A run started outside the queue - a standalone --job CLI process - has no row to
         // re-queue.
