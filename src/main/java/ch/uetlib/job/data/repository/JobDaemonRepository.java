@@ -36,7 +36,7 @@ public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Inte
     /**
      * Frees the lease from a holder that stopped checking in or started before {@code daemonName}.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobDaemonEntity i
@@ -50,7 +50,7 @@ public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Inte
     int releaseOutrankedPrimaryLease(String daemonName, Instant startedAt, Instant staleBefore);
 
     /** Fails with a unique violation if another instance holds the lease. */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobDaemonEntity i
@@ -59,7 +59,7 @@ public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Inte
                     """)
     int acquirePrimaryLease(String daemonName, Instant now, Instant staleBefore);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobDaemonEntity i
@@ -68,7 +68,7 @@ public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Inte
                     """)
     int releasePrimaryLease(String daemonName);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     DELETE FROM JobDaemonEntity i
@@ -76,7 +76,7 @@ public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Inte
                     """)
     int deleteStale(Instant staleBefore);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     DELETE FROM JobDaemonEntity i

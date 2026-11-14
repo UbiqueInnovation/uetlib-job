@@ -75,7 +75,7 @@ public interface JobQueuedRunRepository
     Slice<JobQueuedRunEntity> findByQueueStateOrderedByPriority(
             JobRunQueueState state, Pageable pageable);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -93,7 +93,7 @@ public interface JobQueuedRunRepository
      * Links a claimed row to its run and moves it to {@link JobRunQueueState#RUNNING}. Conditional,
      * so it cannot resurrect a row that is no longer claimed.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -108,7 +108,7 @@ public interface JobQueuedRunRepository
      * Sends a {@code BaseStateJob} continuation's own row back to {@code QUEUED} for its target
      * runner.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -124,7 +124,7 @@ public interface JobQueuedRunRepository
      * unconditionally - unlike the time-based {@link #expireStaleQueuedRunsForJobs(Collection,
      * Instant, Instant)}.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -134,7 +134,7 @@ public interface JobQueuedRunRepository
                     """)
     int cancelQueuedRunById(int id, Instant now);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -152,7 +152,7 @@ public interface JobQueuedRunRepository
      * Cancels {@code QUEUED} rows idle since {@code staleBefore}; a row an instance waits to run is
      * touched ({@link #touchQueuedRun}), so it survives.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -163,7 +163,7 @@ public interface JobQueuedRunRepository
     int expireStaleQueuedRunsForJobs(Collection<Integer> jobIds, Instant staleBefore, Instant now);
 
     /** Marks a still-{@code QUEUED} row as wanted by an instance waiting to run it. */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -173,7 +173,7 @@ public interface JobQueuedRunRepository
                     """)
     int touchQueuedRun(int id, Instant now);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     DELETE FROM JobQueuedRunEntity j
@@ -186,7 +186,7 @@ public interface JobQueuedRunRepository
      * For rows whose job this build doesn't know; {@code knownJobIds} must not be empty, as {@code
      * NOT IN ()} is invalid SQL.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     DELETE FROM JobQueuedRunEntity j
@@ -200,7 +200,7 @@ public interface JobQueuedRunRepository
     /**
      * Unconditional reset to {@code QUEUED}, restoring {@code jobRunId} as it was before the claim.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
@@ -213,7 +213,7 @@ public interface JobQueuedRunRepository
      * Only ever updates a {@link JobRunQueueState#QUEUED} row's priority: once a row is claimed (or
      * running), a runner already has it, so reordering it is meaningless.
      */
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
                     UPDATE JobQueuedRunEntity j
