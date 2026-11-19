@@ -184,7 +184,7 @@ public class JobControllerService {
      * </ol>
      *
      * <ul>
-     *   <li>{@code state}: If not {@code null}, only job runs with the specified state are
+     *   <li>{@code states}: If not {@code null}, only job runs with the specified state are
      *       returned.
      * </ul>
      *

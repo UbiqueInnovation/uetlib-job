@@ -22,9 +22,9 @@ import java.util.Map;
  *       values in its handshake response. Browsers reject the connection if the header is missing
  *       or contains anything other than one of the originally proposed values.
  *   <li><strong>Bearer-token workaround&nbsp;&mdash;</strong> Some projects piggy-back on this
- *       header to pass an OAuth 2 access-token (for example, by sending {@code "Bearer,
- *       &lt;token&gt;"}). In that case the server still only needs to echo {@code "Bearer"} &mdash;
- *       not the token itself &mdash; to satisfy the browser.
+ *       header to pass an OAuth 2 access-token (for example, by sending <code>"Bearer,
+ *       &lt;token&gt;"</code>). In that case the server still only needs to echo {@code "Bearer"}
+ *       &mdash; not the token itself &mdash; to satisfy the browser.
  *   <li>Spring Framework does <em>not</em> automatically perform this echo, so an explicit
  *       interceptor is required.
  * </ul>
@@ -59,7 +59,7 @@ public class WebSocketEchoSubProtocolInterceptor implements HandshakeInterceptor
         final var protocols = request.getHeaders().get("Sec-WebSocket-Protocol");
         if (protocols != null) {
             for (final var header : protocols) {
-                for (final var offered : header.split(",")) {
+                for (final var offered : header.split(",", -1)) {
                     if ("Bearer".equalsIgnoreCase(offered.trim())) {
                         response.getHeaders().set("Sec-WebSocket-Protocol", "Bearer");
                         return true;

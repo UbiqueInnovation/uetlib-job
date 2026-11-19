@@ -11,6 +11,9 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Embeddable
+// @NotNull is a Bean Validation constraint; the fields are @Nullable until JPA populates the
+// entity.
+@SuppressWarnings("MultipleNullnessAnnotations")
 public class JobRunStateTransitionEmbeddable {
 
     @Column(
