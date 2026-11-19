@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 6.0.8
+
+- Build pull requests, including forks, and pushes to `main` instead of every branch push; use shared Maven
+  workflows at `v1.1.1`.
+
 ## 6.0.7
 
 ### Fixes
