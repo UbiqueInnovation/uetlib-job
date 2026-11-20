@@ -2,6 +2,8 @@
 
 ## UNRELEASED
 
+- Validate registered job types before casting instead of catching and discarding `ClassCastException`.
+
 - Build pull requests, including forks, and pushes to `main` instead of every branch push; use shared Maven
   workflows at `v1.1.1`.
 - Fix the warnings of Error Prone's default checks: enum properties whose constants have bodies resolve their
