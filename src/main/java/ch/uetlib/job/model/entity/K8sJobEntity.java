@@ -11,6 +11,9 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "t_k8s_jobs")
+// @NotNull is a Bean Validation constraint; the fields are @Nullable until JPA populates the
+// entity.
+@SuppressWarnings("MultipleNullnessAnnotations")
 public class K8sJobEntity {
 
     @Id

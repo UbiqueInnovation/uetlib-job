@@ -1,5 +1,7 @@
 package ch.uetlib.job.config;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import ch.uetlib.job.websocket.WebSocketSubProtocolBearerTokenResolver;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +39,7 @@ public class UetlibJobSecurityConfig {
 
     public JwtDecoder uetlibJobStatusJwtDecoder() {
         return NimbusJwtDecoder.withSecretKey(
-                        new SecretKeySpec(statusInterfaceSecret.getBytes(), "HmacSHA256"))
+                        new SecretKeySpec(statusInterfaceSecret.getBytes(UTF_8), "HmacSHA256"))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
     }

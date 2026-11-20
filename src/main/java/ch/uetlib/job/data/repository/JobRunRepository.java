@@ -86,7 +86,9 @@ public interface JobRunRepository
     Collection<JobRunEntity> findAllByJobIdInAndLatestState(
             Collection<Integer> jobIds, JobRunState state);
 
+    @Override
     Map<Integer, Set<JobRunState>> findJobRunStates(final Collection<Integer> jobs);
 
+    @Override
     Map<Integer, Set<JobRunState>> findJobRunStatesSince(final Map<Integer, Instant> jobs);
 }

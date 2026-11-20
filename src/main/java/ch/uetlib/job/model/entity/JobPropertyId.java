@@ -35,11 +35,9 @@ public class JobPropertyId implements Serializable {
             return true;
         }
 
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof final JobPropertyId that)) {
             return false;
         }
-
-        final var that = (JobPropertyId) o;
 
         return new EqualsBuilder().append(jobId, that.jobId).append(key, that.key).isEquals();
     }

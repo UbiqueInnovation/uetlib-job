@@ -64,6 +64,7 @@ public class TriggerCoordinatorService {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @SuppressWarnings("UnusedMethod") // called by Spring
     private void onStartup() {
         if (allTriggersDisabled) {
             logger.info("Not registering live triggers on this instance.");

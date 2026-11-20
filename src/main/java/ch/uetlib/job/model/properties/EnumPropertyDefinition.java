@@ -22,8 +22,8 @@ final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropert
                 group,
                 false,
                 Objects.requireNonNull(defaultValue),
-                (Set<T>) Set.of(defaultValue.getClass().getEnumConstants()));
-        this.enumClass = (Class<T>) defaultValue.getClass();
+                (Set<T>) Set.of(defaultValue.getDeclaringClass().getEnumConstants()));
+        this.enumClass = (Class<T>) defaultValue.getDeclaringClass();
     }
 
     @Override

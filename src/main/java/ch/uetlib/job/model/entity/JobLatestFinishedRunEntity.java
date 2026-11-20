@@ -21,6 +21,9 @@ import java.util.Objects;
 @Entity
 @Immutable
 @Table(name = "v_latest_finished_job_run")
+// @NotNull is a Bean Validation constraint; the fields are @Nullable until JPA populates the
+// entity.
+@SuppressWarnings("MultipleNullnessAnnotations")
 public class JobLatestFinishedRunEntity {
 
     @Id

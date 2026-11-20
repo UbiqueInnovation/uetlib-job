@@ -1,9 +1,12 @@
 # CHANGELOG
 
-## 6.0.8
+## UNRELEASED
 
 - Build pull requests, including forks, and pushes to `main` instead of every branch push; use shared Maven
   workflows at `v1.1.1`.
+- Fix the warnings of Error Prone's default checks: enum properties whose constants have bodies resolve their
+  enum class with `getDeclaringClass()`, `JobApplicationExitStatus` declares its exit codes explicitly (values
+  unchanged), case conversion uses `Locale.ROOT`, and Javadoc fixes.
 
 ## 6.0.7
 

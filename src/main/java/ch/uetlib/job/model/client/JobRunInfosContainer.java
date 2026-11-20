@@ -8,9 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @param jobs
- */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record JobRunInfosContainer(
         @JsonProperty(required = true) @NotNull List<JobRunInfo> jobRuns,

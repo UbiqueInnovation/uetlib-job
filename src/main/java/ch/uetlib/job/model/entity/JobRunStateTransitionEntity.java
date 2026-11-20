@@ -14,6 +14,9 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "t_job_run_state_transition")
+// @NotNull is a Bean Validation constraint; the fields are @Nullable until JPA populates the
+// entity.
+@SuppressWarnings("MultipleNullnessAnnotations")
 public class JobRunStateTransitionEntity {
 
     @Id
