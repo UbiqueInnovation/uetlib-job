@@ -54,11 +54,7 @@ public class JobRegistrationService {
 
         final var validJobClasses = new ArrayList<Class<? extends Job>>();
         for (final var registeredJobClass : registeredJobClasses) {
-            try {
-                final var jobClass = registeredJobClass.asSubclass(Job.class);
-                validJobClasses.add(jobClass);
-                logger.info("Registered {}.", jobClass);
-            } catch (final ClassCastException e) {
+            if (!Job.class.isAssignableFrom(registeredJobClass)) {
                 throw new ClassCastException(
                         MessageFormat.format(
                                 "Job class {0} annotated with @{1} must implement {2}",
@@ -66,6 +62,9 @@ public class JobRegistrationService {
                                 RegisteredJob.class.getCanonicalName(),
                                 Job.class.getCanonicalName()));
             }
+            final var jobClass = registeredJobClass.asSubclass(Job.class);
+            validJobClasses.add(jobClass);
+            logger.info("Registered {}.", jobClass);
         }
         jobDataService.insertNewJobs(validJobClasses);
     }
