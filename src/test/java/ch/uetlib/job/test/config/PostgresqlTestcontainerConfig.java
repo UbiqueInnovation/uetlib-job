@@ -14,6 +14,6 @@ public class PostgresqlTestcontainerConfig {
     @Bean
     @ServiceConnection
     PostgreSQLContainer postgresDBContainer() {
-        return new PostgreSQLContainer(DockerImageName.parse("postgres:18"));
+        return new PostgreSQLContainer(DockerImageName.parse("postgres:19"));
     }
 }
