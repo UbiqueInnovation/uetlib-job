@@ -65,12 +65,10 @@ public class JobScheduledStateCheck implements StatusCheck {
             final Collection<JobClassAndId> jobs) {
         final var jobsById = jobs.stream().collect(Collectors.toMap(JobClassAndId::id, job -> job));
         return jobDataService.findJobRunsInState(jobsById.keySet(), JobRunState.SCHEDULED).stream()
-                .filter(
-                        scheduledRun -> {
-                            final var job = jobsById.get(scheduledRun.jobId());
-                            return job != null
-                                    && exceedsMaxDurationInScheduledState(job, scheduledRun);
-                        })
+                .filter(scheduledRun -> {
+                    final var job = jobsById.get(scheduledRun.jobId());
+                    return job != null && exceedsMaxDurationInScheduledState(job, scheduledRun);
+                })
                 .map(jobRun -> jobsById.get(jobRun.jobId()))
                 .filter(java.util.Objects::nonNull)
                 .distinct()

@@ -90,23 +90,22 @@ public class FileTriggerService implements TriggerService<FileTrigger>, AutoClos
 
     private void onEvent(final FileWatcherEvent event) {
         logger.debug("Got {}", event);
-        registeredFileTriggers.forEach(
-                (triggerId, trigger) -> {
-                    try {
-                        onEvent(event, trigger);
-                    } catch (final Exception e) {
-                        // Job submission accesses the database and can fail during an outage.
-                        // Letting that exception escape kills the watcher, so later files would
-                        // require an application restart. Log this failed event and continue with
-                        // other triggers and future files; this does not retry the failed event.
-                        logger.error(
-                                "Failed to process file event {} for trigger {} ({}).",
-                                event,
-                                triggerId,
-                                trigger.fileTrigger(),
-                                e);
-                    }
-                });
+        registeredFileTriggers.forEach((triggerId, trigger) -> {
+            try {
+                onEvent(event, trigger);
+            } catch (final Exception e) {
+                // Job submission accesses the database and can fail during an outage.
+                // Letting that exception escape kills the watcher, so later files would
+                // require an application restart. Log this failed event and continue with
+                // other triggers and future files; this does not retry the failed event.
+                logger.error(
+                        "Failed to process file event {} for trigger {} ({}).",
+                        event,
+                        triggerId,
+                        trigger.fileTrigger(),
+                        e);
+            }
+        });
     }
 
     private void onEvent(final FileWatcherEvent event, final RegisteredFileTrigger trigger) {

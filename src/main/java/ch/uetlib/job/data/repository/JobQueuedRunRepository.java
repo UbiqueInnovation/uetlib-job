@@ -21,7 +21,6 @@ import java.util.Optional;
 public interface JobQueuedRunRepository
         extends JpaRepository<JobQueuedRunEntity, Integer>,
                 JpaSpecificationExecutor<JobQueuedRunEntity> {
-    List<JobQueuedRunEntity> findAllByJobId(int jobId);
 
     List<JobQueuedRunEntity> findAllByQueueState(JobRunQueueState queueState);
 
@@ -51,13 +50,6 @@ public interface JobQueuedRunRepository
      */
     long deleteByJobQueuedRunIdAndQueueState(int jobQueuedRunId, JobRunQueueState queueState);
 
-    /**
-     * Never deletes a {@link JobRunQueueState#RUNNING} row: callers must exclude it from {@code
-     * states}.
-     */
-    long deleteByJobIdInAndQueueStateIn(
-            Collection<Integer> jobIds, Collection<JobRunQueueState> states);
-
     /** Deletes every row in the given state, regardless of job - for bulk acknowledge-all. */
     long deleteByQueueState(JobRunQueueState queueState);
 
@@ -67,21 +59,21 @@ public interface JobQueuedRunRepository
 
     @Query(
             """
-                    SELECT q
-                    FROM JobQueuedRunEntity q
-                    WHERE q.queueState = :state
-                    ORDER BY COALESCE(q.priority, 0) DESC, q.createdAt ASC
-                    """)
+            SELECT q
+            FROM JobQueuedRunEntity q
+            WHERE q.queueState = :state
+            ORDER BY COALESCE(q.priority, 0) DESC, q.createdAt ASC
+            """)
     Slice<JobQueuedRunEntity> findByQueueStateOrderedByPriority(
             JobRunQueueState state, Pageable pageable);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :newState, j.runner = :runner, j.updatedAt = :now
-                    WHERE j.jobQueuedRunId = :id AND j.queueState = :previousState
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = :newState, j.runner = :runner, j.updatedAt = :now
+            WHERE j.jobQueuedRunId = :id AND j.queueState = :previousState
+            """)
     int updateStateAndRunner(
             int id,
             JobRunQueueState previousState,
@@ -96,12 +88,12 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING,
-                        j.jobRunId = :jobRunId, j.updatedAt = :now
-                    WHERE j.jobQueuedRunId = :id
-                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CLAIMED
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING,
+                j.jobRunId = :jobRunId, j.updatedAt = :now
+            WHERE j.jobQueuedRunId = :id
+              AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CLAIMED
+            """)
     int linkRunAndMarkRunning(int id, int jobRunId, Instant now);
 
     /**
@@ -111,12 +103,12 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED,
-                        j.runner = null, j.updatedAt = :now
-                    WHERE j.jobRunId = :jobRunId
-                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED,
+                j.runner = null, j.updatedAt = :now
+            WHERE j.jobRunId = :jobRunId
+              AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING
+            """)
     int requeueRunningRunForReprocessing(int jobRunId, Instant now);
 
     /**
@@ -127,20 +119,20 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
-                    WHERE j.jobQueuedRunId = :id
-                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
+            WHERE j.jobQueuedRunId = :id
+              AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+            """)
     int cancelQueuedRunById(int id, Instant now);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :resetState, j.runner = null, j.updatedAt = :now
-                    WHERE j.jobId IN :jobIds AND j.queueState = :staleState AND j.updatedAt < :staleBefore
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = :resetState, j.runner = null, j.updatedAt = :now
+            WHERE j.jobId IN :jobIds AND j.queueState = :staleState AND j.updatedAt < :staleBefore
+            """)
     int resetStaleClaimsForJobs(
             Collection<Integer> jobIds,
             JobRunQueueState staleState,
@@ -155,31 +147,31 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
-                    WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
-                      AND j.updatedAt < :staleBefore
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED, j.updatedAt = :now
+            WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+              AND j.updatedAt < :staleBefore
+            """)
     int expireStaleQueuedRunsForJobs(Collection<Integer> jobIds, Instant staleBefore, Instant now);
 
     /** Marks a still-{@code QUEUED} row as wanted by an instance waiting to run it. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.updatedAt = :now
-                    WHERE j.jobQueuedRunId = :id
-                      AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.updatedAt = :now
+            WHERE j.jobQueuedRunId = :id
+              AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
+            """)
     int touchQueuedRun(int id, Instant now);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    DELETE FROM JobQueuedRunEntity j
-                    WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
-                      AND j.updatedAt < :retainAfter
-                    """)
+            DELETE FROM JobQueuedRunEntity j
+            WHERE j.jobId IN :jobIds AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
+              AND j.updatedAt < :retainAfter
+            """)
     int deleteOldCancelledQueuedRunsForJobs(Collection<Integer> jobIds, Instant retainAfter);
 
     /**
@@ -189,11 +181,11 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    DELETE FROM JobQueuedRunEntity j
-                    WHERE j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
-                      AND j.updatedAt < :retainAfter
-                      AND j.jobId NOT IN :knownJobIds
-                    """)
+            DELETE FROM JobQueuedRunEntity j
+            WHERE j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.CANCELLED
+              AND j.updatedAt < :retainAfter
+              AND j.jobId NOT IN :knownJobIds
+            """)
     int deleteOldCancelledQueuedRunsForUnknownJobs(
             Collection<Integer> knownJobIds, Instant retainAfter);
 
@@ -203,10 +195,10 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.queueState = :newState, j.runner = null, j.jobRunId = :jobRunId, j.updatedAt = :now
-                    WHERE j.jobQueuedRunId = :id
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.queueState = :newState, j.runner = null, j.jobRunId = :jobRunId, j.updatedAt = :now
+            WHERE j.jobQueuedRunId = :id
+            """)
     void forceReset(int id, JobRunQueueState newState, @Nullable Integer jobRunId, Instant now);
 
     /**
@@ -216,9 +208,9 @@ public interface JobQueuedRunRepository
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobQueuedRunEntity j
-                    SET j.priority = :priority
-                    WHERE j.jobQueuedRunId = :id AND j.queueState = :allowedState
-                    """)
+            UPDATE JobQueuedRunEntity j
+            SET j.priority = :priority
+            WHERE j.jobQueuedRunId = :id AND j.queueState = :allowedState
+            """)
     int updatePriority(int id, @Nullable Integer priority, JobRunQueueState allowedState);
 }

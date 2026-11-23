@@ -48,19 +48,16 @@ public class UetlibJobSecurityConfig {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain uetlibJobBearerFilterChain(final HttpSecurity http) {
         http.securityMatcher("/v1/status/**")
-                .authorizeHttpRequests(
-                        authorize ->
-                                authorize
-                                        .requestMatchers(HttpMethod.OPTIONS, "/v1/status/**")
-                                        .permitAll()
-                                        .requestMatchers("/v1/status/**")
-                                        .authenticated())
-                .oauth2ResourceServer(
-                        customizer ->
-                                customizer
-                                        .bearerTokenResolver(
-                                                new WebSocketSubProtocolBearerTokenResolver())
-                                        .jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder())));
+                .authorizeHttpRequests(authorize ->
+                        authorize
+                                .requestMatchers(HttpMethod.OPTIONS, "/v1/status/**")
+                                .permitAll()
+                                .requestMatchers("/v1/status/**")
+                                .authenticated())
+                .oauth2ResourceServer(customizer ->
+                        customizer
+                                .bearerTokenResolver(new WebSocketSubProtocolBearerTokenResolver())
+                                .jwt(jwt -> jwt.decoder(uetlibJobStatusJwtDecoder())));
 
         return http.build();
     }

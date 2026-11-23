@@ -125,45 +125,42 @@ public abstract class KubernetesJob implements Job {
 
     protected String getCurrentPodName(final KubernetesJobRunContext kubernetesJobRunContext) {
         return maybeGetCurrentPodName(kubernetesJobRunContext)
-                .orElseGet(
-                        () -> {
-                            final var springApplicationName =
-                                    requireNonNull(
-                                            applicationContext
-                                                    .getEnvironment()
-                                                    .getProperty("spring.application.name"));
-                            logger.warn(
-                                    "Could not get current pod name, using"
-                                            + " spring.application.name={} as fallback",
-                                    springApplicationName);
-                            return springApplicationName;
-                        });
+                .orElseGet(() -> {
+                    final var springApplicationName =
+                            requireNonNull(
+                                    applicationContext
+                                            .getEnvironment()
+                                            .getProperty("spring.application.name"));
+                    logger.warn(
+                            "Could not get current pod name, using"
+                                    + " spring.application.name={} as fallback",
+                            springApplicationName);
+                    return springApplicationName;
+                });
     }
 
     protected String getCurrentDeploymentName(
             final KubernetesJobRunContext kubernetesJobRunContext) {
         return maybeGetCurrentPodName(kubernetesJobRunContext)
-                .map(
-                        podName -> {
-                            final var splitPodName = Arrays.stream(podName.split("-")).toList();
-                            // the pod name always with '-[replica set id]-[pod id]'
-                            return splitPodName.stream()
-                                    .limit(splitPodName.size() - 2L)
-                                    .collect(joining("-"));
-                        })
-                .orElseGet(
-                        () -> {
-                            final var springApplicationName =
-                                    requireNonNull(
-                                            applicationContext
-                                                    .getEnvironment()
-                                                    .getProperty("spring.application.name"));
-                            logger.warn(
-                                    "Could not get current deployment name, using"
-                                            + " spring.application.name={} as fallback",
-                                    springApplicationName);
-                            return springApplicationName;
-                        });
+                .map(podName -> {
+                    final var splitPodName = Arrays.stream(podName.split("-")).toList();
+                    // the pod name always with '-[replica set id]-[pod id]'
+                    return splitPodName.stream()
+                            .limit(splitPodName.size() - 2L)
+                            .collect(joining("-"));
+                })
+                .orElseGet(() -> {
+                    final var springApplicationName =
+                            requireNonNull(
+                                    applicationContext
+                                            .getEnvironment()
+                                            .getProperty("spring.application.name"));
+                    logger.warn(
+                            "Could not get current deployment name, using"
+                                    + " spring.application.name={} as fallback",
+                            springApplicationName);
+                    return springApplicationName;
+                });
     }
 
     protected Map<String, String> annotations(
@@ -208,12 +205,11 @@ public abstract class KubernetesJob implements Job {
                         .map(V1ObjectMeta::getLabels)
                         .orElseGet(Map::of);
         final var inheritable = new HashMap<String, String>();
-        podLabels.forEach(
-                (key, value) -> {
-                    if (!NON_INHERITED_LABELS.contains(key)) {
-                        inheritable.put(key, value);
-                    }
-                });
+        podLabels.forEach((key, value) -> {
+            if (!NON_INHERITED_LABELS.contains(key)) {
+                inheritable.put(key, value);
+            }
+        });
         return inheritable;
     }
 
@@ -239,17 +235,15 @@ public abstract class KubernetesJob implements Job {
                 .properties()
                 .get(JobPropertyDefinitions.K8S_POD_TOLERATIONS)
                 .valueMaybe()
-                .map(
-                        kubernetesPodTolerations ->
-                                kubernetesPodTolerations.tolerations().stream()
-                                        .map(KubernetesPodToleration::toV1Toleration)
-                                        .toList())
-                .orElseGet(
-                        () ->
-                                // get node selector from current pod if not explicitly set
-                                getCurrentPodSpec(kubernetesJobRunContext)
-                                        .map(V1PodSpec::getTolerations)
-                                        .orElseGet(List::of));
+                .map(kubernetesPodTolerations ->
+                        kubernetesPodTolerations.tolerations().stream()
+                                .map(KubernetesPodToleration::toV1Toleration)
+                                .toList())
+                .orElseGet(() ->
+                        // get node selector from current pod if not explicitly set
+                        getCurrentPodSpec(kubernetesJobRunContext)
+                                .map(V1PodSpec::getTolerations)
+                                .orElseGet(List::of));
     }
 
     protected V1JobSpec jobSpec(final KubernetesJobRunContext kubernetesJobRunContext) {
@@ -391,12 +385,11 @@ public abstract class KubernetesJob implements Job {
                 .properties()
                 .get(JobPropertyDefinitions.K8S_POD_NODE_SELECTOR)
                 .valueMaybe()
-                .orElseGet(
-                        () ->
-                                // get node selector from current pod if not explicitly set
-                                getCurrentPodSpec(kubernetesJobRunContext)
-                                        .map(V1PodSpec::getNodeSelector)
-                                        .orElseGet(Map::of));
+                .orElseGet(() ->
+                        // get node selector from current pod if not explicitly set
+                        getCurrentPodSpec(kubernetesJobRunContext)
+                                .map(V1PodSpec::getNodeSelector)
+                                .orElseGet(Map::of));
     }
 
     protected abstract Collection<V1Container> containers(
@@ -411,11 +404,10 @@ public abstract class KubernetesJob implements Job {
                         .get(JobPropertyDefinitions.K8S_REQUESTS_CPU)
                         .valueMaybe()
                         .map(Quantity::fromString)
-                        .orElseThrow(
-                                () ->
-                                        new IllegalArgumentException(
-                                                "must specify K8S_REQUESTS_CPU for a dedicated"
-                                                        + " KubernetesJob"));
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "must specify K8S_REQUESTS_CPU for a dedicated"
+                                                + " KubernetesJob"));
         final var memoryRequests =
                 kubernetesJobRunContext
                         .jobRunContext()
@@ -423,11 +415,10 @@ public abstract class KubernetesJob implements Job {
                         .get(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
                         .valueMaybe()
                         .map(Quantity::fromString)
-                        .orElseThrow(
-                                () ->
-                                        new IllegalArgumentException(
-                                                "must specify K8S_REQUESTS_MEMORY for a dedicated"
-                                                        + " KubernetesJob"));
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "must specify K8S_REQUESTS_MEMORY for a dedicated"
+                                                + " KubernetesJob"));
 
         final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
         final var limits = ofEntries(entry("memory", memoryRequests));

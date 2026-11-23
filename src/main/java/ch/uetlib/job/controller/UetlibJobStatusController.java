@@ -255,15 +255,13 @@ public class UetlibJobStatusController {
     public ResponseEntity<StreamingResponseBody> getAllFiles(@PathVariable final int jobRunId) {
         return jobControllerService
                 .getAllFiles(jobRunId)
-                .map(
-                        b ->
-                                ResponseEntity.ok()
-                                        .header(
-                                                HttpHeaders.CONTENT_DISPOSITION,
-                                                String.format(
-                                                        "attachment; filename=files_%d.zip",
-                                                        jobRunId))
-                                        .body(b))
+                .map(b ->
+                        ResponseEntity.ok()
+                                .header(
+                                        HttpHeaders.CONTENT_DISPOSITION,
+                                        String.format(
+                                                "attachment; filename=files_%d.zip", jobRunId))
+                                .body(b))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 

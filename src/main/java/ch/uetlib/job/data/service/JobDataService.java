@@ -203,13 +203,10 @@ public class JobDataService {
             predicates.add(root.get("latestState").in(states));
         }
 
-        dateTimeRange.ifPresent(
-                range ->
-                        predicates.add(
-                                criteriaBuilder.between(
-                                        root.get("startedAt"),
-                                        range.getMinimum(),
-                                        range.getMaximum())));
+        dateTimeRange.ifPresent(range ->
+                predicates.add(
+                        criteriaBuilder.between(
+                                root.get("startedAt"), range.getMinimum(), range.getMaximum())));
 
         return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
@@ -264,12 +261,11 @@ public class JobDataService {
             final JobRun jobRun, final JobRunnerKey runnerKey, final JobRunArguments arguments) {
         return jobRunRepository
                 .findById(jobRun.id())
-                .map(
-                        entity -> {
-                            entity.setRunnerKey(runnerKey);
-                            entity.setJobRunArguments(arguments);
-                            return jobRunRepository.save(entity);
-                        })
+                .map(entity -> {
+                    entity.setRunnerKey(runnerKey);
+                    entity.setJobRunArguments(arguments);
+                    return jobRunRepository.save(entity);
+                })
                 .orElseThrow(throwJobRunNotFound(jobRun.id()))
                 .toJobRun();
     }
@@ -379,11 +375,10 @@ public class JobDataService {
             final JobRunnerKey processingRunnerKey) {
         jobRunRepository
                 .findById(jobRunId)
-                .ifPresent(
-                        entity -> {
-                            entity.setRunnerKey(processingRunnerKey);
-                            jobRunRepository.save(entity);
-                        });
+                .ifPresent(entity -> {
+                    entity.setRunnerKey(processingRunnerKey);
+                    jobRunRepository.save(entity);
+                });
         if (jobQueuedRunRepository.requeueRunningRunForReprocessing(jobRunId, Instant.now()) > 0) {
             return jobQueuedRunRepository
                     .findByJobRunIdAndQueueState(jobRunId, QUEUED)
@@ -399,11 +394,10 @@ public class JobDataService {
     public JobRun startJobRun(final int jobRunId, final Instant startedAt) {
         return jobRunRepository
                 .findById(jobRunId)
-                .map(
-                        entity -> {
-                            entity.setStartedAt(startedAt);
-                            return saveJobRunWithTransition(entity, JobRunState.BUSY, startedAt);
-                        })
+                .map(entity -> {
+                    entity.setStartedAt(startedAt);
+                    return saveJobRunWithTransition(entity, JobRunState.BUSY, startedAt);
+                })
                 .orElseThrow(throwJobRunNotFound(jobRunId))
                 .toJobRun();
     }
@@ -564,27 +558,24 @@ public class JobDataService {
                         .findFirstByJobIdAndLatestStateOrderByFinishedAtDesc(
                                 jobId, JobRunState.DONE)
                         .map(JobRunEntity::toJobRun)
-                        .map(
-                                jobRun ->
-                                        requireNonNull(jobRun.finishedAt())
-                                                .minus(daysToKeep, ChronoUnit.DAYS))
+                        .map(jobRun ->
+                                requireNonNull(jobRun.finishedAt())
+                                        .minus(daysToKeep, ChronoUnit.DAYS))
                         .orElse(Instant.EPOCH);
         final var pageable = PageRequest.of(0, chunkSize);
         final var skippedBefore =
                 daysToKeepSkipped.map(d -> Instant.now().minus(Duration.ofDays(d)));
         return skippedBefore
-                .map(
-                        skipped ->
-                                jobRunRepository
-                                        .findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
-                                                jobId, finishedBefore, skipped, pageable)
-                                        .map(JobRunEntity::toJobRun))
-                .orElseGet(
-                        () ->
-                                jobRunRepository
-                                        .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
-                                                jobId, finishedBefore, pageable)
-                                        .map(JobRunEntity::toJobRun))
+                .map(skipped ->
+                        jobRunRepository
+                                .findAllByJobWhereFinishedAtBeforeOrSkippedBefore(
+                                        jobId, finishedBefore, skipped, pageable)
+                                .map(JobRunEntity::toJobRun))
+                .orElseGet(() ->
+                        jobRunRepository
+                                .findAllByJobIdAndFinishedAtBeforeOrderByFinishedAt(
+                                        jobId, finishedBefore, pageable)
+                                .map(JobRunEntity::toJobRun))
                 .toList();
     }
 
@@ -840,10 +831,9 @@ public class JobDataService {
     public int resetStaleClaims(final Map<Integer, Instant> staleBefore) {
         final var now = Instant.now();
         return groupJobsByCutoff(staleBefore).entrySet().stream()
-                .mapToInt(
-                        entry ->
-                                jobQueuedRunRepository.resetStaleClaimsForJobs(
-                                        entry.getValue(), CLAIMED, QUEUED, entry.getKey(), now))
+                .mapToInt(entry ->
+                        jobQueuedRunRepository.resetStaleClaimsForJobs(
+                                entry.getValue(), CLAIMED, QUEUED, entry.getKey(), now))
                 .sum();
     }
 
@@ -868,10 +858,9 @@ public class JobDataService {
     public int expireStaleQueuedRuns(final Map<Integer, Instant> staleBefore) {
         final var now = Instant.now();
         return groupJobsByCutoff(staleBefore).entrySet().stream()
-                .mapToInt(
-                        entry ->
-                                jobQueuedRunRepository.expireStaleQueuedRunsForJobs(
-                                        entry.getValue(), entry.getKey(), now))
+                .mapToInt(entry ->
+                        jobQueuedRunRepository.expireStaleQueuedRunsForJobs(
+                                entry.getValue(), entry.getKey(), now))
                 .sum();
     }
 
@@ -882,10 +871,9 @@ public class JobDataService {
     @Transactional
     public int deleteOldCancelledQueuedRuns(final Map<Integer, Instant> retainAfter) {
         return groupJobsByCutoff(retainAfter).entrySet().stream()
-                .mapToInt(
-                        entry ->
-                                jobQueuedRunRepository.deleteOldCancelledQueuedRunsForJobs(
-                                        entry.getValue(), entry.getKey()))
+                .mapToInt(entry ->
+                        jobQueuedRunRepository.deleteOldCancelledQueuedRunsForJobs(
+                                entry.getValue(), entry.getKey()))
                 .sum();
     }
 
@@ -967,13 +955,10 @@ public class JobDataService {
             predicates.add(root.get("queueState").in(states));
         }
 
-        dateTimeRange.ifPresent(
-                range ->
-                        predicates.add(
-                                criteriaBuilder.between(
-                                        root.get("createdAt"),
-                                        range.getMinimum(),
-                                        range.getMaximum())));
+        dateTimeRange.ifPresent(range ->
+                predicates.add(
+                        criteriaBuilder.between(
+                                root.get("createdAt"), range.getMinimum(), range.getMaximum())));
 
         return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
     }
@@ -1059,25 +1044,23 @@ public class JobDataService {
         final var entity =
                 jobDaemonRepository
                         .findByDaemonName(daemonName)
-                        .map(
-                                existing ->
-                                        existing.checkIn(
-                                                version,
-                                                taints,
-                                                primaryCandidate,
-                                                triggerCount,
-                                                startedAt,
-                                                now))
-                        .orElseGet(
-                                () ->
-                                        new JobDaemonEntity(
-                                                daemonName,
-                                                version,
-                                                taints,
-                                                primaryCandidate,
-                                                triggerCount,
-                                                startedAt,
-                                                now));
+                        .map(existing ->
+                                existing.checkIn(
+                                        version,
+                                        taints,
+                                        primaryCandidate,
+                                        triggerCount,
+                                        startedAt,
+                                        now))
+                        .orElseGet(() ->
+                                new JobDaemonEntity(
+                                        daemonName,
+                                        version,
+                                        taints,
+                                        primaryCandidate,
+                                        triggerCount,
+                                        startedAt,
+                                        now));
         return jobDaemonRepository.save(entity).toJobDaemon();
     }
 

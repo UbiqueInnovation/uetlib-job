@@ -30,11 +30,10 @@ public record JobProperty<T extends @Nullable Object>(
             this.value =
                     ofNullable(value)
                             .or(definition::defaultValue)
-                            .orElseThrow(
-                                    () ->
-                                            new NoSuchElementException(
-                                                    "Either value or default value must be present for definition: "
-                                                            + definition.key()));
+                            .orElseThrow(() ->
+                                    new NoSuchElementException(
+                                            "Either value or default value must be present for definition: "
+                                                    + definition.key()));
         }
     }
 

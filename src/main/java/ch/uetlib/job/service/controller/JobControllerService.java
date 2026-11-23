@@ -124,7 +124,7 @@ public class JobControllerService {
         return list;
     }
 
-    private ArrayList<JobInfo> jobInfos(
+    private List<JobInfo> jobInfos(
             final Collection<JobClassAndId> jobs,
             final Map<Integer, List<Trigger>> existingDbTriggers) {
         final var jobInfos = new ArrayList<JobInfo>(jobs.size());
@@ -292,12 +292,11 @@ public class JobControllerService {
         return jobDataService.findQueuedRunsByIds(List.of(jobQueuedRunId)).stream()
                 .findFirst()
                 .flatMap(run -> jobService.findJobById(run.jobId()))
-                .flatMap(
-                        job ->
-                                jobService
-                                        .getProperties(job)
-                                        .get(JobPropertyDefinitions.PRIORITY)
-                                        .valueMaybe())
+                .flatMap(job ->
+                        jobService
+                                .getProperties(job)
+                                .get(JobPropertyDefinitions.PRIORITY)
+                                .valueMaybe())
                 .orElse(null);
     }
 
@@ -487,10 +486,8 @@ public class JobControllerService {
                                             return a;
                                         }));
         return JobPropertyDefinitions.values().stream()
-                .map(
-                        definition ->
-                                properties.getOrDefault(
-                                        definition.key(), JobPropertyInfo.from(definition)))
+                .map(definition ->
+                        properties.getOrDefault(definition.key(), JobPropertyInfo.from(definition)))
                 .toList();
     }
 
@@ -623,24 +620,23 @@ public class JobControllerService {
         if (allPaths.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(
-                out -> {
-                    try (final var zipOutput = new ZipArchiveOutputStream(out)) {
-                        for (final var path : allPaths) {
-                            final var resource = getFile(jobRunId, path);
-                            if (resource.isEmpty()) {
-                                continue;
-                            }
-                            try (final var is = resource.get().getInputStream()) {
-                                final var entry = new ZipArchiveEntry(path);
-                                zipOutput.putArchiveEntry(entry);
-                                IOUtils.copy(is, zipOutput);
-                                zipOutput.closeArchiveEntry();
-                            }
-                        }
-                        zipOutput.finish();
+        return Optional.of(out -> {
+            try (final var zipOutput = new ZipArchiveOutputStream(out)) {
+                for (final var path : allPaths) {
+                    final var resource = getFile(jobRunId, path);
+                    if (resource.isEmpty()) {
+                        continue;
                     }
-                });
+                    try (final var is = resource.get().getInputStream()) {
+                        final var entry = new ZipArchiveEntry(path);
+                        zipOutput.putArchiveEntry(entry);
+                        IOUtils.copy(is, zipOutput);
+                        zipOutput.closeArchiveEntry();
+                    }
+                }
+                zipOutput.finish();
+            }
+        });
     }
 
     public Optional<InputStreamResource> getFile(final int jobRunId, final String path) {

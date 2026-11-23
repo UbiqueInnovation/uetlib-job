@@ -189,41 +189,33 @@ class JobDaemonDatabaseTest extends BaseJobDatabaseTest {
         final var checkInFlight = new CountDownLatch(1);
         final var endCheck = new CountDownLatch(1);
         try {
-            transaction.executeWithoutResult(
-                    status -> {
-                        checkIn("lock-a", EARLIER);
-                        takeLease("lock-a", EARLIER);
-                    });
+            transaction.executeWithoutResult(status -> {
+                checkIn("lock-a", EARLIER);
+                takeLease("lock-a", EARLIER);
+            });
 
             final var firstCheck =
-                    executor.submit(
-                            () ->
-                                    transaction.execute(
-                                            status -> {
-                                                final var holds =
-                                                        jobDataService.holdsPrimaryLease("lock-a");
-                                                checkInFlight.countDown();
-                                                awaitQuietly(endCheck);
-                                                return holds;
-                                            }));
+                    executor.submit(() ->
+                            transaction.execute(status -> {
+                                final var holds = jobDataService.holdsPrimaryLease("lock-a");
+                                checkInFlight.countDown();
+                                awaitQuietly(endCheck);
+                                return holds;
+                            }));
             assertTrue(checkInFlight.await(10, TimeUnit.SECONDS));
 
             // A second check is not blocked by the first one's lock ...
             final var secondCheck =
-                    executor.submit(
-                            () ->
-                                    transaction.execute(
-                                            status -> jobDataService.holdsPrimaryLease("lock-a")));
+                    executor.submit(() ->
+                            transaction.execute(
+                                    status -> jobDataService.holdsPrimaryLease("lock-a")));
             assertEquals(Boolean.TRUE, secondCheck.get(10, TimeUnit.SECONDS));
 
             // ... but moving the lease is, until the first check's transaction ends.
             final var release =
-                    executor.submit(
-                            () ->
-                                    transaction.execute(
-                                            status ->
-                                                    jobDaemonRepository.releasePrimaryLease(
-                                                            "lock-a")));
+                    executor.submit(() ->
+                            transaction.execute(
+                                    status -> jobDaemonRepository.releasePrimaryLease("lock-a")));
             assertThrows(TimeoutException.class, () -> release.get(500, TimeUnit.MILLISECONDS));
 
             endCheck.countDown();
@@ -271,7 +263,7 @@ class JobDaemonDatabaseTest extends BaseJobDatabaseTest {
 
     private static void awaitQuietly(final CountDownLatch latch) {
         try {
-            latch.await(30, TimeUnit.SECONDS);
+            final var _ = latch.await(30, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
         }

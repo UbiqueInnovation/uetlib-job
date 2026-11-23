@@ -132,12 +132,10 @@ class JobRunQueueServiceTest {
         // re-entering from inside the mocked call, on the same thread, hits the exact same
         // AtomicBoolean guard a genuinely concurrent invocation would.
         when(jobService.findQueuedRunsPage(any()))
-                .thenAnswer(
-                        invocation -> {
-                            service.checkForRunnableAndSchedule();
-                            return new SliceImpl<>(
-                                    List.of(run), PageRequest.of(0, PAGE_SIZE), false);
-                        });
+                .thenAnswer(_ -> {
+                    service.checkForRunnableAndSchedule();
+                    return new SliceImpl<>(List.of(run), PageRequest.of(0, PAGE_SIZE), false);
+                });
 
         service.checkForRunnableAndSchedule();
 
@@ -154,11 +152,10 @@ class JobRunQueueServiceTest {
         stubPlainClaimAttempt();
         final var finishSubmission = new CountDownLatch(1);
         when(jobExecutorService.submit(eq(polled), anyBoolean()))
-                .thenAnswer(
-                        invocation -> {
-                            finishSubmission.await(5, TimeUnit.SECONDS);
-                            return new UnsuccessfulSubmissionResult(JobSubmissionStatus.FAILED);
-                        });
+                .thenAnswer(_ -> {
+                    finishSubmission.await(5, TimeUnit.SECONDS);
+                    return new UnsuccessfulSubmissionResult(JobSubmissionStatus.FAILED);
+                });
         when(jobService.findQueuedRunsPage(PageRequest.of(0, PAGE_SIZE)))
                 .thenReturn(new SliceImpl<>(List.of(polled), PageRequest.of(0, PAGE_SIZE), false));
         when(jobService.findQueuedByIds(List.of(2))).thenReturn(List.of(notified));
@@ -441,10 +438,8 @@ class JobRunQueueServiceTest {
     void stopsAfterThePageCapSoAnUntakeableQueueCostsABoundedNumberOfQueries() {
         final var nonMatching = queuedRun(1, Set.of(JobRunnerTaint.from("unadvertised")));
         when(jobService.findQueuedRunsPage(any()))
-                .thenAnswer(
-                        invocation ->
-                                new SliceImpl<>(
-                                        List.of(nonMatching), invocation.getArgument(0), true));
+                .thenAnswer(invocation ->
+                        new SliceImpl<>(List.of(nonMatching), invocation.getArgument(0), true));
 
         service.checkForRunnableAndSchedule();
 

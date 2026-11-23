@@ -26,9 +26,8 @@ class JobClassAndIdPropertyDefinitionsTest {
     void queueGroupHoldsThePropertiesThatOnlyAffectTheQueue() {
         final var queueKeys =
                 JobPropertyDefinitions.values().stream()
-                        .filter(
-                                definition ->
-                                        definition.group() == JobPropertyDefinitionGroup.QUEUE)
+                        .filter(definition ->
+                                definition.group() == JobPropertyDefinitionGroup.QUEUE)
                         .map(JobPropertyDefinition::key)
                         .collect(Collectors.toUnmodifiableSet());
 

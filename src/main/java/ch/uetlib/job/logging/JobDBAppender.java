@@ -32,12 +32,11 @@ public class JobDBAppender extends UnsynchronizedAppenderBase<ILoggingEvent>
     private final BlockingQueue<JobRunLoggingEvent> logQueue = new LinkedBlockingQueue<>();
     private final List<JobRunLoggingEvent> drainedEvents = new ArrayList<>(BATCH_SIZE);
     private final ScheduledExecutorService scheduler =
-            Executors.newSingleThreadScheduledExecutor(
-                    r -> {
-                        var thread = new Thread(r, DB_APPENDER_THREAD_NAME);
-                        thread.setDaemon(true);
-                        return thread;
-                    });
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                var thread = new Thread(r, DB_APPENDER_THREAD_NAME);
+                thread.setDaemon(true);
+                return thread;
+            });
 
     private final @Nullable DedicatedJobRunner dedicatedJobRunner;
 

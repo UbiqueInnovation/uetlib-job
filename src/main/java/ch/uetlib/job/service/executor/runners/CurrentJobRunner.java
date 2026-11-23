@@ -104,18 +104,17 @@ public final class CurrentJobRunner implements JobRunner {
         runnerGroupQueue.add(item);
         final var executorService = getExecutorService(runnerGroup);
         final var future =
-                executorService.submit(
-                        () -> {
-                            try {
-                                runnerGroupActive.add(item);
-                                runnerGroupQueue.remove(item);
-                                JobRunnerHelper.run(job, jobService, jobRunContext);
-                                futuresByJobRun.remove(jobRunId);
-                                runnerGroupByJobRun.remove(jobRunId);
-                            } finally {
-                                runnerGroupActive.remove(item);
-                            }
-                        });
+                executorService.submit(() -> {
+                    try {
+                        runnerGroupActive.add(item);
+                        runnerGroupQueue.remove(item);
+                        JobRunnerHelper.run(job, jobService, jobRunContext);
+                        futuresByJobRun.remove(jobRunId);
+                        runnerGroupByJobRun.remove(jobRunId);
+                    } finally {
+                        runnerGroupActive.remove(item);
+                    }
+                });
         futuresByJobRun.put(jobRunId, future);
         return true;
     }

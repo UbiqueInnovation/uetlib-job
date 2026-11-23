@@ -81,33 +81,27 @@ public abstract class JobStateCheck implements StatusCheck {
     private Stream<JobClassAndId> failedJobsAnyFailureInInterval(
             final JobStateCheckEvaluationData evaluation) {
         return evaluation.jobStateCheckStrategy().entrySet().stream()
-                .filter(
-                        entry ->
-                                entry.getValue()
-                                        == StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL)
+                .filter(entry ->
+                        entry.getValue() == StateCheckStrategy.CHECK_INTERVAL_ALL_SUCCESSFUL)
                 .map(Map.Entry::getKey)
-                .filter(
-                        job -> {
-                            final var states = evaluation.statesInInterval().get(job);
-                            return states != null && states.contains(stateToCheck);
-                        });
+                .filter(job -> {
+                    final var states = evaluation.statesInInterval().get(job);
+                    return states != null && states.contains(stateToCheck);
+                });
     }
 
     /** Returns jobs failing the check for strategy CHECK_INTERVAL_SOME_SUCCESSFUL */
     private Stream<JobClassAndId> failedJobsNoSuccessInInterval(
             final JobStateCheckEvaluationData evaluation) {
         return evaluation.jobStateCheckStrategy().entrySet().stream()
-                .filter(
-                        entry ->
-                                entry.getValue()
-                                        == StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL)
+                .filter(entry ->
+                        entry.getValue() == StateCheckStrategy.CHECK_INTERVAL_SOME_SUCCESSFUL)
                 .map(Map.Entry::getKey)
-                .filter(
-                        job -> {
-                            final var jobRunStates = evaluation.statesInInterval().get(job);
-                            return jobRunStates != null
-                                    && jobRunStates.contains(stateToCheck)
-                                    && jobRunStates.stream().noneMatch(SUCCESS_STATES::contains);
-                        });
+                .filter(job -> {
+                    final var jobRunStates = evaluation.statesInInterval().get(job);
+                    return jobRunStates != null
+                            && jobRunStates.contains(stateToCheck)
+                            && jobRunStates.stream().noneMatch(SUCCESS_STATES::contains);
+                });
     }
 }

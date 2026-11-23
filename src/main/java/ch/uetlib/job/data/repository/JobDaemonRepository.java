@@ -39,48 +39,48 @@ public interface JobDaemonRepository extends JpaRepository<JobDaemonEntity, Inte
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobDaemonEntity i
-                    SET i.primarySlot = null, i.primarySince = null
-                    WHERE i.primarySlot IS NOT NULL
-                      AND i.daemonName <> :daemonName
-                      AND (i.updatedAt < :staleBefore
-                           OR i.startedAt < :startedAt
-                           OR (i.startedAt = :startedAt AND i.daemonName < :daemonName))
-                    """)
+            UPDATE JobDaemonEntity i
+            SET i.primarySlot = null, i.primarySince = null
+            WHERE i.primarySlot IS NOT NULL
+              AND i.daemonName <> :daemonName
+              AND (i.updatedAt < :staleBefore
+                   OR i.startedAt < :startedAt
+                   OR (i.startedAt = :startedAt AND i.daemonName < :daemonName))
+            """)
     int releaseOutrankedPrimaryLease(String daemonName, Instant startedAt, Instant staleBefore);
 
     /** Fails with a unique violation if another instance holds the lease. */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobDaemonEntity i
-                    SET i.primarySlot = 1, i.primarySince = :now
-                    WHERE i.daemonName = :daemonName AND i.updatedAt >= :staleBefore
-                    """)
+            UPDATE JobDaemonEntity i
+            SET i.primarySlot = 1, i.primarySince = :now
+            WHERE i.daemonName = :daemonName AND i.updatedAt >= :staleBefore
+            """)
     int acquirePrimaryLease(String daemonName, Instant now, Instant staleBefore);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    UPDATE JobDaemonEntity i
-                    SET i.primarySlot = null, i.primarySince = null
-                    WHERE i.daemonName = :daemonName AND i.primarySlot IS NOT NULL
-                    """)
+            UPDATE JobDaemonEntity i
+            SET i.primarySlot = null, i.primarySince = null
+            WHERE i.daemonName = :daemonName AND i.primarySlot IS NOT NULL
+            """)
     int releasePrimaryLease(String daemonName);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    DELETE FROM JobDaemonEntity i
-                    WHERE i.updatedAt < :staleBefore
-                    """)
+            DELETE FROM JobDaemonEntity i
+            WHERE i.updatedAt < :staleBefore
+            """)
     int deleteStale(Instant staleBefore);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
-                    DELETE FROM JobDaemonEntity i
-                    WHERE i.daemonName = :daemonName
-                    """)
+            DELETE FROM JobDaemonEntity i
+            WHERE i.daemonName = :daemonName
+            """)
     int deleteByDaemonName(String daemonName);
 }

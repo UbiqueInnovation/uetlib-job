@@ -17,6 +17,7 @@ import org.springframework.scheduling.Trigger;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+@SuppressWarnings("DataFlowIssue")
 class CronTriggerServiceTest {
 
     private final CronTriggerService triggerService =
@@ -25,8 +26,9 @@ class CronTriggerServiceTest {
     @SuppressWarnings("unchecked")
     private static TaskScheduler taskScheduler() {
         final var taskScheduler = mock(TaskScheduler.class);
+        final var scheduledFuture = mock(ScheduledFuture.class);
         when(taskScheduler.schedule(Mockito.any(), (Trigger) Mockito.any()))
-                .thenReturn(mock(ScheduledFuture.class));
+                .thenReturn(scheduledFuture);
         return taskScheduler;
     }
 
@@ -34,19 +36,14 @@ class CronTriggerServiceTest {
     void onStartup() {
         final var runCount = new AtomicInteger();
         triggerService.onStartup(
-                0,
-                new CronTrigger("0 0 2 * * ?"),
-                null,
-                jobRunArguments -> runCount.incrementAndGet());
+                0, new CronTrigger("0 0 2 * * ?"), null, _ -> runCount.incrementAndGet());
         assertEquals(0, runCount.get());
     }
 
     @Test
     void addTrigger() {
         assertDoesNotThrow(
-                () ->
-                        triggerService.addTrigger(
-                                0, new CronTrigger("0 0 2 * * ?"), null, jobRunArguments -> {}));
+                () -> triggerService.addTrigger(0, new CronTrigger("0 0 2 * * ?"), null, _ -> {}));
     }
 
     @Test

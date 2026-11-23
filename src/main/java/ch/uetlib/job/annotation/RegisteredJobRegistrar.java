@@ -109,9 +109,8 @@ class RegisteredJobRegistrar
         return candidateComponents.stream()
                 .filter(AnnotatedBeanDefinition.class::isInstance)
                 .map(AnnotatedBeanDefinition.class::cast)
-                .map(
-                        beanDefinition ->
-                                classForName(requireNonNull(beanDefinition.getBeanClassName())))
+                .map(beanDefinition ->
+                        classForName(requireNonNull(beanDefinition.getBeanClassName())))
                 .collect(Collectors.toUnmodifiableSet());
     }
 

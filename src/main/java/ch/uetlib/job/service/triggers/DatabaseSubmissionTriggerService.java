@@ -59,21 +59,19 @@ public class DatabaseSubmissionTriggerService implements TriggerService<Database
         final var jobRunArguments = jobRunDatabaseSubmissionArguments.toJobRunArguments();
 
         registeredTriggers.entrySet().stream()
-                .filter(
-                        entry -> {
-                            final var trigger = entry.getValue();
-                            return trigger.jobClass()
-                                    .getCanonicalName()
-                                    .equals(jobClassAndId.canonicalClassName());
-                        })
-                .forEach(
-                        entry -> {
-                            final var consumer = triggerCallbacks.get(entry.getKey());
-                            if (consumer != null) {
-                                logger.info("Calling callback for {}.", entry.getValue());
-                                consumer.accept(jobRunArguments);
-                            }
-                        });
+                .filter(entry -> {
+                    final var trigger = entry.getValue();
+                    return trigger.jobClass()
+                            .getCanonicalName()
+                            .equals(jobClassAndId.canonicalClassName());
+                })
+                .forEach(entry -> {
+                    final var consumer = triggerCallbacks.get(entry.getKey());
+                    if (consumer != null) {
+                        logger.info("Calling callback for {}.", entry.getValue());
+                        consumer.accept(jobRunArguments);
+                    }
+                });
         logger.info(
                 "Submitted new job run from database submission for job {} with run arguments {}.",
                 jobClassAndId,

@@ -42,12 +42,11 @@ public record JobPropertyInfo(
                 new JobPropertyGroupInfo(definition.group()),
                 definition
                         .allowedValues()
-                        .map(
-                                values ->
-                                        values.stream()
-                                                .map(definition::encodeFromString)
-                                                .filter(Objects::nonNull)
-                                                .toList())
+                        .map(values ->
+                                values.stream()
+                                        .map(definition::encodeFromString)
+                                        .filter(Objects::nonNull)
+                                        .toList())
                         .orElse(null),
                 defaultValue,
                 definition.nullable(),

@@ -268,34 +268,30 @@ public abstract class BaseInputJob<T> implements Job {
         }
 
         return currentInputs.stream()
-                .allMatch(
-                        input -> {
-                            final var other = latestInputsByName.get(input.getFileName());
+                .allMatch(input -> {
+                    final var other = latestInputsByName.get(input.getFileName());
 
-                            if (other == null
-                                    || !requireNonNull(input.getFileHash())
-                                            .equals(other.getHash())) {
-                                logger.info(
-                                        "Input {} changed since last successful run",
-                                        input.getFileName());
-                                return false;
-                            }
-                            return true;
-                        });
+                    if (other == null
+                            || !requireNonNull(input.getFileHash()).equals(other.getHash())) {
+                        logger.info(
+                                "Input {} changed since last successful run", input.getFileName());
+                        return false;
+                    }
+                    return true;
+                });
     }
 
     private Optional<JobRunWithInputs> latestSuccessfulRun(final JobClassAndId job) {
         return jobDataService
                 .findLatestJobRunByState(job.id(), JobRunState.DONE)
-                .map(
-                        run ->
-                                new JobRunWithInputs(
-                                        run.id(),
-                                        run.versionTag(),
-                                        run.latestState(),
-                                        run.startedAt(),
-                                        run.startedAt(),
-                                        jobDataService.findJobRunInputs(run.id()).stream()
-                                                .collect(Collectors.toUnmodifiableSet())));
+                .map(run ->
+                        new JobRunWithInputs(
+                                run.id(),
+                                run.versionTag(),
+                                run.latestState(),
+                                run.startedAt(),
+                                run.startedAt(),
+                                jobDataService.findJobRunInputs(run.id()).stream()
+                                        .collect(Collectors.toUnmodifiableSet())));
     }
 }
