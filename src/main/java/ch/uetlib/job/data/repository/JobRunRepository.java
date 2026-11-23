@@ -50,21 +50,23 @@ public interface JobRunRepository
 
     @Query(
             """
-                select run
-                from JobRunEntity run
-                where run.jobId = :jobId
-                  and run.latestState in :latestState
-                  and run.startedAt >= :after
-                order by run.startedAt desc
-                limit 1""")
+            select run
+            from JobRunEntity run
+            where run.jobId = :jobId
+              and run.latestState in :latestState
+              and run.startedAt >= :after
+            order by run.startedAt desc
+            limit 1\
+            """)
     Optional<JobRunEntity> findAnyJobRunInStateSince(
             int jobId, Collection<JobRunState> latestState, Instant after);
 
     @Query(
             """
-                select run
-                from JobRunEntity run
-                where run.latestState in :latestStates""")
+            select run
+            from JobRunEntity run
+            where run.latestState in :latestStates\
+            """)
     Stream<JobRunEntity> findAllByLatestStateIn(Collection<JobRunState> latestStates);
 
     @Query("select r from JobLatestRunEntity r where r.latestState in :states")
@@ -73,13 +75,14 @@ public interface JobRunRepository
 
     @Query(
             """
-                select run
-                from JobRunEntity run
-                where run.jobId = :jobId
-                  and run.latestState = :latestState
-                  and run.finishedAt is not null
-                order by run.finishedAt desc
-                limit 1""")
+            select run
+            from JobRunEntity run
+            where run.jobId = :jobId
+              and run.latestState = :latestState
+              and run.finishedAt is not null
+            order by run.finishedAt desc
+            limit 1\
+            """)
     Optional<JobRunEntity> findFirstByJobIdAndLatestStateOrderByFinishedAtDesc(
             int jobId, JobRunState latestState);
 

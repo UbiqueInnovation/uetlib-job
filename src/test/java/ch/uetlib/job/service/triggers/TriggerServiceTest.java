@@ -24,11 +24,10 @@ class TriggerServiceTest {
         final var servicesForType =
                 triggerServices.stream()
                         .collect(
-                                Collectors.groupingBy(
-                                        cls ->
-                                                (Class<? extends TriggerDefinition>)
-                                                        GenericTypeResolver.resolveTypeArgument(
-                                                                cls, TriggerService.class)));
+                                Collectors.groupingBy(cls ->
+                                        (Class<? extends TriggerDefinition>)
+                                                GenericTypeResolver.resolveTypeArgument(
+                                                        cls, TriggerService.class)));
 
         for (final var triggerType : TriggerType.values()) {
             final var definitionClass = triggerType.definitionClass();

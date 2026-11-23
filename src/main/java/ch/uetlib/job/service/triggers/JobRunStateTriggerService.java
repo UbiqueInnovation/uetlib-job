@@ -60,10 +60,8 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
                 jobDataService.findJobRunStateTransitionsSince(aBitBeforePreviousCheck);
         final var newStateTransitionsSinceLastCheck =
                 newStateTransitionsSinceABitBeforePreviousCheck.stream()
-                        .filter(
-                                jobRunStateTransition ->
-                                        !lastCheckedJobRunStateIds.contains(
-                                                jobRunStateTransition.id()))
+                        .filter(jobRunStateTransition ->
+                                !lastCheckedJobRunStateIds.contains(jobRunStateTransition.id()))
                         .toList();
 
         // submit all state changes order by transitionedAt ascending (as returned by the data
@@ -83,28 +81,22 @@ public class JobRunStateTriggerService implements TriggerService<JobRunStateTrig
         logger.debug("{} changed to state {}.", jobRun, newState);
 
         registeredTriggers.entrySet().stream()
-                .filter(
-                        entry -> {
-                            final var trigger = entry.getValue();
-                            return trigger.state() == newState
-                                    && trigger.jobClass()
-                                            .getCanonicalName()
-                                            .equals(jobClass.canonicalClassName());
-                        })
-                .forEach(
-                        entry -> {
-                            final var consumer = triggerCallbacks.get(entry.getKey());
-                            if (consumer != null) {
-                                logger.debug("Calling callback for {}.", entry.getValue());
-                                consumer.accept(
-                                        new JobRunArguments(
-                                                false,
-                                                TriggerType.JOB_RUN_STATE,
-                                                null,
-                                                null,
-                                                null));
-                            }
-                        });
+                .filter(entry -> {
+                    final var trigger = entry.getValue();
+                    return trigger.state() == newState
+                            && trigger.jobClass()
+                                    .getCanonicalName()
+                                    .equals(jobClass.canonicalClassName());
+                })
+                .forEach(entry -> {
+                    final var consumer = triggerCallbacks.get(entry.getKey());
+                    if (consumer != null) {
+                        logger.debug("Calling callback for {}.", entry.getValue());
+                        consumer.accept(
+                                new JobRunArguments(
+                                        false, TriggerType.JOB_RUN_STATE, null, null, null));
+                    }
+                });
     }
 
     @Override

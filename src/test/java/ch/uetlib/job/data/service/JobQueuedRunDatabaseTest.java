@@ -101,15 +101,14 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     void pagesWhenMoreRowsThanPageSize() {
         final var queued =
                 IntStream.range(0, 3)
-                        .mapToObj(
-                                i ->
-                                        jobDataService.queueNewRun(
-                                                TEST_JOB_ID,
-                                                null,
-                                                "1.0.0",
-                                                new JobRunArguments(),
-                                                Set.of(),
-                                                JobQueueBehavior.ALLOW_MULTIPLE))
+                        .mapToObj(i ->
+                                jobDataService.queueNewRun(
+                                        TEST_JOB_ID,
+                                        null,
+                                        "1.0.0",
+                                        new JobRunArguments(),
+                                        Set.of(),
+                                        JobQueueBehavior.ALLOW_MULTIPLE))
                         .toList();
 
         final var firstPage = jobDataService.findQueuedRunsPage(PageRequest.of(0, 2));

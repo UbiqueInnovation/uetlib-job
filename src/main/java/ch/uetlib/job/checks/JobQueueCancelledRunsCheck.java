@@ -71,13 +71,12 @@ public class JobQueueCancelledRunsCheck implements StatusCheck {
                         .collect(MapCollectors.toMap(JobClassAndId::id));
 
         final var countByJobName = new LinkedHashMap<String, Long>();
-        countByJobId.forEach(
-                (jobId, count) ->
-                        countByJobName.put(
-                                Optional.ofNullable(jobsById.get(jobId))
-                                        .map(JobClassAndId::name)
-                                        .orElse(UNRESOLVED_JOB_NAME + " (id=" + jobId + ")"),
-                                count));
+        countByJobId.forEach((jobId, count) ->
+                countByJobName.put(
+                        Optional.ofNullable(jobsById.get(jobId))
+                                .map(JobClassAndId::name)
+                                .orElse(UNRESOLVED_JOB_NAME + " (id=" + jobId + ")"),
+                        count));
 
         return new CheckFailed(
                 "Some queued runs could not be claimed in time and are cancelled.",

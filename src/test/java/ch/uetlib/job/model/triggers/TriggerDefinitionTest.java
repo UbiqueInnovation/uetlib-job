@@ -31,9 +31,8 @@ class TriggerDefinitionTest {
 
         final var triggerTypes =
                 Arrays.stream(TriggerType.values())
-                        .map(
-                                triggerType ->
-                                        Pair.of(triggerType.name(), triggerType.definitionClass()))
+                        .map(triggerType ->
+                                Pair.of(triggerType.name(), triggerType.definitionClass()))
                         .collect(Collectors.toSet());
         final var subTypes =
                 Arrays.stream(jsonSubTypesAnnotation.value())

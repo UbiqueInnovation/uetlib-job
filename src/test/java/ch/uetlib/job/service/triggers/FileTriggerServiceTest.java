@@ -5,13 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import static java.util.Map.entry;
 import static java.util.Map.ofEntries;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.*;
 
 import ch.uetlib.job.model.FileTriggerContext;
 import ch.uetlib.job.model.triggers.FileChangeEvent;
 import ch.uetlib.job.model.triggers.FileTrigger;
 
-import org.apache.commons.collections4.bag.HashBag;
+import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.Test;
@@ -20,13 +21,11 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("DataFlowIssue")
 class FileTriggerServiceTest {
 
     @Test
@@ -54,7 +53,8 @@ class FileTriggerServiceTest {
                 null,
                 jobRunArguments -> {
                     triggered.add(anyFileCreated);
-                    fileTriggerContexts.add((FileTriggerContext) jobRunArguments.triggerContext());
+                    fileTriggerContexts.add(
+                            (FileTriggerContext) requireNonNull(jobRunArguments.triggerContext()));
                 });
         fileTriggerService.addTrigger(
                 1,
@@ -62,7 +62,8 @@ class FileTriggerServiceTest {
                 null,
                 jobRunArguments -> {
                     triggered.add(testTxtFileDeleted);
-                    fileTriggerContexts.add((FileTriggerContext) jobRunArguments.triggerContext());
+                    fileTriggerContexts.add(
+                            (FileTriggerContext) requireNonNull(jobRunArguments.triggerContext()));
                 });
 
         // CREATE FILES
@@ -93,14 +94,11 @@ class FileTriggerServiceTest {
                         Triple.of(0, List.of("foo.txt"), Map.of()),
                         Triple.of(0, List.of("bar.txt"), Map.of())),
                 fileTriggerContextCaptorValues.stream()
-                        .map(
-                                fileTriggerContext ->
-                                        Triple.of(
-                                                fileTriggerContext.matchResult().groupCount(),
-                                                fileTriggerContext.matchResult().groups(),
-                                                fileTriggerContext
-                                                        .matchResult()
-                                                        .namedGroupValues()))
+                        .map(fileTriggerContext ->
+                                Triple.of(
+                                        fileTriggerContext.matchResult().groupCount(),
+                                        fileTriggerContext.matchResult().groups(),
+                                        fileTriggerContext.matchResult().namedGroupValues()))
                         .collect(toSet()));
 
         // DELETE FILES
@@ -138,21 +136,18 @@ class FileTriggerServiceTest {
                                         entry("fileName", "test"),
                                         entry("fileExtension", ".txt")))),
                 fileTriggerContextCaptorValues.stream()
-                        .map(
-                                fileTriggerContext ->
-                                        Triple.of(
-                                                fileTriggerContext.matchResult().groupCount(),
-                                                fileTriggerContext.matchResult().groups(),
-                                                fileTriggerContext
-                                                        .matchResult()
-                                                        .namedGroupValues()))
+                        .map(fileTriggerContext ->
+                                Triple.of(
+                                        fileTriggerContext.matchResult().groupCount(),
+                                        fileTriggerContext.matchResult().groups(),
+                                        fileTriggerContext.matchResult().namedGroupValues()))
                         .collect(toSet()));
 
         assertEquals(
                 ofEntries(entry("fileName", "test"), entry("fileExtension", ".txt")),
                 fileTriggerContextCaptorValues.getFirst().matchResult().namedGroupValues());
 
-        final var bag = new HashBag<FileTrigger>();
+        final var bag = new HashMultiSet<>();
         bag.addAll(triggered);
         assertEquals(3, bag.getCount(anyFileCreated));
         assertEquals(1, bag.getCount(testTxtFileDeleted));

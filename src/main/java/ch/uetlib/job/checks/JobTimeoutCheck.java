@@ -61,14 +61,13 @@ public class JobTimeoutCheck implements StatusCheck {
             final Collection<JobClassAndId> jobs) {
         final var jobsById = jobs.stream().collect(Collectors.toMap(JobClassAndId::id, job -> job));
         return jobDataService.findJobRunsInState(jobsById.keySet(), JobRunState.BUSY).stream()
-                .flatMap(
-                        busyRun -> {
-                            final var job = jobsById.get(busyRun.jobId());
-                            if (job == null) {
-                                return java.util.stream.Stream.empty();
-                            }
-                            return runtimeLimitExceededError(job, busyRun).stream();
-                        })
+                .flatMap(busyRun -> {
+                    final var job = jobsById.get(busyRun.jobId());
+                    if (job == null) {
+                        return java.util.stream.Stream.empty();
+                    }
+                    return runtimeLimitExceededError(job, busyRun).stream();
+                })
                 .toList();
     }
 

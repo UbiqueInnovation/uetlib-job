@@ -3,6 +3,8 @@ package ch.uetlib.job.service.triggers.files;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import static java.util.Objects.requireNonNull;
+
 import ch.uetlib.job.model.triggers.FileChangeEvent;
 
 import org.junit.jupiter.api.Test;
@@ -32,15 +34,14 @@ class JavaNioFileWatcherTest {
         final var firstFile = Path.of("first.txt");
         final var laterFile = Path.of("later.txt");
         try (final var watcher =
-                new JavaNioFileWatcher(
-                        event -> {
-                            if (event.type() != FileChangeEvent.ENTRY_CREATED) return;
-                            if (event.filePath().equals(firstFile)) {
-                                failures.add(event.filePath());
-                                throw new IllegalStateException("Callback failed");
-                            }
-                            delivered.add(event.filePath());
-                        })) {
+                new JavaNioFileWatcher(event -> {
+                    if (event.type() != FileChangeEvent.ENTRY_CREATED) return;
+                    if (event.filePath().equals(firstFile)) {
+                        failures.add(event.filePath());
+                        throw new IllegalStateException("Callback failed");
+                    }
+                    delivered.add(event.filePath());
+                })) {
             watcher.watchPath(directory);
             Files.createFile(directory.resolve(firstFile));
             assertEquals(firstFile, failures.poll(10, TimeUnit.SECONDS));
@@ -88,20 +89,19 @@ class JavaNioFileWatcherTest {
         when(created.context()).thenReturn(laterFile);
         final var keys = new AtomicInteger();
         when(watchService.take())
-                .thenAnswer(
-                        _ -> {
-                            assertTrue(ready.await(10, TimeUnit.SECONDS));
-                            return switch (keys.getAndIncrement()) {
-                                case 0 -> invalidKey;
-                                case 1 -> validKey;
-                                default -> throw new ClosedWatchServiceException();
-                            };
-                        });
+                .thenAnswer(_ -> {
+                    assertTrue(ready.await(10, TimeUnit.SECONDS));
+                    return switch (keys.getAndIncrement()) {
+                        case 0 -> invalidKey;
+                        case 1 -> validKey;
+                        default -> throw new ClosedWatchServiceException();
+                    };
+                });
         try (final var watcher = new JavaNioFileWatcher(delivered::add, watchService)) {
             watcher.watchPath(invalidPath);
             watcher.watchPath(validPath);
             ready.countDown();
-            final var event = delivered.poll(10, TimeUnit.SECONDS);
+            final var event = requireNonNull(delivered.poll(10, TimeUnit.SECONDS));
             assertNotNull(event);
             assertEquals(validPath, event.watchedPath());
             assertEquals(laterFile, event.filePath());

@@ -31,18 +31,16 @@ class InotifyFileWatcherTest {
                                                 .thenReturn(7))) {
             nativeLibrary.when(NativeInotify::isLibraryLoaded).thenReturn(libraryLoaded);
             try (final var watcher =
-                    new InotifyFileWatcher(
-                            event -> {
-                                delivered.add(event);
-                                if (event.filePath().equals(Path.of("first.txt"))) {
-                                    throw new IllegalStateException("Callback failed");
-                                }
-                            })) {
+                    new InotifyFileWatcher(event -> {
+                        delivered.add(event);
+                        if (event.filePath().equals(Path.of("first.txt"))) {
+                            throw new IllegalStateException("Callback failed");
+                        }
+                    })) {
                 watcher.watchPath(incoming);
-                assertDoesNotThrow(
-                        () ->
-                                watcher.filesystemEventOccurred(
-                                        new InotifyEvent(7, Event.Create.value(), 0, "first.txt")));
+                assertDoesNotThrow(() ->
+                        watcher.filesystemEventOccurred(
+                                new InotifyEvent(7, Event.Create.value(), 0, "first.txt")));
                 watcher.filesystemEventOccurred(
                         new InotifyEvent(7, Event.Create.value(), 0, "later.txt"));
                 assertEquals(2, delivered.size());
