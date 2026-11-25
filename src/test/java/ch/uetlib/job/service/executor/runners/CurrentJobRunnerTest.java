@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import ch.uetlib.job.Job;
 import ch.uetlib.job.cleanup.CleanupJob;
+import ch.uetlib.job.cleanup.JobRunInputCleaner;
 import ch.uetlib.job.data.service.JobDataService;
 import ch.uetlib.job.health.HealthCheckJob;
 import ch.uetlib.job.model.*;
@@ -17,7 +18,6 @@ import ch.uetlib.job.model.properties.JobProperties;
 import ch.uetlib.job.model.properties.enums.JobRunnerKey;
 import ch.uetlib.job.model.runner.RunnerGroup;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.storage.JobRunStorage;
 
 import org.junit.jupiter.api.Test;
 
@@ -58,7 +58,7 @@ class CurrentJobRunnerTest {
         assertFalse(
                 currentRunnerWithMock.submit(
                         new CleanupJob(
-                                mock(JobRunStorage.class),
+                                mock(JobRunInputCleaner.class),
                                 mock(JobService.class),
                                 mock(JobDataService.class)),
                         jobRunContext),

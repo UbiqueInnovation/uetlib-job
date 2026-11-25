@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 6.1.2
+
+- Configure the maximum concurrent job run input directory deletions per application instance with
+  `ch.uetlib.job.cleanup.run-input-concurrency` (default 32). Was previously unbounded.
+
 ## 6.1.1
 
 - Allow setting CPU limit for Kubernetes jobs using `JobPropertyDefinitions.K8S_LIMITS_CPU`

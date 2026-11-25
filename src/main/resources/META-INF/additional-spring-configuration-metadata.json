@@ -14,6 +14,12 @@
         "reason": "The configuration namespace has moved to ch.uetlib.",
         "replacement": "ch.uetlib.job.interface.secret"
       }
+    },
+    {
+      "name": "ch.uetlib.job.cleanup.run-input-concurrency",
+      "type": "java.lang.Integer",
+      "defaultValue": 32,
+      "description": "Maximum concurrent job run input directory deletions per application instance during cleanup. Independent of CLEANUP_CHUNK_SIZE."
     }
   ]
 }

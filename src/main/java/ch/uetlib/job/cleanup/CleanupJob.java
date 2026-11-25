@@ -18,12 +18,10 @@ import ch.uetlib.job.model.runner.RunnerGroup;
 import ch.uetlib.job.model.triggers.CronTrigger;
 import ch.uetlib.job.model.triggers.JobTriggersConfig;
 import ch.uetlib.job.service.JobService;
-import ch.uetlib.job.storage.JobRunStorage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -36,15 +34,15 @@ public class CleanupJob implements Job {
 
     private static final int JPA_BATCH_CHUNK_SIZE = 20_000;
 
-    private final JobRunStorage jobRunStorage;
+    private final JobRunInputCleaner jobRunInputCleaner;
     private final JobService jobService;
     private final JobDataService jobDataService;
 
     public CleanupJob(
-            final JobRunStorage jobRunStorage,
+            final JobRunInputCleaner jobRunInputCleaner,
             final JobService jobService,
             final JobDataService jobDataService) {
-        this.jobRunStorage = jobRunStorage;
+        this.jobRunInputCleaner = jobRunInputCleaner;
         this.jobService = jobService;
         this.jobDataService = jobDataService;
     }
@@ -86,10 +84,13 @@ public class CleanupJob implements Job {
                 hasWarnings = true;
             }
         }
+
         if (hasWarnings) {
             logger.info("Got Warnings will cleaning. Please check your cleanup properties.");
+            return JobRunState.WARNING;
         }
-        return hasWarnings ? JobRunState.WARNING : JobRunState.DONE;
+
+        return JobRunState.DONE;
     }
 
     /**
@@ -121,7 +122,8 @@ public class CleanupJob implements Job {
                         job.id(), daysToKeep, daysToKeepSkipped, chunkSize);
 
         logger.info("Cleaning input files for {} runs.", cleanableRuns.size());
-        VirtualThreadUtils.forEach(run -> cleanInputFiles(job, run), cleanableRuns);
+        VirtualThreadUtils.forEach(
+                run -> jobRunInputCleaner.cleanInputFiles(job, run), cleanableRuns);
 
         // Delete job runs - cascades to delete job run input files and logs too
         logger.info("Removing job runs from database. Delete cascades for logs and inputs too.");
@@ -140,32 +142,5 @@ public class CleanupJob implements Job {
             return false;
         }
         return true;
-    }
-
-    /** Attempts to delete all stored input files of a job run */
-    private void cleanInputFiles(final JobClassAndId job, final JobRun run) {
-        try {
-            // Clean all files in directory of job run
-            final var dirDidExist =
-                    jobRunStorage.deleteJobRunDirectory(job.name(), run.readableId());
-            if (dirDidExist) {
-                logger.debug(
-                        "Deleted run input file directory [jobId: {}; runId: {}]",
-                        job.id(),
-                        run.id());
-            } else {
-                logger.debug(
-                        "Failed to delete run input file directory: doesn't exist [jobId: {}; runId:"
-                                + " {}]",
-                        job.id(),
-                        run.id());
-            }
-        } catch (final IOException e) {
-            logger.info(
-                    "Failed to delete run input files for job {} and run {}",
-                    job.id(),
-                    run.id(),
-                    e);
-        }
     }
 }
