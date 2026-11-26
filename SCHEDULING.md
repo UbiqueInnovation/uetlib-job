@@ -37,6 +37,11 @@ the insert - an instance that has lost the lease can never queue.
 - On shutdown the holder hands the lease to the newest other live candidate.
 - The holder purges rows of instances that stopped checking in (`instance.purge-after`, default 3× stale-after); an
   instance whose row is gone re-inserts it at its next check-in.
+- `FixedRateTrigger`s are scheduled only on the instance that holds the lease, as of its latest check-in. On taking
+  the lease, each first fires one period after the job was last queued by a fixed-rate trigger (its newest waiting
+  queue row or run with trigger type `FIXED_RATE`), right away if that is overdue, but not before its `initialDelay`
+  has passed since startup. A rollout thus keeps the job's rhythm instead of restarting it from the new instance's
+  startup; the run comes at most one check-in after the handover.
 - `JobSinglePrimaryInstanceCheck` fails on every instance when no live instance holds the lease. It reports through the
   monitoring module, since `/v1/status` (§9) is gone exactly when this fires.
 

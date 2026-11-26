@@ -11,6 +11,7 @@ import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.JobRunContext;
 import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.triggers.CronTrigger;
+import ch.uetlib.job.model.triggers.FixedRateTrigger;
 import ch.uetlib.job.model.triggers.JobTriggersConfig;
 import ch.uetlib.job.model.triggers.RetryTrigger;
 import ch.uetlib.job.model.triggers.Trigger;
@@ -22,12 +23,16 @@ import ch.uetlib.job.service.instance.JobInstanceIdentity;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
 import java.util.function.Consumer;
 
 /**
@@ -88,6 +93,63 @@ class TriggerCoordinatorServiceTest {
         assertFalse(disabled.isPrimaryCandidate());
         assertTrue(coordinator.isPrimaryCandidate());
         assertFalse(coordinator.isStarted(), "triggers are only registered on ApplicationReady");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void aFixedRateFireWhileTheDatabaseDeniesTheLeaseQueuesNothing() {
+        // Even when this instance still believes it is primary (its flag lags a lease move by up
+        // to one check-in), the fire goes through the database, which denies it.
+        final var taskScheduler = mock(TaskScheduler.class);
+        doReturn(mock(ScheduledFuture.class))
+                .when(taskScheduler)
+                .scheduleAtFixedRate(any(), any(Instant.class), any());
+        final var fixedRateService = new FixedRateTriggerService(taskScheduler, jobDataService);
+        final var firingCoordinator =
+                new TriggerCoordinatorService(
+                        jobDataService,
+                        jobService,
+                        IDENTITY,
+                        List.of(fixedRateService),
+                        environment());
+        stubJobClass();
+        when(jobService.queueNewRunAsPrimary(any(), any(), any())).thenReturn(Optional.empty());
+        firingCoordinator.onStartup(
+                new Trigger(1, JOB_ID, new FixedRateTrigger(Duration.ofMinutes(10))),
+                JOB_CLASS_AND_ID,
+                JOB_CLASS);
+        fixedRateService.onPrimaryLease(true);
+
+        final var fire = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskScheduler).scheduleAtFixedRate(fire.capture(), any(Instant.class), any());
+        fire.getValue().run();
+
+        final var arguments = ArgumentCaptor.forClass(JobRunArguments.class);
+        verify(jobService)
+                .queueNewRunAsPrimary(eq(INSTANCE_NAME), eq(JOB_CLASS_AND_ID), arguments.capture());
+        assertEquals(TriggerType.FIXED_RATE, arguments.getValue().triggerType());
+        verify(jobService, never()).queueNewRun(any(), any());
+        verify(jobService, never()).tryQueueNewRun(any(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void theLeaseStateReachesTheTriggerServicesOnlyOnceTheTriggersAreRegistered() {
+        final TriggerService<CronTrigger> cronService = mock(TriggerService.class);
+        when(cronService.triggerType()).thenReturn(TriggerType.CRON);
+        final var leaseCoordinator =
+                new TriggerCoordinatorService(
+                        jobDataService, jobService, IDENTITY, List.of(cronService), environment());
+
+        leaseCoordinator.onPrimaryLease(true);
+        verify(cronService, never()).onPrimaryLease(anyBoolean());
+
+        when(jobDataService.getAllDbTriggersByJobId()).thenReturn(Map.of());
+        when(jobService.getAllJobClasses()).thenReturn(List.of());
+        ReflectionTestUtils.invokeMethod(leaseCoordinator, "onStartup");
+        leaseCoordinator.onPrimaryLease(true);
+
+        verify(cronService).onPrimaryLease(true);
     }
 
     @Test

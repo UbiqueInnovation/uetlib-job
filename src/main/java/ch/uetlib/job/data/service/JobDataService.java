@@ -47,6 +47,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class JobDataService {
@@ -1089,6 +1090,25 @@ public class JobDataService {
             return holder.get().toJobDaemon().daemonName().equals(daemonName);
         }
         return jobDaemonRepository.acquirePrimaryLease(daemonName, Instant.now(), staleBefore) == 1;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Instant> findLastQueuedAt(final int jobId, final TriggerType triggerType) {
+        final var waiting =
+                jobQueuedRunRepository
+                        .findByJobIdAndQueueStateInOrderByCreatedAtAsc(
+                                jobId, Set.of(QUEUED, CLAIMED))
+                        .stream()
+                        .map(JobQueuedRunEntity::toJobQueuedRun)
+                        .filter(row -> row.jobRunId() == null)
+                        .filter(row -> row.arguments().triggerType() == triggerType)
+                        .map(JobQueuedRun::createdAt);
+        final var run =
+                jobRunRepository
+                        .findFirstByJobIdAndTriggerTypeOrderByIdDesc(jobId, triggerType)
+                        .map(JobRunEntity::createdAt)
+                        .stream();
+        return Stream.concat(waiting, run).max(Comparator.naturalOrder());
     }
 
     /** Share-locks the row until the transaction ends, so the lease can't move meanwhile. */

@@ -4,6 +4,7 @@ import ch.uetlib.job.model.JobRunState;
 import ch.uetlib.job.model.entity.JobLatestFinishedRunEntity;
 import ch.uetlib.job.model.entity.JobLatestRunEntity;
 import ch.uetlib.job.model.entity.JobRunEntity;
+import ch.uetlib.job.model.triggers.TriggerType;
 
 import jakarta.validation.constraints.NotEmpty;
 
@@ -28,6 +29,9 @@ public interface JobRunRepository
                 JobRunRepositoryCustom {
 
     Optional<JobRunEntity> findFirstByJobIdOrderByStartedAtDesc(int jobId);
+
+    Optional<JobRunEntity> findFirstByJobIdAndTriggerTypeOrderByIdDesc(
+            int jobId, TriggerType triggerType);
 
     @Query("select r from JobLatestRunEntity r where r.jobId in :jobIds")
     Collection<JobLatestRunEntity> findLatestRuns(Collection<Integer> jobIds);
