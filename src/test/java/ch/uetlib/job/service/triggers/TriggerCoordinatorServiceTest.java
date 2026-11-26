@@ -163,9 +163,7 @@ class TriggerCoordinatorServiceTest {
     }
 
     private static MockEnvironment environment() {
-        final var environment = new MockEnvironment();
-        environment.setActiveProfiles(TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE);
-        return environment;
+        return new MockEnvironment();
     }
 
     private record TestJob(JobTriggersConfig triggersConfig) implements Job {

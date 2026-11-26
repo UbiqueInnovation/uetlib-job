@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 6.2.0 - UNRELEASED
+
+- Remove `job-primary-triggers` profile in favor of `job-no-primary`. If upgrading from `<6.0.0`, ignore this and the
+  respective breaking change.
+
 ## 6.1.2
 
 - Configure the maximum concurrent job run input directory deletions per application instance with
@@ -99,8 +104,8 @@
 - Remove all `JobExecutorService.submit(Class, ...)` overloads; enqueue jobs with `JobService.queueNewRun(...)`.
 - Remove `throws ClassNotFoundException` from public APIs such as `JobManualTriggerService`. Callers catching it may
   need updating.
-- Run trigger coordination and status endpoints only with the `job-primary-triggers` profile. Trigger coordination is
-  active only on the instance holding the primary lease; other eligible instances are standbys.
+- **(Outdated since `6.2.0`)** Run trigger coordination and status endpoints only with the `job-primary-triggers`
+  profile.
 - Replace `PgListenDataSourceProvider` with `PgListenJobTriggerDataSourceProvider` for job `PG_LISTEN` triggers and
   `JobQueueDataSourceProvider` for queue notifications.
 - Change `POST /job/{id}/start` to report queue submission rather than execution. Its response changes from

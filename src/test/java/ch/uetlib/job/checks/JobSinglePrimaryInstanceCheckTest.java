@@ -42,7 +42,7 @@ class JobSinglePrimaryInstanceCheckTest {
         assertTrue(
                 assertInstanceOf(CheckFailed.class, status)
                         .reason()
-                        .contains("No instance is running with the"));
+                        .contains("No primary candidate found"));
     }
 
     @Test

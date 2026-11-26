@@ -57,14 +57,12 @@ public final class JobApplication {
             final JobApplicationJobToStartArgs jobToStartArgs,
             final String[] args) {
 
-        // A --job process must never be a primary trigger instance; strip that profile in case
-        // config (config map / properties file) set it. See ProfileExclusion.
         final var applicationContext =
                 new SpringApplicationBuilder(applicationClass)
-                        .profiles("job-run", "no-security")
-                        .listeners(
-                                ProfileExclusion.excluding(
-                                        TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE))
+                        .profiles(
+                                "job-run",
+                                "no-security",
+                                TriggerCoordinatorService.NO_PRIMARY_PROFILE)
                         .web(WebApplicationType.NONE)
                         .run(args);
 

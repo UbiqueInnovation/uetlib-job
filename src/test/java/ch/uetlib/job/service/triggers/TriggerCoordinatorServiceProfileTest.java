@@ -20,28 +20,23 @@ class TriggerCoordinatorServiceProfileTest {
     void theAnnotationIsStillASingleAndExpressionNotAnOrArray() {
         // A multi-element array would be an OR, silently reintroducing the original bug.
         assertEquals(1, ANNOTATION_VALUE.length);
-        assertEquals("!job-run & job-primary-triggers", ANNOTATION_VALUE[0]);
+        assertEquals(
+                "!job-run & !" + TriggerCoordinatorService.NO_PRIMARY_PROFILE, ANNOTATION_VALUE[0]);
     }
 
     @Test
     void matchesOnAPrimaryInstanceWithTriggersEnabled() {
-        assertTrue(matches("job-primary-triggers"));
+        assertFalse(matches(TriggerCoordinatorService.NO_PRIMARY_PROFILE));
     }
 
     @Test
     void doesNotMatchWithNeitherProfileActive() {
-        assertFalse(matches());
+        assertTrue(matches());
     }
 
     @Test
     void doesNotMatchOnADedicatedJobRunPodEvenWithoutTriggersEnabled() {
         assertFalse(matches("job-run"));
-    }
-
-    @Test
-    void doesNotMatchOnADedicatedJobRunPodEvenWithTriggersAlsoEnabled() {
-        // The actual regression: job-primary-triggers can be set blanket-wide, even on --job runs.
-        assertFalse(matches("job-run", "job-primary-triggers"));
     }
 
     private static boolean matches(final String... activeProfiles) {

@@ -26,13 +26,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@Profile("!job-run & " + TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE)
+@Profile("!job-run & " + ("!" + TriggerCoordinatorService.NO_PRIMARY_PROFILE))
 public class TriggerCoordinatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriggerCoordinatorService.class);
 
-    /** Instances evaluating triggers; only the primary lease holder queues runs from them. */
-    public static final String PRIMARY_TRIGGERS_PROFILE = "job-primary-triggers";
+    public static final String NO_PRIMARY_PROFILE = "job-no-primary";
+    public static final String JOB_DISABLE_TRIGGERS_PROFILE = "job-disable-triggers";
 
     private final boolean allTriggersDisabled;
     private final JobDataService jobDataService;
@@ -59,8 +59,8 @@ public class TriggerCoordinatorService {
                         .collect(
                                 Collectors.toMap(TriggerService::triggerType, Function.identity()));
         this.allTriggersDisabled =
-                environment.acceptsProfiles(Profiles.of("job-disable-triggers"))
-                        || !environment.acceptsProfiles(Profiles.of(PRIMARY_TRIGGERS_PROFILE));
+                environment.acceptsProfiles(Profiles.of(JOB_DISABLE_TRIGGERS_PROFILE))
+                        || environment.acceptsProfiles(Profiles.of(NO_PRIMARY_PROFILE));
     }
 
     @EventListener(ApplicationReadyEvent.class)

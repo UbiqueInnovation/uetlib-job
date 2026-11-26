@@ -75,9 +75,11 @@ public class JobSinglePrimaryInstanceCheck implements StatusCheck {
                         .toList();
         if (candidates.isEmpty()) {
             return new CheckFailed(
-                    "No instance is running with the "
-                            + TriggerCoordinatorService.PRIMARY_TRIGGERS_PROFILE
-                            + " profile, so no trigger fires and no scheduled run is queued.",
+                    "No primary candidate found. Remove all of the following profiles from at least one instance: "
+                            + TriggerCoordinatorService.NO_PRIMARY_PROFILE
+                            + ", "
+                            + TriggerCoordinatorService.JOB_DISABLE_TRIGGERS_PROFILE
+                            + ". At the moment, no triggers are evaluated.",
                     Map.of("staleAfter", staleAfter.toString()));
         }
         return new CheckFailed(
