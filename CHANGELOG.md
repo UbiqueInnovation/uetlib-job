@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 6.1.1
+
+- Allow setting CPU limit for Kubernetes jobs using `JobPropertyDefinitions.K8S_LIMITS_CPU`
+
 ## 6.1.0
 
 - `uetlib-parent` updated to

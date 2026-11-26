@@ -397,10 +397,10 @@ public abstract class KubernetesJob implements Job {
 
     protected V1ResourceRequirements resources(
             final KubernetesJobRunContext kubernetesJobRunContext) {
+        final var properties = kubernetesJobRunContext.jobRunContext().properties();
+
         final var cpuRequests =
-                kubernetesJobRunContext
-                        .jobRunContext()
-                        .properties()
+                properties
                         .get(JobPropertyDefinitions.K8S_REQUESTS_CPU)
                         .valueMaybe()
                         .map(Quantity::fromString)
@@ -408,10 +408,15 @@ public abstract class KubernetesJob implements Job {
                                 new IllegalArgumentException(
                                         "must specify K8S_REQUESTS_CPU for a dedicated"
                                                 + " KubernetesJob"));
+        final var cpuLimit =
+                properties
+                        .get(JobPropertyDefinitions.K8S_LIMITS_CPU)
+                        .valueMaybe()
+                        .map(Quantity::fromString)
+                        .orElse(null);
+
         final var memoryRequests =
-                kubernetesJobRunContext
-                        .jobRunContext()
-                        .properties()
+                properties
                         .get(JobPropertyDefinitions.K8S_REQUESTS_MEMORY)
                         .valueMaybe()
                         .map(Quantity::fromString)
@@ -421,8 +426,14 @@ public abstract class KubernetesJob implements Job {
                                                 + " KubernetesJob"));
 
         final var requests = ofEntries(entry("cpu", cpuRequests), entry("memory", memoryRequests));
-        final var limits = ofEntries(entry("memory", memoryRequests));
-        return new V1ResourceRequirements().requests(requests).limits(limits);
+        final var limits = new HashMap<String, Quantity>();
+        limits.put("memory", memoryRequests);
+        if (cpuLimit != null) {
+            limits.put("cpu", cpuLimit);
+        }
+        return new V1ResourceRequirements()
+                .requests(requests)
+                .limits(Collections.unmodifiableMap(limits));
     }
 
     @Nullable

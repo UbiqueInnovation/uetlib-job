@@ -118,10 +118,18 @@ public final class JobPropertyDefinitions {
                     JobPropertyDefinitionGroup.RUNNER,
                     false,
                     Duration.ofHours(1));
+    public static final JobPropertyDefinition<String> K8S_LIMITS_CPU =
+            new StringPropertyDefinition(
+                    "K8S_LIMITS_CPU",
+                    "CPU limit for the k8s job.",
+                    JobPropertyDefinitionGroup.RUNNER,
+                    true,
+                    null,
+                    null);
     public static final JobPropertyDefinition<String> K8S_REQUESTS_CPU =
             new StringPropertyDefinition(
                     "K8S_REQUESTS_CPU",
-                    "CPU request for the k8s job. CPU limit will stay as unset",
+                    "CPU request for the k8s job.",
                     JobPropertyDefinitionGroup.RUNNER,
                     true,
                     null,
