@@ -8,11 +8,10 @@ import ch.uetlib.job.model.triggers.*;
 import ch.uetlib.job.service.JobService;
 import ch.uetlib.job.service.instance.JobInstanceIdentity;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
@@ -44,6 +43,7 @@ public class TriggerCoordinatorService {
 
     private final AtomicInteger registeredTriggers = new AtomicInteger();
     private volatile boolean started;
+    private @Nullable List<PendingTrigger> preparedTriggers;
 
     public TriggerCoordinatorService(
             final JobDataService jobDataService,
@@ -63,30 +63,47 @@ public class TriggerCoordinatorService {
                         || environment.acceptsProfiles(Profiles.of(NO_PRIMARY_PROFILE));
     }
 
-    @EventListener(ApplicationReadyEvent.class)
-    @SuppressWarnings("UnusedMethod") // called by Spring
-    private void onStartup() {
+    public synchronized void prepareTriggers() {
         if (allTriggersDisabled) {
             logger.info("Not registering live triggers on this instance.");
             return;
         }
+        if (started) {
+            throw new IllegalStateException("The triggers are already prepared.");
+        }
         logger.info("Evaluating triggers of all jobs");
         final var existingDbTriggers = jobDataService.getAllDbTriggersByJobId();
+        final var pending = new ArrayList<PendingTrigger>();
         for (final var jobClass : jobService.getAllJobClasses()) {
             final var instance = jobService.instantiateJob(jobClass);
-            final var triggers = getTriggers(instance, existingDbTriggers);
             final var classAndId = jobService.jobClassAndIdOrThrow(jobClass);
-            for (final var trigger : triggers) {
-                onStartup(trigger, classAndId, jobClass);
-                registeredTriggers.incrementAndGet();
+            for (final var trigger : getTriggers(instance, existingDbTriggers)) {
+                pending.add(new PendingTrigger(trigger, classAndId, jobClass));
             }
         }
+        preparedTriggers = pending;
+        registeredTriggers.set(pending.size());
         started = true;
-        logger.info(
-                "Registered {} live trigger(s). They enqueue runs only while this instance holds the"
-                        + " primary lease.",
-                registeredTriggers.get());
     }
+
+    public synchronized void scheduleTriggers() {
+        if (allTriggersDisabled) {
+            return;
+        }
+        final var pending = preparedTriggers;
+        if (pending == null) {
+            throw new IllegalStateException(
+                    "No prepared triggers to schedule: call prepareTriggers() once, first, and only call scheduleTriggers() once.");
+        }
+        preparedTriggers = null;
+        for (final var trigger : pending) {
+            onStartup(trigger.trigger(), trigger.job(), trigger.jobClass());
+        }
+        logger.info("Registered {} trigger(s).", pending.size());
+    }
+
+    private record PendingTrigger(
+            Trigger trigger, JobClassAndId job, Class<? extends Job> jobClass) {}
 
     /** Whether this instance competes for the lease: it has the profile and triggers enabled. */
     public boolean isPrimaryCandidate() {

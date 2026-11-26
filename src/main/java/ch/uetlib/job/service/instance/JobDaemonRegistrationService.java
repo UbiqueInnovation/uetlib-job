@@ -74,7 +74,7 @@ public class JobDaemonRegistrationService {
     @Scheduled(
             initialDelayString = "0",
             fixedDelayString = "${ch.uetlib.job.instance.check-in:PT30S}")
-    public void checkIn() {
+    public synchronized void checkIn() {
         try {
             final var coordinator = triggerCoordinator.getIfAvailable();
             final var candidate = coordinator != null && coordinator.isPrimaryCandidate();
@@ -109,7 +109,6 @@ public class JobDaemonRegistrationService {
         }
     }
 
-    /** Last known lease state, for logs only - trigger fires check the lease in the database. */
     public boolean isPrimary() {
         return primary;
     }
@@ -120,7 +119,7 @@ public class JobDaemonRegistrationService {
     }
 
     @PreDestroy
-    public void leave() {
+    public synchronized void leave() {
         try {
             final var handOverTo =
                     primary

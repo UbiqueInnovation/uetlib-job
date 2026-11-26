@@ -91,6 +91,57 @@ class TriggerCoordinatorServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void preparingReconcilesAndMarksStartedWithoutSchedulingAnyTrigger() {
+        // A FixedRateTrigger fires as soon as it is scheduled; without the lease by then, that
+        // first firing is dropped and the job waits a full period.
+        final TriggerService<CronTrigger> cronService = mock(TriggerService.class);
+        when(cronService.triggerType()).thenReturn(TriggerType.CRON);
+        final var startingCoordinator =
+                new TriggerCoordinatorService(
+                        jobDataService, jobService, IDENTITY, List.of(cronService), environment());
+        stubJobClass();
+        doReturn(List.of(JOB_CLASS)).when(jobService).getAllJobClasses();
+        doReturn(fixedJob(CRON)).when(jobService).instantiateJob(JOB_CLASS);
+        when(jobDataService.getAllDbTriggersByJobId())
+                .thenReturn(Map.of(JOB_ID, List.of(new Trigger(1, JOB_ID, CRON))));
+        startingCoordinator.prepareTriggers();
+
+        // What JobDaemonRegistrationService#checkIn needs to take the lease and report.
+        assertTrue(startingCoordinator.isStarted());
+        assertEquals(1, startingCoordinator.registeredTriggerCount());
+        verify(cronService, never()).onStartup(anyInt(), any(), any(), any());
+
+        startingCoordinator.scheduleTriggers();
+
+        verify(cronService).onStartup(eq(1), eq(CRON), eq(JOB_CLASS_AND_ID), any());
+        assertEquals(1, startingCoordinator.registeredTriggerCount());
+        // The phases run once each, in order.
+        assertThrows(IllegalStateException.class, startingCoordinator::scheduleTriggers);
+        assertThrows(IllegalStateException.class, startingCoordinator::prepareTriggers);
+    }
+
+    @Test
+    void schedulingWithoutPreparingFails() {
+        assertThrows(IllegalStateException.class, coordinator::scheduleTriggers);
+        assertFalse(coordinator.isStarted());
+    }
+
+    @Test
+    void anInstanceWithTriggersDisabledPreparesAndSchedulesNothing() {
+        final var environment = environment();
+        environment.addActiveProfile("job-disable-triggers");
+        final var disabled =
+                new TriggerCoordinatorService(
+                        jobDataService, jobService, IDENTITY, List.of(), environment);
+        disabled.prepareTriggers();
+        disabled.scheduleTriggers();
+
+        assertFalse(disabled.isStarted());
+        verifyNoInteractions(jobDataService);
+    }
+
+    @Test
     void definitionsUnchangedReturnsDbTriggersWithoutAnyDatabaseWrites() {
         stubJobClass();
         final var dbTriggers =
