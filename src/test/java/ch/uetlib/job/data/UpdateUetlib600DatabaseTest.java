@@ -21,10 +21,10 @@ import java.util.List;
 import javax.sql.DataSource;
 
 /**
- * An existing database gets 6.0.0 from {@code updates/update_uetlib_6_0_0.sql}, a new one from
- * {@code V7_0_0__complete_setup.sql}; both must end up with the same schema. The 6.0.0 fresh
- * install differs from 4.0.0's only by the objects the update adds, so removing those from a fresh
- * install and running the update script is the upgrade path - on every database.
+ * An existing database gets each version from its {@code updates/update_uetlib_*.sql}, a new one
+ * from {@code V6_0_0__complete_setup.sql}; both must end up with the same schema. A fresh install
+ * differs from the previous version only by the objects an update adds, so removing those from a
+ * fresh install and running the update scripts since is the upgrade path - on every database.
  */
 class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
 
@@ -50,7 +50,27 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
                     statement.execute("DROP FUNCTION notify_on_job_run_queue_insert()");
                 }
             }
-            runUpdateScript(connection, vendor);
+            runUpdateScript(connection, vendor, "6_0_0");
+            runUpdateScript(connection, vendor, "6_2_0");
+
+            assertEquals(freshInstall, describe(connection));
+        } finally {
+            DataSourceUtils.releaseConnection(connection, dataSource);
+        }
+    }
+
+    @Test
+    void theUpdateScriptFor620AddsExactlyWhatAFreshInstallHas() throws SQLException, IOException {
+        final var connection = DataSourceUtils.getConnection(dataSource);
+        try {
+            final var vendor = vendor(connection);
+            final var freshInstall = describe(connection);
+
+            try (final var statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE t_job_run_queue DROP COLUMN run_now");
+            }
+            assertNotEquals(freshInstall, describe(connection));
+            runUpdateScript(connection, vendor, "6_2_0");
 
             assertEquals(freshInstall, describe(connection));
         } finally {
@@ -63,12 +83,13 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
         return connection.getMetaData().getURL().split(":")[1];
     }
 
-    private static void runUpdateScript(final Connection connection, final String vendor)
+    private static void runUpdateScript(
+            final Connection connection, final String vendor, final String version)
             throws SQLException, IOException {
         final var script =
                 new ClassPathResource(
-                        "db/migration/templates/%s/updates/update_uetlib_6_0_0.sql"
-                                .formatted(vendor));
+                        "db/migration/templates/%s/updates/update_uetlib_%s.sql"
+                                .formatted(vendor, version));
         if ("postgresql".equals(vendor)) {
             // Its function body holds semicolons; the Postgres driver splits statements itself.
             try (final var statement = connection.createStatement()) {

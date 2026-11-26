@@ -103,6 +103,11 @@ public class JobDataService {
     }
 
     @Transactional(readOnly = true)
+    public boolean hasRunningJobRun(final int jobId) {
+        return jobRunRepository.existsByJobIdAndLatestStateIn(jobId, JobRunState.RUNNING_STATES);
+    }
+
+    @Transactional(readOnly = true)
     public Collection<JobRun> findAllLatestRuns(final Collection<Integer> jobIds) {
         return jobRunRepository.findLatestRuns(jobIds).stream()
                 .map(JobLatestRunEntity::toJobRun)
@@ -933,9 +938,12 @@ public class JobDataService {
     @Transactional
     public boolean updateQueuedRunPriority(
             final int jobQueuedRunId, final @Nullable Integer priority) {
-        return jobQueuedRunRepository.updatePriority(
-                        jobQueuedRunId, priority, JobRunQueueState.QUEUED)
-                == 1;
+        return jobQueuedRunRepository.updatePriority(jobQueuedRunId, priority, QUEUED) == 1;
+    }
+
+    @Transactional
+    public boolean setAllowQueuedRunToRunNow(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.setAllowRunNow(jobQueuedRunId, Instant.now()) == 1;
     }
 
     private Predicate buildQueuedRunsPredicate(

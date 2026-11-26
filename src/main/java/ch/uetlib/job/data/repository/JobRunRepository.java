@@ -29,6 +29,8 @@ public interface JobRunRepository
 
     Optional<JobRunEntity> findFirstByJobIdOrderByStartedAtDesc(int jobId);
 
+    boolean existsByJobIdAndLatestStateIn(int jobId, Collection<JobRunState> latestStates);
+
     @Query("select r from JobLatestRunEntity r where r.jobId in :jobIds")
     Collection<JobLatestRunEntity> findLatestRuns(Collection<Integer> jobIds);
 

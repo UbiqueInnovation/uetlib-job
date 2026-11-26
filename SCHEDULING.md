@@ -43,9 +43,15 @@ the insert - an instance that has lost the lease can never queue.
 One schema serves exactly one application: `JobRegistrationService` deletes every `t_job` row whose class the starting
 application lacks, and that cascades to runs, triggers and queue rows.
 
-A queue row carries a priority, seeded from the job's `PRIORITY`; dequeue order is `COALESCE(priority, 0) DESC,
-createdAt ASC`. Reorder a still-queued row via `PUT /queue/{jobQueuedRunId}/priority`; without `priority`, it goes back
-to the job's current `PRIORITY`.
+A queue row carries a priority, seeded from the job's `PRIORITY`; dequeue order is `runNow DESC, COALESCE(priority, 0)
+DESC, createdAt ASC`. Reorder a still-queued row via `PUT /queue/{jobQueuedRunId}/priority`; without `priority`, it goes
+back to the job's current `PRIORITY`.
+
+**Run now.** `POST /queue/{jobQueuedRunId}/run-now` marks a fresh (not a `BaseStateJob` continuation), still-`QUEUED`
+row of an enabled job whose `JOB_MANUAL_TRIGGER_MODE` is `NEW_RUN_ALLOWED`. It is dequeued before every other row and
+may start next to a run of its job already under way - once, and only in that direction: while it runs, other runs of
+the job wait as usual. It still needs a free thread, matching taints and its exact version (§2). The flag lives on the
+queue row only; a `BaseStateJob` handoff (§4) drops it from its continuation.
 
 ## 2. Dispatch
 
@@ -58,8 +64,10 @@ to the job's current `PRIORITY`.
    Then this instance's taints (`ch.uetlib.job.runner.instance.taints`) must be a superset of the row's
    `JOB_RUN_TAINTS`, and the dedicated path also needs a dedicated runner on this instance.
 3. Claim only a run that can start right away: a free thread in its `RUNNER_GROUP` (for `CURRENT`), its job enabled,
-   and either `ALLOW_PARALLEL_RUNS` (or a forced run it lets through) or no run of the job under way. Otherwise the row
-   stays `QUEUED`, marked as still wanted so `QUEUE_TIMEOUT` (§7) doesn't cancel it. The claim is atomic: `QUEUED` →
+   and either `ALLOW_PARALLEL_RUNS` (or a run-now row, or a forced run it lets through) or no run of the job under way.
+   A fresh run checks every run of the job, not just the latest; a continuation waits only while the latest run is
+   another one under way. A dedicated `--job --run <id>` process does not check again. Otherwise the row stays
+   `QUEUED`, marked as still wanted so `QUEUE_TIMEOUT` (§7) doesn't cancel it. The claim is atomic: `QUEUED` →
    `CLAIMED`, tagged with `ch.uetlib.job.runner.instance.name` (default `HOSTNAME`, the pod name).
 4. `CLAIMED` → `RUNNING`, linked to the new `t_job_run` - *before* the runner gets the job, since a `BaseStateJob`
    handoff (§4) may re-queue that row right away.

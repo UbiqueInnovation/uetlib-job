@@ -287,6 +287,31 @@ public class JobControllerService {
                 false, "Queued run not found, already claimed, or currently running.");
     }
 
+    public SuccessResponse runQueuedRunNow(final int jobQueuedRunId) {
+        final var queuedRun =
+                jobDataService.findQueuedRunsByIds(List.of(jobQueuedRunId)).stream().findFirst();
+        if (queuedRun.isEmpty()) {
+            return new SuccessResponse(false, "Queued run not found.");
+        }
+        final var job = jobService.findJobById(queuedRun.get().jobId());
+        if (job.isEmpty()) {
+            return new SuccessResponse(false, "The queued run's job is unknown to this build.");
+        }
+        try {
+            checkManualStart(jobService.getJobClassOrThrow(job.get()));
+        } catch (final ManualTriggerNotAllowedException e) {
+            return new SuccessResponse(
+                    false, Objects.requireNonNullElse(e.getMessage(), e.toString()));
+        }
+        if (!jobDataService.setAllowQueuedRunToRunNow(jobQueuedRunId)) {
+            return new SuccessResponse(
+                    false,
+                    "Queued run already claimed, currently running, or a continuation of a run"
+                            + " under way.");
+        }
+        return new SuccessResponse(true, "Queued run will run as soon as a worker is available.");
+    }
+
     /** The current {@code PRIORITY} of the queued run's job, if the row and job still exist. */
     private @Nullable Integer jobPriorityOf(final int jobQueuedRunId) {
         return jobDataService.findQueuedRunsByIds(List.of(jobQueuedRunId)).stream()
@@ -358,27 +383,28 @@ public class JobControllerService {
     public QueueNewRunResult startJobManual(final String jobIdOrClassName, final boolean forceRun)
             throws ManualTriggerNotAllowedException {
         final var jobClass = getJobClass(jobIdOrClassName);
-        final var jobInstance = jobService.instantiateJob(jobClass);
-        final var manualTriggerMode =
-                jobService
-                        .getProperties(jobInstance)
-                        .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
-                        .value();
-        final var isEnabled = jobService.isEnabled(jobClass.getCanonicalName());
-        if (!isEnabled) {
+        checkManualStart(jobClass);
+        return jobService.tryQueueNewRun(
+                jobService.jobClassAndIdOrThrow(jobClass), new JobRunArguments(forceRun));
+    }
+
+    private void checkManualStart(final Class<? extends Job> jobClass)
+            throws ManualTriggerNotAllowedException {
+        if (!jobService.isEnabled(jobClass.getCanonicalName())) {
             throw new ManualTriggerNotAllowedException(
                     String.format("Job %s is not enabled", jobClass));
         }
-        final var manualExecutionAllowed =
-                manualTriggerMode == JobManualTriggerMode.NEW_RUN_ALLOWED;
-        if (!manualExecutionAllowed) {
+        final var manualTriggerMode =
+                jobService
+                        .getProperties(jobService.instantiateJob(jobClass))
+                        .get(JobPropertyDefinitions.JOB_MANUAL_TRIGGER_MODE)
+                        .value();
+        if (manualTriggerMode != JobManualTriggerMode.NEW_RUN_ALLOWED) {
             throw new ManualTriggerNotAllowedException(
                     String.format(
                             "Job %s does not allow manual execution: %s",
                             jobClass, manualTriggerMode));
         }
-        return jobService.tryQueueNewRun(
-                jobService.jobClassAndIdOrThrow(jobClass), new JobRunArguments(forceRun));
     }
 
     public QueueNewRunResult replayJobRun(final String jobIdOrClassName)

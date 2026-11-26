@@ -34,6 +34,9 @@ public class JobQueuedRunEntity {
     @Column(name = "priority")
     private @Nullable Integer priority;
 
+    @Column(name = "run_now", nullable = false)
+    private boolean runNow;
+
     @Positive
     @Column(name = "fk_job_id", nullable = false, updatable = false)
     private int jobId;
@@ -139,7 +142,8 @@ public class JobQueuedRunEntity {
                 requireNonNull(createdAt),
                 requireNonNull(updatedAt),
                 taints.stream().map(JobRunnerTaint::from).collect(Collectors.toSet()),
-                jobRunArguments);
+                jobRunArguments,
+                runNow);
     }
 
     public JobQueuedRunEntity setRunId(final int runId) {

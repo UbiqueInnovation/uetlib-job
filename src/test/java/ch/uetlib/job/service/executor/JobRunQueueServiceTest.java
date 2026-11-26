@@ -554,7 +554,8 @@ class JobRunQueueServiceTest {
                 touched,
                 touched,
                 taints,
-                new JobRunArguments());
+                new JobRunArguments(),
+                false);
     }
 
     /** A {@code BaseStateJob} handoff row: still {@code QUEUED}, but bound to an existing run. */
@@ -571,7 +572,8 @@ class JobRunQueueServiceTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments());
+                new JobRunArguments(),
+                false);
     }
 
     private static JobRun jobRunOn(final int id, final JobRunnerKey runnerKey) {
@@ -601,6 +603,7 @@ class JobRunQueueServiceTest {
                 now,
                 now,
                 taints,
-                new JobRunArguments());
+                new JobRunArguments(),
+                false);
     }
 }

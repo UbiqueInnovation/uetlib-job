@@ -186,7 +186,8 @@ class JobQueueWatcherServiceTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments());
+                new JobRunArguments(),
+                false);
     }
 
     private static JobRun jobRun(final JobRunState state) {

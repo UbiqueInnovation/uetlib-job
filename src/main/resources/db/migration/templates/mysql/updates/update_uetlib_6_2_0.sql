@@ -1,0 +1,2 @@
+ALTER TABLE t_job_run_queue
+    ADD COLUMN run_now BOOLEAN NOT NULL DEFAULT FALSE;

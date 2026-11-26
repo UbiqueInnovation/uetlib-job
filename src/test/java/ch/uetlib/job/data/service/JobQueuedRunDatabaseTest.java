@@ -189,6 +189,85 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
+    void setAllowQueuedRunToRunNowMarksAFreshQueuedRow() {
+        final var run = queueOne();
+        assertFalse(run.runNow());
+
+        assertTrue(jobDataService.setAllowQueuedRunToRunNow(run.jobQueuedRunId()));
+
+        assertTrue(findInQueue(run.jobQueuedRunId()).orElseThrow().runNow());
+    }
+
+    @Test
+    void aRunNowRowIsOrderedBeforeEveryHigherPriorityRow() {
+        final var high =
+                jobDataService.queueNewRun(
+                        TEST_JOB_ID,
+                        Integer.MAX_VALUE,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        JobQueueBehavior.ALLOW_MULTIPLE);
+        final var runNow = queueOne();
+        jobDataService.setAllowQueuedRunToRunNow(runNow.jobQueuedRunId());
+
+        final var ids =
+                jobDataService.findQueuedRunsPage(PageRequest.of(0, 10)).getContent().stream()
+                        .map(JobQueuedRun::jobQueuedRunId)
+                        .toList();
+
+        assertTrue(
+                ids.indexOf(runNow.jobQueuedRunId()) < ids.indexOf(high.jobQueuedRunId()),
+                "a row to run now must be ordered before any priority");
+    }
+
+    @Test
+    void setAllowQueuedRunToRunNowNeverMarksAClaimedRow() {
+        final var run = queueOne();
+        jobDataService.claimQueuedRun(run, "runner-a");
+
+        assertFalse(jobDataService.setAllowQueuedRunToRunNow(run.jobQueuedRunId()));
+    }
+
+    @Test
+    void setAllowQueuedRunToRunNowNeverMarksARunningRow() {
+        final var runningRunId = queueClaimAndRunToRunning();
+
+        assertFalse(jobDataService.setAllowQueuedRunToRunNow(runningRunId));
+    }
+
+    @Test
+    void setAllowQueuedRunToRunNowNeverMarksAHandoffContinuation() {
+        final var continuation = queueHandoffContinuation();
+
+        assertFalse(jobDataService.setAllowQueuedRunToRunNow(continuation.jobQueuedRunId()));
+        assertFalse(findInQueue(continuation.jobQueuedRunId()).orElseThrow().runNow());
+    }
+
+    @Test
+    void aHandoffContinuationDropsRunNow() {
+        // Run-now applies to fresh runs only; how continuations of a run-now run behave is still
+        // to be decided, so for now they are dispatched like any other continuation.
+        final var runningRunId = queueClaimAndRunToRunning();
+        jobJdbcTemplate.update(
+                "UPDATE t_job_run_queue SET run_now = ? WHERE pk_job_run_queue_id = ?",
+                true,
+                runningRunId);
+
+        final var continuation =
+                jobDataService.queueReprocessingRun(
+                        TEST_JOB_ID,
+                        "1.0.0",
+                        new JobRunArguments(),
+                        Set.of(),
+                        EXISTING_JOB_RUN_ID,
+                        JobRunnerKey.DEDICATED_K8S_JOB);
+
+        assertEquals(runningRunId, continuation.jobQueuedRunId());
+        assertFalse(continuation.runNow());
+    }
+
+    @Test
     void deleteQueuedRunIfQueuedDeletesAQueuedRow() {
         final var run = queueOne();
 

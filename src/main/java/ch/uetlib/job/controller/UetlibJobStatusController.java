@@ -139,6 +139,11 @@ public class UetlibJobStatusController {
         return jobControllerService.updateQueuedRunPriority(jobQueuedRunId, priority);
     }
 
+    @PostMapping("/queue/{jobQueuedRunId}/run-now")
+    public SuccessResponse runQueuedRunNow(@PathVariable final int jobQueuedRunId) {
+        return jobControllerService.runQueuedRunNow(jobQueuedRunId);
+    }
+
     @DeleteMapping("/queue")
     public SuccessResponse deleteQueuedRuns(
             @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,
