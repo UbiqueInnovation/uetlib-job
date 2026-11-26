@@ -29,6 +29,13 @@ public interface TriggerService<T extends TriggerDefinition> {
 
     void removeTrigger(final int triggerId);
 
+    /**
+     * Whether this instance holds the primary lease, as of its latest check-in; called at every
+     * check-in once the triggers are registered. Only a hint for scheduling - a fire still only
+     * queues a run if the database confirms the lease.
+     */
+    default void onPrimaryLease(final boolean holdsLease) {}
+
     default TriggerType triggerType() {
         //noinspection unchecked
         final var genericType =

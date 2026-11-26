@@ -102,6 +102,10 @@ public class JobRunEntity {
                 jobRunArguments);
     }
 
+    public @Nullable Instant createdAt() {
+        return createdAt;
+    }
+
     public void setRunnerKey(final JobRunnerKey runnerKey) {
         this.runnerKey = runnerKey;
     }

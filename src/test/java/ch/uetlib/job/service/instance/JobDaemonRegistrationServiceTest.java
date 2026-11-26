@@ -158,6 +158,21 @@ class JobDaemonRegistrationServiceTest {
     }
 
     @Test
+    void everyCheckInTellsTheTriggersWhetherThisInstanceHoldsTheLease() {
+        checksInAs(self(false));
+        live(self(false));
+        when(jobDataService.takePrimaryLease(eq(NAME), eq(STARTED), any())).thenReturn(true);
+
+        service.checkIn();
+        verify(coordinator).onPrimaryLease(true);
+
+        checksInAs(self(false));
+        live(self(false), candidate("pod-new", STARTED.plusSeconds(60)));
+        service.checkIn();
+        verify(coordinator).onPrimaryLease(false);
+    }
+
+    @Test
     void losingARaceForTheLeaseLeavesTheInstanceANonPrimaryWithoutFailingTheCheckIn() {
         checksInAs(self(false));
         live(self(false));

@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 6.1.1
+
+- Fixed-Rate Triggers only start once primary lease has been obtained.
+
 ## 6.1.0
 
 - `uetlib-parent` updated to

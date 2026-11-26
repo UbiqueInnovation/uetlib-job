@@ -98,6 +98,23 @@ public class TriggerCoordinatorService {
         return started;
     }
 
+    public void onPrimaryLease(final boolean holdsLease) {
+        if (allTriggersDisabled || !started) {
+            return;
+        }
+        for (final var triggerService : triggerServices.values()) {
+            try {
+                triggerService.onPrimaryLease(holdsLease);
+            } catch (final RuntimeException e) {
+                logger.warn(
+                        "{} failed to handle the primary lease state; retrying at the next"
+                                + " check-in.",
+                        triggerService.getClass().getSimpleName(),
+                        e);
+            }
+        }
+    }
+
     /** How many triggers this instance actually registered - 0 means it fires nothing. */
     public int registeredTriggerCount() {
         return registeredTriggers.get();

@@ -9,8 +9,11 @@ import ch.uetlib.job.model.JobQueuedRun;
 import ch.uetlib.job.model.JobRunArguments;
 import ch.uetlib.job.model.entity.JobDaemonEntity;
 import ch.uetlib.job.model.properties.enums.JobQueueBehavior;
+import ch.uetlib.job.model.properties.enums.JobRunnerKey;
+import ch.uetlib.job.model.triggers.TriggerType;
 import ch.uetlib.job.service.inputs.JobRunInputManager;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -181,6 +184,50 @@ class JobDaemonDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
+    void aNewHolderSeesWhenThePreviousHolderLastQueuedFromAFixedRateTrigger() {
+        // What a new primary schedules its fixed-rate triggers from, so a lease move neither
+        // repeats the previous holder's run nor waits a full period from the new one's startup.
+        checkIn("pod-a", EARLIER);
+        takeLease("pod-a", EARLIER);
+        final var queued = queueAsPrimary("pod-a", TriggerType.FIXED_RATE).orElseThrow();
+        queueAsPrimary("pod-a", TriggerType.CRON).orElseThrow();
+        checkIn("pod-b", LATER);
+        assertTrue(takeLease("pod-b", LATER));
+
+        // MySQL keeps whole seconds only.
+        final var lastQueuedAt =
+                jobDataService.findLastQueuedAt(TEST_JOB_ID, TriggerType.FIXED_RATE).orElseThrow();
+        assertTrue(
+                Duration.between(queued.createdAt(), lastQueuedAt)
+                                .abs()
+                                .compareTo(Duration.ofSeconds(1))
+                        <= 0,
+                "last queued at " + lastQueuedAt + ", queued at " + queued.createdAt());
+        assertTrue(jobDataService.findLastQueuedAt(TEST_JOB_ID, TriggerType.RETRY).isEmpty());
+    }
+
+    @Test
+    void theLastFixedRateQueueingIncludesRunsWhoseQueueRowIsGone() {
+        final var run =
+                jobDataService.createJobRun(
+                        TEST_JOB_ID,
+                        VERSION,
+                        JobRunnerKey.CURRENT,
+                        new JobRunArguments(false, TriggerType.FIXED_RATE, null, null, null));
+
+        final var lastQueuedAt =
+                jobDataService.findLastQueuedAt(TEST_JOB_ID, TriggerType.FIXED_RATE).orElseThrow();
+
+        assertTrue(
+                Duration.between(run.startedAt(), lastQueuedAt)
+                                .abs()
+                                .compareTo(Duration.ofSeconds(5))
+                        < 0,
+                "last queued at " + lastQueuedAt + ", run started at " + run.startedAt());
+        assertTrue(jobDataService.findLastQueuedAt(TEST_JOB_ID, TriggerType.RETRY).isEmpty());
+    }
+
+    @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void fireTimeChecksShareTheirLockWhileMovingTheLeaseWaitsForThem() throws Exception {
         // Committed rows and separate transactions: row locks only matter between transactions.
@@ -241,12 +288,17 @@ class JobDaemonDatabaseTest extends BaseJobDatabaseTest {
     }
 
     private Optional<JobQueuedRun> queueAsPrimary(final String daemonName) {
+        return queueAsPrimary(daemonName, null);
+    }
+
+    private Optional<JobQueuedRun> queueAsPrimary(
+            final String daemonName, final @Nullable TriggerType triggerType) {
         return jobDataService.queueNewRunIfPrimary(
                 daemonName,
                 TEST_JOB_ID,
                 null,
                 VERSION,
-                new JobRunArguments(),
+                new JobRunArguments(false, triggerType, null, null, null),
                 Set.of(),
                 JobQueueBehavior.ALLOW_MULTIPLE);
     }

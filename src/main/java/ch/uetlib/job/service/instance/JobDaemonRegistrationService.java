@@ -95,6 +95,9 @@ public class JobDaemonRegistrationService {
                 holdsLease = takePrimaryLease(self);
             }
             setPrimary(holdsLease);
+            if (coordinator != null) {
+                coordinator.onPrimaryLease(holdsLease);
+            }
             if (holdsLease) {
                 final var purged =
                         jobDataService.deleteStaleInstances(Instant.now().minus(purgeAfter));
