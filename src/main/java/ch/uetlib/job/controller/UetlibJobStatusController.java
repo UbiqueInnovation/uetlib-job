@@ -139,6 +139,11 @@ public class UetlibJobStatusController {
         return jobControllerService.updateQueuedRunPriority(jobQueuedRunId, priority);
     }
 
+    @PostMapping("/queue/{jobQueuedRunId}/allow-parallel-run")
+    public SuccessResponse runQueuedallowParallelRun(@PathVariable final int jobQueuedRunId) {
+        return jobControllerService.runQueuedallowParallelRun(jobQueuedRunId);
+    }
+
     @DeleteMapping("/queue")
     public SuccessResponse deleteQueuedRuns(
             @RequestParam(required = false, defaultValue = "") final Collection<String> includeJobs,

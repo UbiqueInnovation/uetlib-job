@@ -152,6 +152,7 @@ class JobExecutorServiceTest {
         when(jobService.getProperties(any(TestJob.class))).thenReturn(new JobProperties(List.of()));
         when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
         when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
+        when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
 
         final var result = service.submit(queuedRun(), false);
 
@@ -269,6 +270,75 @@ class JobExecutorServiceTest {
         assertTrue(service.canStart(continuationOf(runningLastRun().id())));
     }
 
+    @Test
+    void aallowParallelRunRowCanStartWhileItsJobIsRunning() {
+        stubStartChecks(new JobProperties(List.of()), Optional.of(runningLastRun()));
+
+        assertTrue(service.canStart(allowParallelRun(waitingRun(false))));
+    }
+
+    @Test
+    void aallowParallelRunRowIsSubmittedWhileItsJobIsRunning() {
+        stubHappyPath();
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
+        when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
+        when(currentRunner.submit(any(), any())).thenReturn(true);
+
+        final var result = service.submit(allowParallelRun(queuedRun()), false);
+
+        assertInstanceOf(SuccessfulSubmissionResult.class, result);
+        verify(currentRunner).submit(any(), any());
+    }
+
+    @Test
+    void aFreshRunWaitsForAnOlderRunStillUnderWayAfterTheLatestRunEnded() {
+        // A allow-parallel-run run started next to an older run and finished first: the latest run is done,
+        // but the older one is still going, so a normal run must keep waiting.
+        stubStartChecks(new JobProperties(List.of()), Optional.of(finishedLastRun()));
+        when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
+
+        assertFalse(service.canStart(waitingRun(false)));
+    }
+
+    @Test
+    void allowParallelRunDoesNotLetAContinuationStartNextToAnotherRun() {
+        stubStartChecks(new JobProperties(List.of()), Optional.of(runningLastRun()));
+
+        assertFalse(service.canStart(allowParallelRun(continuationOf(runningLastRun().id() + 1))));
+    }
+
+    @Test
+    void aDispatchedDedicatedRunIsNotCheckedForParallelRunsAgain() {
+        // The dispatcher already approved the row, possibly as allow-parallel-run, which this process never
+        // learns of.
+        stubHappyPath();
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
+        when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
+        when(dedicatedRunner.submit(any(), any())).thenReturn(true);
+
+        final var result =
+                service.submitDedicatedJobRun(TestJob.class, new JobRunArguments(), JOB_RUN_ID);
+
+        assertInstanceOf(SuccessfulSubmissionResult.class, result);
+        verify(dedicatedRunner).submit(any(), any());
+    }
+
+    @Test
+    void anUndispatchedDedicatedRunIsDisallowedWhileItsJobIsRunning() {
+        stubHappyPath();
+        when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
+        when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
+
+        final var result =
+                service.submitDedicatedJobRun(TestJob.class, new JobRunArguments(), null);
+
+        final var unsuccessful = assertInstanceOf(UnsuccessfulSubmissionResult.class, result);
+        assertEquals(JobSubmissionStatus.DISALLOWED, unsuccessful.status());
+        verify(dedicatedRunner, never()).submit(any(), any());
+    }
+
     private void stubStartChecks(final JobProperties properties, final Optional<JobRun> lastRun) {
         when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
         doReturn(TestJob.class).when(jobService).getJobClassOrThrow(JOB);
@@ -277,6 +347,8 @@ class JobExecutorServiceTest {
         when(jobService.getProperties(any(TestJob.class))).thenReturn(properties);
         when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
         when(jobService.getLastJobRun(JOB.id())).thenReturn(lastRun);
+        when(jobService.hasRunningJobRun(JOB.id()))
+                .thenReturn(lastRun.map(run -> run.latestState().isRunning()).orElse(false));
     }
 
     /** A still-{@code QUEUED} row, as the dispatcher asks about it before claiming. */
@@ -293,7 +365,8 @@ class JobExecutorServiceTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments(forceRun));
+                new JobRunArguments(forceRun),
+                false);
     }
 
     /** A {@code BaseStateJob} handoff row: still {@code QUEUED}, but bound to its run. */
@@ -310,7 +383,24 @@ class JobExecutorServiceTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments());
+                new JobRunArguments(),
+                false);
+    }
+
+    private static JobQueuedRun allowParallelRun(final JobQueuedRun row) {
+        return new JobQueuedRun(
+                row.jobQueuedRunId(),
+                row.priority(),
+                row.jobId(),
+                row.versionTag(),
+                row.queueState(),
+                row.jobRunId(),
+                row.runner(),
+                row.createdAt(),
+                row.updatedAt(),
+                row.taints(),
+                row.arguments(),
+                true);
     }
 
     private void stubHappyPath() {
@@ -340,7 +430,8 @@ class JobExecutorServiceTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments(forceRun));
+                new JobRunArguments(forceRun),
+                false);
     }
 
     private static JobRun jobRun() {
@@ -367,6 +458,19 @@ class JobExecutorServiceTest {
                 Instant.now(),
                 null,
                 JobRunState.BUSY,
+                JobRunnerKey.CURRENT,
+                null,
+                null);
+    }
+
+    private static JobRun finishedLastRun() {
+        return new JobRun(
+                50,
+                JOB.id(),
+                "1.0.0",
+                Instant.now(),
+                Instant.now(),
+                JobRunState.DONE,
                 JobRunnerKey.CURRENT,
                 null,
                 null);

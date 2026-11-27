@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Service
 public class JobExecutorService {
@@ -60,6 +61,7 @@ public class JobExecutorService {
                 jobQueuedRun.arguments(),
                 jobQueuedRun.jobRunId(),
                 isDedicated ? DEDICATED_K8S_JOB : CURRENT,
+                job -> parallelRunRefusal(job, jobQueuedRun),
                 context -> linkClaimedRow(jobQueuedRun, context.jobRun()));
     }
 
@@ -73,11 +75,7 @@ public class JobExecutorService {
                 jobService.getJobClassOrThrow(
                         jobService.findJobById(jobQueuedRun.jobId()).orElseThrow());
         return disabledRefusal(jobClass).isEmpty()
-                && parallelRunRefusal(
-                                jobService.instantiateJob(jobClass),
-                                jobQueuedRun.arguments(),
-                                jobQueuedRun.jobRunId())
-                        .isEmpty();
+                && parallelRunRefusal(jobService.instantiateJob(jobClass), jobQueuedRun).isEmpty();
     }
 
     /** Entry point of a dedicated {@code --job} process; records the run's RUNNING row itself. */
@@ -90,6 +88,10 @@ public class JobExecutorService {
                 arguments,
                 runId,
                 DEDICATED_K8S_JOB,
+                job ->
+                        runId != null
+                                ? Optional.empty()
+                                : parallelRunRefusal(job, arguments, null, false),
                 context ->
                         jobService.queueRunningRun(
                                 context.job(),
@@ -99,6 +101,7 @@ public class JobExecutorService {
     }
 
     /**
+     * @param parallelRunRefusal why the run may not start next to one under way; empty if it may.
      * @param recordInQueue runs before the runner starts, as a {@code BaseStateJob} handoff may
      *     re-queue the row at once. A run it can't record is not started.
      */
@@ -107,6 +110,7 @@ public class JobExecutorService {
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
             @Nullable final JobRunnerKey jobRunnerKey,
+            final Function<Job, Optional<String>> parallelRunRefusal,
             final Consumer<JobRunContext> recordInQueue) {
 
         final var disabled = disabledRefusal(jobClass);
@@ -115,7 +119,7 @@ public class JobExecutorService {
         }
 
         final var job = jobService.instantiateJob(jobClass);
-        final var parallelRun = parallelRunRefusal(job, arguments, runId);
+        final var parallelRun = parallelRunRefusal.apply(job);
         if (parallelRun.isPresent()) {
             return disallowed(parallelRun.get());
         }
@@ -197,14 +201,27 @@ public class JobExecutorService {
                         : "Job class %s does not exist".formatted(jobClass));
     }
 
-    /** Why this run of {@code job} may not start next to one under way; empty if it may. */
+    private Optional<String> parallelRunRefusal(final Job job, final JobQueuedRun jobQueuedRun) {
+        return parallelRunRefusal(
+                job,
+                jobQueuedRun.arguments(),
+                jobQueuedRun.jobRunId(),
+                jobQueuedRun.allowParallelRun());
+    }
+
     private Optional<String> parallelRunRefusal(
             final Job job,
             @Nullable final JobRunArguments arguments,
-            @Nullable final Integer runId) {
-        if (!mayRunInParallel(job, arguments)
-                && isCurrentlyRunning(job)
-                && !isSameAsLastRun(job, runId)) {
+            @Nullable final Integer runId,
+            final boolean allowParallelRun) {
+        if (mayRunInParallel(job, arguments, runId, allowParallelRun)) {
+            return Optional.empty();
+        }
+        final var blocked =
+                runId == null
+                        ? hasRunUnderWay(job)
+                        : isCurrentlyRunning(job) && !isSameAsLastRun(job, runId);
+        if (blocked) {
             return Optional.of(
                     "Job %s is already running and parallel runs are disallowed"
                             .formatted(job.getClass()));
@@ -213,10 +230,17 @@ public class JobExecutorService {
     }
 
     /**
-     * {@code ALLOW_PARALLEL_RUNS}, or a forced run that {@code
-     * FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS} lets through.
+     * @param allowParallelRun applies to fresh runs only, never to a {@code BaseStateJob}
+     *     continuation.
      */
-    private boolean mayRunInParallel(final Job job, @Nullable final JobRunArguments arguments) {
+    private boolean mayRunInParallel(
+            final Job job,
+            @Nullable final JobRunArguments arguments,
+            @Nullable final Integer runId,
+            final boolean allowParallelRun) {
+        if (allowParallelRun && runId == null) {
+            return true;
+        }
         final var jobProperties = jobService.getProperties(job);
         final var isForceRun =
                 Optional.ofNullable(arguments).map(JobRunArguments::forceRun).orElse(false);
@@ -227,6 +251,10 @@ public class JobExecutorService {
                                 jobProperties.getValue(
                                         JobPropertyDefinitions
                                                 .FORCE_RUN_OVERRIDES_ALLOW_PARALLEL_RUNS)));
+    }
+
+    private boolean hasRunUnderWay(final Job job) {
+        return jobService.findJobId(job.getClass()).map(jobService::hasRunningJobRun).orElse(false);
     }
 
     private boolean isCurrentlyRunning(final Job job) {

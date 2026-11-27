@@ -243,6 +243,10 @@ public class JobService {
         return jobDataService.findLatestJobRun(jobId);
     }
 
+    public boolean hasRunningJobRun(final int jobId) {
+        return jobDataService.hasRunningJobRun(jobId);
+    }
+
     /** The effective properties of a job about to be queued. */
     private JobProperties queueProperties(final JobClassAndId job) {
         return getJobProperties(

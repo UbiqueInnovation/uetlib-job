@@ -147,4 +147,13 @@ class JobDataServiceDatabaseTest extends BaseJobDatabaseTest {
                 .map(JobRunStateTransition::state)
                 .toList();
     }
+
+    @Test
+    void hasRunningJobRunSeesARunUnderWayThatIsNotTheLatest() {
+        // The fixture's latest run of job 1 has finished, but two older ones are still under way.
+        assertFalse(jobDataService.findLatestJobRun(1).orElseThrow().latestState().isRunning());
+
+        assertTrue(jobDataService.hasRunningJobRun(1));
+        assertFalse(jobDataService.hasRunningJobRun(999));
+    }
 }

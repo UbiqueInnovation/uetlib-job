@@ -128,6 +128,7 @@ CREATE TABLE t_job_run_queue
     fk_job_id           INTEGER     NOT NULL REFERENCES t_job (pk_job_id) ON DELETE CASCADE,
     version_tag         TEXT        NOT NULL,
     priority            INTEGER,
+    allow_parallel_run             BOOLEAN     NOT NULL DEFAULT FALSE,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

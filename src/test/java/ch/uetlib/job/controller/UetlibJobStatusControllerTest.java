@@ -64,6 +64,13 @@ class UetlibJobStatusControllerTest {
     }
 
     @Test
+    void runQueuedallowParallelRunDelegatesToTheControllerService() {
+        when(jobControllerService.runQueuedallowParallelRun(5)).thenReturn(new SuccessResponse(true, "ok"));
+
+        assertTrue(controller.runQueuedallowParallelRun(5).success());
+    }
+
+    @Test
     void startJobReturnsOkWithTheQueuedRunWhenAllowed() throws ManualTriggerNotAllowedException {
         final var queued = queuedRun();
         when(jobControllerService.startJobManual("job", true))
@@ -253,6 +260,7 @@ class UetlibJobStatusControllerTest {
                 now,
                 now,
                 Set.of(),
-                new JobRunArguments());
+                new JobRunArguments(),
+                false);
     }
 }

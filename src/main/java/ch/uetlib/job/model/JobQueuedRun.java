@@ -19,4 +19,5 @@ public record JobQueuedRun(
         Instant createdAt,
         Instant updatedAt,
         Set<JobRunnerTaint> taints,
-        JobRunArguments arguments) {}
+        JobRunArguments arguments,
+        boolean allowParallelRun) {}
