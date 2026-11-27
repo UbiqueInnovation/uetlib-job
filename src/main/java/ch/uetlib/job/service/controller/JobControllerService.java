@@ -287,7 +287,7 @@ public class JobControllerService {
                 false, "Queued run not found, already claimed, or currently running.");
     }
 
-    public SuccessResponse runQueuedRunNow(final int jobQueuedRunId) {
+    public SuccessResponse runQueuedallowParallelRun(final int jobQueuedRunId) {
         final var queuedRun =
                 jobDataService.findQueuedRunsByIds(List.of(jobQueuedRunId)).stream().findFirst();
         if (queuedRun.isEmpty()) {
@@ -303,7 +303,7 @@ public class JobControllerService {
             return new SuccessResponse(
                     false, Objects.requireNonNullElse(e.getMessage(), e.toString()));
         }
-        if (!jobDataService.setAllowQueuedRunToRunNow(jobQueuedRunId)) {
+        if (!jobDataService.setAllowQueuedRunToallowParallelRun(jobQueuedRunId)) {
             return new SuccessResponse(
                     false,
                     "Queued run already claimed, currently running, or a continuation of a run"

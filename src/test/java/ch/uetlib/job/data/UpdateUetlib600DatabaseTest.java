@@ -67,7 +67,7 @@ class UpdateUetlib600DatabaseTest extends BaseJobDatabaseTest {
             final var freshInstall = describe(connection);
 
             try (final var statement = connection.createStatement()) {
-                statement.execute("ALTER TABLE t_job_run_queue DROP COLUMN run_now");
+                statement.execute("ALTER TABLE t_job_run_queue DROP COLUMN allow_parallel_run");
             }
             assertNotEquals(freshInstall, describe(connection));
             runUpdateScript(connection, vendor, "6_2_0");

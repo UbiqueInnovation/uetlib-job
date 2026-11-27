@@ -189,17 +189,17 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
     }
 
     @Test
-    void setAllowQueuedRunToRunNowMarksAFreshQueuedRow() {
+    void setAllowQueuedRunToallowParallelRunMarksAFreshQueuedRow() {
         final var run = queueOne();
-        assertFalse(run.runNow());
+        assertFalse(run.allowParallelRun());
 
-        assertTrue(jobDataService.setAllowQueuedRunToRunNow(run.jobQueuedRunId()));
+        assertTrue(jobDataService.setAllowQueuedRunToallowParallelRun(run.jobQueuedRunId()));
 
-        assertTrue(findInQueue(run.jobQueuedRunId()).orElseThrow().runNow());
+        assertTrue(findInQueue(run.jobQueuedRunId()).orElseThrow().allowParallelRun());
     }
 
     @Test
-    void aRunNowRowIsOrderedBeforeEveryHigherPriorityRow() {
+    void aallowParallelRunRowIsOrderedBeforeEveryHigherPriorityRow() {
         final var high =
                 jobDataService.queueNewRun(
                         TEST_JOB_ID,
@@ -208,8 +208,8 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         new JobRunArguments(),
                         Set.of(),
                         JobQueueBehavior.ALLOW_MULTIPLE);
-        final var runNow = queueOne();
-        jobDataService.setAllowQueuedRunToRunNow(runNow.jobQueuedRunId());
+        final var allowParallelRun = queueOne();
+        jobDataService.setAllowQueuedRunToallowParallelRun(allowParallelRun.jobQueuedRunId());
 
         final var ids =
                 jobDataService.findQueuedRunsPage(PageRequest.of(0, 10)).getContent().stream()
@@ -217,40 +217,40 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         .toList();
 
         assertTrue(
-                ids.indexOf(runNow.jobQueuedRunId()) < ids.indexOf(high.jobQueuedRunId()),
+                ids.indexOf(allowParallelRun.jobQueuedRunId()) < ids.indexOf(high.jobQueuedRunId()),
                 "a row to run now must be ordered before any priority");
     }
 
     @Test
-    void setAllowQueuedRunToRunNowNeverMarksAClaimedRow() {
+    void setAllowQueuedRunToallowParallelRunNeverMarksAClaimedRow() {
         final var run = queueOne();
         jobDataService.claimQueuedRun(run, "runner-a");
 
-        assertFalse(jobDataService.setAllowQueuedRunToRunNow(run.jobQueuedRunId()));
+        assertFalse(jobDataService.setAllowQueuedRunToallowParallelRun(run.jobQueuedRunId()));
     }
 
     @Test
-    void setAllowQueuedRunToRunNowNeverMarksARunningRow() {
+    void setAllowQueuedRunToallowParallelRunNeverMarksARunningRow() {
         final var runningRunId = queueClaimAndRunToRunning();
 
-        assertFalse(jobDataService.setAllowQueuedRunToRunNow(runningRunId));
+        assertFalse(jobDataService.setAllowQueuedRunToallowParallelRun(runningRunId));
     }
 
     @Test
-    void setAllowQueuedRunToRunNowNeverMarksAHandoffContinuation() {
+    void setAllowQueuedRunToallowParallelRunNeverMarksAHandoffContinuation() {
         final var continuation = queueHandoffContinuation();
 
-        assertFalse(jobDataService.setAllowQueuedRunToRunNow(continuation.jobQueuedRunId()));
-        assertFalse(findInQueue(continuation.jobQueuedRunId()).orElseThrow().runNow());
+        assertFalse(jobDataService.setAllowQueuedRunToallowParallelRun(continuation.jobQueuedRunId()));
+        assertFalse(findInQueue(continuation.jobQueuedRunId()).orElseThrow().allowParallelRun());
     }
 
     @Test
-    void aHandoffContinuationDropsRunNow() {
-        // Run-now applies to fresh runs only; how continuations of a run-now run behave is still
+    void aHandoffContinuationDropsallowParallelRun() {
+        // Allow-parallel-run applies to fresh runs only; how continuations of a allow-parallel-run run behave is still
         // to be decided, so for now they are dispatched like any other continuation.
         final var runningRunId = queueClaimAndRunToRunning();
         jobJdbcTemplate.update(
-                "UPDATE t_job_run_queue SET run_now = ? WHERE pk_job_run_queue_id = ?",
+                "UPDATE t_job_run_queue SET allow_parallel_run = ? WHERE pk_job_run_queue_id = ?",
                 true,
                 runningRunId);
 
@@ -264,7 +264,7 @@ class JobQueuedRunDatabaseTest extends BaseJobDatabaseTest {
                         JobRunnerKey.DEDICATED_K8S_JOB);
 
         assertEquals(runningRunId, continuation.jobQueuedRunId());
-        assertFalse(continuation.runNow());
+        assertFalse(continuation.allowParallelRun());
     }
 
     @Test

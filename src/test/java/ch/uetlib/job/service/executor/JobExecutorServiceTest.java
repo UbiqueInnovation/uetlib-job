@@ -271,21 +271,21 @@ class JobExecutorServiceTest {
     }
 
     @Test
-    void aRunNowRowCanStartWhileItsJobIsRunning() {
+    void aallowParallelRunRowCanStartWhileItsJobIsRunning() {
         stubStartChecks(new JobProperties(List.of()), Optional.of(runningLastRun()));
 
-        assertTrue(service.canStart(runNow(waitingRun(false))));
+        assertTrue(service.canStart(allowParallelRun(waitingRun(false))));
     }
 
     @Test
-    void aRunNowRowIsSubmittedWhileItsJobIsRunning() {
+    void aallowParallelRunRowIsSubmittedWhileItsJobIsRunning() {
         stubHappyPath();
         when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
         when(jobService.getLastJobRun(JOB.id())).thenReturn(Optional.of(runningLastRun()));
         when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
         when(currentRunner.submit(any(), any())).thenReturn(true);
 
-        final var result = service.submit(runNow(queuedRun()), false);
+        final var result = service.submit(allowParallelRun(queuedRun()), false);
 
         assertInstanceOf(SuccessfulSubmissionResult.class, result);
         verify(currentRunner).submit(any(), any());
@@ -293,7 +293,7 @@ class JobExecutorServiceTest {
 
     @Test
     void aFreshRunWaitsForAnOlderRunStillUnderWayAfterTheLatestRunEnded() {
-        // A run-now run started next to an older run and finished first: the latest run is done,
+        // A allow-parallel-run run started next to an older run and finished first: the latest run is done,
         // but the older one is still going, so a normal run must keep waiting.
         stubStartChecks(new JobProperties(List.of()), Optional.of(finishedLastRun()));
         when(jobService.hasRunningJobRun(JOB.id())).thenReturn(true);
@@ -302,15 +302,15 @@ class JobExecutorServiceTest {
     }
 
     @Test
-    void runNowDoesNotLetAContinuationStartNextToAnotherRun() {
+    void allowParallelRunDoesNotLetAContinuationStartNextToAnotherRun() {
         stubStartChecks(new JobProperties(List.of()), Optional.of(runningLastRun()));
 
-        assertFalse(service.canStart(runNow(continuationOf(runningLastRun().id() + 1))));
+        assertFalse(service.canStart(allowParallelRun(continuationOf(runningLastRun().id() + 1))));
     }
 
     @Test
     void aDispatchedDedicatedRunIsNotCheckedForParallelRunsAgain() {
-        // The dispatcher already approved the row, possibly as run-now, which this process never
+        // The dispatcher already approved the row, possibly as allow-parallel-run, which this process never
         // learns of.
         stubHappyPath();
         when(jobService.findJobId(TestJob.class)).thenReturn(Optional.of(JOB.id()));
@@ -387,7 +387,7 @@ class JobExecutorServiceTest {
                 false);
     }
 
-    private static JobQueuedRun runNow(final JobQueuedRun row) {
+    private static JobQueuedRun allowParallelRun(final JobQueuedRun row) {
         return new JobQueuedRun(
                 row.jobQueuedRunId(),
                 row.priority(),

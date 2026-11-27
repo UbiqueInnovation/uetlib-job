@@ -7,15 +7,15 @@
 - Extract `ApplicationReady`-Event Listener into an own class to fix Triggers on startup
 - Improved nullability annotations for job properties
 
-### Feature: Run Now
+### Feature: Allow run immediately
 
-- Add `run-now` endpoint + functionality to force a queued run to start immediately
+- Add `allow-parallel-run` endpoint + functionality to force a queued run to start immediately
 - Fix parallel runs check only checked if the latest run of this job finished, not any run
 - A dedicated `--job --run <id>` executes the run without checking the parallel run condition
 
 ### Breaking Changes
 
-- Apply Migration `update_uetlib_6_2_0.sql` to add column `t_job_run_queue.run_now`.
+- Apply Migration `update_uetlib_6_2_0.sql` to add column `t_job_run_queue.allow_parallel_run`.
 
 ## 6.1.2
 

@@ -203,15 +203,18 @@ public class JobExecutorService {
 
     private Optional<String> parallelRunRefusal(final Job job, final JobQueuedRun jobQueuedRun) {
         return parallelRunRefusal(
-                job, jobQueuedRun.arguments(), jobQueuedRun.jobRunId(), jobQueuedRun.runNow());
+                job,
+                jobQueuedRun.arguments(),
+                jobQueuedRun.jobRunId(),
+                jobQueuedRun.allowParallelRun());
     }
 
     private Optional<String> parallelRunRefusal(
             final Job job,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
-            final boolean runNow) {
-        if (mayRunInParallel(job, arguments, runId, runNow)) {
+            final boolean allowParallelRun) {
+        if (mayRunInParallel(job, arguments, runId, allowParallelRun)) {
             return Optional.empty();
         }
         final var blocked =
@@ -226,13 +229,16 @@ public class JobExecutorService {
         return Optional.empty();
     }
 
-    /** Note: Run-now applies to fresh runs only, never to a {@code BaseStateJob} continuation. */
+    /**
+     * @param allowParallelRun applies to fresh runs only, never to a {@code BaseStateJob}
+     *     continuation.
+     */
     private boolean mayRunInParallel(
             final Job job,
             @Nullable final JobRunArguments arguments,
             @Nullable final Integer runId,
-            final boolean runNow) {
-        if (runNow && runId == null) {
+            final boolean allowParallelRun) {
+        if (allowParallelRun && runId == null) {
             return true;
         }
         final var jobProperties = jobService.getProperties(job);

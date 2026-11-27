@@ -193,33 +193,33 @@ class JobControllerServiceTest {
     }
 
     @Test
-    void runQueuedRunNowMarksTheRowWhenItsJobIsEnabledAndAllowsManualRuns() {
-        stubRunNowChecks(true, new JobProperties(List.of()));
-        when(jobDataService.setAllowQueuedRunToRunNow(5)).thenReturn(true);
+    void runQueuedallowParallelRunMarksTheRowWhenItsJobIsEnabledAndAllowsManualRuns() {
+        stuballowParallelRunChecks(true, new JobProperties(List.of()));
+        when(jobDataService.setAllowQueuedRunToallowParallelRun(5)).thenReturn(true);
 
-        assertTrue(service.runQueuedRunNow(5).success());
-        verify(jobDataService).setAllowQueuedRunToRunNow(5);
+        assertTrue(service.runQueuedallowParallelRun(5).success());
+        verify(jobDataService).setAllowQueuedRunToallowParallelRun(5);
     }
 
     @Test
-    void runQueuedRunNowReportsFailureWhenTheRowIsNotFound() {
+    void runQueuedallowParallelRunReportsFailureWhenTheRowIsNotFound() {
         when(jobDataService.findQueuedRunsByIds(List.of(5))).thenReturn(List.of());
 
-        assertFalse(service.runQueuedRunNow(5).success());
-        verify(jobDataService, never()).setAllowQueuedRunToRunNow(anyInt());
+        assertFalse(service.runQueuedallowParallelRun(5).success());
+        verify(jobDataService, never()).setAllowQueuedRunToallowParallelRun(anyInt());
     }
 
     @Test
-    void runQueuedRunNowReportsFailureWhenTheJobIsDisabled() {
-        stubRunNowChecks(false, new JobProperties(List.of()));
+    void runQueuedallowParallelRunReportsFailureWhenTheJobIsDisabled() {
+        stuballowParallelRunChecks(false, new JobProperties(List.of()));
 
-        assertFalse(service.runQueuedRunNow(5).success());
-        verify(jobDataService, never()).setAllowQueuedRunToRunNow(anyInt());
+        assertFalse(service.runQueuedallowParallelRun(5).success());
+        verify(jobDataService, never()).setAllowQueuedRunToallowParallelRun(anyInt());
     }
 
     @Test
-    void runQueuedRunNowReportsFailureWhenTheJobDisallowsNewManualRuns() {
-        stubRunNowChecks(
+    void runQueuedallowParallelRunReportsFailureWhenTheJobDisallowsNewManualRuns() {
+        stuballowParallelRunChecks(
                 true,
                 new JobProperties(
                         List.of(
@@ -229,20 +229,20 @@ class JobControllerServiceTest {
                                                         JobManualTriggerMode
                                                                 .REPLAY_RUN_ALLOWED)))));
 
-        assertFalse(service.runQueuedRunNow(5).success());
-        verify(jobDataService, never()).setAllowQueuedRunToRunNow(anyInt());
+        assertFalse(service.runQueuedallowParallelRun(5).success());
+        verify(jobDataService, never()).setAllowQueuedRunToallowParallelRun(anyInt());
     }
 
     @Test
-    void runQueuedRunNowReportsFailureWhenTheRowCanNoLongerBeMarked() {
+    void runQueuedallowParallelRunReportsFailureWhenTheRowCanNoLongerBeMarked() {
         // Claimed, running or a continuation by the time of the conditional update.
-        stubRunNowChecks(true, new JobProperties(List.of()));
-        when(jobDataService.setAllowQueuedRunToRunNow(5)).thenReturn(false);
+        stuballowParallelRunChecks(true, new JobProperties(List.of()));
+        when(jobDataService.setAllowQueuedRunToallowParallelRun(5)).thenReturn(false);
 
-        assertFalse(service.runQueuedRunNow(5).success());
+        assertFalse(service.runQueuedallowParallelRun(5).success());
     }
 
-    private void stubRunNowChecks(final boolean enabled, final JobProperties properties) {
+    private void stuballowParallelRunChecks(final boolean enabled, final JobProperties properties) {
         when(jobDataService.findQueuedRunsByIds(List.of(5))).thenReturn(List.of(queuedRun(5)));
         when(jobService.findJobById(JOB.id())).thenReturn(Optional.of(JOB));
         when(jobService.getJobClassOrThrow(JOB)).thenAnswer(invocation -> TestJob.class);

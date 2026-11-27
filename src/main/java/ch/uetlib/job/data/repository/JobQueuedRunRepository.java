@@ -62,7 +62,7 @@ public interface JobQueuedRunRepository
             SELECT q
             FROM JobQueuedRunEntity q
             WHERE q.queueState = :state
-            ORDER BY q.runNow DESC, COALESCE(q.priority, 0) DESC, q.createdAt ASC
+            ORDER BY q.allowParallelRun DESC, COALESCE(q.priority, 0) DESC, q.createdAt ASC
             """)
     Slice<JobQueuedRunEntity> findByQueueStateOrderedByPriority(
             JobRunQueueState state, Pageable pageable);
@@ -98,14 +98,16 @@ public interface JobQueuedRunRepository
 
     /**
      * Sends a {@code BaseStateJob} continuation's own row back to {@code QUEUED} for its target
-     * runner. Run-now applies to fresh runs only, so the continuation drops it.
+     * runner.
+     *
+     * <p>Note: allowParallelRun applies to fresh runs only, so the continuation drops it.
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
             """
             UPDATE JobQueuedRunEntity j
             SET j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED,
-                j.runner = null, j.runNow = false, j.updatedAt = :now
+                j.runner = null, j.allowParallelRun = false, j.updatedAt = :now
             WHERE j.jobRunId = :jobRunId
               AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.RUNNING
             """)
@@ -218,10 +220,10 @@ public interface JobQueuedRunRepository
     @Query(
             """
             UPDATE JobQueuedRunEntity j
-            SET j.runNow = true, j.updatedAt = :now
+            SET j.allowParallelRun = true, j.updatedAt = :now
             WHERE j.jobQueuedRunId = :id
               AND j.queueState = ch.uetlib.job.model.queue.JobRunQueueState.QUEUED
               AND j.jobRunId IS NULL
             """)
-    int setAllowRunNow(int id, Instant now);
+    int setAllowallowParallelRun(int id, Instant now);
 }

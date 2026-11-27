@@ -29,7 +29,7 @@ public record JobQueueEntryInfo(
         @JsonProperty(required = true) @NotNull Instant createdAt,
         @JsonProperty(required = true) @NotNull Instant updatedAt,
         @JsonProperty(required = true) @NotNull Set<JobRunnerTaint> taints,
-        @JsonProperty(required = true) boolean runNow) {
+        @JsonProperty(required = true) boolean allowParallelRun) {
 
     public static JobQueueEntryInfo from(final JobQueuedRun run, @Nullable final String jobName) {
         return new JobQueueEntryInfo(
@@ -44,6 +44,6 @@ public record JobQueueEntryInfo(
                 run.createdAt(),
                 run.updatedAt(),
                 run.taints(),
-                run.runNow());
+                run.allowParallelRun());
     }
 }

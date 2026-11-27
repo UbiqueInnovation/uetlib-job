@@ -64,10 +64,10 @@ class UetlibJobStatusControllerTest {
     }
 
     @Test
-    void runQueuedRunNowDelegatesToTheControllerService() {
-        when(jobControllerService.runQueuedRunNow(5)).thenReturn(new SuccessResponse(true, "ok"));
+    void runQueuedallowParallelRunDelegatesToTheControllerService() {
+        when(jobControllerService.runQueuedallowParallelRun(5)).thenReturn(new SuccessResponse(true, "ok"));
 
-        assertTrue(controller.runQueuedRunNow(5).success());
+        assertTrue(controller.runQueuedallowParallelRun(5).success());
     }
 
     @Test

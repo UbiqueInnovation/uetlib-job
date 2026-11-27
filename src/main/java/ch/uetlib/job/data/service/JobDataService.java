@@ -942,8 +942,8 @@ public class JobDataService {
     }
 
     @Transactional
-    public boolean setAllowQueuedRunToRunNow(final int jobQueuedRunId) {
-        return jobQueuedRunRepository.setAllowRunNow(jobQueuedRunId, Instant.now()) == 1;
+    public boolean setAllowQueuedRunToallowParallelRun(final int jobQueuedRunId) {
+        return jobQueuedRunRepository.setAllowallowParallelRun(jobQueuedRunId, Instant.now()) == 1;
     }
 
     private Predicate buildQueuedRunsPredicate(

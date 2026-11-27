@@ -20,4 +20,4 @@ public record JobQueuedRun(
         Instant updatedAt,
         Set<JobRunnerTaint> taints,
         JobRunArguments arguments,
-        boolean runNow) {}
+        boolean allowParallelRun) {}
