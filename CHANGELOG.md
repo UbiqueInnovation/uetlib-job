@@ -6,6 +6,8 @@
   respective breaking change.
 - Extract `ApplicationReady`-Event Listener into an own class to fix Triggers on startup
 - Improved nullability annotations for job properties
+- `JobSubmissionService` now looks up job ids lazily instead of snapshotting them at startup, so jobs registered after
+  the service was created (startup order, rolling deployments) can be submitted.
 
 ## 6.1.2
 
