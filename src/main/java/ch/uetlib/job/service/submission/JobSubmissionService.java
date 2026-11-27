@@ -1,14 +1,10 @@
 package ch.uetlib.job.service.submission;
 
-import static java.util.stream.Collectors.toMap;
-
 import ch.uetlib.job.data.repository.JobRepository;
 import ch.uetlib.job.data.repository.JobRunDatabaseSubmissionRepository;
 import ch.uetlib.job.exception.JobSubmissionException;
-import ch.uetlib.job.model.JobClassAndId;
 import ch.uetlib.job.model.JobRunArgumentsAdditionalData;
 import ch.uetlib.job.model.JobRunDatabaseSubmissionArguments;
-import ch.uetlib.job.model.entity.JobEntity;
 import ch.uetlib.job.model.entity.JobRunDatabaseSubmissionEntity;
 import ch.uetlib.job.model.triggers.DatabaseSubmissionTrigger;
 import ch.uetlib.job.service.JobService;
@@ -20,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Modules that are not the job module use this service to submit new jobs to be trigger via {@link
@@ -31,17 +29,35 @@ import java.util.Map;
 @Service
 public class JobSubmissionService {
 
-    private final Map<String, Integer> jobIds;
+    private final JobRepository jobRepository;
     private final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository;
+
+    /**
+     * Job ids by canonical class name, filled lazily. Jobs are registered by the job module on its
+     * own startup, so they may not exist yet when this bean is created, and they can be added
+     * later.
+     */
+    private final Map<String, Integer> jobIds = new ConcurrentHashMap<>();
 
     public JobSubmissionService(
             final JobRepository jobRepository,
             final JobRunDatabaseSubmissionRepository jobRunDatabaseSubmissionRepository) {
+        this.jobRepository = jobRepository;
         this.jobRunDatabaseSubmissionRepository = jobRunDatabaseSubmissionRepository;
-        this.jobIds =
-                jobRepository.findAll().stream()
-                        .map(JobEntity::toRecord)
-                        .collect(toMap(JobClassAndId::canonicalClassName, JobClassAndId::id));
+    }
+
+    private Optional<Integer> findJobId(final String jobClassName) {
+        final var cached = jobIds.get(jobClassName);
+        if (cached != null) {
+            return Optional.of(cached);
+        }
+
+        final var loaded =
+                jobRepository
+                        .findByCanonicalClassName(jobClassName)
+                        .map(job -> job.toRecord().id());
+        loaded.ifPresent(id -> jobIds.put(jobClassName, id));
+        return loaded;
     }
 
     @Transactional
@@ -50,10 +66,11 @@ public class JobSubmissionService {
             final boolean forceRun,
             @Nullable final JobRunArgumentsAdditionalData additionalData)
             throws JobSubmissionException {
-        final var jobId = jobIds.get(jobClassName);
-        if (jobId == null) {
-            throw JobSubmissionException.withMessage("No Job with clazz {0} found", jobClassName);
-        }
+        final var jobId =
+                findJobId(jobClassName)
+                        .orElseThrow(() ->
+                                JobSubmissionException.withMessage(
+                                        "No Job with clazz {0} found", jobClassName));
         jobRunDatabaseSubmissionRepository.save(
                 new JobRunDatabaseSubmissionEntity(
                         jobId,
