@@ -17,10 +17,7 @@ final class DurationPropertyDefinition extends AbstractJobPropertyDefinition<Dur
     }
 
     @Override
-    public Duration decodeFromString(final @Nullable String value) {
-        if (value == null) {
-            throw new IllegalArgumentException("value cannot be null");
-        }
+    public Duration decodeFromString(final String value) {
         if (NumberUtils.isDigits(value)) {
             return Duration.ofMillis(Long.parseLong(value));
         }

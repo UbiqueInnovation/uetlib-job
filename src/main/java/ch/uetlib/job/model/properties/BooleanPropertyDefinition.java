@@ -1,7 +1,6 @@
 package ch.uetlib.job.model.properties;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Set;
@@ -17,7 +16,7 @@ final class BooleanPropertyDefinition extends AbstractJobPropertyDefinition<Bool
     }
 
     @Override
-    public Boolean decodeFromString(final @Nullable String value) {
+    public Boolean decodeFromString(final String value) {
         return BooleanUtils.toBoolean(value);
     }
 

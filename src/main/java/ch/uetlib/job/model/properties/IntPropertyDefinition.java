@@ -2,7 +2,6 @@ package ch.uetlib.job.model.properties;
 
 import org.jspecify.annotations.Nullable;
 
-import java.util.Optional;
 import java.util.Set;
 
 final class IntPropertyDefinition extends AbstractJobPropertyDefinition<Integer> {
@@ -18,16 +17,12 @@ final class IntPropertyDefinition extends AbstractJobPropertyDefinition<Integer>
     }
 
     @Override
-    public Integer decodeFromString(final @Nullable String value) {
-        if (value == null) {
-            throw new IllegalArgumentException("value cannot be null");
-        }
+    public Integer decodeFromString(final String value) {
         return Integer.parseInt(value);
     }
 
     @Override
-    @Nullable
-    public String encodeFromString(final @Nullable Integer value) {
-        return Optional.ofNullable(value).map(String::valueOf).orElse(null);
+    public String encodeFromString(final Integer value) {
+        return String.valueOf(value);
     }
 }

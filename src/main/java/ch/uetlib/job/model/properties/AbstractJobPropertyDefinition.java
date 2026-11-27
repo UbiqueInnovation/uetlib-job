@@ -6,14 +6,12 @@ import ch.uetlib.core.utils.StringUtils;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.Set;
 
-abstract sealed class AbstractJobPropertyDefinition<T extends @Nullable Object>
-        implements JobPropertyDefinition<T>
+abstract sealed class AbstractJobPropertyDefinition<T> implements JobPropertyDefinition<T>
         permits BooleanPropertyDefinition,
                 DurationPropertyDefinition,
                 EnumPropertyDefinition,
@@ -65,7 +63,7 @@ abstract sealed class AbstractJobPropertyDefinition<T extends @Nullable Object>
 
     @Override
     @SuppressWarnings("NullAway")
-    public Optional<@NonNull T> defaultValue() {
+    public Optional<T> defaultValue() {
         return ofNullable(defaultValue);
     }
 

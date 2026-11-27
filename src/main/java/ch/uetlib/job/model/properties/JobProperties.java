@@ -11,8 +11,7 @@ import java.util.Collection;
 public record JobProperties(
         @JsonProperty(required = true) @NotNull Collection<JobProperty<Object>> values) {
 
-    public <T extends @Nullable Object> JobProperty<T> get(
-            final JobPropertyDefinition<T> definition) {
+    public <T> JobProperty<T> get(final JobPropertyDefinition<T> definition) {
         //noinspection unchecked
         return values.stream()
                 .filter(property -> property.key().equals(definition.key()))
@@ -21,8 +20,7 @@ public record JobProperties(
                 .orElseGet(() -> definition.createProperty(null));
     }
 
-    public <T extends @Nullable Object> @Nullable T getValue(
-            final JobPropertyDefinition<T> definition) {
+    public <T> @Nullable T getValue(final JobPropertyDefinition<T> definition) {
         return get(definition).value();
     }
 }

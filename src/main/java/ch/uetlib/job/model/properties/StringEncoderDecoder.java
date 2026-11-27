@@ -4,7 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 public interface StringEncoderDecoder<T extends @Nullable Object> {
 
-    T decodeFromString(final @Nullable String value);
+    T decodeFromString(final String value);
 
-    @Nullable String encodeFromString(final T value);
+    String encodeFromString(final T value);
 }

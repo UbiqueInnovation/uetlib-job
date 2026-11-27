@@ -1,7 +1,6 @@
 package ch.uetlib.job.model.properties;
 
 import org.apache.commons.lang3.EnumUtils;
-import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Set;
@@ -10,7 +9,6 @@ final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropert
 
     private final Class<T> enumClass;
 
-    @SuppressWarnings("unchecked")
     EnumPropertyDefinition(
             final String key,
             final String description,
@@ -22,12 +20,12 @@ final class EnumPropertyDefinition<T extends Enum<T>> extends AbstractJobPropert
                 group,
                 false,
                 Objects.requireNonNull(defaultValue),
-                (Set<T>) Set.of(defaultValue.getDeclaringClass().getEnumConstants()));
-        this.enumClass = (Class<T>) defaultValue.getDeclaringClass();
+                Set.of(defaultValue.getDeclaringClass().getEnumConstants()));
+        this.enumClass = defaultValue.getDeclaringClass();
     }
 
     @Override
-    public T decodeFromString(final @Nullable String value) {
+    public T decodeFromString(final String value) {
         return Objects.requireNonNull(EnumUtils.getEnumIgnoreCase(enumClass, value));
     }
 

@@ -17,10 +17,7 @@ final class StringPropertyDefinition extends AbstractJobPropertyDefinition<Strin
     }
 
     @Override
-    public String decodeFromString(final @Nullable String value) {
-        if (value == null) {
-            throw new IllegalArgumentException("value cannot be null");
-        }
+    public String decodeFromString(final String value) {
         return value;
     }
 

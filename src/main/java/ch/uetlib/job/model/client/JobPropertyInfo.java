@@ -11,7 +11,6 @@ import jakarta.validation.constraints.NotNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public record JobPropertyInfo(
@@ -42,11 +41,7 @@ public record JobPropertyInfo(
                 new JobPropertyGroupInfo(definition.group()),
                 definition
                         .allowedValues()
-                        .map(values ->
-                                values.stream()
-                                        .map(definition::encodeFromString)
-                                        .filter(Objects::nonNull)
-                                        .toList())
+                        .map(values -> values.stream().map(definition::encodeFromString).toList())
                         .orElse(null),
                 defaultValue,
                 definition.nullable(),

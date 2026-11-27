@@ -5,6 +5,7 @@
 - Remove `job-primary-triggers` profile in favor of `job-no-primary`. If upgrading from `<6.0.0`, ignore this and the
   respective breaking change.
 - Extract `ApplicationReady`-Event Listener into an own class to fix Triggers on startup
+- Improved nullability annotations for job properties
 
 ## 6.1.2
 

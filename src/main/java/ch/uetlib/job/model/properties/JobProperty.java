@@ -9,13 +9,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-public record JobProperty<T extends @Nullable Object>(
+public record JobProperty<T>(
         @JsonProperty(required = true) @NotNull JobPropertyDefinition<T> definition,
         @Nullable T value) {
 
@@ -47,18 +46,21 @@ public record JobProperty<T extends @Nullable Object>(
 
     @Nullable
     public String encodedValue() {
-        return Optional.ofNullable(value).map(definition::encodeFromString).orElse(null);
+        if (value == null) {
+            return null;
+        }
+        return definition.encodeFromString(value);
     }
 
     public boolean isValuePresent() {
         return value != null;
     }
 
-    public Optional<@NonNull T> valueMaybe() {
+    public Optional<T> valueMaybe() {
         return ofNullable(value);
     }
 
-    public @NonNull T valueNonNull() {
+    public T valueNonNull() {
         return requireNonNull(value);
     }
 }
